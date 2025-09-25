@@ -28,7 +28,7 @@ const SubscribeOverlay: React.FC<SubscribeOverlayProps> = () => {
       <img
         src="/Logo.jpeg?v=1"
         alt="WPW Scanner Feed Logo"
-        className="w-24 h-24 rounded-full shadow-lg object-contain"
+        className="w-32 h-32 rounded-full shadow-lg object-contain"
       />
     </div>
   );
