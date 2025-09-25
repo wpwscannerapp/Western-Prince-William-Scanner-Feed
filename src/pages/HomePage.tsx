@@ -7,12 +7,12 @@ import { Post, PostService } from '@/services/PostService';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client'; // Updated import path
-import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import the new hook
+import { supabase } from '@/integrations/supabase/client';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 
 const HomePage = () => {
   const { user } = useAuth();
-  const isAdmin = useIsAdmin(); // Use the new hook
+  const isAdmin = useIsAdmin();
   const [posts, setPosts] = useState<Post[]>([]);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,7 @@ const HomePage = () => {
 
   useEffect(() => {
     const checkSubscriptionStatus = async () => {
-      if (isAdmin) { // Admins always bypass subscription checks
+      if (isAdmin) {
         setIsSubscribed(true);
         return;
       }
@@ -57,7 +57,7 @@ const HomePage = () => {
       }
     };
     checkSubscriptionStatus();
-  }, [user, isAdmin]); // Depend on isAdmin
+  }, [user, isAdmin]);
 
   const fetchPosts = useCallback(async (pageNum: number, append: boolean = true) => {
     setLoading(true);
@@ -81,7 +81,7 @@ const HomePage = () => {
   }, [posts]);
 
   useEffect(() => {
-    fetchPosts(0, false); // Initial fetch
+    fetchPosts(0, false);
   }, [fetchPosts]);
 
   useEffect(() => {
@@ -90,24 +90,22 @@ const HomePage = () => {
     }
   }, [page, fetchPosts]);
 
-  // Auto-refresh every 30 seconds for subscribed users AND admins
   useEffect(() => {
     const interval = setInterval(() => {
-      if (isSubscribed || isAdmin) { // Auto-refresh for subscribed users and admins
+      if (isSubscribed || isAdmin) {
         fetchNewPosts();
       }
-    }, 30000); // 30 seconds
+    }, 30000);
     return () => clearInterval(interval);
   }, [fetchNewPosts, isSubscribed, isAdmin]);
 
-  // Supabase Realtime subscription for new posts
   useEffect(() => {
     const channel = supabase
       .channel('public:posts')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, (payload) => {
         const newPost = payload.new as Post;
         setPosts(prevPosts => [newPost, ...prevPosts]);
-        if (isSubscribed || isAdmin) { // Notify subscribed users and admins
+        if (isSubscribed || isAdmin) {
           toast.info('New scanner update received!');
         }
       })
@@ -116,7 +114,7 @@ const HomePage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isSubscribed, isAdmin]); // Re-subscribe if subscription status or admin status changes
+  }, [isSubscribed, isAdmin]);
 
   return (
     <div className="container mx-auto p-4 pt-8 relative">
@@ -147,6 +145,16 @@ const HomePage = () => {
         </div>
         {!isSubscribed && !isAdmin && <SubscribeOverlay />}
       </div>
+
+      {/* Logo added here */}
+      <div className="flex justify-center my-8">
+        <img
+          src="/Logo.jpeg?v=1"
+          alt="WPW Scanner Feed Logo"
+          className="w-24 h-24 rounded-full shadow-lg object-contain"
+        />
+      </div>
+
       <MadeWithDyad />
     </div>
   );
