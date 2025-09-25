@@ -6,7 +6,7 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client'; // Updated import path
+import { StripeClient } from '@/integrations/stripe/client'; // Import StripeClient
 
 const SubscriptionPage = () => {
   const navigate = useNavigate();
@@ -24,18 +24,19 @@ const SubscriptionPage = () => {
     toast.loading('Initiating subscription...', { id: 'sub-loading' });
 
     try {
-      // Update the user's subscription status in the profiles table
-      const { error } = await supabase
-        .from('profiles')
-        .update({ subscription_status: 'trialing' })
-        .eq('id', user.id);
+      const priceId = import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID;
+      if (!priceId) {
+        toast.error('Stripe price ID is not configured. Please contact support.', { id: 'sub-loading' });
+        setIsLoading(false);
+        return;
+      }
 
-      if (error) {
-        console.error('Error updating subscription status:', error);
-        toast.error(`Failed to start free trial: ${error.message}`, { id: 'sub-loading' });
+      const checkoutUrl = await StripeClient.createCheckoutSession(priceId, user.id);
+
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl; // Redirect to Stripe Checkout
       } else {
-        toast.success('Subscription active! Enjoy your 7-day free trial.', { id: 'sub-loading' });
-        navigate('/home'); // Redirect to home page after successful subscription
+        toast.error('Failed to initiate Stripe checkout. Please try again.', { id: 'sub-loading' });
       }
     } catch (err: any) {
       console.error('Unexpected error during subscription:', err);
@@ -77,13 +78,12 @@ const SubscriptionPage = () => {
             </li>
           </ul>
 
-          {/* Placeholder for Stripe Payment Form */}
           <div className="bg-muted p-4 rounded-md text-muted-foreground text-sm">
             <p className="mb-2">
               <Lock className="inline-block h-4 w-4 mr-1" /> Secure payment via Stripe.
             </p>
             <p>
-              (A real Stripe payment form would appear here, requiring a backend to create a checkout session.)
+              You will be redirected to Stripe to complete your subscription.
             </p>
           </div>
 
