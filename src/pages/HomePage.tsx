@@ -146,15 +146,6 @@ const HomePage = () => {
         {!isSubscribed && !isAdmin && <SubscribeOverlay />}
       </div>
 
-      {/* Logo added here */}
-      <div className="flex justify-center my-8">
-        <img
-          src="/Logo.jpeg?v=1"
-          alt="WPW Scanner Feed Logo"
-          className="w-24 h-24 rounded-full shadow-lg object-contain"
-        />
-      </div>
-
       <MadeWithDyad />
     </div>
   );

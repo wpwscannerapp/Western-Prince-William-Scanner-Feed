@@ -21,9 +21,15 @@ const SubscribeOverlay: React.FC<SubscribeOverlayProps> = () => {
       <p className="text-muted-foreground mb-6 text-center">
         Subscribe to get full access to real-time scanner posts and push notifications.
       </p>
-      <Button onClick={handleSubscribeClick} className="bg-blue-600 hover:bg-blue-700 text-white">
+      <Button onClick={handleSubscribeClick} className="bg-blue-600 hover:bg-blue-700 text-white mb-8">
         Subscribe Now
       </Button>
+      {/* Logo added here, below the button */}
+      <img
+        src="/Logo.jpeg?v=1"
+        alt="WPW Scanner Feed Logo"
+        className="w-24 h-24 rounded-full shadow-lg object-contain"
+      />
     </div>
   );
 };
