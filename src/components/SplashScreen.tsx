@@ -4,7 +4,7 @@ const SplashScreen = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4 text-center">
       <img
-        src="/Logo.jpeg" // Using your new logo
+        src="/Logo.jpeg?v=1" // Added cache-busting parameter
         alt="WPW Scanner Feed Logo"
         className="w-32 h-32 mb-6 animate-pulse"
       />

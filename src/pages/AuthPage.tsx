@@ -28,7 +28,7 @@ const AuthPage = () => {
       <div className="relative z-20 text-center mb-8 bg-card p-4 rounded-lg shadow-xl">
         <img
           key="auth-page-logo"
-          src="/Logo.jpeg"
+          src="/Logo.jpeg?v=1" // Added cache-busting parameter
           alt="WPW Scanner Feed Logo"
           className="w-32 h-32 mx-auto mb-4 rounded-full shadow-lg object-contain"
         />

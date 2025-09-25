@@ -15,7 +15,7 @@ const TopNavBar = () => {
       <div className="container mx-auto flex justify-between items-center h-16 px-4">
         <div className="flex items-center">
           <img
-            src="/Logo.jpeg"
+            src="/Logo.jpeg?v=1" // Added cache-busting parameter
             alt="WPW Scanner Feed Logo"
             className="h-8 w-8 mr-2 rounded-full"
           />
