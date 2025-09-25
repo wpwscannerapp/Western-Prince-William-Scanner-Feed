@@ -24,14 +24,15 @@ const AuthPage = () => {
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center p-4 bg-cover bg-center"
-      style={{ backgroundImage: 'url(/Logo.jpeg)' }} // Using your new logo as background
-    >
-      <div className="absolute inset-0 bg-black opacity-50"></div> {/* Adjusted opacity for better logo visibility */}
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background text-foreground">
       <div className="relative z-10 text-center mb-8">
-        <h1 className="text-4xl font-bold text-white mb-4">WPW Scanner Feed</h1>
-        <p className="text-xl text-blue-200 mb-6">
+        <img
+          src="/Logo.jpeg"
+          alt="WPW Scanner Feed Logo"
+          className="w-24 h-24 mx-auto mb-4 rounded-full shadow-lg"
+        />
+        <h1 className="text-4xl font-bold text-foreground mb-4">WPW Scanner Feed</h1>
+        <p className="text-xl text-muted-foreground mb-6">
           Join 20,000+ scanner fans for exclusive Prince William County updates!
         </p>
       </div>
