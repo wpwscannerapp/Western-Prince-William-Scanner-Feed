@@ -17,7 +17,7 @@ const TeaserPost = () => {
         <img
           src="/placeholder.svg" // Placeholder for a relevant image
           alt="Fire incident"
-          className="tw-w-full tw-h-48 tw-object-cover tw-rounded-md tw-mb-2"
+          className="tw-w-full tw-h-48 tw-object-cover tw-rounded-md tw-mb-2 tw-block"
         />
         <p className="tw-text-xs tw-text-gray-500">Posted: 1 hour ago</p>
       </CardContent>
