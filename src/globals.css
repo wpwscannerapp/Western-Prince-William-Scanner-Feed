@@ -92,7 +92,7 @@
 
 @layer base {
   * {
-    @apply tw-border-border;
+    border-color: hsl(var(--border)); /* Changed from @apply tw-border-border; */
   }
 
   body {
