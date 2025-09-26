@@ -7,6 +7,9 @@ export default defineConfig(() => ({
   server: {
     host: "::",
     port: 8080,
+    hmr: { // Added HMR overlay disable for debugging
+      overlay: false,
+    },
   },
   plugins: [dyadComponentTagger(), react()],
   resolve: {
@@ -24,7 +27,7 @@ export default defineConfig(() => ({
         },
       },
     },
-    minify: true, // Changed from 'esbuild' to true to resolve type error
-    sourcemap: false, // Disable in production for smaller bundles
+    minify: true,
+    sourcemap: false,
   },
 }));
