@@ -12,17 +12,18 @@ import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import the new hook
 
 const AdminPage = () => {
   const { user, loading: authLoading } = useAuth();
-  const isAdmin = useIsAdmin(); // Use the new hook
+  const { isAdmin, loading: isAdminLoading } = useIsAdmin(); // Use the new hook and destructure loading
   const navigate = useNavigate();
   const [postFormLoading, setPostFormLoading] = useState(false);
   const [postTableKey, setPostTableKey] = useState(0); // Key to force re-render of post table
 
   useEffect(() => {
-    if (!authLoading && !isAdmin) { // Check if not admin
+    // Only redirect if auth is not loading, isAdmin check is not loading, and user is not admin
+    if (!authLoading && !isAdminLoading && !isAdmin) {
       toast.error('Access Denied: You must be an administrator to view this page.');
       navigate('/home'); // Redirect non-admins
     }
-  }, [isAdmin, authLoading, navigate]);
+  }, [isAdmin, isAdminLoading, authLoading, navigate]);
 
   const handleCreatePost = async (text: string, imageFile: File | null) => {
     if (!user) {
@@ -45,13 +46,20 @@ const AdminPage = () => {
     }
   };
 
-  if (authLoading || !isAdmin) { // Check if not admin or still loading
+  // Show loading spinner if auth is loading OR if isAdmin status is still being determined
+  if (authLoading || isAdminLoading) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
         <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
         <p className="tw-ml-2">Loading admin panel...</p>
       </div>
     );
+  }
+
+  // If not loading and not admin, the useEffect above will handle redirection.
+  // This ensures the rest of the component only renders if the user is an admin.
+  if (!isAdmin) {
+    return null; // Or a simple message, as redirection is handled by useEffect
   }
 
   return (
