@@ -19,7 +19,7 @@ export default {
     },
     extend: {
       colors: {
-        border: "hsl(var(--border))",
+        appBorder: "hsl(var(--border))", // Renamed 'border' to 'appBorder'
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",

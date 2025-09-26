@@ -46,7 +46,7 @@ const AuthForm = () => {
   };
 
   return (
-    <div className="tw-w-full tw-max-w-md tw-p-8 tw-space-y-6 tw-bg-card tw-rounded-lg tw-shadow-lg tw-border tw-border-border">
+    <div className="tw-w-full tw-max-w-md tw-p-8 tw-space-y-6 tw-bg-card tw-rounded-lg tw-shadow-lg tw-border tw-border-app-border">
       <h2 className="tw-text-2xl tw-font-bold tw-text-center tw-text-foreground">
         {isLogin ? 'Login' : 'Sign Up'}
       </h2>

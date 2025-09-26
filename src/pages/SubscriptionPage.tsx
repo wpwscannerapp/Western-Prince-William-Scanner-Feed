@@ -49,7 +49,7 @@ const SubscriptionPage = () => {
 
   return (
     <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
-      <Card className="tw-w-full tw-max-w-md tw-bg-card tw-border-border tw-shadow-lg tw-text-center">
+      <Card className="tw-w-full tw-max-w-md tw-bg-card tw-border-app-border tw-shadow-lg tw-text-center">
         <CardHeader>
           <CardTitle className="tw-text-3xl tw-font-bold tw-text-primary">Premium Access</CardTitle>
           <CardDescription className="tw-text-muted-foreground tw-mt-2">
@@ -97,10 +97,10 @@ const SubscriptionPage = () => {
             Start Free Trial
           </Button>
 
-          <p className="tw-text-xs tw-text-muted-foreground tw-mt-4">
-            By subscribing, you agree to our <a href="#" className="tw-underline hover:tw-text-primary">Terms of Service</a>.
+          <p className="tw-xs tw-text-muted-foreground tw-mt-4">
+            By subscribing, you agree to our <a href="#" className="tw-underline hover:tw-primary">Terms of Service</a>.
           </p>
-          <p className="tw-text-sm tw-text-muted-foreground tw-flex tw-items-center tw-justify-center">
+          <p className="tw-sm tw-text-muted-foreground tw-flex tw-items-center tw-justify-center">
             <Lock className="tw-h-4 tw-w-4 tw-mr-1" /> Secure payments via Stripe — Join 20,000+ followers.
           </p>
         </CardContent>
