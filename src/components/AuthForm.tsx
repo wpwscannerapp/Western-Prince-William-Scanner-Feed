@@ -60,6 +60,7 @@ const AuthForm = () => {
             placeholder="you@example.com"
             {...form.register('email')}
             className="mt-1"
+            autoComplete="email" // Added autocomplete for email
           />
           {form.formState.errors.email && (
             <p className="text-destructive text-sm mt-1">{form.formState.errors.email.message}</p>
@@ -74,6 +75,7 @@ const AuthForm = () => {
               placeholder="••••••••"
               {...form.register('password')}
               className="mt-1"
+              autoComplete={isLogin ? "current-password" : "new-password"} // Added autocomplete for password
             />
             {form.formState.errors.password && (
               <p className="text-destructive text-sm mt-1">{form.formState.errors.password.message}</p>
