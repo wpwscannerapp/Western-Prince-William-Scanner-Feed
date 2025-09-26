@@ -4,7 +4,8 @@ const urlsToCache = [
   '/index.html',
   '/src/main.tsx',
   '/src/globals.css',
-  '/logo.jpeg', // Added logo.jpeg to cache
+  '/logo.jpeg',
+  '/placeholder.svg', // Added placeholder.svg to cache
   '/manifest.json',
   '/favicon.ico'
 ];
