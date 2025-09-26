@@ -26,6 +26,7 @@ const AuthPage = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background text-foreground">
       <div className="relative z-20 text-center mb-8 bg-card p-4 rounded-lg shadow-xl">
+        <img src="/logo.jpeg" alt="App Logo" className="h-16 w-auto mx-auto mb-4" />
         <h1 className="text-4xl font-bold text-foreground mb-4">WPW Scanner Feed</h1>
         <p className="text-xl text-muted-foreground mb-6">
           Join 20,000+ scanner fans for exclusive Prince William County updates!
