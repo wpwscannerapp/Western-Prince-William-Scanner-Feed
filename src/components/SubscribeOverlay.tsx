@@ -24,12 +24,6 @@ const SubscribeOverlay: React.FC<SubscribeOverlayProps> = () => {
       <Button onClick={handleSubscribeClick} className="bg-blue-600 hover:bg-blue-700 text-white mb-8">
         Subscribe Now
       </Button>
-      {/* Logo added here, below the button */}
-      <img
-        src="/Logo.jpeg?v=1"
-        alt="WPW Scanner Feed Logo"
-        className="w-32 h-32 rounded-full shadow-lg object-contain"
-      />
     </div>
   );
 };
