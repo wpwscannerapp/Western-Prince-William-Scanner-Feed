@@ -3,9 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Removed console logs for security
-// console.log('Supabase URL from .env:', supabaseUrl);
-// console.log('Supabase Anon Key from .env:', supabaseAnonKey);
+// TEMPORARY: Added console logs for debugging environment variables.
+// REMOVE THESE IN PRODUCTION.
+console.log('DEBUG: Supabase URL from .env:', supabaseUrl);
+console.log('DEBUG: Supabase Anon Key from .env:', supabaseAnonKey ? 'Loaded (not displayed for security)' : 'Not loaded');
+
 
 if (!supabaseUrl) {
   throw new Error('VITE_SUPABASE_URL is not defined in environment variables. Please check your .env file.');
