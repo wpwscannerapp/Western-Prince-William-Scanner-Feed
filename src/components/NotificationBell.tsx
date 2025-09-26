@@ -92,10 +92,10 @@ const NotificationBell: React.FC = () => {
       size="icon"
       onClick={handleToggleSubscription}
       disabled={isLoading}
-      className="text-muted-foreground hover:text-primary"
+      className="tw-text-muted-foreground hover:tw-text-primary"
     >
-      {isSubscribed ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
-      <span className="sr-only">{isSubscribed ? 'Disable notifications' : 'Enable notifications'}</span>
+      {isSubscribed ? <Bell className="tw-h-5 tw-w-5" /> : <BellOff className="tw-h-5 tw-w-5" />}
+      <span className="tw-sr-only">{isSubscribed ? 'Disable notifications' : 'Enable notifications'}</span>
     </Button>
   );
 };

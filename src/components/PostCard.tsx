@@ -11,28 +11,28 @@ interface PostCardProps {
 
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   return (
-    <Card className="w-full bg-card border-border shadow-md text-foreground">
-      <CardHeader className="pb-2">
-        <p className="text-sm text-muted-foreground font-semibold">
+    <Card className="tw-w-full tw-bg-card tw-border-border tw-shadow-md tw-text-foreground">
+      <CardHeader className="tw-pb-2">
+        <p className="tw-text-sm tw-text-muted-foreground tw-font-semibold">
           {formatPostTimestamp(post.timestamp)}
         </p>
       </CardHeader>
       <CardContent>
-        <p className="text-base mb-4 whitespace-pre-wrap">{post.text}</p>
+        <p className="tw-text-base tw-mb-4 tw-whitespace-pre-wrap">{post.text}</p>
         {post.image_url && (
           <img
             src={post.image_url}
             alt="Post image"
-            className="w-full h-48 object-cover rounded-md mb-4"
+            className="tw-w-full tw-h-48 tw-object-cover tw-rounded-md tw-mb-4"
           />
         )}
       </CardContent>
-      <CardFooter className="flex justify-end space-x-4 pt-0">
-        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
-          <Heart className="h-4 w-4 mr-1" /> Like
+      <CardFooter className="tw-flex tw-justify-end tw-space-x-4 tw-pt-0">
+        <Button variant="ghost" size="sm" className="tw-text-muted-foreground hover:tw-text-primary">
+          <Heart className="tw-h-4 tw-w-4 tw-mr-1" /> Like
         </Button>
-        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
-          <MessageCircle className="h-4 w-4 mr-1" /> Comment
+        <Button variant="ghost" size="sm" className="tw-text-muted-foreground hover:tw-text-primary">
+          <MessageCircle className="tw-h-4 tw-w-4 tw-mr-1" /> Comment
         </Button>
       </CardFooter>
     </Card>

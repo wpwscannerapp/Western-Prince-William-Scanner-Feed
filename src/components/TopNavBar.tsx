@@ -10,25 +10,25 @@ const TopNavBar = () => {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-card border-b border-border shadow-lg z-50">
-      <div className="container mx-auto flex justify-between items-center h-16 px-4">
-        <div className="flex items-center">
-          <img src="/logo.jpeg" alt="App Logo" className="h-8 w-auto mr-3" />
-          <span className="text-lg font-bold text-foreground">WPW Scanner Feed</span>
+    <nav className="tw-fixed tw-top-0 tw-left-0 tw-right-0 tw-bg-card tw-border-b tw-border-border tw-shadow-lg tw-z-50">
+      <div className="tw-container tw-mx-auto tw-flex tw-justify-between tw-items-center tw-h-16 tw-px-4">
+        <div className="tw-flex tw-items-center">
+          <img src="/logo.jpeg" alt="App Logo" className="tw-h-8 tw-w-auto tw-mr-3" />
+          <span className="tw-text-lg tw-font-bold tw-text-foreground">WPW Scanner Feed</span>
         </div>
-        <div className="flex space-x-6">
+        <div className="tw-flex tw-space-x-6">
           {navItems.map((item) => (
             <NavLink
               key={item.name}
               to={item.path}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-primary",
-                  isActive && "text-primary"
+                  "tw-flex tw-items-center tw-text-sm tw-font-medium tw-text-muted-foreground tw-transition-colors hover:tw-text-primary",
+                  isActive && "tw-text-primary"
                 )
               }
             >
-              <item.icon className="h-5 w-5 mr-1" />
+              <item.icon className="tw-h-5 tw-w-5 tw-mr-1" />
               {item.name}
             </NavLink>
           ))}

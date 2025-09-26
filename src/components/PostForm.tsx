@@ -88,59 +88,59 @@ const PostForm: React.FC<PostFormProps> = ({ initialPost, onSubmit, onCancel, is
   };
 
   return (
-    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 p-4 border rounded-lg bg-card shadow-sm">
+    <form onSubmit={form.handleSubmit(handleSubmit)} className="tw-space-y-4 tw-p-4 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm">
       <div>
         <Label htmlFor="post-text">Post Content</Label>
         <Textarea
           id="post-text"
           placeholder="Enter scanner update here..."
           {...form.register('text')}
-          className="mt-1 min-h-[100px]"
+          className="tw-mt-1 tw-min-h-[100px]"
           disabled={isLoading}
         />
         {form.formState.errors.text && (
-          <p className="text-destructive text-sm mt-1">{form.formState.errors.text.message}</p>
+          <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.text.message}</p>
         )}
       </div>
 
       <div>
-        <Label htmlFor="image-upload" className="flex items-center gap-2 cursor-pointer">
-          <ImageIcon className="h-4 w-4" /> Upload Image (Optional)
+        <Label htmlFor="image-upload" className="tw-flex tw-items-center tw-gap-2 tw-cursor-pointer">
+          <ImageIcon className="tw-h-4 tw-w-4" /> Upload Image (Optional)
         </Label>
         <Input
           id="image-upload"
           type="file"
           accept="image/*"
           onChange={handleImageChange}
-          className="mt-1 block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+          className="tw-mt-1 tw-block tw-w-full tw-text-sm tw-text-muted-foreground file:tw-mr-4 file:tw-py-2 file:tw-px-4 file:tw-rounded-full file:tw-border-0 file:tw-text-sm file:tw-font-semibold file:tw-bg-primary file:tw-text-primary-foreground hover:file:tw-bg-primary/90"
           disabled={isLoading}
         />
         {imagePreview && (
-          <div className="relative mt-4 w-32 h-32 rounded-md overflow-hidden">
-            <img src={imagePreview} alt="Image preview" className="w-full h-full object-cover" />
+          <div className="tw-relative tw-mt-4 tw-w-32 tw-h-32 tw-rounded-md tw-overflow-hidden">
+            <img src={imagePreview} alt="Image preview" className="tw-w-full tw-h-full tw-object-cover" />
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="absolute top-1 right-1 h-6 w-6 rounded-full bg-background/70 hover:bg-background"
+              className="tw-absolute tw-top-1 tw-right-1 tw-h-6 tw-w-6 tw-rounded-full tw-bg-background/70 hover:tw-bg-background"
               onClick={handleRemoveImage}
               disabled={isLoading}
             >
-              <XCircle className="h-4 w-4 text-destructive" />
-              <span className="sr-only">Remove image</span>
+              <XCircle className="tw-h-4 tw-w-4 tw-text-destructive" />
+              <span className="tw-sr-only">Remove image</span>
             </Button>
           </div>
         )}
       </div>
 
-      <div className="flex justify-end gap-2">
+      <div className="tw-flex tw-justify-end tw-gap-2">
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
             Cancel
           </Button>
         )}
-        <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <Button type="submit" disabled={isLoading} className="tw-bg-blue-600 hover:tw-bg-blue-700">
+          {isLoading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
           {initialPost ? 'Update Post' : 'Post Now'}
         </Button>
       </div>

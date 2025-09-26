@@ -16,24 +16,24 @@ const AuthPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
         <p>Loading authentication...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background text-foreground">
-      <div className="relative z-20 text-center mb-8 bg-card p-4 rounded-lg shadow-xl">
-        <img src="/logo.jpeg" alt="App Logo" className="h-16 w-auto mx-auto mb-4" />
-        <h1 className="text-4xl font-bold text-foreground mb-4">WPW Scanner Feed</h1>
-        <p className="text-xl text-muted-foreground mb-6">
+    <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-p-4 tw-bg-background tw-text-foreground">
+      <div className="tw-relative tw-z-20 tw-text-center tw-mb-8 tw-bg-card tw-p-4 tw-rounded-lg tw-shadow-xl">
+        <img src="/logo.jpeg" alt="App Logo" className="tw-h-16 tw-w-auto tw-mx-auto tw-mb-4" />
+        <h1 className="tw-text-4xl tw-font-bold tw-text-foreground tw-mb-4">WPW Scanner Feed</h1>
+        <p className="tw-text-xl tw-text-muted-foreground tw-mb-6">
           Join 20,000+ scanner fans for exclusive Prince William County updates!
         </p>
       </div>
-      <div className="relative z-10 flex flex-col md:flex-row items-center justify-center gap-8 w-full">
+      <div className="tw-relative tw-z-10 tw-flex tw-flex-col md:tw-flex-row tw-items-center tw-justify-center tw-gap-8 tw-w-full">
         <AuthForm />
-        <div className="hidden md:block">
+        <div className="hidden md:tw-block">
           <TeaserPost />
         </div>
       </div>

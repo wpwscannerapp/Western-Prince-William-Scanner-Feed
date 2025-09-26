@@ -24,16 +24,16 @@ const AnalyticsCard: React.FC = () => {
   }, []);
 
   return (
-    <Card className="bg-card border-border shadow-lg">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Active Subscribers</CardTitle>
-        <Users className="h-4 w-4 text-muted-foreground" />
+    <Card className="tw-bg-card tw-border-border tw-shadow-lg">
+      <CardHeader className="tw-flex tw-flex-row tw-items-center tw-justify-between tw-space-y-0 tw-pb-2">
+        <CardTitle className="tw-text-sm tw-font-medium">Active Subscribers</CardTitle>
+        <Users className="tw-h-4 tw-w-4 tw-text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">
-          {loading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : subscriberCount}
+        <div className="tw-text-2xl tw-font-bold">
+          {loading ? <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" /> : subscriberCount}
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="tw-text-xs tw-text-muted-foreground">
           Users with 'trialing' or 'active' subscription status.
         </p>
       </CardContent>

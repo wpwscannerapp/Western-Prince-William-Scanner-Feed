@@ -117,30 +117,30 @@ const HomePage = () => {
   }, [isSubscribed, isAdmin]);
 
   return (
-    <div className="container mx-auto p-4 pt-8 relative">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Home Feed</h1>
+    <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8 tw-relative">
+      <div className="tw-flex tw-justify-between tw-items-center tw-mb-6">
+        <h1 className="tw-text-3xl tw-font-bold tw-text-foreground">Home Feed</h1>
         <NotificationBell />
       </div>
 
-      <p className="text-center text-muted-foreground mb-8">
+      <p className="tw-text-center tw-text-muted-foreground tw-mb-8">
         Welcome to your WPW Scanner Feed!
       </p>
 
-      <div className={`space-y-6 ${!isSubscribed && !isAdmin ? 'relative' : ''}`}>
-        <div className={!isSubscribed && !isAdmin ? 'blur-sm pointer-events-none' : ''}>
+      <div className={`tw-space-y-6 ${!isSubscribed && !isAdmin ? 'tw-relative' : ''}`}>
+        <div className={!isSubscribed && !isAdmin ? 'tw-blur-sm tw-pointer-events-none' : ''}>
           {posts.map((post, index) => (
             <div key={post.id} ref={index === posts.length - 1 ? lastPostRef : null}>
               <PostCard post={post} />
             </div>
           ))}
           {loading && (
-            <div className="flex justify-center items-center py-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="tw-flex tw-justify-center tw-items-center tw-py-4">
+              <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
             </div>
           )}
           {!hasMore && !loading && posts.length > 0 && (
-            <p className="text-center text-muted-foreground py-4">You've reached the end of the feed.</p>
+            <p className="tw-text-center tw-text-muted-foreground tw-py-4">You've reached the end of the feed.</p>
           )}
         </div>
         {!isSubscribed && !isAdmin && <SubscribeOverlay />}

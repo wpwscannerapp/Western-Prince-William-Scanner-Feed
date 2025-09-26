@@ -48,40 +48,40 @@ const SubscriptionPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4">
-      <Card className="w-full max-w-md bg-card border-border shadow-lg text-center">
+    <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
+      <Card className="tw-w-full tw-max-w-md tw-bg-card tw-border-border tw-shadow-lg tw-text-center">
         <CardHeader>
-          <CardTitle className="text-3xl font-bold text-primary">Premium Access</CardTitle>
-          <CardDescription className="text-muted-foreground mt-2">
+          <CardTitle className="tw-text-3xl tw-font-bold tw-text-primary">Premium Access</CardTitle>
+          <CardDescription className="tw-text-muted-foreground tw-mt-2">
             Unlock the full WPW Scanner Feed experience.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="text-4xl font-extrabold text-foreground">
-            $5.99<span className="text-xl font-medium text-muted-foreground">/month</span>
+        <CardContent className="tw-space-y-6">
+          <div className="tw-text-4xl tw-font-extrabold tw-text-foreground">
+            $5.99<span className="tw-text-xl tw-font-medium tw-text-muted-foreground">/month</span>
           </div>
-          <p className="text-lg text-muted-foreground">
+          <p className="tw-text-lg tw-text-muted-foreground">
             Start your 7-day free trial today!
           </p>
 
-          <ul className="text-left space-y-2 mb-6">
-            <li className="flex items-center text-foreground">
-              <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> Ad-free access
+          <ul className="tw-text-left tw-space-y-2 tw-mb-6">
+            <li className="tw-flex tw-items-center tw-text-foreground">
+              <CheckCircle className="tw-h-5 tw-w-5 tw-text-green-500 tw-mr-2" /> Ad-free access
             </li>
-            <li className="flex items-center text-foreground">
-              <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> Real-time push notifications
+            <li className="tw-flex tw-items-center tw-text-foreground">
+              <CheckCircle className="tw-h-5 tw-w-5 tw-text-green-500 tw-mr-2" /> Real-time push notifications
             </li>
-            <li className="flex items-center text-foreground">
-              <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> Exclusive posts
+            <li className="tw-flex tw-items-center tw-text-foreground">
+              <CheckCircle className="tw-h-5 tw-w-5 tw-text-green-500 tw-mr-2" /> Exclusive posts
             </li>
-            <li className="flex items-center text-foreground">
-              <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> Cancel anytime
+            <li className="tw-flex tw-items-center tw-text-foreground">
+              <CheckCircle className="tw-h-5 tw-w-5 tw-text-green-500 tw-mr-2" /> Cancel anytime
             </li>
           </ul>
 
-          <div className="bg-muted p-4 rounded-md text-muted-foreground text-sm">
-            <p className="mb-2">
-              <Lock className="inline-block h-4 w-4 mr-1" /> Secure payment via Stripe.
+          <div className="tw-bg-muted tw-p-4 tw-rounded-md tw-text-muted-foreground tw-text-sm">
+            <p className="tw-mb-2">
+              <Lock className="tw-inline-block tw-h-4 tw-w-4 tw-mr-1" /> Secure payment via Stripe.
             </p>
             <p>
               You will be redirected to Stripe to complete your subscription.
@@ -90,18 +90,18 @@ const SubscriptionPage = () => {
 
           <Button
             onClick={handleStartFreeTrial}
-            className="w-full bg-green-600 hover:bg-green-700 text-white text-lg py-6"
+            className="tw-w-full tw-bg-green-600 hover:tw-bg-green-700 tw-text-white tw-text-lg tw-py-6"
             disabled={isLoading}
           >
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
             Start Free Trial
           </Button>
 
-          <p className="text-xs text-muted-foreground mt-4">
-            By subscribing, you agree to our <a href="#" className="underline hover:text-primary">Terms of Service</a>.
+          <p className="tw-text-xs tw-text-muted-foreground tw-mt-4">
+            By subscribing, you agree to our <a href="#" className="tw-underline hover:tw-text-primary">Terms of Service</a>.
           </p>
-          <p className="text-sm text-muted-foreground flex items-center justify-center">
-            <Lock className="h-4 w-4 mr-1" /> Secure payments via Stripe — Join 20,000+ followers.
+          <p className="tw-text-sm tw-text-muted-foreground tw-flex tw-items-center tw-justify-center">
+            <Lock className="tw-h-4 tw-w-4 tw-mr-1" /> Secure payments via Stripe — Join 20,000+ followers.
           </p>
         </CardContent>
       </Card>

@@ -46,12 +46,12 @@ const AuthForm = () => {
   };
 
   return (
-    <div className="w-full max-w-md p-8 space-y-6 bg-card rounded-lg shadow-lg border border-border">
-      <h2 className="text-2xl font-bold text-center text-foreground">
+    <div className="tw-w-full tw-max-w-md tw-p-8 tw-space-y-6 tw-bg-card tw-rounded-lg tw-shadow-lg tw-border tw-border-border">
+      <h2 className="tw-text-2xl tw-font-bold tw-text-center tw-text-foreground">
         {isLogin ? 'Login' : 'Sign Up'}
       </h2>
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="tw-space-y-4">
         <div>
           <Label htmlFor="email">Email</Label>
           <Input
@@ -59,11 +59,11 @@ const AuthForm = () => {
             type="email"
             placeholder="you@example.com"
             {...form.register('email')}
-            className="mt-1"
+            className="tw-mt-1"
             autoComplete="email" // Added autocomplete for email
           />
           {form.formState.errors.email && (
-            <p className="text-destructive text-sm mt-1">{form.formState.errors.email.message}</p>
+            <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.email.message}</p>
           )}
         </div>
         {!showForgotPassword && (
@@ -74,38 +74,38 @@ const AuthForm = () => {
               type="password"
               placeholder="••••••••"
               {...form.register('password')}
-              className="mt-1"
+              className="tw-mt-1"
               autoComplete={isLogin ? "current-password" : "new-password"} // Added autocomplete for password
             />
             {form.formState.errors.password && (
-              <p className="text-destructive text-sm mt-1">{form.formState.errors.password.message}</p>
+              <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.password.message}</p>
             )}
           </div>
         )}
 
         {showForgotPassword ? (
-          <Button type="button" onClick={handleForgotPassword} className="w-full bg-blue-600 hover:bg-blue-700">
+          <Button type="button" onClick={handleForgotPassword} className="tw-w-full tw-bg-blue-600 hover:tw-bg-blue-700">
             Send Reset Email
           </Button>
         ) : (
-          <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
+          <Button type="submit" className="tw-w-full tw-bg-blue-600 hover:tw-bg-blue-700">
             {isLogin ? 'Login' : 'Sign Up'}
           </Button>
         )}
       </form>
 
-      <div className="text-center text-sm">
+      <div className="tw-text-center tw-text-sm">
         {showForgotPassword ? (
-          <Button variant="link" onClick={() => setShowForgotPassword(false)} className="text-blue-400 hover:text-blue-300">
+          <Button variant="link" onClick={() => setShowForgotPassword(false)} className="tw-text-blue-400 hover:tw-text-blue-300">
             Back to Login
           </Button>
         ) : (
           <>
-            <Button variant="link" onClick={() => setIsLogin(!isLogin)} className="text-blue-400 hover:text-blue-300">
+            <Button variant="link" onClick={() => setIsLogin(!isLogin)} className="tw-text-blue-400 hover:tw-text-blue-300">
               {isLogin ? 'Need an account? Sign Up' : 'Already have an account? Login'}
             </Button>
-            <span className="text-muted-foreground mx-2">|</span>
-            <Button variant="link" onClick={() => setShowForgotPassword(true)} className="text-blue-400 hover:text-blue-300">
+            <span className="tw-text-muted-foreground tw-mx-2">|</span>
+            <Button variant="link" onClick={() => setShowForgotPassword(true)} className="tw-text-blue-400 hover:tw-text-blue-300">
               Forgot Password?
             </Button>
           </>

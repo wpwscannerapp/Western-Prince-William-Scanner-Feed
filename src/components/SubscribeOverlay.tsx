@@ -14,14 +14,14 @@ const SubscribeOverlay: React.FC<SubscribeOverlayProps> = () => {
   };
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-20 p-4 rounded-lg">
-      <h2 className="text-2xl font-bold text-foreground mb-4 text-center">
+    <div className="tw-absolute tw-inset-0 tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background/80 tw-backdrop-blur-sm tw-z-20 tw-p-4 tw-rounded-lg">
+      <h2 className="tw-text-2xl tw-font-bold tw-text-foreground tw-mb-4 tw-text-center">
         Unlock Exclusive Updates!
       </h2>
-      <p className="text-muted-foreground mb-6 text-center">
+      <p className="tw-text-muted-foreground tw-mb-6 tw-text-center">
         Subscribe to get full access to real-time scanner posts and push notifications.
       </p>
-      <Button onClick={handleSubscribeClick} className="bg-blue-600 hover:bg-blue-700 text-white mb-8">
+      <Button onClick={handleSubscribeClick} className="tw-bg-blue-600 hover:tw-bg-blue-700 tw-text-white tw-mb-8">
         Subscribe Now
       </Button>
     </div>

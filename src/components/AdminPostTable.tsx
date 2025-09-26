@@ -84,61 +84,61 @@ const AdminPostTable: React.FC<AdminPostTableProps> = ({ onPostUpdated }) => {
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Search className="h-5 w-5 text-muted-foreground" />
+    <div className="tw-space-y-4">
+      <div className="tw-flex tw-items-center tw-gap-2">
+        <Search className="tw-h-5 tw-w-5 tw-text-muted-foreground" />
         <Input
           placeholder="Search posts..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
+          className="tw-max-w-sm"
         />
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="tw-flex tw-justify-center tw-items-center tw-py-8">
+          <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
         </div>
       ) : (
-        <div className="rounded-md border overflow-hidden">
+        <div className="tw-rounded-md tw-border tw-overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Timestamp</TableHead>
                 <TableHead>Content</TableHead>
                 <TableHead>Image</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="tw-text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredPosts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={4} className="tw-h-24 tw-text-center tw-text-muted-foreground">
                     No posts found.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredPosts.map((post) => (
                   <TableRow key={post.id}>
-                    <TableCell className="font-medium">
+                    <TableCell className="tw-font-medium">
                       {formatPostTimestamp(post.timestamp)}
                     </TableCell>
-                    <TableCell className="max-w-xs truncate">{post.text}</TableCell>
+                    <TableCell className="tw-max-w-xs tw-truncate">{post.text}</TableCell>
                     <TableCell>
                       {post.image_url ? (
-                        <img src={post.image_url} alt="Post" className="h-10 w-10 object-cover rounded-md" />
+                        <img src={post.image_url} alt="Post" className="tw-h-10 tw-w-10 tw-object-cover tw-rounded-md" />
                       ) : (
-                        <span className="text-muted-foreground">-</span>
+                        <span className="tw-text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(post)} className="mr-2">
-                        <Edit className="h-4 w-4" />
-                        <span className="sr-only">Edit</span>
+                    <TableCell className="tw-text-right">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(post)} className="tw-mr-2">
+                        <Edit className="tw-h-4 tw-w-4" />
+                        <span className="tw-sr-only">Edit</span>
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(post.id, post.image_url || null)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                        <span className="sr-only">Delete</span>
+                        <Trash2 className="tw-h-4 tw-w-4 tw-text-destructive" />
+                        <span className="tw-sr-only">Delete</span>
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -151,7 +151,7 @@ const AdminPostTable: React.FC<AdminPostTableProps> = ({ onPostUpdated }) => {
 
       {editingPost && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:tw-max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Edit Post</DialogTitle>
             </DialogHeader>

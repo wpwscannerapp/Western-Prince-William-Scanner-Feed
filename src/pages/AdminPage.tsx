@@ -47,24 +47,24 @@ const AdminPage = () => {
 
   if (authLoading || !isAdmin) { // Check if not admin or still loading
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-2">Loading admin panel...</p>
+      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
+        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+        <p className="tw-ml-2">Loading admin panel...</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 pt-8">
-      <h1 className="text-3xl font-bold mb-6 text-foreground">Admin Dashboard</h1>
+    <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8">
+      <h1 className="tw-text-3xl tw-font-bold tw-mb-6 tw-text-foreground">Admin Dashboard</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-6 tw-mb-8">
         <AnalyticsCard />
         {/* Add more analytics cards here if needed */}
       </div>
 
-      <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4 text-foreground">Create New Post</h2>
+      <div className="tw-mb-8">
+        <h2 className="tw-text-2xl tw-font-semibold tw-mb-4 tw-text-foreground">Create New Post</h2>
         <PostForm
           onSubmit={handleCreatePost}
           isLoading={postFormLoading}
@@ -72,7 +72,7 @@ const AdminPage = () => {
       </div>
 
       <div>
-        <h2 className="text-2xl font-semibold mb-4 text-foreground">Manage Posts</h2>
+        <h2 className="tw-2xl tw-font-semibold tw-mb-4 tw-text-foreground">Manage Posts</h2>
         <AdminPostTable key={postTableKey} onPostUpdated={() => setPostTableKey(prev => prev + 1)} />
       </div>
 

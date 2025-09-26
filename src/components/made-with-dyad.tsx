@@ -1,11 +1,11 @@
 export const MadeWithDyad = () => {
   return (
-    <div className="p-4 text-center">
+    <div className="tw-p-4 tw-text-center">
       <a
         href="https://www.dyad.sh/"
         target="_blank"
         rel="noopener noreferrer"
-        className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        className="tw-text-sm tw-text-gray-500 hover:tw-text-gray-700 dark:tw-text-gray-400 dark:hover:tw-text-gray-200"
       >
         Made with Dyad
       </a>
