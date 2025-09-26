@@ -5,7 +5,6 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Facebook } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -19,7 +18,7 @@ type AuthFormValues = z.infer<typeof authSchema>;
 const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const { signIn, signUp, signInWithFacebook, forgotPassword } = useAuth();
+  const { signIn, signUp, forgotPassword } = useAuth();
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(authSchema),
@@ -110,19 +109,6 @@ const AuthForm = () => {
           </>
         )}
       </div>
-
-      <div className="relative flex justify-center text-xs uppercase">
-        <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-      </div>
-
-      <Button
-        variant="outline"
-        className="w-full flex items-center justify-center gap-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground"
-        onClick={signInWithFacebook}
-      >
-        <Facebook className="h-5 w-5" />
-        Sign in with Facebook
-      </Button>
     </div>
   );
 };

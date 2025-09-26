@@ -1,5 +1,5 @@
 import React from 'react';
-import { supabase } from '@/integrations/supabase/client'; // Updated import path
+import { supabase } from '@/integrations/supabase/client';
 import { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
@@ -52,20 +52,6 @@ export function useAuth() {
     return { data };
   };
 
-  const signInWithFacebook = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'facebook',
-      options: {
-        redirectTo: window.location.origin + '/auth/callback', // Ensure this matches your Supabase redirect URL
-      },
-    });
-    if (error) {
-      toast.error(error.message);
-      return { error };
-    }
-    return { data };
-  };
-
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -88,5 +74,5 @@ export function useAuth() {
     return { success: true };
   };
 
-  return { ...authState, signUp, signIn, signInWithFacebook, signOut, forgotPassword };
+  return { ...authState, signUp, signIn, signOut, forgotPassword };
 }

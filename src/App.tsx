@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom"; // Import Outlet
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import HomePage from "./pages/HomePage";
@@ -11,7 +11,6 @@ import AdminPage from "./pages/AdminPage";
 import Layout from "./components/Layout";
 import AuthPage from "./pages/AuthPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
-import AuthCallback from "./pages/AuthCallback"; // Import AuthCallback
 import { useAuth } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
@@ -45,7 +44,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="/auth/callback" element={<AuthCallback />} /> {/* New Auth Callback Route */}
+          {/* Removed AuthCallback route */}
           <Route path="/subscribe" element={<SubscriptionPage />} />
           <Route path="/reset-password" element={<div>Password Reset Page (Implement this later)</div>} />
 
