@@ -12,7 +12,7 @@ export const StorageService = {
     const filePath = `${fileName}`;
 
     try {
-      const { data, error } = await supabase.storage
+      const { data: _data, error } = await supabase.storage
         .from(POST_IMAGES_BUCKET)
         .upload(filePath, file, {
           cacheControl: '3600',

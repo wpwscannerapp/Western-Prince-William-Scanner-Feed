@@ -13,7 +13,7 @@ import { Post, PostService } from '@/services/PostService';
 import { formatPostTimestamp } from '@/lib/utils';
 import { Edit, Trash2, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import PostForm from './PostForm';
 
 interface AdminPostTableProps {
@@ -136,7 +136,7 @@ const AdminPostTable: React.FC<AdminPostTableProps> = ({ onPostUpdated }) => {
                         <Edit className="h-4 w-4" />
                         <span className="sr-only">Edit</span>
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(post.id, post.image_url)}>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(post.id, post.image_url || null)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                         <span className="sr-only">Delete</span>
                       </Button>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import PostCard from '@/components/PostCard';
 import SubscribeOverlay from '@/components/SubscribeOverlay';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -14,7 +14,6 @@ const AdminPage = () => {
   const { user, loading: authLoading } = useAuth();
   const isAdmin = useIsAdmin(); // Use the new hook
   const navigate = useNavigate();
-  const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [postFormLoading, setPostFormLoading] = useState(false);
   const [postTableKey, setPostTableKey] = useState(0); // Key to force re-render of post table
 
@@ -38,7 +37,6 @@ const AdminPage = () => {
 
     if (newPost) {
       toast.success('Post created successfully!', { id: 'create-post' });
-      setIsCreatingPost(false);
       setPostTableKey(prev => prev + 1); // Trigger re-render of post table
       return true;
     } else {

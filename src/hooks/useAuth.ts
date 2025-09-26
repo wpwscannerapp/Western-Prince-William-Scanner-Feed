@@ -18,7 +18,7 @@ export function useAuth() {
 
   React.useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event: AuthChangeEvent, session: Session | null) => {
+      (_event: AuthChangeEvent, session: Session | null) => {
         setAuthState({ session, user: session?.user || null, loading: false });
       }
     );
