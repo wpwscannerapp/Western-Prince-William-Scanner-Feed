@@ -21,7 +21,7 @@ const TopNavBar = () => {
   ];
 
   return (
-    <nav className="tw-fixed tw-top-0 tw-left-0 tw-right-0 tw-bg-card tw-border-b tw-border-app-border tw-shadow-lg tw-z-50">
+    <nav className="tw-fixed tw-top-0 tw-left-0 tw-right-0 tw-bg-card tw-border-b tw-border-border tw-shadow-lg tw-z-50">
       <div className="tw-container tw-mx-auto tw-flex tw-justify-between tw-items-center tw-h-16 tw-px-4">
         <div className="tw-flex tw-items-center">
           <img src="/logo.jpeg" alt="App Logo" className="tw-h-8 tw-w-auto tw-mr-3 tw-block" />

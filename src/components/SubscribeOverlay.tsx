@@ -21,7 +21,7 @@ const SubscribeOverlay: React.FC<SubscribeOverlayProps> = () => {
       <p className="tw-text-muted-foreground tw-mb-6 tw-text-center">
         Subscribe to get full access to real-time scanner posts and push notifications.
       </p>
-      <Button onClick={handleSubscribeClick} className="tw-bg-blue-600 hover:tw-bg-blue-700 tw-text-white tw-mb-8">
+      <Button onClick={handleSubscribeClick} className="tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground tw-mb-8">
         Subscribe Now
       </Button>
     </div>

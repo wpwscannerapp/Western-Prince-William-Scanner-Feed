@@ -46,7 +46,7 @@ const AuthForm = () => {
   };
 
   return (
-    <div className="tw-w-full tw-max-w-md tw-p-8 tw-space-y-6 tw-bg-card tw-rounded-lg tw-shadow-lg tw-border tw-border-app-border">
+    <div className="tw-w-full tw-max-w-md tw-p-8 tw-space-y-6 tw-bg-card tw-rounded-lg tw-shadow-lg tw-border tw-border-border">
       <h2 className="tw-text-2xl tw-font-bold tw-text-center tw-text-foreground">
         {isLogin ? 'Login' : 'Sign Up'}
       </h2>
@@ -84,11 +84,11 @@ const AuthForm = () => {
         )}
 
         {showForgotPassword ? (
-          <Button type="button" onClick={handleForgotPassword} className="tw-w-full tw-bg-blue-600 hover:tw-bg-blue-700">
+          <Button type="button" onClick={handleForgotPassword} className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground">
             Send Reset Email
           </Button>
         ) : (
-          <Button type="submit" className="tw-w-full tw-bg-blue-600 hover:tw-bg-blue-700">
+          <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground">
             {isLogin ? 'Login' : 'Sign Up'}
           </Button>
         )}

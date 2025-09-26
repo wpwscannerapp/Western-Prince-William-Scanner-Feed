@@ -31,11 +31,9 @@ const AuthPage = () => {
           Join 20,000+ scanner fans for exclusive Prince William County updates!
         </p>
       </div>
-      <div className="tw-relative tw-z-10 tw-flex tw-flex-col md:tw-flex-row tw-items-center tw-justify-center tw-gap-8 tw-w-full">
+      <div className="tw-relative tw-z-10 tw-flex tw-flex-col tw-items-center tw-justify-center tw-gap-8 tw-w-full">
         <AuthForm />
-        <div className="hidden md:tw-block">
-          <TeaserPost />
-        </div>
+        <TeaserPost /> {/* TeaserPost is now always visible, stacking on smaller screens */}
       </div>
     </div>
   );

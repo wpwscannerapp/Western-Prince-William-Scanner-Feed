@@ -139,7 +139,7 @@ const PostForm: React.FC<PostFormProps> = ({ initialPost, onSubmit, onCancel, is
             Cancel
           </Button>
         )}
-        <Button type="submit" disabled={isLoading} className="tw-bg-blue-600 hover:tw-bg-blue-700">
+        <Button type="submit" disabled={isLoading} className="tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground">
           {isLoading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
           {initialPost ? 'Update Post' : 'Post Now'}
         </Button>

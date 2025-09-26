@@ -49,7 +49,7 @@ const SubscriptionPage = () => {
 
   return (
     <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
-      <Card className="tw-w-full tw-max-w-md tw-bg-card tw-border-app-border tw-shadow-lg tw-text-center">
+      <Card className="tw-w-full tw-max-w-md tw-bg-card tw-border-border tw-shadow-lg tw-text-center">
         <CardHeader>
           <CardTitle className="tw-text-3xl tw-font-bold tw-text-primary">Premium Access</CardTitle>
           <CardDescription className="tw-text-muted-foreground tw-mt-2">
@@ -90,7 +90,7 @@ const SubscriptionPage = () => {
 
           <Button
             onClick={handleStartFreeTrial}
-            className="tw-w-full tw-bg-green-600 hover:tw-bg-green-700 tw-text-white tw-text-lg tw-py-6"
+            className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground tw-text-lg tw-py-6"
             disabled={isLoading}
           >
             {isLoading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}

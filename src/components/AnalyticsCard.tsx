@@ -24,7 +24,7 @@ const AnalyticsCard: React.FC = () => {
   }, []);
 
   return (
-    <Card className="tw-bg-card tw-border-app-border tw-shadow-lg">
+    <Card className="tw-bg-card tw-border-border tw-shadow-lg">
       <CardHeader className="tw-flex tw-flex-row tw-items-center tw-justify-between tw-space-y-0 tw-pb-2">
         <CardTitle className="tw-text-sm tw-font-medium">Active Subscribers</CardTitle>
         <Users className="tw-h-4 tw-w-4 tw-text-muted-foreground" />

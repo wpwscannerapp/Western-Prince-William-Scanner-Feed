@@ -11,7 +11,7 @@ interface PostCardProps {
 
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   return (
-    <Card className="tw-w-full tw-bg-card tw-border-app-border tw-shadow-md tw-text-foreground">
+    <Card className="tw-w-full tw-bg-card tw-border-border tw-shadow-md tw-text-foreground">
       <CardHeader className="tw-pb-2">
         <p className="tw-text-sm tw-text-muted-foreground tw-font-semibold">
           {formatPostTimestamp(post.timestamp)}

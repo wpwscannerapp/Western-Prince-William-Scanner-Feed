@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 const TeaserPost = () => {
   return (
-    <Card className="tw-w-full tw-max-w-md tw-bg-card tw-border-app-border tw-shadow-lg">
+    <Card className="tw-w-full tw-max-w-md tw-bg-card tw-border-border tw-shadow-lg">
       <CardHeader>
         <CardTitle className="tw-text-primary">Sample Scanner Update</CardTitle>
         <CardDescription className="tw-text-muted-foreground">A glimpse of what you're missing!</CardDescription>
