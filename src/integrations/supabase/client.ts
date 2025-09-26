@@ -3,6 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Add these console logs to see what values are actually being used
+console.log('Supabase URL from .env:', supabaseUrl);
+console.log('Supabase Anon Key from .env:', supabaseAnonKey);
+
 if (!supabaseUrl) {
   throw new Error('VITE_SUPABASE_URL is not defined in environment variables. Please check your .env file.');
 }
