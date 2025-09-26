@@ -2,10 +2,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export const StripeClient = {
-  async createCheckoutSession(priceId: string, userId: string): Promise<string | null> {
+  async createCheckoutSession(priceId: string, userId: string, userEmail: string): Promise<string | null> {
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: { priceId, userId },
+        body: { priceId, userId, userEmail }, // Pass userEmail here
       });
 
       if (error) {

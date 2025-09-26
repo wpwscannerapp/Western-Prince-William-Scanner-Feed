@@ -14,7 +14,7 @@ const SubscriptionPage = () => {
   const [isLoading, setIsLoading] = React.useState(false);
 
   const handleStartFreeTrial = async () => {
-    if (!user) {
+    if (!user || !user.email) { // Ensure user and user.email exist
       toast.error('You must be logged in to start a free trial.');
       navigate('/auth');
       return;
@@ -31,7 +31,8 @@ const SubscriptionPage = () => {
         return;
       }
 
-      const checkoutUrl = await StripeClient.createCheckoutSession(priceId, user.id);
+      // Pass user.email to the createCheckoutSession function
+      const checkoutUrl = await StripeClient.createCheckoutSession(priceId, user.id, user.email);
 
       if (checkoutUrl) {
         window.location.href = checkoutUrl; // Redirect to Stripe Checkout
