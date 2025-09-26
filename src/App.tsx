@@ -10,7 +10,8 @@ import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
 import Layout from "./components/Layout";
 import AuthPage from "./pages/AuthPage";
-import SubscriptionPage from "./pages/SubscriptionPage"; // Import SubscriptionPage
+import SubscriptionPage from "./pages/SubscriptionPage";
+import AuthCallback from "./pages/AuthCallback"; // Import AuthCallback
 import { useAuth } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
@@ -44,7 +45,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="/subscribe" element={<SubscriptionPage />} /> {/* New Subscription Route */}
+          <Route path="/auth/callback" element={<AuthCallback />} /> {/* New Auth Callback Route */}
+          <Route path="/subscribe" element={<SubscriptionPage />} />
           <Route path="/reset-password" element={<div>Password Reset Page (Implement this later)</div>} />
 
           {/* Protected routes that use the Layout */}
