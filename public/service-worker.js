@@ -4,7 +4,9 @@ const urlsToCache = [
   '/index.html',
   '/src/main.tsx',
   '/src/globals.css',
-  '/logo.jpeg' // Added logo.jpeg to cache
+  '/logo.jpeg', // Added logo.jpeg to cache
+  '/manifest.json',
+  '/favicon.ico'
 ];
 
 self.addEventListener('install', (event) => {
@@ -18,13 +20,27 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Bypass service worker for Supabase API calls
+  if (event.request.url.includes('supabase.co')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
         if (response) {
           return response;
         }
-        return fetch(event.request);
+        return fetch(event.request).catch((error) => {
+          console.error('Fetch failed for:', event.request.url, error);
+          // Fallback to index.html for navigation requests if offline
+          if (event.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+          // For other failed requests, return a generic error response or null
+          return new Response(null, { status: 503, statusText: 'Service Unavailable' });
+        });
       })
   );
 });
