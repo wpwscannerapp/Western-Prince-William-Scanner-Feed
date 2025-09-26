@@ -65,7 +65,7 @@ export function useAuth() {
 
   const forgotPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/reset-password', // You'll need to create this page
+      redirectTo: 'http://localhost:3000/reset-password', // Updated to the specified URL
     });
     if (error) {
       toast.error(error.message);
