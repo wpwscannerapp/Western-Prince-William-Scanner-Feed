@@ -59,7 +59,7 @@ const AuthForm = () => {
             type="email"
             placeholder="you@example.com"
             {...form.register('email')}
-            className="tw-mt-1 tw-text-foreground" // Added tw-text-foreground
+            className="tw-mt-1 tw-bg-input tw-text-foreground"
             autoComplete="email"
           />
           {form.formState.errors.email && (
@@ -74,7 +74,7 @@ const AuthForm = () => {
               type="password"
               placeholder="••••••••"
               {...form.register('password')}
-              className="tw-mt-1 tw-text-foreground" // Added tw-text-foreground
+              className="tw-mt-1 tw-bg-input tw-text-foreground"
               autoComplete={isLogin ? "current-password" : "new-password"}
             />
             {form.formState.errors.password && (
