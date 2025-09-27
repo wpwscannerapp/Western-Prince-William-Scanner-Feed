@@ -66,16 +66,16 @@ const SubscriptionPage = () => {
 
           <ul className="tw-text-left tw-space-y-2 tw-mb-6">
             <li className="tw-flex tw-items-center tw-text-foreground">
-              <CheckCircle className="tw-h-5 tw-w-5 tw-text-green-500 tw-mr-2" /> Ad-free access
+              <CheckCircle className="tw-h-5 tw-w-5 tw-text-primary tw-mr-2" /> Ad-free access
             </li>
             <li className="tw-flex tw-items-center tw-text-foreground">
-              <CheckCircle className="tw-h-5 tw-w-5 tw-text-green-500 tw-mr-2" /> Real-time push notifications
+              <CheckCircle className="tw-h-5 tw-w-5 tw-text-primary tw-mr-2" /> Real-time push notifications
             </li>
             <li className="tw-flex tw-items-center tw-text-foreground">
-              <CheckCircle className="tw-h-5 tw-w-5 tw-text-green-500 tw-mr-2" /> Exclusive posts
+              <CheckCircle className="tw-h-5 tw-w-5 tw-text-primary tw-mr-2" /> Exclusive posts
             </li>
             <li className="tw-flex tw-items-center tw-text-foreground">
-              <CheckCircle className="tw-h-5 tw-w-5 tw-text-green-500 tw-mr-2" /> Cancel anytime
+              <CheckCircle className="tw-h-5 tw-w-5 tw-text-primary tw-mr-2" /> Cancel anytime
             </li>
           </ul>
 
