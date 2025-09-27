@@ -6,9 +6,9 @@ import path from "path";
 export default defineConfig(() => ({
   server: {
     host: "::",
-    port: 8080,
-    strictPort: true, // Added strictPort
-    hmr: { // Added HMR overlay disable for debugging
+    port: 8080, // Changed back to 8080 for Dyad preview compatibility
+    strictPort: true,
+    hmr: {
       overlay: false,
     },
   },
@@ -31,7 +31,7 @@ export default defineConfig(() => ({
     minify: true,
     sourcemap: false,
   },
-  optimizeDeps: { // Added optimizeDeps configuration
+  optimizeDeps: {
     include: [
       '@radix-ui/react-tabs',
       '@radix-ui/react-avatar',
