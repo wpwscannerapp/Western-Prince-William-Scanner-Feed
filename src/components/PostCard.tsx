@@ -126,6 +126,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     setComments(prev => prev.filter(c => c.id !== commentId));
   };
 
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) { // Submit on Enter, allow Shift+Enter for new line if it were a textarea
+      event.preventDefault();
+      handleAddComment();
+    }
+  };
+
   return (
     <Card className="tw-w-full tw-bg-card tw-border tw-border-border tw-shadow-md tw-text-foreground tw-rounded-lg">
       <div className="tw-p-4 tw-pb-2">
@@ -170,6 +177,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 placeholder="Add a comment..."
                 value={newCommentContent}
                 onChange={(e) => setNewCommentContent(e.target.value)}
+                onKeyDown={handleKeyDown}
                 disabled={isCommenting || !user}
                 className="tw-flex-1"
               />
