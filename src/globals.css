@@ -100,4 +100,10 @@
   body {
     @apply tw-bg-background tw-text-foreground;
   }
+
+  /* Global placeholder style for readability */
+  input::placeholder,
+  textarea::placeholder {
+    color: hsl(var(--muted-foreground));
+  }
 }
