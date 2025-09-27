@@ -52,40 +52,42 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 0 0% 100%; /* Changed: Pure white for dark mode text */
+    --background: 220 15% 8%; /* Very dark blue-gray, inspired by logo */
+    --foreground: 210 40% 98%; /* Off-white for text */
 
-    --card: 222.2 84% 4.9%;
+    --card: 220 15% 12%; /* Slightly lighter than background for cards */
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 220 15% 12%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 217.2 91.2% 59.8%; /* Vibrant blue from logo */
+    --primary-foreground: 210 40% 98%; /* Off-white for text on primary */
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 210 10% 30%; /* Darker gray for secondary elements (like shield border) */
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 220 15% 18%; /* Muted background, slightly lighter */
+    --muted-foreground: 215 20.2% 65.1%; /* Medium gray */
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 48 96% 60%; /* Bright yellow from logo (Dispatch) */
+    --accent-foreground: 222.2 47.4% 11.2%; /* Dark text on yellow */
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 84.2% 60.2%; /* Red from logo (Fire & EMS) - existing destructive is good */
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 25%; /* Changed: Slightly lighter dark gray for dark mode input background */
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
+    --border: 220 15% 20%; /* Darker border */
+    --input: 220 15% 25%; /* Darker input background */
+    --ring: 217.2 91.2% 59.8%; /* Primary blue for focus rings */
+
+    /* Sidebar colors - adjusted to new scheme */
+    --sidebar-background: 220 15% 10%; /* Darker than main background */
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217.2 91.2% 59.8%; /* Use main primary blue */
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 220 15% 18%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 220 15% 20%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
