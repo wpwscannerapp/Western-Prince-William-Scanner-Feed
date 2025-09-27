@@ -20,6 +20,7 @@ module.exports = {
   rules: {
     'react-refresh/only-export-components': 'warn',
     'react/prop-types': 'off', // Disable prop-types since you're using TypeScript
+    '@typescript-eslint/no-unused-vars': 'error', // Added rule to catch unused variables
   },
   settings: {
     react: {
