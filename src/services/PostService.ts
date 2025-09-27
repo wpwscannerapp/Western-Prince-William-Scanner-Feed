@@ -40,6 +40,20 @@ export const PostService = {
     return data as Post[];
   },
 
+  async fetchSinglePost(postId: string): Promise<Post | null> {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('id', postId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching single post:', error);
+      return null;
+    }
+    return data as Post;
+  },
+
   async fetchNewPosts(lastTimestamp: string): Promise<Post[]> {
     const { data, error } = await supabase
       .from('posts')

@@ -15,6 +15,7 @@ import { Edit, Trash2, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import PostForm from './PostForm';
+import { Link } from 'react-router-dom'; // Import Link
 
 interface AdminPostTableProps {
   onPostUpdated: () => void;
@@ -123,7 +124,11 @@ const AdminPostTable: React.FC<AdminPostTableProps> = ({ onPostUpdated }) => {
                     <TableCell className="tw-font-medium">
                       {formatPostTimestamp(post.timestamp)}
                     </TableCell>
-                    <TableCell className="tw-max-w-xs tw-truncate">{post.text}</TableCell>
+                    <TableCell className="tw-max-w-xs tw-truncate">
+                      <Link to={`/posts/${post.id}`} className="tw-text-primary hover:tw-underline">
+                        {post.text}
+                      </Link>
+                    </TableCell>
                     <TableCell>
                       {post.image_url ? (
                         <img src={post.image_url} alt="Post" className="tw-h-10 tw-w-10 tw-object-cover tw-rounded-md" />

@@ -7,6 +7,7 @@ import NotFound from "./pages/NotFound";
 import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
+import PostDetailPage from "./pages/PostDetailPage"; // Import PostDetailPage
 import Layout from "./components/Layout";
 import AuthPage from "./pages/AuthPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
@@ -54,6 +55,7 @@ const App = () => (
                 <Route path="/home" element={<HomePage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/admin" element={<AdminPage />} />
+                <Route path="/posts/:postId" element={<PostDetailPage />} /> {/* New Post Detail Page route */}
               </Route>
             </Route>
 
