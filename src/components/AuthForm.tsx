@@ -59,8 +59,8 @@ const AuthForm = () => {
             type="email"
             placeholder="you@example.com"
             {...form.register('email')}
-            className="tw-mt-1"
-            autoComplete="email" // Added autocomplete for email
+            className="tw-mt-1 tw-text-foreground" // Added tw-text-foreground
+            autoComplete="email"
           />
           {form.formState.errors.email && (
             <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.email.message}</p>
@@ -74,8 +74,8 @@ const AuthForm = () => {
               type="password"
               placeholder="••••••••"
               {...form.register('password')}
-              className="tw-mt-1"
-              autoComplete={isLogin ? "current-password" : "new-password"} // Added autocomplete for password
+              className="tw-mt-1 tw-text-foreground" // Added tw-text-foreground
+              autoComplete={isLogin ? "current-password" : "new-password"}
             />
             {form.formState.errors.password && (
               <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.password.message}</p>
@@ -96,16 +96,16 @@ const AuthForm = () => {
 
       <div className="tw-text-center tw-text-sm">
         {showForgotPassword ? (
-          <Button variant="link" onClick={() => setShowForgotPassword(false)} className="tw-text-blue-400 hover:tw-text-blue-300">
+          <Button variant="link" onClick={() => setShowForgotPassword(false)} className="tw-text-primary hover:tw-text-primary/80">
             Back to Login
           </Button>
         ) : (
           <>
-            <Button variant="link" onClick={() => setIsLogin(!isLogin)} className="tw-text-blue-400 hover:tw-text-blue-300">
+            <Button variant="link" onClick={() => setIsLogin(!isLogin)} className="tw-text-primary hover:tw-text-primary/80">
               {isLogin ? 'Need an account? Sign Up' : 'Already have an account? Login'}
             </Button>
             <span className="tw-text-muted-foreground tw-mx-2">|</span>
-            <Button variant="link" onClick={() => setShowForgotPassword(true)} className="tw-text-blue-400 hover:tw-text-blue-300">
+            <Button variant="link" onClick={() => setShowForgotPassword(true)} className="tw-text-primary hover:tw-text-primary/80">
               Forgot Password?
             </Button>
           </>
