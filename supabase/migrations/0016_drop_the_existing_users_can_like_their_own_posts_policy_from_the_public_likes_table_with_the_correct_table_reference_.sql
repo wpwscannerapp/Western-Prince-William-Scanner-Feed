@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Users can like their own posts" ON public.likes;
