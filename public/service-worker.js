@@ -4,8 +4,8 @@ const urlsToCache = [
   '/index.html',
   '/src/main.tsx',
   '/src/globals.css',
-  '/logo.jpeg',
-  '/placeholder.svg', // Added placeholder.svg to cache
+  '/logo.png', // Updated logo reference
+  '/placeholder.svg',
   '/manifest.json',
   '/favicon.ico'
 ];
@@ -66,8 +66,8 @@ self.addEventListener('push', (event) => {
   const data = event.data?.json() || { title: 'New Update', body: 'Check out the latest scanner feed!' };
   const options = {
     body: data.body,
-    icon: '/logo.jpeg', // Your app icon
-    badge: '/logo.jpeg', // Badge icon
+    icon: '/logo.png', // Your app icon
+    badge: '/logo.png', // Badge icon
     data: {
       url: data.url || '/', // URL to open when notification is clicked
     },
