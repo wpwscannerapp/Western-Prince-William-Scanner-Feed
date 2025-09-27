@@ -4,11 +4,11 @@ import PostCard from '@/components/PostCard';
 import SubscribeOverlay from '@/components/SubscribeOverlay';
 import NotificationBell from '@/components/NotificationBell';
 import { Post, PostService } from '@/services/PostService';
-import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { Button } from '@/components/ui/button'; // Import Button for the new posts indicator
 
 const HomePage = () => {
   const { user } = useAuth();
@@ -18,6 +18,7 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [newPostsAvailable, setNewPostsAvailable] = useState(false); // New state for new posts indicator
   const observer = useRef<IntersectionObserver | null>(null);
   const lastPostRef = useCallback((node: HTMLDivElement) => {
     if (loading) return;
@@ -32,7 +33,7 @@ const HomePage = () => {
 
   useEffect(() => {
     const checkSubscriptionStatus = async () => {
-      if (isAdmin) {
+      if (isAdmin.isAdmin) { // Use isAdmin.isAdmin
         setIsSubscribed(true);
         return;
       }
@@ -57,7 +58,7 @@ const HomePage = () => {
       }
     };
     checkSubscriptionStatus();
-  }, [user, isAdmin]);
+  }, [user, isAdmin.isAdmin]); // Depend on isAdmin.isAdmin
 
   const fetchPosts = useCallback(async (pageNum: number, append: boolean = true) => {
     setLoading(true);
@@ -73,10 +74,11 @@ const HomePage = () => {
   const fetchNewPosts = useCallback(async () => {
     if (posts.length === 0) return;
     const latestTimestamp = posts[0].timestamp;
-    const newPosts = await PostService.fetchNewPosts(latestTimestamp);
-    if (newPosts.length > 0) {
-      setPosts(prevPosts => [...newPosts, ...prevPosts]);
-      toast.info(`${newPosts.length} new scanner updates!`);
+    const newFetchedPosts = await PostService.fetchNewPosts(latestTimestamp);
+    if (newFetchedPosts.length > 0) {
+      setPosts(prevPosts => [...newFetchedPosts, ...prevPosts]);
+      setNewPostsAvailable(true); // Set indicator when new posts arrive
+      // No toast here, the indicator handles it
     }
   }, [posts]);
 
@@ -92,12 +94,12 @@ const HomePage = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (isSubscribed || isAdmin) {
+      if (isSubscribed || isAdmin.isAdmin) { // Use isAdmin.isAdmin
         fetchNewPosts();
       }
     }, 30000);
     return () => clearInterval(interval);
-  }, [fetchNewPosts, isSubscribed, isAdmin]);
+  }, [fetchNewPosts, isSubscribed, isAdmin.isAdmin]); // Depend on isAdmin.isAdmin
 
   useEffect(() => {
     const channel = supabase
@@ -105,19 +107,22 @@ const HomePage = () => {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, (payload) => {
         const newPost = payload.new as Post;
         setPosts(prevPosts => [newPost, ...prevPosts]);
-        if (isSubscribed || isAdmin) {
-          toast.info('New scanner update received!');
-        }
+        setNewPostsAvailable(true); // Set indicator when new posts arrive via real-time
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isSubscribed, isAdmin]);
+  }, []); // Removed isSubscribed and isAdmin.isAdmin from dependencies as the channel should always listen
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setNewPostsAvailable(false); // Reset indicator after scrolling to top
+  };
 
   return (
-    <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8 tw-relative">
+    <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8 tw-relative tw-max-w-2xl"> {/* Constrain width for better readability */}
       <div className="tw-flex tw-justify-between tw-items-center tw-mb-6">
         <h1 className="tw-text-3xl tw-font-bold tw-text-foreground">Home Feed</h1>
         <NotificationBell />
@@ -127,24 +132,39 @@ const HomePage = () => {
         Welcome to your WPW Scanner Feed!
       </p>
 
-      <div className={`tw-space-y-6 ${!isSubscribed && !isAdmin ? 'tw-relative' : ''}`}>
-        <div className={!isSubscribed && !isAdmin ? 'tw-blur-sm tw-pointer-events-none' : ''}>
+      <div className={`tw-space-y-6 ${!isSubscribed && !isAdmin.isAdmin ? 'tw-relative' : ''}`}>
+        <div className={!isSubscribed && !isAdmin.isAdmin ? 'tw-blur-sm tw-pointer-events-none' : ''}>
+          {posts.length === 0 && !loading && (
+            <p className="tw-text-center tw-text-muted-foreground tw-py-8">No posts available yet. Check back soon!</p>
+          )}
           {posts.map((post, index) => (
             <div key={post.id} ref={index === posts.length - 1 ? lastPostRef : null}>
               <PostCard post={post} />
             </div>
           ))}
           {loading && (
-            <div className="tw-flex tw-justify-center tw-items-center tw-py-4">
-              <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+            <div className="tw-flex tw-justify-center tw-items-center tw-py-8 tw-gap-2 tw-text-muted-foreground">
+              <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
+              <span>Loading more posts...</span>
             </div>
           )}
           {!hasMore && !loading && posts.length > 0 && (
             <p className="tw-text-center tw-text-muted-foreground tw-py-4">You've reached the end of the feed.</p>
           )}
         </div>
-        {!isSubscribed && !isAdmin && <SubscribeOverlay />}
+        {!isSubscribed && !isAdmin.isAdmin && <SubscribeOverlay />}
       </div>
+
+      {newPostsAvailable && (
+        <Button
+          onClick={scrollToTop}
+          className="tw-fixed tw-bottom-6 tw-right-6 tw-rounded-full tw-shadow-lg tw-p-3 tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground tw-animate-bounce"
+          size="icon"
+        >
+          <ArrowUp className="tw-h-5 tw-w-5" />
+          <span className="tw-sr-only">Scroll to new posts</span>
+        </Button>
+      )}
 
       <MadeWithDyad />
     </div>
