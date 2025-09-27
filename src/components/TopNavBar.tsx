@@ -25,7 +25,7 @@ const TopNavBar = () => {
       <div className="tw-container tw-mx-auto tw-flex tw-justify-between tw-items-center tw-h-16 tw-px-4">
         <div className="tw-flex tw-items-center">
           <img src="/logo.png" alt="App Logo" className="tw-h-8 tw-w-auto tw-mr-3 tw-block" />
-          <span className="tw-text-lg tw-font-bold tw-text-foreground">WPW Scanner Feed</span>
+          <span className="tw-text-lg tw-font-bold tw-text-foreground">Western Prince William Scanner Feed</span>
         </div>
         <div className="tw-flex tw-space-x-6 tw-items-center">
           {!loading && user ? ( // If user is logged in
