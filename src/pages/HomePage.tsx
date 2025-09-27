@@ -3,22 +3,25 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import PostCard from '@/components/PostCard';
 import SubscribeOverlay from '@/components/SubscribeOverlay';
 import NotificationBell from '@/components/NotificationBell';
+import PostForm from '@/components/PostForm'; // Import PostForm
 import { Post, PostService } from '@/services/PostService';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, ArrowUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { Button } from '@/components/ui/button'; // Import Button for the new posts indicator
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner'; // Import toast for notifications
 
 const HomePage = () => {
   const { user } = useAuth();
-  const isAdmin = useIsAdmin();
+  const { isAdmin, loading: isAdminLoading } = useIsAdmin(); // Destructure isAdmin and isAdminLoading
   const [posts, setPosts] = useState<Post[]>([]);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [newPostsAvailable, setNewPostsAvailable] = useState(false); // New state for new posts indicator
+  const [newPostsAvailable, setNewPostsAvailable] = useState(false);
+  const [postFormLoading, setPostFormLoading] = useState(false); // State for PostForm loading
   const observer = useRef<IntersectionObserver | null>(null);
   const lastPostRef = useCallback((node: HTMLDivElement) => {
     if (loading) return;
@@ -33,7 +36,9 @@ const HomePage = () => {
 
   useEffect(() => {
     const checkSubscriptionStatus = async () => {
-      if (isAdmin.isAdmin) { // Use isAdmin.isAdmin
+      if (isAdminLoading) return; // Wait for isAdmin to finish loading
+
+      if (isAdmin) {
         setIsSubscribed(true);
         return;
       }
@@ -58,7 +63,7 @@ const HomePage = () => {
       }
     };
     checkSubscriptionStatus();
-  }, [user, isAdmin.isAdmin]); // Depend on isAdmin.isAdmin
+  }, [user, isAdmin, isAdminLoading]); // Depend on isAdmin and isAdminLoading
 
   const fetchPosts = useCallback(async (pageNum: number, append: boolean = true) => {
     setLoading(true);
@@ -77,8 +82,7 @@ const HomePage = () => {
     const newFetchedPosts = await PostService.fetchNewPosts(latestTimestamp);
     if (newFetchedPosts.length > 0) {
       setPosts(prevPosts => [...newFetchedPosts, ...prevPosts]);
-      setNewPostsAvailable(true); // Set indicator when new posts arrive
-      // No toast here, the indicator handles it
+      setNewPostsAvailable(true);
     }
   }, [posts]);
 
@@ -94,12 +98,12 @@ const HomePage = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (isSubscribed || isAdmin.isAdmin) { // Use isAdmin.isAdmin
+      if (isSubscribed || isAdmin) {
         fetchNewPosts();
       }
     }, 30000);
     return () => clearInterval(interval);
-  }, [fetchNewPosts, isSubscribed, isAdmin.isAdmin]); // Depend on isAdmin.isAdmin
+  }, [fetchNewPosts, isSubscribed, isAdmin]);
 
   useEffect(() => {
     const channel = supabase
@@ -107,22 +111,44 @@ const HomePage = () => {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, (payload) => {
         const newPost = payload.new as Post;
         setPosts(prevPosts => [newPost, ...prevPosts]);
-        setNewPostsAvailable(true); // Set indicator when new posts arrive via real-time
+        setNewPostsAvailable(true);
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []); // Removed isSubscribed and isAdmin.isAdmin from dependencies as the channel should always listen
+  }, []);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setNewPostsAvailable(false); // Reset indicator after scrolling to top
+    setNewPostsAvailable(false);
+  };
+
+  const handleCreatePost = async (text: string, imageFile: File | null) => {
+    if (!user) {
+      toast.error('You must be logged in to create a post.');
+      return false;
+    }
+
+    setPostFormLoading(true);
+    toast.loading('Creating post...', { id: 'create-post' });
+    const newPost = await PostService.createPost(text, imageFile, user.id);
+    setPostFormLoading(false);
+
+    if (newPost) {
+      toast.success('Post created successfully!', { id: 'create-post' });
+      setPosts(prevPosts => [newPost, ...prevPosts]); // Add new post to the top of the feed
+      setNewPostsAvailable(true); // Indicate new posts are available
+      return true;
+    } else {
+      toast.error('Failed to create post.', { id: 'create-post' });
+      return false;
+    }
   };
 
   return (
-    <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8 tw-relative tw-max-w-2xl"> {/* Constrain width for better readability */}
+    <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8 tw-relative tw-max-w-2xl">
       <div className="tw-flex tw-justify-between tw-items-center tw-mb-6">
         <h1 className="tw-text-3xl tw-font-bold tw-text-foreground">Home Feed</h1>
         <NotificationBell />
@@ -132,8 +158,18 @@ const HomePage = () => {
         Welcome to your WPW Scanner Feed!
       </p>
 
-      <div className={`tw-space-y-6 ${!isSubscribed && !isAdmin.isAdmin ? 'tw-relative' : ''}`}>
-        <div className={!isSubscribed && !isAdmin.isAdmin ? 'tw-blur-sm tw-pointer-events-none' : ''}>
+      {isAdmin && ( // Conditionally render PostForm for admins
+        <div className="tw-mb-8">
+          <h2 className="tw-text-2xl tw-font-semibold tw-text-foreground tw-mb-4">Create New Post</h2>
+          <PostForm
+            onSubmit={handleCreatePost}
+            isLoading={postFormLoading}
+          />
+        </div>
+      )}
+
+      <div className={`tw-space-y-6 ${!isSubscribed && !isAdmin ? 'tw-relative' : ''}`}>
+        <div className={!isSubscribed && !isAdmin ? 'tw-blur-sm tw-pointer-events-none' : ''}>
           {posts.length === 0 && !loading && (
             <p className="tw-text-center tw-text-muted-foreground tw-py-8">No posts available yet. Check back soon!</p>
           )}
@@ -152,7 +188,7 @@ const HomePage = () => {
             <p className="tw-text-center tw-text-muted-foreground tw-py-4">You've reached the end of the feed.</p>
           )}
         </div>
-        {!isSubscribed && !isAdmin.isAdmin && <SubscribeOverlay />}
+        {!isSubscribed && !isAdmin && <SubscribeOverlay />}
       </div>
 
       {newPostsAvailable && (
