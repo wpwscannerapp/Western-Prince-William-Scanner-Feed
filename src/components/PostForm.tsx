@@ -95,7 +95,7 @@ const PostForm: React.FC<PostFormProps> = ({ initialPost, onSubmit, onCancel, is
           id="post-text"
           placeholder="Enter scanner update here..."
           {...form.register('text')}
-          className="tw-mt-1 tw-min-h-[100px]"
+          className="tw-mt-1 tw-min-h-[100px] tw-text-foreground"
           disabled={isLoading}
         />
         {form.formState.errors.text && (
