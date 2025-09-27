@@ -91,7 +91,7 @@ const AdminPostTable: React.FC<AdminPostTableProps> = ({ onPostUpdated }) => {
           placeholder="Search posts..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="tw-max-w-sm"
+          className="tw-w-full sm:tw-max-w-sm"
         />
       </div>
 
@@ -100,14 +100,14 @@ const AdminPostTable: React.FC<AdminPostTableProps> = ({ onPostUpdated }) => {
           <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
         </div>
       ) : (
-        <div className="tw-rounded-md tw-border tw-overflow-hidden">
+        <div className="tw-rounded-md tw-border tw-overflow-x-auto"> {/* Added overflow-x-auto here */}
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>Content</TableHead>
+                <TableHead className="tw-min-w-[150px]">Timestamp</TableHead> {/* Added min-width for better mobile display */}
+                <TableHead className="tw-min-w-[200px]">Content</TableHead> {/* Added min-width */}
                 <TableHead>Image</TableHead>
-                <TableHead className="tw-text-right">Actions</TableHead>
+                <TableHead className="tw-text-right tw-min-w-[100px]">Actions</TableHead> {/* Added min-width */}
               </TableRow>
             </TableHeader>
             <TableBody>
