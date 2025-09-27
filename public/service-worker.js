@@ -2,12 +2,15 @@ const CACHE_NAME = 'wpw-scanner-feed-cache-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/src/main.tsx',
-  '/src/globals.css',
-  '/logo.png', // Updated logo reference
+  '/logo.png',
   '/placeholder.svg',
   '/manifest.json',
   '/favicon.ico'
+  // In a production build, you would typically cache your bundled JS and CSS files here.
+  // For Vite, these often have hashes (e.g., /assets/index-XXXX.js, /assets/index-XXXX.css).
+  // You might need a build step to dynamically generate this list or use a more advanced
+  // service worker plugin for production. For development, these paths are less critical
+  // as the browser usually fetches them directly.
 ];
 
 self.addEventListener('install', (event) => {
