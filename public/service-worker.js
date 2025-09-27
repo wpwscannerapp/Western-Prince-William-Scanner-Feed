@@ -2,10 +2,8 @@ const CACHE_NAME = 'wpw-scanner-feed-cache-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/src/main.tsx',
-  '/src/globals.css',
   '/logo.jpeg',
-  '/placeholder.svg', // Added placeholder.svg to cache
+  '/placeholder.svg',
   '/manifest.json',
   '/favicon.ico'
 ];
