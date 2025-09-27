@@ -9,6 +9,20 @@ export interface Post {
   admin_id: string;
 }
 
+export interface Comment {
+  id: string;
+  post_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  profiles: {
+    first_name: string | null;
+    last_name: string | null;
+    avatar_url: string | null;
+  } | null;
+}
+
 const POSTS_PER_PAGE = 10;
 
 export const PostService = {
@@ -120,5 +134,121 @@ export const PostService = {
       return 0;
     }
     return count || 0;
-  }
+  },
+
+  // --- Likes functionality ---
+  async addLike(postId: string, userId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('likes')
+      .insert({ post_id: postId, user_id: userId });
+
+    if (error) {
+      // Ignore duplicate key error if user already liked
+      if (error.code === '23505') { // Unique violation error code
+        return true;
+      }
+      console.error('Error adding like:', error);
+      return false;
+    }
+    return true;
+  },
+
+  async removeLike(postId: string, userId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('likes')
+      .delete()
+      .eq('post_id', postId)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error removing like:', error);
+      return false;
+    }
+    return true;
+  },
+
+  async fetchLikesCount(postId: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('likes')
+      .select('id', { count: 'exact' })
+      .eq('post_id', postId);
+
+    if (error) {
+      console.error('Error fetching likes count:', error);
+      return 0;
+    }
+    return count || 0;
+  },
+
+  async hasUserLiked(postId: string, userId: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('likes')
+      .select('id')
+      .eq('post_id', postId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+      console.error('Error checking if user liked post:', error);
+      return false;
+    }
+    return !!data;
+  },
+
+  // --- Comments functionality ---
+  async addComment(postId: string, userId: string, content: string): Promise<Comment | null> {
+    const { data, error } = await supabase
+      .from('comments')
+      .insert({ post_id: postId, user_id: userId, content })
+      .select('*, profiles(first_name, last_name, avatar_url)') // Select profile info
+      .single();
+
+    if (error) {
+      console.error('Error adding comment:', error);
+      return null;
+    }
+    return data as Comment;
+  },
+
+  async fetchComments(postId: string): Promise<Comment[]> {
+    const { data, error } = await supabase
+      .from('comments')
+      .select('*, profiles(first_name, last_name, avatar_url)')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching comments:', error);
+      return [];
+    }
+    return data as Comment[];
+  },
+
+  async updateComment(commentId: string, content: string): Promise<Comment | null> {
+    const { data, error } = await supabase
+      .from('comments')
+      .update({ content, updated_at: new Date().toISOString() })
+      .eq('id', commentId)
+      .select('*, profiles(first_name, last_name, avatar_url)')
+      .single();
+
+    if (error) {
+      console.error('Error updating comment:', error);
+      return null;
+    }
+    return data as Comment;
+  },
+
+  async deleteComment(commentId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('comments')
+      .delete()
+      .eq('id', commentId);
+
+    if (error) {
+      console.error('Error deleting comment:', error);
+      return false;
+    }
+    return true;
+  },
 };
