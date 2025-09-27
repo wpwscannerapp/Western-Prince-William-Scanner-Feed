@@ -2,7 +2,7 @@ const CACHE_NAME = 'wpw-scanner-feed-cache-v2'; // Incremented cache version
 const urlsToCache = [
   '/',
   '/index.html',
-  '/logo.png',
+  // Removed '/logo.png'
   '/placeholder.svg',
   '/manifest.json',
   '/favicon.ico'
@@ -69,8 +69,8 @@ self.addEventListener('push', (event) => {
   const data = event.data?.json() || { title: 'New Update', body: 'Check out the latest scanner feed!' };
   const options = {
     body: data.body,
-    icon: '/logo.png', // Your app icon
-    badge: '/logo.png', // Badge icon
+    icon: '/icons/icon-192x192.png', // Using a generic icon from the icons folder
+    badge: '/icons/icon-192x192.png', // Using a generic icon from the icons folder
     data: {
       url: data.url || '/', // URL to open when notification is clicked
     },
