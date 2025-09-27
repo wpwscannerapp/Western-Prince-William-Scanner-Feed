@@ -1,5 +1,6 @@
 onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
-public-hoist-pattern[]=@swc/core
-public-hoist-pattern[]=esbuild
+public-hoist-pattern:
+  - '@swc/core'
+  - esbuild
