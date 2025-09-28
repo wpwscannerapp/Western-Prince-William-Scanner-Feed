@@ -21,3 +21,4 @@ For Supabase Edge Functions and webhooks, you will also need to set these as sec
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `WEB_PUSH_SECRET_KEY`
