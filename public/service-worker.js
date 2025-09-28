@@ -1,10 +1,14 @@
-const CACHE_NAME = 'wpw-scanner-feed-cache-v2'; // Incremented cache version
+const CACHE_NAME = 'wpw-scanner-feed-cache-v3'; // Incremented cache version
 const urlsToCache = [
   '/',
   '/index.html',
   '/placeholder.svg',
   '/manifest.json',
-  '/favicon.ico'
+  '/favicon.ico',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/icons/icon-maskable-192x192.png',
+  '/icons/icon-maskable-512x512.png'
 ];
 
 self.addEventListener('install', (event) => {
