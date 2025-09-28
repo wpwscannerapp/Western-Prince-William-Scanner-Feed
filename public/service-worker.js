@@ -2,15 +2,9 @@ const CACHE_NAME = 'wpw-scanner-feed-cache-v2'; // Incremented cache version
 const urlsToCache = [
   '/',
   '/index.html',
-  // Removed '/logo.png'
   '/placeholder.svg',
   '/manifest.json',
   '/favicon.ico'
-  // In a production build, you would typically cache your bundled JS and CSS files here.
-  // For Vite, these often have hashes (e.g., /assets/index-XXXX.js, /assets/index-XXXX.css).
-  // You might need a build step to dynamically generate this list or use a more advanced
-  // service worker plugin for production. For development, these paths are less critical
-  // as the browser usually fetches them directly.
 ];
 
 self.addEventListener('install', (event) => {
@@ -30,20 +24,37 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // For navigation requests (e.g., loading an HTML page), try network first, then cache fallback
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // Cache the new page and return it
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
+          return response;
+        })
+        .catch(() => caches.match('/index.html')) // Fallback to offline page
+    );
+    return;
+  }
+
+  // For other assets (JS, CSS, images, etc.), try cache first, then network
   event.respondWith(
     caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
+      .then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
         }
+        // If not in cache, try fetching from the network.
+        // If network fetch fails, let the error propagate naturally.
         return fetch(event.request).catch((error) => {
-          console.error('Fetch failed for:', event.request.url, error);
-          // Fallback to index.html for navigation requests if offline
-          if (event.request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-          // For other failed requests, return a generic error response or null
-          return new Response(null, { status: 503, statusText: 'Service Unavailable' });
+          console.error('Fetch failed for asset:', event.request.url, error);
+          // Do not return a custom Response with null body here;
+          // let the browser handle the network error for the asset.
+          throw error; // Re-throw to indicate fetch failure
         });
       })
   );
