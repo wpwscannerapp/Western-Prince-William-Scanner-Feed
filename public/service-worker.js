@@ -4,11 +4,7 @@ const urlsToCache = [
   '/index.html',
   '/placeholder.svg',
   '/manifest.json',
-  '/favicon.ico',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  '/icons/icon-maskable-192x192.png',
-  '/icons/icon-maskable-512x512.png'
+  '/favicon.ico'
 ];
 
 self.addEventListener('install', (event) => {
@@ -99,8 +95,7 @@ self.addEventListener('push', (event) => {
   const data = event.data?.json() || { title: 'New Update', body: 'Check out the latest scanner feed!' };
   const options = {
     body: data.body,
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-192x192.png',
+    // Removed icon and badge references
     data: {
       url: data.url || '/',
     },
