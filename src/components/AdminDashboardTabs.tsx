@@ -8,6 +8,7 @@ import AdminNotificationSender from '@/components/AdminNotificationSender';
 import { PostService } from '@/services/PostService';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 interface AdminDashboardTabsProps {
   onPostTableRefresh: () => void;
