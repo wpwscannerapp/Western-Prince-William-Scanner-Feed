@@ -22,7 +22,7 @@ const HomePage = () => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
   const [postFormLoading, setPostFormLoading] = useState(false);
-  const [initialLoad, setInitialLoad] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const observer = useRef<IntersectionObserver | null>(null);
   const lastPostRef = useCallback((node: HTMLDivElement) => {
     if (loading) return;
@@ -45,19 +45,24 @@ const HomePage = () => {
       }
 
       if (user) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('subscription_status')
-          .eq('id', user.id)
-          .single();
+        try {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('subscription_status')
+            .eq('id', user.id)
+            .single();
 
-        if (error) {
-          console.error('Error fetching profile for subscription status:', error);
-          setIsSubscribed(false);
-        } else if (profile) {
-          setIsSubscribed(profile.subscription_status === 'trialing' || profile.subscription_status === 'active');
-        } else {
-          setIsSubscribed(false);
+          if (error) {
+            console.error('Error fetching profile for subscription status:', error);
+            setIsSubscribed(false);
+          } else if (profile) {
+            setIsSubscribed(profile.subscription_status === 'trialing' || profile.subscription_status === 'active');
+          } else {
+            setIsSubscribed(false);
+          }
+        } catch (err) {
+          console.error('Error checking subscription status:', err);
+          setError('Failed to check subscription status');
         }
       } else {
         setIsSubscribed(false);
@@ -68,23 +73,34 @@ const HomePage = () => {
 
   const fetchPosts = useCallback(async (pageNum: number, append: boolean = true) => {
     setLoading(true);
-    const newPosts = await PostService.fetchPosts(pageNum);
-    if (newPosts.length === 0) {
-      setHasMore(false);
-    } else {
-      setPosts(prevPosts => (append ? [...prevPosts, ...newPosts] : newPosts));
+    setError(null);
+    try {
+      const newPosts = await PostService.fetchPosts(pageNum);
+      if (newPosts.length === 0) {
+        setHasMore(false);
+      } else {
+        setPosts(prevPosts => (append ? [...prevPosts, ...newPosts] : newPosts));
+      }
+    } catch (err) {
+      console.error('Error fetching posts:', err);
+      setError('Failed to load posts. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-    setInitialLoad(false);
   }, []);
 
   const fetchNewPosts = useCallback(async () => {
     if (posts.length === 0) return;
-    const latestTimestamp = posts[0].timestamp;
-    const newFetchedPosts = await PostService.fetchNewPosts(latestTimestamp);
-    if (newFetchedPosts.length > 0) {
-      setPosts(prevPosts => [...newFetchedPosts, ...prevPosts]);
-      setNewPostsAvailable(true);
+    try {
+      const latestTimestamp = posts[0].timestamp;
+      const newFetchedPosts = await PostService.fetchNewPosts(latestTimestamp);
+      if (newFetchedPosts.length > 0) {
+        setPosts(prevPosts => [...newFetchedPosts, ...prevPosts]);
+        setNewPostsAvailable(true);
+      }
+    } catch (err) {
+      console.error('Error fetching new posts:', err);
+      toast.error('Failed to fetch new posts.');
     }
   }, [posts]);
 
@@ -134,25 +150,47 @@ const HomePage = () => {
     }
 
     setPostFormLoading(true);
-    toast.loading('Creating post...', { id: 'create-post' });
-    const newPost = await PostService.createPost(text, imageFile, user.id);
-    setPostFormLoading(false);
-
-    if (newPost) {
-      toast.success('Post created successfully!', { id: 'create-post' });
-      setPosts(prevPosts => [newPost, ...prevPosts]);
-      setNewPostsAvailable(true);
-      return true;
-    } else {
-      toast.error('Failed to create post.', { id: 'create-post' });
+    try {
+      toast.loading('Creating post...', { id: 'create-post' });
+      const newPost = await PostService.createPost(text, imageFile, user.id);
+      
+      if (newPost) {
+        toast.success('Post created successfully!', { id: 'create-post' });
+        setPosts(prevPosts => [newPost, ...prevPosts]);
+        setNewPostsAvailable(true);
+        return true;
+      } else {
+        toast.error('Failed to create post.', { id: 'create-post' });
+        return false;
+      }
+    } catch (err) {
+      console.error('Error creating post:', err);
+      toast.error('An error occurred while creating the post.', { id: 'create-post' });
       return false;
+    } finally {
+      setPostFormLoading(false);
     }
   };
 
-  if (initialLoad && loading) {
+  const handleRetry = () => {
+    setError(null);
+    fetchPosts(0, false);
+  };
+
+  if (error) {
     return (
-      <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8 tw-max-w-2xl tw-flex tw-justify-center tw-items-center tw-h-screen">
-        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+      <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8 tw-relative tw-max-w-2xl">
+        <div className="tw-flex tw-justify-between tw-items-center tw-mb-6">
+          <h1 className="tw-text-3xl tw-font-bold tw-text-foreground">Home Feed</h1>
+          <NotificationBell />
+        </div>
+        
+        <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-12">
+          <p className="tw-text-destructive tw-mb-4">Error: {error}</p>
+          <Button onClick={handleRetry}>Retry</Button>
+        </div>
+        
+        <MadeWithDyad />
       </div>
     );
   }
@@ -181,19 +219,29 @@ const HomePage = () => {
       <div className={`tw-space-y-6 ${!isSubscribed && !isAdmin ? 'tw-relative' : ''}`}>
         <div className={!isSubscribed && !isAdmin ? 'tw-blur-sm tw-pointer-events-none' : ''}>
           {posts.length === 0 && !loading && (
-            <p className="tw-text-center tw-text-muted-foreground tw-py-8">No posts available yet. Check back soon!</p>
+            <div className="tw-text-center tw-py-12">
+              <p className="tw-text-muted-foreground tw-mb-4">No posts available yet. Check back soon!</p>
+              {isAdmin && (
+                <Button onClick={() => fetchPosts(0, false)} variant="outline">
+                  Refresh
+                </Button>
+              )}
+            </div>
           )}
+          
           {posts.map((post, index) => (
             <div key={post.id} ref={index === posts.length - 1 ? lastPostRef : null}>
               <PostCard post={post} />
             </div>
           ))}
+          
           {loading && (
             <div className="tw-flex tw-justify-center tw-items-center tw-py-8 tw-gap-2 tw-text-muted-foreground">
               <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
               <span>Loading more posts...</span>
             </div>
           )}
+          
           {!hasMore && !loading && posts.length > 0 && (
             <p className="tw-text-center tw-text-muted-foreground tw-py-4">You've reached the end of the feed.</p>
           )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,9 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { MadeWithDyad } from '@/components/made-with-dyad';
 
-const passwordResetSchema = z.object({
+const resetPasswordSchema = z.object({
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -20,66 +19,83 @@ const passwordResetSchema = z.object({
   path: ["confirmPassword"],
 });
 
-type PasswordResetFormValues = z.infer<typeof passwordResetSchema>;
+type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [resetComplete, setResetComplete] = useState(false);
 
-  const form = useForm<PasswordResetFormValues>({
-    resolver: zodResolver(passwordResetSchema),
+  const form = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
       password: '',
       confirmPassword: '',
     },
   });
 
-  useEffect(() => {
-    // Get the token from URL parameters
-    const token = searchParams.get('token');
-    if (token) {
-      setResetToken(token);
-    } else {
-      toast.error('Invalid or missing reset token');
-      navigate('/auth');
-    }
-  }, [searchParams, navigate]);
-
-  const onSubmit = async (values: PasswordResetFormValues) => {
-    if (!resetToken) {
-      toast.error('Invalid reset token');
+  const onSubmit = async (values: ResetPasswordFormValues) => {
+    setLoading(true);
+    const refreshToken = searchParams.get('refresh_token');
+    
+    if (!refreshToken) {
+      toast.error('Invalid reset link. Please request a new password reset.');
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-    toast.loading('Resetting password...', { id: 'reset-password' });
+    // Set the session with the refresh token
+    const { error: sessionError } = await supabase.auth.setSession({
+      refresh_token: refreshToken,
+      access_token: '', // Supabase will generate this
+    });
 
-    try {
-      // Update the user's password
-      const { error } = await supabase.auth.updateUser({
-        password: values.password,
-      });
-
-      if (error) {
-        toast.error(error.message, { id: 'reset-password' });
-      } else {
-        toast.success('Password reset successfully!', { id: 'reset-password' });
-        navigate('/auth');
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'An error occurred', { id: 'reset-password' });
-    } finally {
+    if (sessionError) {
+      toast.error('Invalid or expired reset link. Please request a new password reset.');
       setLoading(false);
+      return;
     }
+
+    // Update the user's password
+    const { error } = await supabase.auth.updateUser({
+      password: values.password,
+    });
+
+    if (error) {
+      toast.error(`Failed to reset password: ${error.message}`);
+      setLoading(false);
+      return;
+    }
+
+    toast.success('Password reset successfully!');
+    setResetComplete(true);
+    setLoading(false);
   };
 
+  if (resetComplete) {
+    return (
+      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
+        <Card className="tw-w-full tw-max-w-md">
+          <CardHeader>
+            <CardTitle>Password Reset Complete</CardTitle>
+            <CardDescription>Your password has been successfully updated.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate('/auth')} className="tw-w-full">
+              Go to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-p-4 tw-bg-background tw-text-foreground">
+    <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
       <Card className="tw-w-full tw-max-w-md">
-        <CardHeader className="tw-text-center">
-          <CardTitle className="tw-text-2xl">Reset Password</CardTitle>
+        <CardHeader>
+          <CardTitle>Reset Password</CardTitle>
           <CardDescription>Enter your new password below</CardDescription>
         </CardHeader>
         <CardContent>
@@ -97,8 +113,9 @@ const ResetPasswordPage = () => {
                 <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.password.message}</p>
               )}
             </div>
+            
             <div>
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -110,16 +127,14 @@ const ResetPasswordPage = () => {
                 <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.confirmPassword.message}</p>
               )}
             </div>
-            <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={loading}>
+
+            <Button type="submit" className="tw-w-full" disabled={loading}>
               {loading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
               Reset Password
             </Button>
           </form>
         </CardContent>
       </Card>
-      <div className="tw-mt-6">
-        <MadeWithDyad />
-      </div>
     </div>
   );
 };

@@ -11,16 +11,16 @@ import { toast } from 'sonner';
 const authSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }).optional(),
-}).refine(
-  (data) => {
-    if (!data.password && !data.email) return false;
-    return true;
-  },
-  {
-    message: 'Password is required',
-    path: ['password'],
+}).refine((data) => {
+  // Password is required for login and signup
+  if (!data.password && !('isReset' in data)) {
+    return false;
   }
-);
+  return true;
+}, {
+  message: 'Password is required.',
+  path: ['password'],
+});
 
 type AuthFormValues = z.infer<typeof authSchema>;
 
@@ -39,10 +39,10 @@ const AuthForm = () => {
 
   const onSubmit = async (values: AuthFormValues) => {
     if (showForgotPassword) {
-      await handleForgotPassword(values.email);
+      await handleForgotPassword();
       return;
     }
-
+    
     if (isLogin) {
       if (!values.password) return;
       await signIn(values.email, values.password);
@@ -52,7 +52,8 @@ const AuthForm = () => {
     }
   };
 
-  const handleForgotPassword = async (email: string) => {
+  const handleForgotPassword = async () => {
+    const email = form.getValues('email');
     if (!email) {
       toast.error('Please enter your email address to reset your password.');
       return;
@@ -81,6 +82,7 @@ const AuthForm = () => {
             <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.email.message}</p>
           )}
         </div>
+        
         {!showForgotPassword && (
           <div>
             <Label htmlFor="password">Password</Label>

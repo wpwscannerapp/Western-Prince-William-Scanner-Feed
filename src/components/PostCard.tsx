@@ -25,20 +25,26 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isLiking, setIsLiking] = useState(false);
   const [isCommenting, setIsCommenting] = useState(false);
   const [showComments, setShowComments] = useState(false);
-  const [imageError, setImageError] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchLikesAndComments = async () => {
     if (!user) return;
 
-    const [likes, likedStatus, fetchedComments] = await Promise.all([
-      PostService.fetchLikesCount(post.id),
-      PostService.hasUserLiked(post.id, user.id),
-      PostService.fetchComments(post.id),
-    ]);
+    try {
+      const [likes, likedStatus, fetchedComments] = await Promise.all([
+        PostService.fetchLikesCount(post.id),
+        PostService.hasUserLiked(post.id, user.id),
+        PostService.fetchComments(post.id),
+      ]);
 
-    setLikesCount(likes);
-    setHasLiked(likedStatus);
-    setComments(fetchedComments);
+      setLikesCount(likes);
+      setHasLiked(likedStatus);
+      setComments(fetchedComments);
+    } catch (err) {
+      console.error('Error fetching post data:', err);
+      setError('Failed to load post data. Please try again.');
+    }
   };
 
   useEffect(() => {
@@ -75,24 +81,30 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       return;
     }
     setIsLiking(true);
-    if (hasLiked) {
-      const success = await PostService.removeLike(post.id, user.id);
-      if (success) {
-        setHasLiked(false);
-        setLikesCount(prev => Math.max(0, prev - 1));
+    try {
+      if (hasLiked) {
+        const success = await PostService.removeLike(post.id, user.id);
+        if (success) {
+          setHasLiked(false);
+          setLikesCount(prev => Math.max(0, prev - 1));
+        } else {
+          toast.error('Failed to unlike post.');
+        }
       } else {
-        toast.error('Failed to unlike post.');
+        const success = await PostService.addLike(post.id, user.id);
+        if (success) {
+          setHasLiked(true);
+          setLikesCount(prev => prev + 1);
+        } else {
+          toast.error('Failed to like post.');
+        }
       }
-    } else {
-      const success = await PostService.addLike(post.id, user.id);
-      if (success) {
-        setHasLiked(true);
-        setLikesCount(prev => prev + 1);
-      } else {
-        toast.error('Failed to like post.');
-      }
+    } catch (err) {
+      console.error('Error toggling like:', err);
+      toast.error('An error occurred while liking the post.');
+    } finally {
+      setIsLiking(false);
     }
-    setIsLiking(false);
   };
 
   const handleAddComment = async () => {
@@ -106,16 +118,22 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     }
 
     setIsCommenting(true);
-    toast.loading('Adding comment...', { id: 'add-comment' });
-    const newComment = await PostService.addComment(post.id, user.id, newCommentContent);
-    setIsCommenting(false);
-
-    if (newComment) {
-      toast.success('Comment added!', { id: 'add-comment' });
-      setComments(prev => [...prev, newComment]);
-      setNewCommentContent('');
-    } else {
-      toast.error('Failed to add comment.', { id: 'add-comment' });
+    try {
+      toast.loading('Adding comment...', { id: 'add-comment' });
+      const newComment = await PostService.addComment(post.id, user.id, newCommentContent);
+      
+      if (newComment) {
+        toast.success('Comment added!', { id: 'add-comment' });
+        setComments(prev => [...prev, newComment]);
+        setNewCommentContent('');
+      } else {
+        toast.error('Failed to add comment.', { id: 'add-comment' });
+      }
+    } catch (err) {
+      console.error('Error adding comment:', err);
+      toast.error('An error occurred while adding the comment.', { id: 'add-comment' });
+    } finally {
+      setIsCommenting(false);
     }
   };
 
@@ -134,6 +152,37 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     }
   };
 
+  const handleShowComments = async () => {
+    const newShowState = !showComments;
+    setShowComments(newShowState);
+    
+    if (newShowState && comments.length === 0 && !loadingComments) {
+      setLoadingComments(true);
+      try {
+        const fetchedComments = await PostService.fetchComments(post.id);
+        setComments(fetchedComments);
+      } catch (err) {
+        console.error('Error fetching comments:', err);
+        setError('Failed to load comments. Please try again.');
+      } finally {
+        setLoadingComments(false);
+      }
+    }
+  };
+
+  if (error) {
+    return (
+      <Card className="tw-w-full tw-bg-card tw-border tw-border-border tw-shadow-md tw-text-foreground tw-rounded-lg">
+        <CardContent className="tw-pt-4 tw-px-4 tw-pb-4">
+          <p className="tw-text-destructive">Error: {error}</p>
+          <Button onClick={() => setError(null)} variant="outline" className="tw-mt-2">
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="tw-w-full tw-bg-card tw-border tw-border-border tw-shadow-md tw-text-foreground tw-rounded-lg">
       <div className="tw-p-4 tw-pb-2">
@@ -141,19 +190,17 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       </div>
       <CardContent className="tw-pt-2 tw-px-4 tw-pb-4">
         <p className="tw-text-base tw-mb-4 tw-whitespace-pre-wrap">{post.text}</p>
-        {post.image_url && !imageError && (
+        {post.image_url && (
           <img
             src={post.image_url}
             alt="Post image"
             className="tw-w-full tw-max-h-80 tw-object-cover tw-rounded-md tw-mb-4 tw-border tw-border-border"
-            onError={() => setImageError(true)}
-            loading="lazy"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              setError('Failed to load image');
+            }}
           />
-        )}
-        {imageError && (
-          <div className="tw-w-full tw-max-h-80 tw-flex tw-items-center tw-justify-center tw-rounded-md tw-mb-4 tw-border tw-border-border tw-bg-muted">
-            <p className="tw-text-muted-foreground">Failed to load image</p>
-          </div>
         )}
       </CardContent>
       <CardFooter className="tw-flex tw-flex-col tw-items-start tw-pt-0 tw-pb-4 tw-px-4">
@@ -171,7 +218,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setShowComments(prev => !prev)}
+            onClick={handleShowComments}
             className="tw-text-muted-foreground hover:tw-text-primary"
           >
             <MessageCircle className="tw-h-4 tw-w-4 tw-mr-1" /> {comments.length} Comment{comments.length !== 1 ? 's' : ''}
@@ -194,20 +241,26 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 Comment
               </Button>
             </div>
-            <div className="tw-space-y-3">
-              {comments.length === 0 ? (
-                <p className="tw-text-sm tw-text-muted-foreground tw-text-center">No comments yet. Be the first!</p>
-              ) : (
-                comments.map(comment => (
-                  <CommentCard
-                    key={comment.id}
-                    comment={comment}
-                    onCommentUpdated={handleCommentUpdated}
-                    onCommentDeleted={handleCommentDeleted}
-                  />
-                ))
-              )}
-            </div>
+            {loadingComments ? (
+              <div className="tw-flex tw-justify-center tw-py-4">
+                <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
+              </div>
+            ) : (
+              <div className="tw-space-y-3">
+                {comments.length === 0 ? (
+                  <p className="tw-text-sm tw-text-muted-foreground tw-text-center">No comments yet. Be the first!</p>
+                ) : (
+                  comments.map(comment => (
+                    <CommentCard
+                      key={comment.id}
+                      comment={comment}
+                      onCommentUpdated={handleCommentUpdated}
+                      onCommentDeleted={handleCommentDeleted}
+                    />
+                  ))
+                )}
+              </div>
+            )}
           </div>
         )}
       </CardFooter>

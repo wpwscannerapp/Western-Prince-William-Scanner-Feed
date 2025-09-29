@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Edit, Trash2, Save, X, Clock } from 'lucide-react';
+import { Loader2, Edit, Trash2, Save, X } from 'lucide-react';
 import { Comment, PostService } from '@/services/PostService';
 import { useAuth } from '@/hooks/useAuth';
 import { formatPostTimestamp } from '@/lib/utils';
@@ -20,6 +20,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(comment.content);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleEdit = async () => {
     if (editedContent.trim() === '') {
@@ -27,31 +28,43 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
       return;
     }
     setIsLoading(true);
-    toast.loading('Updating comment...', { id: 'update-comment' });
-    const updatedComment = await PostService.updateComment(comment.id, editedContent);
-    setIsLoading(false);
-
-    if (updatedComment) {
-      toast.success('Comment updated!', { id: 'update-comment' });
-      onCommentUpdated(updatedComment);
-      setIsEditing(false);
-    } else {
-      toast.error('Failed to update comment.', { id: 'update-comment' });
+    try {
+      toast.loading('Updating comment...', { id: 'update-comment' });
+      const updatedComment = await PostService.updateComment(comment.id, editedContent);
+      
+      if (updatedComment) {
+        toast.success('Comment updated!', { id: 'update-comment' });
+        onCommentUpdated(updatedComment);
+        setIsEditing(false);
+      } else {
+        toast.error('Failed to update comment.', { id: 'update-comment' });
+      }
+    } catch (err) {
+      console.error('Error updating comment:', err);
+      toast.error('An error occurred while updating the comment.', { id: 'update-comment' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this comment?')) {
       setIsLoading(true);
-      toast.loading('Deleting comment...', { id: 'delete-comment' });
-      const success = await PostService.deleteComment(comment.id);
-      setIsLoading(false);
-
-      if (success) {
-        toast.success('Comment deleted!', { id: 'delete-comment' });
-        onCommentDeleted(comment.id);
-      } else {
-        toast.error('Failed to delete comment.', { id: 'delete-comment' });
+      try {
+        toast.loading('Deleting comment...', { id: 'delete-comment' });
+        const success = await PostService.deleteComment(comment.id);
+        
+        if (success) {
+          toast.success('Comment deleted!', { id: 'delete-comment' });
+          onCommentDeleted(comment.id);
+        } else {
+          toast.error('Failed to delete comment.', { id: 'delete-comment' });
+        }
+      } catch (err) {
+        console.error('Error deleting comment:', err);
+        toast.error('An error occurred while deleting the comment.', { id: 'delete-comment' });
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -59,6 +72,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
   const handleCancelEdit = () => {
     setEditedContent(comment.content);
     setIsEditing(false);
+    setError(null);
   };
 
   const displayName = comment.profiles?.first_name && comment.profiles?.last_name
@@ -67,6 +81,19 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
 
   const displayAvatar = comment.profiles?.avatar_url || undefined;
   const avatarFallback = displayName.charAt(0).toUpperCase();
+
+  if (error) {
+    return (
+      <div className="tw-flex tw-space-x-3 tw-p-3 tw-bg-muted/30 tw-rounded-lg tw-border tw-border-border">
+        <div className="tw-flex-1">
+          <p className="tw-text-destructive">Error: {error}</p>
+          <Button onClick={() => setError(null)} variant="outline" size="sm" className="tw-mt-2">
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="tw-flex tw-space-x-3 tw-p-3 tw-bg-muted/30 tw-rounded-lg tw-border tw-border-border">
@@ -79,12 +106,9 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
       <div className="tw-flex-1">
         <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
           <p className="tw-font-semibold tw-text-foreground">{displayName}</p>
-          <div className="tw-flex tw-items-center tw-gap-1">
-            <Clock className="tw-h-3 tw-w-3 tw-text-muted-foreground" />
-            <span className="tw-text-xs tw-text-muted-foreground">
-              {formatPostTimestamp(comment.created_at)}
-            </span>
-          </div>
+          <span className="tw-text-xs tw-text-muted-foreground">
+            {formatPostTimestamp(comment.created_at)}
+          </span>
         </div>
         {isEditing ? (
           <div className="tw-space-y-2">
@@ -105,14 +129,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
             </div>
           </div>
         ) : (
-          <div className="tw-space-y-2">
-            <p className="tw-text-sm tw-text-foreground tw-whitespace-pre-wrap">{comment.content}</p>
-            {comment.updated_at !== comment.created_at && (
-              <p className="tw-text-xs tw-text-muted-foreground">
-                Edited: {formatPostTimestamp(comment.updated_at)}
-              </p>
-            )}
-          </div>
+          <p className="tw-text-sm tw-text-foreground tw-whitespace-pre-wrap">{comment.content}</p>
         )}
         {isOwner && !isEditing && (
           <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-2">
