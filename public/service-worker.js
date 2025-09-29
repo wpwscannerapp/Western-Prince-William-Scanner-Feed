@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wpw-scanner-feed-cache-v3'; // Incremented cache version
+const CACHE_NAME = 'wpw-scanner-feed-cache-v4';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -40,7 +40,7 @@ self.addEventListener('fetch', (event) => {
           });
           return response;
         })
-        .catch(() => caches.match('/index.html')) // Fallback to offline page
+        .catch(() => caches.match('/index.html'))
     );
     return;
   }
@@ -52,13 +52,28 @@ self.addEventListener('fetch', (event) => {
         if (cachedResponse) {
           return cachedResponse;
         }
-        // If not in cache, try fetching from the network.
-        // If network fetch fails, let the error propagate naturally.
-        return fetch(event.request).catch((error) => {
+        // If not in cache, try fetching from the network
+        return fetch(event.request).then(response => {
+          // Check if we received a valid response
+          if (!response || response.status !== 200 || response.type !== 'basic') {
+            return response;
+          }
+
+          // IMPORTANT: Clone the response. A response is a stream
+          // and because we want the browser to consume the response
+          // as well as the cache consuming the response, we need
+          // to clone it so we have two streams.
+          const responseToCache = response.clone();
+
+          caches.open(CACHE_NAME)
+            .then(cache => {
+              cache.put(event.request, responseToCache);
+            });
+
+          return response;
+        }).catch(error => {
           console.error('Fetch failed for asset:', event.request.url, error);
-          // Do not return a custom Response with null body here;
-          // let the browser handle the network error for the asset.
-          throw error; // Re-throw to indicate fetch failure
+          throw error;
         });
       })
   );
@@ -84,11 +99,13 @@ self.addEventListener('push', (event) => {
   const data = event.data?.json() || { title: 'New Update', body: 'Check out the latest scanner feed!' };
   const options = {
     body: data.body,
-    icon: '/icons/icon-192x192.png', // Using a generic icon from the icons folder
-    badge: '/icons/icon-192x192.png', // Using a generic icon from the icons folder
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/icon-192x192.png',
     data: {
-      url: data.url || '/', // URL to open when notification is clicked
+      url: data.url || '/',
     },
+    tag: 'scanner-update',
+    renotify: true
   };
 
   event.waitUntil(

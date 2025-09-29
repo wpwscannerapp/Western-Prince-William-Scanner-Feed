@@ -22,3 +22,57 @@ For Supabase Edge Functions and webhooks, you will also need to set these as sec
 - `STRIPE_WEBHOOK_SECRET`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `WEB_PUSH_SECRET_KEY`
+
+## Features Implemented
+
+### Authentication
+- User signup and login with email/password
+- Password reset functionality
+- Admin role management
+
+### Posts & Content
+- Real-time post updates with Supabase subscriptions
+- Image uploads for posts
+- Post creation, editing, and deletion (admin only)
+- Post filtering and search in admin panel
+
+### Social Features
+- Like posts
+- Comment on posts with editing/deletion capabilities
+- Real-time updates for likes and comments
+
+### Subscription & Payments
+- Stripe integration for subscriptions
+- 7-day free trial
+- Subscription status management
+
+### Push Notifications
+- Web push notifications for subscribed users
+- Admin notification sender
+- Service worker implementation for offline support
+
+### Admin Dashboard
+- Post management
+- Analytics dashboard with subscription growth charts
+- Application settings
+- Push notification sender
+
+### User Profiles
+- Profile management with avatar upload
+- First/last name customization
+
+### Responsive Design
+- Mobile-friendly interface
+- Dark/light mode toggle
+
+## Development
+
+This project uses:
+- React with TypeScript
+- Vite for build tooling
+- Supabase for backend services
+- Tailwind CSS for styling
+- Shadcn/UI components
+- React Query for data fetching
+- Zod for form validation
+- React Hook Form for form handling

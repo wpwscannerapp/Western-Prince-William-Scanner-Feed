@@ -7,12 +7,13 @@ import NotFound from "./pages/NotFound";
 import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
-import PostDetailPage from "./pages/PostDetailPage"; // Import PostDetailPage
+import PostDetailPage from "./pages/PostDetailPage";
 import Layout from "./components/Layout";
 import AuthPage from "./pages/AuthPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import { useAuth } from "./hooks/useAuth";
-import TopNavBar from "./components/TopNavBar"; // Import TopNavBar here
+import TopNavBar from "./components/TopNavBar";
 
 const queryClient = new QueryClient();
 
@@ -40,22 +41,22 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Sonner />
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}> {/* Added future flags */}
-        <TopNavBar /> {/* Render TopNavBar globally */}
-        <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16"> {/* Main content wrapper with padding for fixed TopNavBar */}
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <TopNavBar />
+        <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/subscribe" element={<SubscriptionPage />} />
-            <Route path="/reset-password" element={<div>Password Reset Page (Implement this later)</div>} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* Protected routes that use the Layout */}
             <Route element={<ProtectedRoute />}>
-              <Route element={<Layout />}> {/* Layout now wraps the protected content */}
+              <Route element={<Layout />}>
                 <Route path="/home" element={<HomePage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/admin" element={<AdminPage />} />
-                <Route path="/posts/:postId" element={<PostDetailPage />} /> {/* New Post Detail Page route */}
+                <Route path="/posts/:postId" element={<PostDetailPage />} />
               </Route>
             </Route>
 

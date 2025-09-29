@@ -3,25 +3,26 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import PostCard from '@/components/PostCard';
 import SubscribeOverlay from '@/components/SubscribeOverlay';
 import NotificationBell from '@/components/NotificationBell';
-import PostForm from '@/components/PostForm'; // Import PostForm
+import PostForm from '@/components/PostForm';
 import { Post, PostService } from '@/services/PostService';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, ArrowUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner'; // Import toast for notifications
+import { toast } from 'sonner';
 
 const HomePage = () => {
   const { user } = useAuth();
-  const { isAdmin, loading: isAdminLoading } = useIsAdmin(); // Destructure isAdmin and isAdminLoading
+  const { isAdmin, loading: isAdminLoading } = useIsAdmin();
   const [posts, setPosts] = useState<Post[]>([]);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
-  const [postFormLoading, setPostFormLoading] = useState(false); // State for PostForm loading
+  const [postFormLoading, setPostFormLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
   const observer = useRef<IntersectionObserver | null>(null);
   const lastPostRef = useCallback((node: HTMLDivElement) => {
     if (loading) return;
@@ -36,7 +37,7 @@ const HomePage = () => {
 
   useEffect(() => {
     const checkSubscriptionStatus = async () => {
-      if (isAdminLoading) return; // Wait for isAdmin to finish loading
+      if (isAdminLoading) return;
 
       if (isAdmin) {
         setIsSubscribed(true);
@@ -63,7 +64,7 @@ const HomePage = () => {
       }
     };
     checkSubscriptionStatus();
-  }, [user, isAdmin, isAdminLoading]); // Depend on isAdmin and isAdminLoading
+  }, [user, isAdmin, isAdminLoading]);
 
   const fetchPosts = useCallback(async (pageNum: number, append: boolean = true) => {
     setLoading(true);
@@ -74,6 +75,7 @@ const HomePage = () => {
       setPosts(prevPosts => (append ? [...prevPosts, ...newPosts] : newPosts));
     }
     setLoading(false);
+    setInitialLoad(false);
   }, []);
 
   const fetchNewPosts = useCallback(async () => {
@@ -138,14 +140,22 @@ const HomePage = () => {
 
     if (newPost) {
       toast.success('Post created successfully!', { id: 'create-post' });
-      setPosts(prevPosts => [newPost, ...prevPosts]); // Add new post to the top of the feed
-      setNewPostsAvailable(true); // Indicate new posts are available
+      setPosts(prevPosts => [newPost, ...prevPosts]);
+      setNewPostsAvailable(true);
       return true;
     } else {
       toast.error('Failed to create post.', { id: 'create-post' });
       return false;
     }
   };
+
+  if (initialLoad && loading) {
+    return (
+      <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8 tw-max-w-2xl tw-flex tw-justify-center tw-items-center tw-h-screen">
+        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8 tw-relative tw-max-w-2xl">
@@ -158,7 +168,7 @@ const HomePage = () => {
         Welcome to your WPW Scanner Feed!
       </p>
 
-      {isAdmin && ( // Conditionally render PostForm for admins
+      {isAdmin && (
         <div className="tw-mb-8">
           <h2 className="tw-text-2xl tw-font-semibold tw-text-foreground tw-mb-4">Create New Post</h2>
           <PostForm

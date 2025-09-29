@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
-import CommentCard from './CommentCard'; // Import the new CommentCard
+import CommentCard from './CommentCard';
 
 interface PostCardProps {
   post: Post;
@@ -25,6 +25,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isLiking, setIsLiking] = useState(false);
   const [isCommenting, setIsCommenting] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const fetchLikesAndComments = async () => {
     if (!user) return;
@@ -127,7 +128,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) { // Submit on Enter, allow Shift+Enter for new line if it were a textarea
+    if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       handleAddComment();
     }
@@ -140,12 +141,19 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       </div>
       <CardContent className="tw-pt-2 tw-px-4 tw-pb-4">
         <p className="tw-text-base tw-mb-4 tw-whitespace-pre-wrap">{post.text}</p>
-        {post.image_url && (
+        {post.image_url && !imageError && (
           <img
             src={post.image_url}
             alt="Post image"
             className="tw-w-full tw-max-h-80 tw-object-cover tw-rounded-md tw-mb-4 tw-border tw-border-border"
+            onError={() => setImageError(true)}
+            loading="lazy"
           />
+        )}
+        {imageError && (
+          <div className="tw-w-full tw-max-h-80 tw-flex tw-items-center tw-justify-center tw-rounded-md tw-mb-4 tw-border tw-border-border tw-bg-muted">
+            <p className="tw-text-muted-foreground">Failed to load image</p>
+          </div>
         )}
       </CardContent>
       <CardFooter className="tw-flex tw-flex-col tw-items-start tw-pt-0 tw-pb-4 tw-px-4">

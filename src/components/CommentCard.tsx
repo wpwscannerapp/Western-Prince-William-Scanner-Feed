@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Edit, Trash2, Save, X } from 'lucide-react';
+import { Loader2, Edit, Trash2, Save, X, Clock } from 'lucide-react';
 import { Comment, PostService } from '@/services/PostService';
 import { useAuth } from '@/hooks/useAuth';
 import { formatPostTimestamp } from '@/lib/utils';
@@ -63,7 +63,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
 
   const displayName = comment.profiles?.first_name && comment.profiles?.last_name
     ? `${comment.profiles.first_name} ${comment.profiles.last_name}`
-    : user?.email || 'Anonymous'; // Fallback to email if no profile name
+    : user?.email || 'Anonymous';
 
   const displayAvatar = comment.profiles?.avatar_url || undefined;
   const avatarFallback = displayName.charAt(0).toUpperCase();
@@ -79,9 +79,12 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
       <div className="tw-flex-1">
         <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
           <p className="tw-font-semibold tw-text-foreground">{displayName}</p>
-          <span className="tw-text-xs tw-text-muted-foreground">
-            {formatPostTimestamp(comment.created_at)}
-          </span>
+          <div className="tw-flex tw-items-center tw-gap-1">
+            <Clock className="tw-h-3 tw-w-3 tw-text-muted-foreground" />
+            <span className="tw-text-xs tw-text-muted-foreground">
+              {formatPostTimestamp(comment.created_at)}
+            </span>
+          </div>
         </div>
         {isEditing ? (
           <div className="tw-space-y-2">
@@ -102,7 +105,14 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
             </div>
           </div>
         ) : (
-          <p className="tw-text-sm tw-text-foreground tw-whitespace-pre-wrap">{comment.content}</p>
+          <div className="tw-space-y-2">
+            <p className="tw-text-sm tw-text-foreground tw-whitespace-pre-wrap">{comment.content}</p>
+            {comment.updated_at !== comment.created_at && (
+              <p className="tw-text-xs tw-text-muted-foreground">
+                Edited: {formatPostTimestamp(comment.updated_at)}
+              </p>
+            )}
+          </div>
         )}
         {isOwner && !isEditing && (
           <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-2">

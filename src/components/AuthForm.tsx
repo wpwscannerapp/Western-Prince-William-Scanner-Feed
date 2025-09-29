@@ -10,8 +10,17 @@ import { toast } from 'sonner';
 
 const authSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-});
+  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }).optional(),
+}).refine(
+  (data) => {
+    if (!data.password && !data.email) return false;
+    return true;
+  },
+  {
+    message: 'Password is required',
+    path: ['password'],
+  }
+);
 
 type AuthFormValues = z.infer<typeof authSchema>;
 
@@ -29,15 +38,21 @@ const AuthForm = () => {
   });
 
   const onSubmit = async (values: AuthFormValues) => {
+    if (showForgotPassword) {
+      await handleForgotPassword(values.email);
+      return;
+    }
+
     if (isLogin) {
+      if (!values.password) return;
       await signIn(values.email, values.password);
     } else {
+      if (!values.password) return;
       await signUp(values.email, values.password);
     }
   };
 
-  const handleForgotPassword = async () => {
-    const email = form.getValues('email');
+  const handleForgotPassword = async (email: string) => {
     if (!email) {
       toast.error('Please enter your email address to reset your password.');
       return;
@@ -48,7 +63,7 @@ const AuthForm = () => {
   return (
     <div className="tw-w-full tw-max-w-md tw-p-8 tw-space-y-6 tw-bg-card tw-rounded-lg tw-shadow-lg tw-border tw-border-border">
       <h2 className="tw-text-2xl tw-font-bold tw-text-center tw-text-foreground">
-        {isLogin ? 'Login' : 'Sign Up'}
+        {showForgotPassword ? 'Reset Password' : isLogin ? 'Login' : 'Sign Up'}
       </h2>
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="tw-space-y-4">
@@ -84,7 +99,7 @@ const AuthForm = () => {
         )}
 
         {showForgotPassword ? (
-          <Button type="button" onClick={handleForgotPassword} className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground">
+          <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground">
             Send Reset Email
           </Button>
         ) : (
