@@ -65,7 +65,7 @@ export function useAuth() {
 
   const forgotPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'http://localhost:3000/reset-password', // Updated to the specified URL
+      redirectTo: `${import.meta.env.VITE_APP_URL}/reset-password`, // Dynamically use VITE_APP_URL
     });
     if (error) {
       toast.error(error.message);
