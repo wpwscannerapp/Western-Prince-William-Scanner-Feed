@@ -74,9 +74,9 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ onPostTableRefr
       // Fetch subscription data grouped by date
       const { data, error } = await supabase
         .from('profiles')
-        .select('created_at, subscription_status') // Select subscription_status to ensure it's available for filtering
+        .select('updated_at, subscription_status') // Changed from 'created_at' to 'updated_at'
         .in('subscription_status', ['trialing', 'active'])
-        .order('created_at');
+        .order('updated_at'); // Changed from 'created_at' to 'updated_at'
 
       if (error) {
         logSupabaseError('fetchSubscriptionData', error); // Log the specific error
@@ -86,7 +86,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ onPostTableRefr
       // Process data to group by date
       const groupedData: Record<string, number> = {};
       data.forEach(profile => {
-        const date = new Date(profile.created_at).toISOString().split('T')[0];
+        const date = new Date(profile.updated_at).toISOString().split('T')[0]; // Changed from 'created_at' to 'updated_at'
         groupedData[date] = (groupedData[date] || 0) + 1;
       });
 
