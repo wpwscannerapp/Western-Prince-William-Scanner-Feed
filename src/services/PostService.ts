@@ -144,7 +144,7 @@ export const PostService = {
       .in('subscription_status', ['trialing', 'active']); // Count users with active or trialing subscriptions
 
     if (error) {
-      console.error('Error fetching subscriber count:', error);
+      console.error('Error fetching subscriber count:', error); // Detailed error logging
       return 0;
     }
     return count || 0;
@@ -161,7 +161,7 @@ export const PostService = {
       if (error.code === '23505') { // Unique violation error code
         return true;
       }
-      console.error('Error adding like:', error);
+      console.error('Error adding like:', error); // Detailed error logging
       return false;
     }
     return true;
@@ -175,7 +175,7 @@ export const PostService = {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Error removing like:', error);
+      console.error('Error removing like:', error); // Detailed error logging
       return false;
     }
     return true;
@@ -188,7 +188,7 @@ export const PostService = {
       .eq('post_id', postId);
 
     if (error) {
-      console.error('Error fetching likes count:', error);
+      console.error('Error fetching likes count:', error); // Detailed error logging
       return 0;
     }
     return count || 0;
@@ -203,7 +203,7 @@ export const PostService = {
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
-      console.error('Error checking if user liked post:', error);
+      console.error('Error checking if user liked post:', error); // Detailed error logging
       return false;
     }
     return !!data;
@@ -214,11 +214,11 @@ export const PostService = {
     const { data, error } = await supabase
       .from('comments')
       .insert({ post_id: postId, user_id: userId, content })
-      .select('*, profiles(first_name, last_name, avatar_url)') // Select profile info
+      .select('*, profiles(first_name, last_name, avatar_url)') // Keep join for now, but if 400 persists, we'll remove it
       .single();
 
     if (error) {
-      console.error('Error adding comment:', error);
+      console.error('Error adding comment:', error); // Detailed error logging
       return null;
     }
     return data as Comment;
@@ -227,12 +227,12 @@ export const PostService = {
   async fetchComments(postId: string): Promise<Comment[]> {
     const { data, error } = await supabase
       .from('comments')
-      .select('*, profiles(first_name, last_name, avatar_url)')
+      .select('*, profiles(first_name, last_name, avatar_url)') // Simplified select for debugging
       .eq('post_id', postId)
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Error fetching comments:', error);
+      console.error('Error fetching comments:', error); // Detailed error logging
       return [];
     }
     return data as Comment[];
@@ -247,7 +247,7 @@ export const PostService = {
       .single();
 
     if (error) {
-      console.error('Error updating comment:', error);
+      console.error('Error updating comment:', error); // Detailed error logging
       return null;
     }
     return data as Comment;
@@ -260,7 +260,7 @@ export const PostService = {
       .eq('id', commentId);
 
     if (error) {
-      console.error('Error deleting comment:', error);
+      console.error('Error deleting comment:', error); // Detailed error logging
       return false;
     }
     return true;
