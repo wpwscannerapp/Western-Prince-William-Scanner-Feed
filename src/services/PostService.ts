@@ -1,5 +1,5 @@
-import { supabase } from '@/integrations/supabase/client'; // Updated import path
-import { StorageService } from './StorageService'; // Import StorageService
+import { supabase } from '@/integrations/supabase/client';
+import { StorageService } from './StorageService';
 
 export interface Post {
   id: string;
@@ -25,6 +25,17 @@ export interface Comment {
 
 const POSTS_PER_PAGE = 10;
 
+// Helper for logging Supabase errors
+const logSupabaseError = (functionName: string, error: any) => {
+  console.error(`Error in ${functionName}:`, {
+    message: error?.message,
+    code: error?.code,
+    details: error?.details,
+    hint: error?.hint,
+    originalError: error, // Keep the original error object for full context
+  });
+};
+
 export const PostService = {
   async fetchPosts(page: number = 0): Promise<Post[]> {
     const { data, error } = await supabase
@@ -34,7 +45,7 @@ export const PostService = {
       .range(page * POSTS_PER_PAGE, (page + 1) * POSTS_PER_PAGE - 1);
 
     if (error) {
-      console.error('Error fetching posts:', error);
+      logSupabaseError('fetchPosts', error);
       return [];
     }
     return data as Post[];
@@ -48,7 +59,7 @@ export const PostService = {
       .single();
 
     if (error) {
-      console.error('Error fetching single post:', error);
+      logSupabaseError('fetchSinglePost', error);
       return null;
     }
     return data as Post;
@@ -62,7 +73,7 @@ export const PostService = {
       .order('timestamp', { ascending: false });
 
     if (error) {
-      console.error('Error fetching new posts:', error);
+      logSupabaseError('fetchNewPosts', error);
       return [];
     }
     return data as Post[];
@@ -82,7 +93,7 @@ export const PostService = {
       .single();
 
     if (error) {
-      console.error('Error creating post:', error);
+      logSupabaseError('createPost', error);
       return null;
     }
     return data as Post;
@@ -114,7 +125,7 @@ export const PostService = {
       .single();
 
     if (error) {
-      console.error('Error updating post:', error);
+      logSupabaseError('updatePost', error);
       return null;
     }
     return data as Post;
@@ -131,7 +142,7 @@ export const PostService = {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting post:', error);
+      logSupabaseError('deletePost', error);
       return false;
     }
     return true;
@@ -144,7 +155,7 @@ export const PostService = {
       .in('subscription_status', ['trialing', 'active']); // Count users with active or trialing subscriptions
 
     if (error) {
-      console.error('Error fetching subscriber count:', error); // Detailed error logging
+      logSupabaseError('fetchSubscriberCount', error);
       return 0;
     }
     return count || 0;
@@ -157,11 +168,10 @@ export const PostService = {
       .insert({ post_id: postId, user_id: userId });
 
     if (error) {
-      // Ignore duplicate key error if user already liked
       if (error.code === '23505') { // Unique violation error code
         return true;
       }
-      console.error('Error adding like:', error); // Detailed error logging
+      logSupabaseError('addLike', error);
       return false;
     }
     return true;
@@ -175,7 +185,7 @@ export const PostService = {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Error removing like:', error); // Detailed error logging
+      logSupabaseError('removeLike', error);
       return false;
     }
     return true;
@@ -188,7 +198,7 @@ export const PostService = {
       .eq('post_id', postId);
 
     if (error) {
-      console.error('Error fetching likes count:', error); // Detailed error logging
+      logSupabaseError('fetchLikesCount', error);
       return 0;
     }
     return count || 0;
@@ -203,7 +213,7 @@ export const PostService = {
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
-      console.error('Error checking if user liked post:', error); // Detailed error logging
+      logSupabaseError('hasUserLiked', error);
       return false;
     }
     return !!data;
@@ -214,11 +224,11 @@ export const PostService = {
     const { data, error } = await supabase
       .from('comments')
       .insert({ post_id: postId, user_id: userId, content })
-      .select('*, profiles(first_name, last_name, avatar_url)') // Keep join for now, but if 400 persists, we'll remove it
+      .select('*') // Removed profiles join for debugging
       .single();
 
     if (error) {
-      console.error('Error adding comment:', error); // Detailed error logging
+      logSupabaseError('addComment', error);
       return null;
     }
     return data as Comment;
@@ -227,12 +237,12 @@ export const PostService = {
   async fetchComments(postId: string): Promise<Comment[]> {
     const { data, error } = await supabase
       .from('comments')
-      .select('*, profiles(first_name, last_name, avatar_url)') // Simplified select for debugging
+      .select('*') // Removed profiles join for debugging
       .eq('post_id', postId)
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Error fetching comments:', error); // Detailed error logging
+      logSupabaseError('fetchComments', error);
       return [];
     }
     return data as Comment[];
@@ -243,11 +253,11 @@ export const PostService = {
       .from('comments')
       .update({ content, updated_at: new Date().toISOString() })
       .eq('id', commentId)
-      .select('*, profiles(first_name, last_name, avatar_url)')
+      .select('*') // Removed profiles join for debugging
       .single();
 
     if (error) {
-      console.error('Error updating comment:', error); // Detailed error logging
+      logSupabaseError('updateComment', error);
       return null;
     }
     return data as Comment;
@@ -260,7 +270,7 @@ export const PostService = {
       .eq('id', commentId);
 
     if (error) {
-      console.error('Error deleting comment:', error); // Detailed error logging
+      logSupabaseError('deleteComment', error);
       return false;
     }
     return true;
