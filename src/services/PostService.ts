@@ -211,13 +211,13 @@ export const PostService = {
       .select('id')
       .eq('post_id', postId)
       .eq('user_id', userId)
-      .single();
+      .limit(1); // Use limit(1) instead of single()
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+    if (error) {
       logSupabaseError('hasUserLiked', error);
       return false;
     }
-    return !!data;
+    return data && data.length > 0; // Check if any data was returned
   },
 
   // --- Comments functionality ---
