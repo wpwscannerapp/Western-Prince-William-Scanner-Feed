@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import PostForm from '@/components/PostForm'; // Corrected import
+import PostForm from '@/components/PostForm';
 import AdminPostTable from '@/components/AdminPostTable';
 import AnalyticsCard from '@/components/AnalyticsCard';
 import AppSettingsForm from '@/components/AppSettingsForm';
@@ -37,7 +37,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ onPostTableRefr
   const { user } = useAuth();
   const [postFormLoading, setPostFormLoading] = React.useState(false);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData[]>([]);
-  const [error, setError] = React.useState<string | null>(null); // Added error state
+  const [error, setError] = React.useState<string | null>(null);
 
   const handleCreatePost = async (text: string, imageFile: File | null) => {
     if (!user) {
@@ -46,7 +46,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ onPostTableRefr
     }
 
     setPostFormLoading(true);
-    setError(null); // Clear previous errors
+    setError(null);
     try {
       toast.loading('Creating post...', { id: 'create-post' });
       const newPost = await PostService.createPost(text, imageFile, user.id);
@@ -62,7 +62,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ onPostTableRefr
     } catch (err: any) {
       console.error('Error creating post:', err);
       toast.error('An error occurred while creating the post.', { id: 'create-post' });
-      setError('Failed to create post. Please try again.'); // Set error state
+      setError('Failed to create post. Please try again.');
       return false;
     } finally {
       setPostFormLoading(false);
@@ -71,29 +71,25 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ onPostTableRefr
 
   const fetchSubscriptionData = async () => {
     try {
-      // Log the intended query parameters
       console.log('Attempting to fetch subscription data with select: "updated_at, subscription_status" and order: "updated_at"');
       
-      // Fetch subscription data grouped by date
       const { data, error } = await supabase
         .from('profiles')
-        .select('updated_at, subscription_status') // Using 'updated_at'
+        .select('updated_at, subscription_status')
         .in('subscription_status', ['trialing', 'active'])
-        .order('updated_at'); // Using 'updated_at'
+        .order('updated_at');
 
       if (error) {
-        logSupabaseError('fetchSubscriptionData', error); // Log the specific error
-        throw error; // Re-throw to be caught by the outer catch block
+        logSupabaseError('fetchSubscriptionData', error);
+        throw error;
       }
 
-      // Process data to group by date
       const groupedData: Record<string, number> = {};
       data.forEach(profile => {
-        const date = new Date(profile.updated_at).toISOString().split('T')[0]; // Using 'updated_at'
+        const date = new Date(profile.updated_at).toISOString().split('T')[0];
         groupedData[date] = (groupedData[date] || 0) + 1;
       });
 
-      // Convert to array format for chart
       const chartData = Object.entries(groupedData).map(([date, count]) => ({
         date,
         count
@@ -102,7 +98,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ onPostTableRefr
       setSubscriptionData(chartData);
     } catch (error) {
       console.error('Error fetching subscription data:', error);
-      setError('Failed to load subscription analytics.'); // Set error state for analytics
+      setError('Failed to load subscription analytics.');
     }
   };
 
@@ -112,8 +108,8 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ onPostTableRefr
 
   const handleRetry = () => {
     setError(null);
-    onPostTableRefresh(); // Refresh post table
-    fetchSubscriptionData(); // Re-fetch analytics data
+    onPostTableRefresh();
+    fetchSubscriptionData();
   };
 
   if (error) {
@@ -194,8 +190,8 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ onPostTableRefr
               <div className="tw-space-y-4">
                 <div>
                   <div className="tw-flex tw-justify-between tw-mb-1">
-                    <span className="tw-sm tw-font-medium">Likes</span>
-                    <span className="tw-sm tw-font-medium">1,240</span>
+                    <span className="tw-text-sm tw-font-medium">Likes</span>
+                    <span className="tw-text-sm tw-font-medium">1,240</span>
                   </div>
                   <div className="tw-w-full tw-bg-secondary tw-rounded-full tw-h-2">
                     <div className="tw-bg-primary tw-h-2 tw-rounded-full" style={{ width: '75%' }}></div>
@@ -203,8 +199,8 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ onPostTableRefr
                 </div>
                 <div>
                   <div className="tw-flex tw-justify-between tw-mb-1">
-                    <span className="tw-sm tw-font-medium">Comments</span>
-                    <span className="tw-sm tw-font-medium">856</span>
+                    <span className="tw-text-sm tw-font-medium">Comments</span>
+                    <span className="tw-text-sm tw-font-medium">856</span>
                   </div>
                   <div className="tw-w-full tw-bg-secondary tw-rounded-full tw-h-2">
                     <div className="tw-bg-primary tw-h-2 tw-rounded-full" style={{ width: '55%' }}></div>
@@ -212,8 +208,8 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ onPostTableRefr
                 </div>
                 <div>
                   <div className="tw-flex tw-justify-between tw-mb-1">
-                    <span className="tw-sm tw-font-medium">Shares</span>
-                    <span className="tw-sm tw-font-medium">320</span>
+                    <span className="tw-text-sm tw-font-medium">Shares</span>
+                    <span className="tw-text-sm tw-font-medium">320</span>
                   </div>
                   <div className="tw-w-full tw-bg-secondary tw-rounded-full tw-h-2">
                     <div className="tw-bg-primary tw-h-2 tw-rounded-full" style={{ width: '25%' }}></div>
