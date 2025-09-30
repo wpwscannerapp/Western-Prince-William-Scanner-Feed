@@ -168,6 +168,7 @@ export const PostService = {
       .insert({ post_id: postId, user_id: userId });
 
     if (error) {
+      // Ignore duplicate key error if user already liked
       if (error.code === '23505') { // Unique violation error code
         return true;
       }
@@ -224,7 +225,7 @@ export const PostService = {
     const { data, error } = await supabase
       .from('comments')
       .insert({ post_id: postId, user_id: userId, content })
-      .select('*') // Removed profiles join for debugging
+      .select('*, profiles(first_name, last_name, avatar_url)')
       .single();
 
     if (error) {
@@ -237,7 +238,7 @@ export const PostService = {
   async fetchComments(postId: string): Promise<Comment[]> {
     const { data, error } = await supabase
       .from('comments')
-      .select('*') // Removed profiles join for debugging
+      .select('*, profiles(first_name, last_name, avatar_url)')
       .eq('post_id', postId)
       .order('created_at', { ascending: true });
 
@@ -253,7 +254,7 @@ export const PostService = {
       .from('comments')
       .update({ content, updated_at: new Date().toISOString() })
       .eq('id', commentId)
-      .select('*') // Removed profiles join for debugging
+      .select('*, profiles(first_name, last_name, avatar_url)')
       .single();
 
     if (error) {
