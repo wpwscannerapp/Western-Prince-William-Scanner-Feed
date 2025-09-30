@@ -22,6 +22,17 @@ interface SubscriptionData {
   count: number;
 }
 
+// Helper for logging Supabase errors
+const logSupabaseError = (functionName: string, error: any) => {
+  console.error(`Error in ${functionName}:`, {
+    message: error?.message,
+    code: error?.code,
+    details: error?.details,
+    hint: error?.hint,
+    originalError: error,
+  });
+};
+
 const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ onPostTableRefresh }) => {
   const { user } = useAuth();
   const [postFormLoading, setPostFormLoading] = React.useState(false);
@@ -63,11 +74,14 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ onPostTableRefr
       // Fetch subscription data grouped by date
       const { data, error } = await supabase
         .from('profiles')
-        .select('created_at')
+        .select('created_at, subscription_status') // Select subscription_status to ensure it's available for filtering
         .in('subscription_status', ['trialing', 'active'])
         .order('created_at');
 
-      if (error) throw error;
+      if (error) {
+        logSupabaseError('fetchSubscriptionData', error); // Log the specific error
+        throw error; // Re-throw to be caught by the outer catch block
+      }
 
       // Process data to group by date
       const groupedData: Record<string, number> = {};
