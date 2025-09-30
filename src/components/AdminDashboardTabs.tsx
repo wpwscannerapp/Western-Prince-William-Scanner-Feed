@@ -194,8 +194,8 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ onPostTableRefr
               <div className="tw-space-y-4">
                 <div>
                   <div className="tw-flex tw-justify-between tw-mb-1">
-                    <span className="tw-text-sm tw-font-medium">Likes</span>
-                    <span className="tw-text-sm tw-font-medium">1,240</span>
+                    <span className="tw-sm tw-font-medium">Likes</span>
+                    <span className="tw-sm tw-font-medium">1,240</span>
                   </div>
                   <div className="tw-w-full tw-bg-secondary tw-rounded-full tw-h-2">
                     <div className="tw-bg-primary tw-h-2 tw-rounded-full" style={{ width: '75%' }}></div>
@@ -203,8 +203,8 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ onPostTableRefr
                 </div>
                 <div>
                   <div className="tw-flex tw-justify-between tw-mb-1">
-                    <span className="tw-text-sm tw-font-medium">Comments</span>
-                    <span className="tw-text-sm tw-font-medium">856</span>
+                    <span className="tw-sm tw-font-medium">Comments</span>
+                    <span className="tw-sm tw-font-medium">856</span>
                   </div>
                   <div className="tw-w-full tw-bg-secondary tw-rounded-full tw-h-2">
                     <div className="tw-bg-primary tw-h-2 tw-rounded-full" style={{ width: '55%' }}></div>
@@ -212,8 +212,8 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ onPostTableRefr
                 </div>
                 <div>
                   <div className="tw-flex tw-justify-between tw-mb-1">
-                    <span className="tw-text-sm tw-font-medium">Shares</span>
-                    <span className="tw-text-sm tw-font-medium">320</span>
+                    <span className="tw-sm tw-font-medium">Shares</span>
+                    <span className="tw-sm tw-font-medium">320</span>
                   </div>
                   <div className="tw-w-full tw-bg-secondary tw-rounded-full tw-h-2">
                     <div className="tw-bg-primary tw-h-2 tw-rounded-full" style={{ width: '25%' }}></div>
