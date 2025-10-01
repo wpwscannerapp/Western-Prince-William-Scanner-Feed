@@ -13,7 +13,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 222.2 47.4% 11.2%; /* Fallback HSL for primary */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -29,7 +29,7 @@
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
-    --input: 210 40% 96.1%; /* Changed: Lighter gray for light mode input background */
+    --input: 210 40% 96.1%;
     --ring: 222.2 84% 4.9%;
 
     --radius: 0.5rem;
@@ -49,77 +49,88 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --app-primary-color-hex: #2196F3; /* Default primary color in hex */
   }
 
   .dark {
-    --background: 220 15% 8%; /* Very dark blue-gray, inspired by logo */
-    --foreground: 210 40% 98%; /* Off-white for text */
+    --background: 220 15% 8%;
+    --foreground: 210 40% 98%;
 
-    --card: 220 15% 12%; /* Slightly lighter than background for cards */
+    --card: 220 15% 12%;
     --card-foreground: 210 40% 98%;
 
     --popover: 220 15% 12%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217.2 91.2% 59.8%; /* Vibrant blue from logo */
-    --primary-foreground: 210 40% 98%; /* Off-white for text on primary */
+    --primary: 217.2 91.2% 59.8%; /* Fallback HSL for primary */
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 10% 30%; /* Darker gray for secondary elements (like shield border) */
+    --secondary: 210 10% 30%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 220 15% 18%; /* Muted background, slightly lighter */
-    --muted-foreground: 215 20.2% 65.1%; /* Medium gray */
+    --muted: 220 15% 18%;
+    --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 48 96% 60%; /* Bright yellow from logo (Dispatch) */
-    --accent-foreground: 222.2 47.4% 11.2%; /* Dark text on yellow */
+    --accent: 48 96% 60%;
+    --accent-foreground: 222.2 47.4% 11.2%;
 
-    --destructive: 0 84.2% 60.2%; /* Red from logo (Fire & EMS) - existing destructive is good */
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 220 15% 20%; /* Darker border */
-    --input: 220 15% 25%; /* Darker input background */
-    --ring: 217.2 91.2% 59.8%; /* Primary blue for focus rings */
+    --border: 220 15% 20%;
+    --input: 220 15% 25%;
+    --ring: 217.2 91.2% 59.8%;
 
-    /* Sidebar colors - adjusted to new scheme */
-    --sidebar-background: 220 15% 10%; /* Darker than main background */
+    --sidebar-background: 220 15% 10%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217.2 91.2% 59.8%; /* Use main primary blue */
+    --sidebar-primary: 217.2 91.2% 59.8%;
     --sidebar-primary-foreground: 210 40% 98%;
     --sidebar-accent: 220 15% 18%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 220 15% 20%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --app-primary-color-hex: #2196F3; /* Default primary color in hex */
   }
 }
 
 @layer base {
+  /* Dynamically set primary color using the hex value */
+  .tw-bg-primary { background-color: var(--app-primary-color-hex); }
+  .tw-text-primary { color: var(--app-primary-color-hex); }
+  .tw-border-primary { border-color: var(--app-primary-color-hex); }
+  .hover\\:tw-bg-primary\\/90:hover { background-color: color-mix(in srgb, var(--app-primary-color-hex) 90%, black); }
+  .hover\\:tw-text-primary:hover { color: var(--app-primary-color-hex); }
+  .tw-ring-primary { --tw-ring-color: var(--app-primary-color-hex); }
+  .tw-shadow-glow { box-shadow: 0 0 10px color-mix(in srgb, var(--app-primary-color-hex) 50%, transparent); }
+  .dark .tw-shadow-glow { box-shadow: 0 0 15px color-mix(in srgb, var(--app-primary-color-hex) 70%, transparent); }
+  /* Add other primary-related classes as needed */
+
   * {
-    border-color: hsl(var(--border)); /* Changed from @apply tw-border-border; */
+    border-color: hsl(var(--border));
   }
 
   body {
     @apply tw-bg-background tw-text-foreground;
   }
 
-  /* Global placeholder style for readability */
   input::placeholder,
   textarea::placeholder {
     color: hsl(var(--muted-foreground));
   }
 
-  /* Input focus animation */
   .tw-input:focus-within {
-    transform: scale(1.01); /* Slightly less aggressive scale */
+    transform: scale(1.01);
     transition: transform 0.2s ease-in-out;
-    box-shadow: 0 0 0 2px hsl(var(--ring)); /* Add a subtle ring on focus */
+    box-shadow: 0 0 0 2px hsl(var(--ring));
   }
 
-  /* General button transition and shadow */
   .tw-button {
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
   }
   .tw-button:hover {
-    transform: translateY(-2px); /* Subtle lift effect */
+    transform: translateY(-2px);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
   .dark .tw-button:hover {
@@ -127,13 +138,12 @@
   }
 }
 
-/* Custom animations */
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 .tw-animate-fade-in {
-  animation: fade-in 1s ease-in forwards; /* Added forwards to keep end state */
+  animation: fade-in 1s ease-in forwards;
 }
 
 @keyframes progress {
@@ -142,13 +152,5 @@
 }
 .tw-animate-progress {
   width: 0%;
-  animation: progress var(--splash-duration, 3s) linear forwards; /* Use CSS variable for duration */
-}
-
-/* Glowing effect for buttons */
-.tw-shadow-glow {
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); /* Default blue glow */
-}
-.dark .tw-shadow-glow {
-  box-shadow: 0 0 15px rgba(33, 150, 243, 0.7); /* Darker, more intense blue glow */
+  animation: progress var(--splash-duration, 3s) linear forwards;
 }
