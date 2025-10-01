@@ -52,6 +52,7 @@
 
     --app-primary-color-hex: #2196F3; /* Default primary color in hex */
     --app-primary-color-darker-hex: #1a7ad9; /* Default darker primary color in hex */
+    --app-primary-color-rgb: 33, 150, 243; /* Default primary color in RGB */
     --app-secondary-color-hex: #4CAF50; /* Default secondary color in hex */
     --app-secondary-color-darker-hex: #3d8b41; /* Default darker secondary color in hex */
     --app-font-family: Inter, sans-serif; /* Default font family */
@@ -97,6 +98,7 @@
 
     --app-primary-color-hex: #2196F3; /* Default primary color in hex */
     --app-primary-color-darker-hex: #1a7ad9; /* Default darker primary color in hex */
+    --app-primary-color-rgb: 33, 150, 243; /* Default primary color in RGB */
     --app-secondary-color-hex: #4CAF50; /* Default secondary color in hex */
     --app-secondary-color-darker-hex: #3d8b41; /* Default darker secondary color in hex */
     --app-font-family: Inter, sans-serif; /* Default font family */
@@ -111,9 +113,9 @@
   .hover\\:tw-bg-primary\\/90:hover { background-color: var(--app-primary-color-darker-hex); }
   .hover\\:tw-text-primary:hover { color: var(--app-primary-color-hex); }
   .tw-ring-primary { --tw-ring-color: var(--app-primary-color-hex); }
-  .tw-shadow-glow { box-shadow: 0 0 10px color-mix(in srgb, var(--app-primary-color-hex) 50%, transparent); }
-  .dark .tw-shadow-glow { box-shadow: 0 0 15px color-mix(in srgb, var(--app-primary-color-hex) 70%, transparent); }
-  
+  .tw-shadow-glow { box-shadow: 0 0 10px rgb(var(--app-primary-color-rgb) / 0.5); }
+  .dark .tw-shadow-glow { box-shadow: 0 0 15px rgb(var(--app-primary-color-rgb) / 0.7); }
+
   /* Dynamically set secondary color using the hex value */
   .tw-bg-secondary { background-color: var(--app-secondary-color-hex); }
   .tw-text-secondary { color: var(--app-secondary-color-hex); }
