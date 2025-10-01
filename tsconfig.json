@@ -24,8 +24,11 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+
+    /* Include custom declaration files */
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
-  "include": ["src"],
-  "exclude": ["supabase/functions"]
+  "include": ["src", "src/types"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }

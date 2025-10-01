@@ -356,14 +356,14 @@ const AppSettingsForm: React.FC = () => {
             </div>
             {form.watch('logo_url') && (
               <div className="tw-mt-4">
-                <h3 className="tw-text-lg tw-font-semibold tw-mb-2">Logo Preview</h3>
+                <h3 className="tw-lg tw-font-semibold tw-mb-2">Logo Preview</h3>
                 <img src={form.watch('logo_url')} alt="Logo Preview" className="tw-max-h-20 tw-max-w-full tw-object-contain" />
               </div>
             )}
             {form.watch('custom_css') && (
               <div className="tw-mt-4">
-                <h3 className="tw-text-lg tw-font-semibold tw-mb-2">Custom CSS Applied</h3>
-                <p className="tw-text-sm tw-text-muted-foreground">Custom CSS is active in this preview.</p>
+                <h3 className="tw-lg tw-font-semibold tw-mb-2">Custom CSS Applied</h3>
+                <p className="tw-sm tw-text-muted-foreground">Custom CSS is active in this preview.</p>
               </div>
             )}
           </div>
