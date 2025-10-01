@@ -1,34 +1,30 @@
-import { useState } from 'react'; // Removed useEffect
+import { useState } from 'react';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import AdminDashboardTabs from '@/components/AdminDashboardTabs';
 import { Button } from '@/components/ui/button';
 // import { handleError } from '@/utils/errorHandler'; // Removed unused import
+import AdminSidebar from '@/components/AdminSidebar';
 
 const AdminPage = () => {
   const { loading: authLoading } = useAuth();
   const { isAdmin, loading: isAdminLoading } = useIsAdmin();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('posts');
 
-  // Combine Redirect Logic: Move the redirect logic into the render phase
   if (!authLoading && !isAdminLoading && !isAdmin) {
     toast.error('Access Denied: You must be an administrator to view this page.');
     navigate('/home');
-    return null; // Prevent rendering the admin page content
+    return null;
   }
-
-  // Add Error Handling: AdminDashboardTabs will handle its own internal errors.
-  // This error state is for any potential issues directly within AdminPage or its initial setup.
-  // For now, it's primarily used for the retry mechanism.
 
   const handleRetry = () => {
     setError(null);
-    // Re-trigger data fetching in AdminDashboardTabs if needed, or simply clear error
   };
 
   if (authLoading || isAdminLoading) {
@@ -40,7 +36,6 @@ const AdminPage = () => {
     );
   }
 
-  // If not admin, we've already redirected, so this return should ideally not be reached
   if (!isAdmin) {
     return null;
   }
@@ -48,9 +43,12 @@ const AdminPage = () => {
   if (error) {
     return (
       <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8">
-        <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-12">
-          <p className="tw-text-destructive tw-mb-4">Error: {error}</p>
-          <Button onClick={handleRetry}>Retry</Button>
+        <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-12 tw-bg-card tw-rounded-lg tw-shadow-md">
+          <AlertCircle className="tw-h-12 tw-w-12 tw-text-destructive tw-mb-4" aria-hidden="true" />
+          <p className="tw-text-destructive tw-text-lg tw-mb-4">Error: {error}</p>
+          <Button onClick={handleRetry} size="lg" className="tw-bg-primary hover:tw-bg-primary/90">
+            Retry
+          </Button>
         </div>
         <MadeWithDyad />
       </div>
@@ -58,11 +56,15 @@ const AdminPage = () => {
   }
 
   return (
-    <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8">
-      <h1 className="tw-text-3xl tw-font-bold tw-mb-6 tw-text-foreground">Admin Dashboard</h1>
-      {/* Optimize Re-rendering: Removed key={postTableKey}. AdminDashboardTabs will manage its own internal refresh. */}
-      <AdminDashboardTabs />
-      <MadeWithDyad />
+    <div className="tw-flex tw-min-h-screen tw-bg-background">
+      <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      <main className="tw-flex-1 tw-p-4 md:tw-p-8">
+        <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground">Admin Dashboard</h1>
+        <div className="tw-grid tw-gap-4">
+          <AdminDashboardTabs activeTab={activeTab} />
+        </div>
+        <MadeWithDyad />
+      </main>
     </div>
   );
 };

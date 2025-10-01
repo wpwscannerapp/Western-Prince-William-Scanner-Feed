@@ -6,8 +6,7 @@ import AdminPostTable from '@/components/AdminPostTable';
 import AnalyticsCard from '@/components/AnalyticsCard';
 import AppSettingsForm from '@/components/AppSettingsForm';
 import AdminNotificationSender from '@/components/AdminNotificationSender';
-// import { Post, PostService } from '@/services/PostService'; // Removed unused import
-import { PostService } from '@/services/PostService'; // Keep PostService for use
+import { PostService } from '@/services/PostService';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -16,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { handleError } from '@/utils/errorHandler';
 
 interface AdminDashboardTabsProps {
-  // Removed onPostTableRefresh prop
+  activeTab: string; // Prop to receive active tab from parent
 }
 
 interface SubscriptionData {
@@ -24,12 +23,12 @@ interface SubscriptionData {
   count: number;
 }
 
-const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = () => {
+const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) => { // Receive activeTab as prop
   const { user } = useAuth();
   const [postFormLoading, setPostFormLoading] = React.useState(false);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData[]>([]);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('posts');
+  // Removed internal activeTab state, now controlled by parent
 
   const refreshPostTable = useCallback(() => {
     // This function will be passed to AdminPostTable to trigger its internal refresh
@@ -104,12 +103,12 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = () => {
   };
 
   return (
-    <Tabs defaultValue="posts" className="tw-w-full" onValueChange={setActiveTab}>
-      <TabsList className="tw-grid tw-w-full tw-grid-cols-4 tw-mb-6">
-        <TabsTrigger value="posts">Posts</TabsTrigger>
-        <TabsTrigger value="analytics">Analytics</TabsTrigger>
-        <TabsTrigger value="settings">Settings</TabsTrigger>
-        <TabsTrigger value="notifications">Notifications</TabsTrigger>
+    <Tabs value={activeTab} className="tw-w-full"> {/* Use value prop for controlled tabs */}
+      <TabsList className="tw-grid tw-w-full tw-grid-cols-4 tw-mb-6 tw-hidden"> {/* Hide TabsList as navigation is via sidebar */}
+        <TabsTrigger value="posts" aria-label="Posts tab">Posts</TabsTrigger>
+        <TabsTrigger value="analytics" aria-label="Analytics tab">Analytics</TabsTrigger>
+        <TabsTrigger value="settings" aria-label="Settings tab">Settings</TabsTrigger>
+        <TabsTrigger value="notifications" aria-label="Notifications tab">Notifications</TabsTrigger>
       </TabsList>
       <TabsContent value="posts" className="tw-space-y-8">
         <Card>
@@ -138,7 +137,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = () => {
         {analyticsError ? (
           <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-8">
             <p className="tw-text-destructive tw-mb-4">Error: {analyticsError}</p>
-            <Button onClick={handleRetryAnalytics}>Retry</Button>
+            <Button onClick={handleRetryAnalytics} className="tw-button">Retry</Button>
           </div>
         ) : (
           <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-6">

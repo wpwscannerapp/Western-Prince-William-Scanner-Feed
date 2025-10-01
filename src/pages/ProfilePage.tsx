@@ -2,19 +2,19 @@ import ProfileForm from '@/components/ProfileForm';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { PROFILE_TITLE, PROFILE_DESCRIPTION } from '@/lib/constants';
 import { Loader2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query'; // Use useQuery directly
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { ProfileService, Profile } from '@/services/ProfileService'; // Keep ProfileService and Profile for useQuery
+import { ProfileService, Profile } from '@/services/ProfileService';
 import { handleError } from '@/utils/errorHandler';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'; // Import Card components
 
 const ProfilePage = () => {
   const { user } = useAuth();
 
-  // Fetch profile data using useQuery
   const { isLoading: isProfileLoading, isError: isProfileError, error: profileError } = useQuery<Profile | null, Error>({
     queryKey: ['profile', user?.id],
     queryFn: () => user ? ProfileService.fetchProfile(user.id) : Promise.resolve(null),
-    enabled: !!user, // Only run query if user exists
+    enabled: !!user,
   });
 
   if (isProfileLoading) {
@@ -39,13 +39,15 @@ const ProfilePage = () => {
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8 tw-max-w-2xl">
-      <h1 className="tw-text-3xl tw-font-bold tw-mb-6 tw-text-center tw-text-foreground">{PROFILE_TITLE}</h1>
-      <p className="tw-text-center tw-text-muted-foreground tw-mb-8">
-        {PROFILE_DESCRIPTION}
-      </p>
-      
-      <ProfileForm />
-
+      <Card className="tw-w-full tw-max-w-md tw-mx-auto tw-bg-card tw-shadow-lg">
+        <CardHeader>
+          <CardTitle className="tw-text-3xl tw-font-bold tw-text-center">{PROFILE_TITLE}</CardTitle>
+          <CardDescription className="tw-text-center tw-text-muted-foreground">{PROFILE_DESCRIPTION}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ProfileForm />
+        </CardContent>
+      </Card>
       <MadeWithDyad />
     </div>
   );

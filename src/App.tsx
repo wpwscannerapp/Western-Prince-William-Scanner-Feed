@@ -14,6 +14,7 @@ import SubscriptionPage from "./pages/SubscriptionPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import { useAuth } from "./hooks/useAuth";
 import TopNavBar from "./components/TopNavBar";
+import { Button } from "./components/ui/button"; // Import Button for feedback
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,16 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
+
+        {/* Floating Feedback Button */}
+        <Button
+          variant="outline"
+          className="tw-fixed tw-bottom-4 tw-right-4 tw-rounded-full tw-shadow-lg tw-button tw-z-50"
+          onClick={() => window.open('mailto:support@example.com')}
+          aria-label="Send feedback"
+        >
+          Feedback
+        </Button>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

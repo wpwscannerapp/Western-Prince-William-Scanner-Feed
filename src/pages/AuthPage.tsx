@@ -3,11 +3,12 @@ import TeaserPost from '@/components/TeaserPost';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { APP_NAME, APP_DESCRIPTION } from '@/lib/constants'; // Import constants
-import { handleError } from '@/utils/errorHandler'; // Import error handler
+import { APP_NAME, APP_DESCRIPTION } from '@/lib/constants';
+import { handleError } from '@/utils/errorHandler';
+import { Card, CardContent } from '@/components/ui/card'; // Import Card and CardContent
 
 const AuthPage = () => {
-  const { user, loading, error } = useAuth(); // Extend useAuth to return error
+  const { user, loading, error } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,7 +25,6 @@ const AuthPage = () => {
     );
   }
 
-  // Add Error Handling: Display error from useAuth
   if (error) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
@@ -37,17 +37,28 @@ const AuthPage = () => {
   }
 
   return (
-    <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-p-4 tw-bg-background tw-text-foreground">
-      <div className="tw-relative tw-z-20 tw-text-center tw-mb-8 tw-bg-card tw-p-4 tw-rounded-lg tw-shadow-xl">
-        <h1 className="tw-text-4xl tw-font-bold tw-text-foreground tw-mb-4">{APP_NAME}</h1>
-        <p className="tw-text-xl tw-text-muted-foreground tw-mb-6">
-          {APP_DESCRIPTION}
-        </p>
+    <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-primary/10 tw-to-background tw-text-foreground tw-p-4">
+      {/* Branded Hero Section */}
+      <div className="tw-relative tw-z-20 tw-text-center tw-mb-8 tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-xl">
+        <img src="/placeholder.svg" alt="WPW Scanner Logo" className="tw-h-16 tw-mx-auto tw-mb-4" aria-hidden="true" /> {/* Using placeholder.svg */}
+        <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-text-foreground tw-mb-4">{APP_NAME}</h1>
+        <p className="tw-text-lg tw-text-muted-foreground tw-mb-6">{APP_DESCRIPTION}</p>
       </div>
-      <div className="tw-relative tw-z-10 tw-flex tw-flex-col tw-items-center tw-justify-center tw-gap-8 tw-w-full">
-        <AuthForm />
-        {/* Conditional TeaserPost: Only show TeaserPost for non-authenticated users */}
-        {!user && <TeaserPost />}
+      <div className="tw-relative tw-z-10 tw-flex tw-flex-col md:tw-flex-row tw-items-center tw-justify-center tw-gap-8 tw-w-full tw-max-w-5xl tw-px-4 sm:tw-px-6">
+        {/* Improved Form Styling */}
+        <Card className="tw-w-full md:tw-w-1/2 tw-max-w-md tw-bg-card tw-shadow-lg tw-transition tw-duration-300 hover:tw-shadow-xl">
+          <CardContent className="tw-p-6">
+            <div aria-label="Authentication form">
+              <AuthForm />
+            </div>
+          </CardContent>
+        </Card>
+        {/* Conditional TeaserPost with hover effect */}
+        {!user && (
+          <div className="tw-w-full md:tw-w-1/2 tw-max-w-md tw-transition tw-duration-300 hover:tw-scale-105">
+            <TeaserPost />
+          </div>
+        )}
       </div>
     </div>
   );

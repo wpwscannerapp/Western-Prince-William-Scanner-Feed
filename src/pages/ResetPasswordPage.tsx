@@ -1,13 +1,13 @@
-import { useState } from 'react'; // Removed useEffect
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form'; // Corrected import path for useForm
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { handleError } from '@/utils/errorHandler';
@@ -37,6 +37,19 @@ const ResetPasswordPage = () => {
     },
   });
 
+  const getPasswordStrength = (password: string) => {
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    if (score <= 2) return 'Weak';
+    if (score <= 4) return 'Moderate';
+    return 'Strong';
+  };
+
   const onSubmit = async (values: ResetPasswordFormValues) => {
     setLoading(true);
     const refreshToken = searchParams.get('refresh_token');
@@ -57,7 +70,7 @@ const ResetPasswordPage = () => {
       const { error: sessionError } = await supabase.auth.setSession({
         refresh_token: refreshToken,
         access_token: '',
-      }); // Removed signal option
+      });
 
       if (sessionError) {
         handleError(sessionError, 'Invalid or expired reset link. Please request a new password reset.');
@@ -67,7 +80,7 @@ const ResetPasswordPage = () => {
 
       const { error } = await supabase.auth.updateUser({
         password: values.password,
-      }); // Removed signal option
+      });
 
       if (error) {
         handleError(error, 'Failed to reset password.');
@@ -92,13 +105,14 @@ const ResetPasswordPage = () => {
   if (resetComplete) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
-        <Card className="tw-w-full tw-max-w-md">
-          <CardHeader>
-            <CardTitle>Password Reset Complete</CardTitle>
+        <Card className="tw-w-full tw-max-w-lg">
+          <CardHeader className="tw-text-center">
+            <CheckCircle className="tw-h-12 tw-w-12 tw-text-primary tw-mx-auto tw-mb-4 tw-animate-pulse" aria-hidden="true" />
+            <CardTitle className="tw-text-2xl tw-font-bold">Password Reset Complete</CardTitle>
             <CardDescription>Your password has been successfully updated.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate('/auth')} className="tw-w-full">
+            <Button onClick={() => navigate('/auth')} className="tw-w-full tw-button">
               Go to Login
             </Button>
           </CardContent>
@@ -109,9 +123,9 @@ const ResetPasswordPage = () => {
 
   return (
     <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
-      <Card className="tw-w-full tw-max-w-md">
+      <Card className="tw-w-full tw-max-w-lg">
         <CardHeader>
-          <CardTitle>Reset Password</CardTitle>
+          <CardTitle className="tw-text-2xl tw-font-bold">Reset Password</CardTitle>
           <CardDescription>Enter your new password below</CardDescription>
         </CardHeader>
         <CardContent>
@@ -123,10 +137,16 @@ const ResetPasswordPage = () => {
                 type="password"
                 placeholder="••••••••"
                 {...form.register('password')}
-                className="tw-mt-1 tw-bg-input tw-text-foreground"
+                className="tw-mt-1 tw-bg-input tw-text-foreground tw-input"
+                aria-describedby={form.formState.errors.password ? "password-error" : undefined}
               />
+              {form.watch('password') && (
+                <p className={`tw-text-sm tw-mt-1 ${getPasswordStrength(form.watch('password')) === 'Strong' ? 'tw-text-primary' : getPasswordStrength(form.watch('password')) === 'Moderate' ? 'tw-text-accent' : 'tw-text-destructive'}`}>
+                  Password Strength: {getPasswordStrength(form.watch('password'))}
+                </p>
+              )}
               {form.formState.errors.password && (
-                <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.password.message}</p>
+                <p id="password-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.password.message}</p>
               )}
             </div>
             
@@ -137,14 +157,15 @@ const ResetPasswordPage = () => {
                 type="password"
                 placeholder="••••••••"
                 {...form.register('confirmPassword')}
-                className="tw-mt-1 tw-bg-input tw-text-foreground"
+                className="tw-mt-1 tw-bg-input tw-text-foreground tw-input"
+                aria-describedby={form.formState.errors.confirmPassword ? "confirm-password-error" : undefined}
               />
               {form.formState.errors.confirmPassword && (
-                <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.confirmPassword.message}</p>
+                <p id="confirm-password-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.confirmPassword.message}</p>
               )}
             </div>
 
-            <Button type="submit" className="tw-w-full" disabled={loading}>
+            <Button type="submit" className="tw-w-full tw-button" disabled={loading}>
               {loading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
               Reset Password
             </Button>

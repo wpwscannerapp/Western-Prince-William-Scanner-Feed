@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { StorageService } from './StorageService';
-import { handleError } from '@/utils/errorHandler'; // Import error handler
+import { handleError } from '@/utils/errorHandler';
 
 export interface Post {
   id: string;
@@ -24,15 +24,14 @@ export interface Comment {
   } | null;
 }
 
-export const POSTS_PER_PAGE = 10; // Export POSTS_PER_PAGE
+export const POSTS_PER_PAGE = 10;
 
-// Helper for logging Supabase errors - now using centralized handleError
 const logSupabaseError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
 };
 
 export const PostService = {
-  POSTS_PER_PAGE, // Make it accessible via PostService.POSTS_PER_PAGE
+  POSTS_PER_PAGE,
 
   async fetchPosts(page: number = 0): Promise<Post[]> {
     const { data, error } = await supabase
@@ -80,7 +79,7 @@ export const PostService = {
     let imageUrl: string | null = null;
     if (imageFile) {
       imageUrl = await StorageService.uploadImage(imageFile);
-      if (!imageUrl) return null; // Failed to upload image
+      if (!imageUrl) return null;
     }
 
     const { data, error } = await supabase
@@ -100,7 +99,6 @@ export const PostService = {
     let imageUrl: string | null = currentImageUrl;
 
     if (imageFile) {
-      // If a new image is provided, upload it and delete the old one if it exists
       const newImageUrl = await StorageService.uploadImage(imageFile);
       if (!newImageUrl) return null;
       if (currentImageUrl) {
@@ -108,15 +106,13 @@ export const PostService = {
       }
       imageUrl = newImageUrl;
     } else if (currentImageUrl && !imageFile) {
-      // If no new image and current image was removed (e.g., by setting imageFile to null explicitly)
       // This logic might need refinement based on how your UI handles image removal vs. no change
-      // For now, if imageFile is null and currentImageUrl exists, we assume no change unless explicitly handled by UI
     }
 
 
     const { data, error } = await supabase
       .from('posts')
-      .update({ text, image_url: imageUrl, timestamp: new Date().toISOString() }) // Update timestamp on edit
+      .update({ text, image_url: imageUrl, timestamp: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();
@@ -149,7 +145,7 @@ export const PostService = {
     const { count, error } = await supabase
       .from('profiles')
       .select('id', { count: 'exact' })
-      .in('subscription_status', ['trialing', 'active']); // Count users with active or trialing subscriptions
+      .in('subscription_status', ['trialing', 'active']);
 
     if (error) {
       logSupabaseError('fetchSubscriberCount', error);
@@ -165,8 +161,7 @@ export const PostService = {
       .insert({ post_id: postId, user_id: userId });
 
     if (error) {
-      // Ignore duplicate key error if user already liked
-      if (error.code === '23505') { // Unique violation error code
+      if (error.code === '23505') {
         return true;
       }
       logSupabaseError('addLike', error);
@@ -208,13 +203,13 @@ export const PostService = {
       .select('id')
       .eq('post_id', postId)
       .eq('user_id', userId)
-      .limit(1); // Use limit(1) instead of single()
+      .limit(1);
 
     if (error) {
       logSupabaseError('hasUserLiked', error);
       return false;
     }
-    return data && data.length > 0; // Check if any data was returned
+    return data && data.length > 0;
   },
 
   // --- Comments functionality ---
@@ -272,5 +267,26 @@ export const PostService = {
       return false;
     }
     return true;
+  },
+
+  // Placeholder for fetching related posts
+  async fetchRelatedPosts(currentPostId: string, limit: number = 3): Promise<Post[]> {
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .neq('id', currentPostId) // Exclude the current post
+        .order('timestamp', { ascending: false }) // Order by most recent
+        .limit(limit);
+
+      if (error) {
+        logSupabaseError('fetchRelatedPosts', error);
+        return [];
+      }
+      return data as Post[];
+    } catch (err) {
+      logSupabaseError('fetchRelatedPosts', err);
+      return [];
+    }
   },
 };

@@ -9,13 +9,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import CommentCard from './CommentCard';
-import { handleError } from '@/utils/errorHandler'; // Import error handler
+import { handleError } from '@/utils/errorHandler';
 
 interface PostCardProps {
   post: Post;
 }
 
-const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => { // Memoize the component
+const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
   const { user } = useAuth();
   const isAdminPost = !!post.admin_id;
 
@@ -50,7 +50,6 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => { // Memoize 
   useEffect(() => {
     fetchLikesAndComments();
 
-    // Realtime subscription for likes
     const likesChannel = supabase
       .channel(`public:likes:post_id=eq.${post.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'likes', filter: `post_id=eq.${post.id}` }, () => {
@@ -61,7 +60,6 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => { // Memoize 
       })
       .subscribe();
 
-    // Realtime subscription for comments
     const commentsChannel = supabase
       .channel(`public:comments:post_id=eq.${post.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: `post_id=eq.${post.id}` }, () => {
@@ -165,7 +163,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => { // Memoize 
       <Card className="tw-w-full tw-bg-card tw-border tw-border-border tw-shadow-md tw-text-foreground tw-rounded-lg">
         <CardContent className="tw-pt-4 tw-px-4 tw-pb-4">
           <p className="tw-text-destructive">Error: {error}</p>
-          <Button onClick={() => setError(null)} variant="outline" className="tw-mt-2">
+          <Button onClick={() => setError(null)} variant="outline" className="tw-mt-2 tw-button">
             Retry
           </Button>
         </CardContent>
@@ -185,6 +183,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => { // Memoize 
             src={post.image_url}
             alt="Post image"
             className="tw-w-full tw-max-h-80 tw-object-cover tw-rounded-md tw-mb-4 tw-border tw-border-border"
+            loading="lazy" // Lazy-load images
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.style.display = 'none';
@@ -200,7 +199,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => { // Memoize 
             size="sm"
             onClick={handleLikeToggle}
             disabled={isLiking || !user}
-            className={hasLiked ? 'tw-text-primary hover:tw-text-primary/80' : 'tw-text-muted-foreground hover:tw-text-primary'}
+            className={hasLiked ? 'tw-text-primary hover:tw-text-primary/80 tw-button' : 'tw-text-muted-foreground hover:tw-text-primary tw-button'}
           >
             {isLiking ? <Loader2 className="tw-h-4 tw-w-4 tw-mr-1 tw-animate-spin" /> : <Heart className="tw-h-4 tw-w-4 tw-mr-1" fill={hasLiked ? 'currentColor' : 'none'} />}
             {likesCount} Like{likesCount !== 1 ? 's' : ''}
@@ -209,7 +208,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => { // Memoize 
             variant="ghost"
             size="sm"
             onClick={handleShowComments}
-            className="tw-text-muted-foreground hover:tw-text-primary"
+            className="tw-text-muted-foreground hover:tw-text-primary tw-button"
           >
             <MessageCircle className="tw-h-4 tw-w-4 tw-mr-1" /> {comments.length} Comment{comments.length !== 1 ? 's' : ''}
           </Button>
@@ -224,9 +223,9 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => { // Memoize 
                 onChange={(e) => setNewCommentContent(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={isCommenting || !user}
-                className="tw-flex-1"
+                className="tw-flex-1 tw-input"
               />
-              <Button onClick={handleAddComment} disabled={isCommenting || !user}>
+              <Button onClick={handleAddComment} disabled={isCommenting || !user} className="tw-button">
                 {isCommenting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
                 Comment
               </Button>

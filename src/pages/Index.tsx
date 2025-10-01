@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import SplashScreen from '@/components/SplashScreen';
+// import SplashScreen from '@/components/SplashScreen'; // Removed unused import
 import { useAuth } from '@/hooks/useAuth';
-import { SPLASH_DURATION_MS } from '@/lib/constants'; // Import constant
-import { handleError } from '@/utils/errorHandler'; // Import error handler
+import { SPLASH_DURATION_MS } from '@/lib/constants';
+import { handleError } from '@/utils/errorHandler'; // Corrected import syntax
 
 const Index = () => {
   const [splashLoading, setSplashLoading] = useState(true);
   const navigate = useNavigate();
-  const { user, loading: authLoading, error } = useAuth(); // Get error from useAuth
+  const { user, loading: authLoading, error } = useAuth();
 
   useEffect(() => {
-    // Configurable Splash Duration: Use an environment variable or constant
     const splashDuration = parseInt(import.meta.env.VITE_SPLASH_DURATION || '', 10) || SPLASH_DURATION_MS;
+    document.documentElement.style.setProperty('--splash-duration', `${splashDuration / 1000}s`);
+
     const timer = setTimeout(() => {
       setSplashLoading(false);
     }, splashDuration);
@@ -30,7 +31,6 @@ const Index = () => {
     }
   }, [splashLoading, authLoading, user, navigate]);
 
-  // Error Handling: Add error handling for useAuth
   if (error) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
@@ -43,7 +43,16 @@ const Index = () => {
   }
 
   if (splashLoading || authLoading) {
-    return <SplashScreen />;
+    return (
+      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-primary/20 tw-to-background tw-animate-fade-in" aria-label="Loading application">
+        <div className="tw-flex tw-flex-col tw-items-center tw-gap-4">
+          <img src="/placeholder.svg" alt="WPW Scanner Logo" className="tw-h-24 tw-animate-pulse" aria-hidden="true" />
+          <div className="tw-w-64 tw-h-2 tw-bg-muted tw-rounded-full tw-overflow-hidden">
+            <div className="tw-h-full tw-bg-primary tw-animate-progress" />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return null;

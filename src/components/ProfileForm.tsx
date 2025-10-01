@@ -177,15 +177,17 @@ const ProfileForm: React.FC = () => {
             className="tw-hidden"
             ref={fileInputRef}
             disabled={updateProfileMutation.isPending || isUploading}
+            aria-label="Upload new avatar image"
           />
           {(imagePreview || profile?.avatar_url) && (imageFile || profile?.avatar_url) && (
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="tw-absolute tw-top-0 tw-right-0 tw-h-7 tw-w-7 tw-rounded-full tw-bg-background/70 hover:tw-bg-background tw-opacity-0 group-hover:tw-opacity-100 tw-transition-opacity"
+              className="tw-absolute tw-top-0 tw-right-0 tw-h-7 tw-w-7 tw-rounded-full tw-bg-background/70 hover:tw-bg-background tw-opacity-0 group-hover:tw-opacity-100 tw-transition-opacity tw-button"
               onClick={handleRemoveImage}
               disabled={updateProfileMutation.isPending || isUploading}
+              aria-label="Remove avatar image"
             >
               <XCircle className="tw-h-4 tw-w-4 tw-text-destructive" />
               <span className="tw-sr-only">Remove avatar</span>
@@ -202,11 +204,13 @@ const ProfileForm: React.FC = () => {
             id="first_name"
             placeholder="John"
             {...form.register('first_name')}
-            className="tw-mt-1"
+            className="tw-mt-1 tw-input"
             disabled={updateProfileMutation.isPending || isUploading}
+            aria-invalid={form.formState.errors.first_name ? "true" : "false"}
+            aria-describedby={form.formState.errors.first_name ? "first-name-error" : undefined}
           />
           {form.formState.errors.first_name && (
-            <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.first_name.message}</p>
+            <p id="first-name-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.first_name.message}</p>
           )}
         </div>
         <div>
@@ -215,11 +219,13 @@ const ProfileForm: React.FC = () => {
             id="last_name"
             placeholder="Doe"
             {...form.register('last_name')}
-            className="tw-mt-1"
+            className="tw-mt-1 tw-input"
             disabled={updateProfileMutation.isPending || isUploading}
+            aria-invalid={form.formState.errors.last_name ? "true" : "false"}
+            aria-describedby={form.formState.errors.last_name ? "last-name-error" : undefined}
           />
           {form.formState.errors.last_name && (
-            <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.last_name.message}</p>
+            <p id="last-name-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.last_name.message}</p>
           )}
         </div>
       </div>
@@ -231,14 +237,15 @@ const ProfileForm: React.FC = () => {
           type="email"
           value={user?.email || ''}
           disabled
-          className="tw-mt-1 tw-bg-muted"
+          className="tw-mt-1 tw-bg-muted tw-input"
+          aria-label="User email address (disabled)"
         />
         <p className="tw-text-xs tw-text-muted-foreground tw-mt-1">Email cannot be changed here.</p>
       </div>
 
       <Button 
         type="submit" 
-        className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" 
+        className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground tw-button" 
         disabled={updateProfileMutation.isPending || isUploading}
       >
         {(updateProfileMutation.isPending || isUploading) && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}

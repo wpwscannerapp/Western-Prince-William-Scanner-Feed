@@ -6,19 +6,20 @@ import NotificationBell from '@/components/NotificationBell';
 import PostForm from '@/components/PostForm';
 import { Post, PostService } from '@/services/PostService';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, ArrowUp } from 'lucide-react';
+import { Loader2, ArrowUp, MessageCircle } from 'lucide-react'; // Import MessageCircle
 import { supabase } from '@/integrations/supabase/client';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { useIsSubscribed } from '@/hooks/useIsSubscribed'; // Import new hook
-import { handleError } from '@/utils/errorHandler'; // Import error handler
-import { POST_POLL_INTERVAL_MS } from '@/lib/constants'; // Import constant
+import { useIsSubscribed } from '@/hooks/useIsSubscribed';
+import { handleError } from '@/utils/errorHandler';
+import { POST_POLL_INTERVAL_MS } from '@/lib/constants';
+import SkeletonLoader from '@/components/SkeletonLoader'; // Import SkeletonLoader
 
 const HomePage = () => {
   const { user } = useAuth();
   const { isAdmin, loading: isAdminLoading } = useIsAdmin();
-  const { isSubscribed, loading: isSubscribedLoading } = useIsSubscribed(); // Use new hook
+  const { isSubscribed, loading: isSubscribedLoading } = useIsSubscribed();
   const [posts, setPosts] = useState<Post[]>([]);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -28,26 +29,23 @@ const HomePage = () => {
   const [error, setError] = useState<string | null>(null);
   const observer = useRef<IntersectionObserver | null>(null);
 
-  // Debounce IntersectionObserver: Add a 300ms debounce to lastPostRef
   const lastPostRef = useCallback(
     (node: HTMLDivElement) => {
-      if (loading || !hasMore) return; // Also check hasMore
+      if (loading || !hasMore) return;
       if (observer.current) observer.current.disconnect();
       observer.current = new IntersectionObserver(
         entries => {
           if (entries[0].isIntersecting && hasMore) {
-            // Add a small delay to prevent multiple rapid calls
             setTimeout(() => setPage(prev => prev + 1), 300);
           }
         },
-        { threshold: 0.1 } // Trigger when 10% of the element is visible
+        { threshold: 0.1 }
       );
       if (node) observer.current.observe(node);
     },
     [loading, hasMore]
   );
 
-  // Consolidate Fetch Logic: Combine useEffect hooks for fetching posts
   useEffect(() => {
     const fetchInitialPosts = async () => {
       setLoading(true);
@@ -64,11 +62,11 @@ const HomePage = () => {
     };
 
     fetchInitialPosts();
-  }, []); // Run only once on mount for initial load
+  }, []);
 
   useEffect(() => {
     const fetchMorePosts = async () => {
-      if (page === 0) return; // Initial load handled by separate useEffect
+      if (page === 0) return;
       setLoading(true);
       setError(null);
       try {
@@ -88,8 +86,7 @@ const HomePage = () => {
     if (page > 0) {
       fetchMorePosts();
     }
-  }, [page]); // Fetch more posts when page changes (after initial load)
-
+  }, [page]);
 
   const fetchNewPosts = useCallback(async () => {
     if (posts.length === 0) return;
@@ -113,7 +110,6 @@ const HomePage = () => {
     }
   }, [posts]);
 
-  // Configurable Interval: Use an environment variable for the polling interval
   useEffect(() => {
     const pollInterval = parseInt(import.meta.env.VITE_POLL_INTERVAL || '', 10) || POST_POLL_INTERVAL_MS;
     const interval = setInterval(() => {
@@ -124,16 +120,14 @@ const HomePage = () => {
     return () => clearInterval(interval);
   }, [fetchNewPosts, isSubscribed, isAdmin]);
 
-  // Supabase channel to prevent duplicate posts
   useEffect(() => {
     const channel = supabase
       .channel('public:posts')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, (payload) => {
         const newPost = payload.new as Post;
         setPosts(prevPosts => {
-          // Prevent Duplicate Posts: Check for duplicates in the Supabase channel
           if (prevPosts.some(p => p.id === newPost.id)) return prevPosts;
-          setNewPostsAvailable(true); // Indicate new posts are available
+          setNewPostsAvailable(true);
           return [newPost, ...prevPosts];
         });
       })
@@ -162,9 +156,6 @@ const HomePage = () => {
       
       if (newPost) {
         toast.success('Post created successfully!', { id: 'create-post' });
-        // New posts are handled by the real-time subscription, so no need to manually add here
-        // setPosts(prevPosts => [newPost, ...prevPosts]);
-        // setNewPostsAvailable(true); // Realtime listener will set this
         return true;
       } else {
         handleError(null, 'Failed to create post.');
@@ -180,12 +171,11 @@ const HomePage = () => {
 
   const handleRetry = () => {
     setError(null);
-    setPage(0); // Reset page to refetch from start
-    setPosts([]); // Clear existing posts
-    setHasMore(true); // Assume there's more to fetch
+    setPage(0);
+    setPosts([]);
+    setHasMore(true);
   };
 
-  // Show loading for subscription status as well
   if (isAdminLoading || isSubscribedLoading) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
@@ -217,7 +207,7 @@ const HomePage = () => {
     <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8 tw-relative tw-max-w-2xl">
       <div className="tw-flex tw-justify-between tw-items-center tw-mb-6">
         <h1 className="tw-text-3xl tw-font-bold tw-text-foreground">Home Feed</h1>
-        <NotificationBell />
+        <NotificationBell aria-label="Toggle notifications" /> {/* Accessibility: Add ARIA attribute */}
       </div>
 
       <p className="tw-text-center tw-text-muted-foreground tw-mb-8">
@@ -225,7 +215,7 @@ const HomePage = () => {
       </p>
 
       {isAdmin && (
-        <div className="tw-mb-8">
+        <div className="tw-sticky tw-top-16 tw-z-10 tw-bg-background tw-p-4 tw-shadow-md tw-mb-8 tw-rounded-lg">
           <h2 className="tw-text-2xl tw-font-semibold tw-text-foreground tw-mb-4">Create New Post</h2>
           <PostForm
             onSubmit={handleCreatePost}
@@ -234,11 +224,13 @@ const HomePage = () => {
         </div>
       )}
 
-      <div className={`tw-space-y-6 ${!isSubscribed && !isAdmin ? 'tw-relative' : ''}`}>
+      {/* Modern Feed Layout */}
+      <div className={`tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-6 ${!isSubscribed && !isAdmin ? 'tw-relative' : ''}`} aria-live="polite">
         <div className={!isSubscribed && !isAdmin ? 'tw-blur-sm tw-pointer-events-none' : ''}>
           {posts.length === 0 && !loading && (
-            <div className="tw-text-center tw-py-12">
-              <p className="tw-text-muted-foreground tw-mb-4">No posts available yet. Check back soon!</p>
+            <div className="tw-text-center tw-py-12 tw-col-span-full">
+              <MessageCircle className="tw-h-12 tw-w-12 tw-text-muted-foreground tw-mx-auto tw-mb-4" aria-hidden="true" />
+              <p className="tw-text-muted-foreground tw-mb-4 tw-text-lg">No posts available yet. Check back soon!</p>
               {isAdmin && (
                 <Button onClick={handleRetry} variant="outline">
                   Refresh
@@ -247,21 +239,25 @@ const HomePage = () => {
             </div>
           )}
           
+          {loading && posts.length === 0 && ( // Show skeleton only if no posts are loaded yet
+            <SkeletonLoader count={3} className="tw-col-span-full" />
+          )}
+
           {posts.map((post, index) => (
-            <div key={post.id} ref={index === posts.length - 1 ? lastPostRef : null}>
+            <div key={post.id} ref={index === posts.length - 1 ? lastPostRef : null} className="tw-transition tw-duration-300 hover:tw-shadow-lg">
               <PostCard post={post} />
             </div>
           ))}
           
-          {loading && (
-            <div className="tw-flex tw-justify-center tw-items-center tw-py-8 tw-gap-2 tw-text-muted-foreground">
+          {loading && posts.length > 0 && ( // Show loader for "loading more"
+            <div className="tw-flex tw-justify-center tw-items-center tw-py-8 tw-gap-2 tw-text-muted-foreground tw-col-span-full">
               <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
               <span>Loading more posts...</span>
             </div>
           )}
           
           {!hasMore && !loading && posts.length > 0 && (
-            <p className="tw-text-center tw-text-muted-foreground tw-py-4">You've reached the end of the feed.</p>
+            <p className="tw-text-center tw-text-muted-foreground tw-py-4 tw-col-span-full">You've reached the end of the feed.</p>
           )}
         </div>
         {!isSubscribed && !isAdmin && <SubscribeOverlay />}
@@ -272,7 +268,7 @@ const HomePage = () => {
           onClick={scrollToTop}
           className="tw-fixed tw-bottom-6 tw-right-6 tw-rounded-full tw-shadow-lg tw-p-3 tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground tw-animate-bounce"
           size="icon"
-          aria-label="Scroll to new posts" // Accessibility: Add ARIA attribute
+          aria-label="Scroll to new posts"
         >
           <ArrowUp className="tw-h-5 tw-w-5" />
           <span className="tw-sr-only">Scroll to new posts</span>
