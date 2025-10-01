@@ -136,8 +136,6 @@ const ProfileForm: React.FC = () => {
         return;
       }
       setIsUploading(false);
-    } else if (imagePreview === null && !profile?.avatar_url) {
-      avatarUrl = null;
     } else {
       avatarUrl = profile?.avatar_url;
     }
@@ -246,11 +244,12 @@ const ProfileForm: React.FC = () => {
 
       <div>
         <Label htmlFor="username">Username</Label>
+        {/* Changed from tw-mt-1 to tw-mt-2 */}
         <Input
           id="username"
           placeholder="Enter your username"
           {...form.register('username')}
-          className="tw-mt-1 tw-input"
+          className="tw-mt-2 tw-input"
           disabled={updateProfileMutation.isPending || isUploading}
           aria-invalid={form.formState.errors.username ? "true" : "false"}
           aria-describedby={form.formState.errors.username ? "username-error" : undefined}
@@ -264,12 +263,13 @@ const ProfileForm: React.FC = () => {
 
       <div>
         <Label htmlFor="email">Email</Label>
+        {/* Changed from tw-mt-1 to tw-mt-2 */}
         <Input
           id="email"
           type="email"
           value={user?.email || ''}
           disabled
-          className="tw-mt-1 tw-bg-muted tw-input"
+          className="tw-mt-2 tw-bg-muted tw-input"
           aria-label="User email address (disabled)"
         />
         <p className="tw-text-xs tw-text-muted-foreground tw-mt-1">Email cannot be changed here.</p>
