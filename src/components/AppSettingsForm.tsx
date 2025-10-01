@@ -9,35 +9,39 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-// Removed unused import: import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
-import { ChromePicker, ColorResult } from 'react-color'; // Added ColorResult type
+import { ChromePicker } from 'react-color';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, RotateCcw, Eye } from 'lucide-react'; // Added Eye import
-import { useIsAdmin } from '@/hooks/useIsAdmin'; // For RBAC
-import { SettingsService, AppSettings } from '@/services/SettingsService'; // Updated import
-import { hexToHsl } from '@/lib/hexToHsl'; // Import hexToHsl utility
-import LayoutEditor, { LayoutBlock } from './LayoutEditor'; // Import LayoutEditor and LayoutBlock interface
+// Removed unused import: import { DragDropContext } from 'react-beautiful-dnd';
+import { Loader2, RotateCcw, Eye } from 'lucide-react';
+// Removed unused import: import { useAuth } from '@/hooks/useAuth'; // Corrected import syntax
+import { useIsAdmin } from '@/hooks/useIsAdmin';
+import LayoutEditor, { LayoutComponent } from './LayoutEditor'; // Corrected import for LayoutComponent
+import { SettingsService, AppSettings } from '@/services/SettingsService';
+import { hexToHsl } from '@/lib/hexToHsl';
 
 // Extend schema with layout
 const settingsSchema = z.object({
   primary_color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid hex color'),
   secondary_color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid hex color'),
   font_family: z.string().min(1, 'Font family is required'),
-  logo_url: z.string().url().optional().or(z.literal('')),
-  favicon_url: z.string().url().optional().or(z.literal('')),
-  custom_css: z.string().optional(),
-  layout: z.array(z.object({ id: z.string(), type: z.string(), content: z.string() })).optional(), // New: Layout as array of components
+  logo_url: z.string().url().optional().or(z.literal('')).nullable(),
+  favicon_url: z.string().url().optional().or(z.literal('')).nullable(),
+  custom_css: z.string().optional().nullable(),
+  layout: z.array(z.object({ id: z.string(), type: z.string(), content: z.string() })).optional(),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
 
 const AppSettingsForm: React.FC = () => {
+  // Removed unused 'user' variable from useAuth()
   const { isAdmin, loading: isAdminLoading } = useIsAdmin();
-  const [isLoading, setIsLoading] = useState(true); // Initial loading for settings
-  const [isSaving, setIsSaving] = useState(false); // For save button
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [versionHistory, setVersionHistory] = useState<any[]>([]);
+  const [versionHistory, setVersionHistory] = useState<
+    Array<{ id: string; created_at: string; settings: AppSettings; layout?: AppSettings['layout'] }>
+  >([]);
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
@@ -48,7 +52,7 @@ const AppSettingsForm: React.FC = () => {
       logo_url: '',
       favicon_url: '',
       custom_css: '',
-      layout: [], // Default empty layout
+      layout: [],
     },
   });
 
@@ -57,13 +61,12 @@ const AppSettingsForm: React.FC = () => {
     try {
       const currentSettings = await SettingsService.getSettings();
       if (currentSettings) {
-        // Pick only the fields that match SettingsFormValues
         const formValues: SettingsFormValues = {
           primary_color: currentSettings.primary_color,
           secondary_color: currentSettings.secondary_color,
           font_family: currentSettings.font_family,
-          logo_url: currentSettings.logo_url || '', // Convert null to empty string for form
-          favicon_url: currentSettings.favicon_url || '', // Convert null to empty string for form
+          logo_url: currentSettings.logo_url || '',
+          favicon_url: currentSettings.favicon_url || '',
           custom_css: currentSettings.custom_css || '',
           layout: currentSettings.layout || [],
         };
@@ -72,7 +75,7 @@ const AppSettingsForm: React.FC = () => {
       }
 
       const history = await SettingsService.fetchSettingsHistory();
-      setVersionHistory(history);
+      setVersionHistory(history || []);
     } catch (err) {
       handleError(err, 'Failed to load app settings or history.');
     } finally {
@@ -86,7 +89,6 @@ const AppSettingsForm: React.FC = () => {
     }
   }, [isAdminLoading, fetchSettingsAndHistory]);
 
-  // RBAC Check
   if (isAdminLoading || isLoading) {
     return (
       <Card className="tw-bg-card tw-border-border tw-shadow-lg">
@@ -115,9 +117,8 @@ const AppSettingsForm: React.FC = () => {
       const success = await SettingsService.updateSettings(values);
       if (!success) throw new Error('Failed to update settings in database.');
 
-      // Construct a full AppSettings object for history
       const settingsForHistory: AppSettings = {
-        id: 'new-history-entry', // ID will be generated by Supabase for history table
+        id: 'new-history-entry',
         ...values,
         logo_url: values.logo_url || null,
         favicon_url: values.favicon_url || null,
@@ -126,13 +127,12 @@ const AppSettingsForm: React.FC = () => {
         updated_at: new Date().toISOString(),
       };
 
-      // Save to history
       const historySuccess = await SettingsService.insertSettingsHistory(settingsForHistory);
       if (!historySuccess) console.warn('Failed to save settings to history.');
 
       toast.success('Settings saved successfully!', { id: 'save-settings' });
-      applyStyles(settingsForHistory); // Apply styles with the full AppSettings object
-      fetchSettingsAndHistory(); // Refresh history
+      applyStyles(settingsForHistory);
+      fetchSettingsAndHistory();
     } catch (err) {
       handleError(err, 'Failed to save settings.');
     } finally {
@@ -167,7 +167,6 @@ const AppSettingsForm: React.FC = () => {
       const success = await SettingsService.updateSettings(historyEntry.settings);
       if (!success) throw new Error('Failed to revert settings in database.');
 
-      // Pick only the fields that match SettingsFormValues for form.reset
       const formValues: SettingsFormValues = {
         primary_color: historyEntry.settings.primary_color,
         secondary_color: historyEntry.settings.secondary_color,
@@ -180,7 +179,7 @@ const AppSettingsForm: React.FC = () => {
       form.reset(formValues);
       applyStyles(historyEntry.settings);
       toast.success('Reverted to previous settings!', { id: 'revert-settings' });
-      fetchSettingsAndHistory(); // Refresh history
+      fetchSettingsAndHistory();
     } catch (err) {
       handleError(err, 'Failed to revert settings.');
     } finally {
@@ -202,7 +201,7 @@ const AppSettingsForm: React.FC = () => {
             <TabsTrigger value="theme">Theme</TabsTrigger>
             <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="custom">Custom CSS</TabsTrigger>
-            <TabsTrigger value="layout">Layout</TabsTrigger> {/* New Tab */}
+            <TabsTrigger value="layout">Layout</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
           
@@ -211,7 +210,7 @@ const AppSettingsForm: React.FC = () => {
               <Label htmlFor="primaryColor">Primary Color</Label>
               <ChromePicker
                 color={form.watch('primary_color')}
-                onChange={(color: ColorResult) => form.setValue('primary_color', color.hex)}
+                onChange={(color: { hex: string }) => form.setValue('primary_color', color.hex)}
                 disableAlpha
                 className="tw-mt-2"
               />
@@ -223,7 +222,7 @@ const AppSettingsForm: React.FC = () => {
               <Label htmlFor="secondaryColor">Secondary Color</Label>
               <ChromePicker
                 color={form.watch('secondary_color')}
-                onChange={(color: ColorResult) => form.setValue('secondary_color', color.hex)}
+                onChange={(color: { hex: string }) => form.setValue('secondary_color', color.hex)}
                 disableAlpha
                 className="tw-mt-2"
               />
@@ -288,7 +287,7 @@ const AppSettingsForm: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="layout" className="tw-space-y-4 tw-mt-4">
-            <LayoutEditor layout={watchLayout || []} onLayoutChange={(newLayout) => form.setValue('layout', newLayout as LayoutBlock[])} />
+            <LayoutEditor layout={watchLayout || []} onLayoutChange={(newLayout) => form.setValue('layout', newLayout as LayoutComponent[])} />
             {form.formState.errors.layout && (
               <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.layout.message}</p>
             )}
@@ -356,14 +355,14 @@ const AppSettingsForm: React.FC = () => {
             </div>
             {form.watch('logo_url') && (
               <div className="tw-mt-4">
-                <h3 className="tw-lg tw-font-semibold tw-mb-2">Logo Preview</h3>
-                <img src={form.watch('logo_url')} alt="Logo Preview" className="tw-max-h-20 tw-max-w-full tw-object-contain" />
+                <h3 className="tw-text-lg tw-font-semibold tw-mb-2">Logo Preview</h3>
+                <img src={form.watch('logo_url') || undefined} alt="Logo Preview" className="tw-max-h-20 tw-max-w-full tw-object-contain" />
               </div>
             )}
             {form.watch('custom_css') && (
               <div className="tw-mt-4">
-                <h3 className="tw-lg tw-font-semibold tw-mb-2">Custom CSS Applied</h3>
-                <p className="tw-sm tw-text-muted-foreground">Custom CSS is active in this preview.</p>
+                <h3 className="tw-text-lg tw-font-semibold tw-mb-2">Custom CSS Applied</h3>
+                <p className="tw-text-sm tw-text-muted-foreground">Custom CSS is active in this preview.</p>
               </div>
             )}
           </div>

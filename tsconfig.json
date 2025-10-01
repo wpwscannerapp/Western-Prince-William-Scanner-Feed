@@ -27,8 +27,9 @@
     },
 
     /* Include custom declaration files */
-    "typeRoots": ["./node_modules/@types", "./src/types"]
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "types": ["react-beautiful-dnd", "react-color"]
   },
-  "include": ["src", "src/types"],
+  "include": ["src/**/*", "src/types/**/*"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

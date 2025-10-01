@@ -1,21 +1,22 @@
 import React, { useState, useCallback } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { GripVertical, Monitor, Tablet, Smartphone } from 'lucide-react';
+import { GripVertical, Monitor, Tablet, Smartphone } from 'lucide-react'; // Removed unused 'Eye'
 
-interface LayoutEditorProps {
-  onLayoutChange: (newLayout: LayoutBlock[]) => void;
-  layout: LayoutBlock[];
-}
-
-export interface LayoutBlock {
+// Define types explicitly
+export interface LayoutComponent { // Exported for use in AppSettingsForm
   id: string;
   type: string;
   content: string;
 }
 
-const sampleComponents: LayoutBlock[] = [
+interface LayoutEditorProps {
+  layout: LayoutComponent[];
+  onLayoutChange: (newLayout: LayoutComponent[]) => void;
+}
+
+const sampleComponents: LayoutComponent[] = [
   { id: 'header', type: 'Header', content: 'App Header with Logo' },
   { id: 'sidebar', type: 'Sidebar', content: 'Navigation Menu' },
   { id: 'analytics-card', type: 'Card', content: 'Analytics Overview' },
@@ -26,48 +27,62 @@ const sampleComponents: LayoutBlock[] = [
 const LayoutEditor: React.FC<LayoutEditorProps> = ({ layout = [], onLayoutChange }) => {
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
-  const handleDragEnd = useCallback((result: DropResult) => {
-    const { source, destination, draggableId } = result;
+  const handleDragEnd = useCallback(
+    (result: import('react-beautiful-dnd').DropResult) => {
+      const { source, destination, draggableId } = result;
 
-    // Dropped outside the list
-    if (!destination) {
-      return;
-    }
+      // Dropped outside the list
+      if (!destination) {
+        return;
+      }
 
-    // If dragging from palette to board
-    if (source.droppableId === 'component-palette' && destination.droppableId === 'layout-board') {
-      const componentToAdd = sampleComponents.find(comp => `palette-${comp.id}` === draggableId);
-      if (componentToAdd) {
+      // If dragging from palette to board
+      if (source.droppableId === 'component-palette' && destination.droppableId === 'layout-board') {
+        const componentToAdd = sampleComponents.find(comp => `palette-${comp.id}` === draggableId);
+        if (componentToAdd) {
+          const newLayout = Array.from(layout);
+          newLayout.splice(destination.index, 0, componentToAdd);
+          onLayoutChange(newLayout);
+        }
+      } 
+      // If reordering within the board
+      else if (source.droppableId === 'layout-board' && destination.droppableId === 'layout-board') {
         const newLayout = Array.from(layout);
-        newLayout.splice(destination.index, 0, componentToAdd);
+        const [reorderedItem] = newLayout.splice(source.index, 1);
+        newLayout.splice(destination.index, 0, reorderedItem);
         onLayoutChange(newLayout);
       }
-    } 
-    // If reordering within the board
-    else if (source.droppableId === 'layout-board' && destination.droppableId === 'layout-board') {
-      const newLayout = Array.from(layout);
-      const [reorderedItem] = newLayout.splice(source.index, 1);
-      newLayout.splice(destination.index, 0, reorderedItem);
-      onLayoutChange(newLayout);
-    }
-    // If dragging from board back to palette (remove from layout)
-    else if (source.droppableId === 'layout-board' && destination.droppableId === 'component-palette') {
-      const newLayout = Array.from(layout);
-      newLayout.splice(source.index, 1);
-      onLayoutChange(newLayout);
-    }
-  }, [layout, onLayoutChange]);
+      // If dragging from board back to palette (remove from layout)
+      else if (source.droppableId === 'layout-board' && destination.droppableId === 'component-palette') {
+        const newLayout = Array.from(layout);
+        newLayout.splice(source.index, 1);
+        onLayoutChange(newLayout);
+      }
+    },
+    [layout, onLayoutChange]
+  );
 
-  const DraggableComponent = ({ component, index }: { component: LayoutBlock; index: number }) => (
+  const DraggableComponent = ({
+    component,
+    index,
+  }: {
+    component: LayoutComponent;
+    index: number;
+  }) => (
     <Draggable draggableId={component.id} index={index}>
-      {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
+      {(provided: import('react-beautiful-dnd').DraggableProvided, snapshot: import('react-beautiful-dnd').DraggableStateSnapshot) => (
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          className={`tw-p-4 tw-mb-2 tw-bg-card tw-border tw-rounded-lg tw-shadow-sm ${snapshot.isDragging ? 'tw-shadow-lg tw-scale-105' : ''}`}
+          className={`tw-p-4 tw-mb-2 tw-bg-card tw-border tw-rounded-lg tw-shadow-sm ${
+            snapshot.isDragging ? 'tw-shadow-lg tw-scale-105' : ''
+          }`}
         >
           <div className="tw-flex tw-items-center tw-justify-between">
-            <GripVertical {...provided.dragHandleProps} className="tw-h-5 tw-w-5 tw-text-muted-foreground tw-cursor-grab" />
+            <GripVertical
+              {...provided.dragHandleProps}
+              className="tw-h-5 tw-w-5 tw-text-muted-foreground tw-cursor-grab"
+            />
             <span className="tw-font-medium">{component.content}</span>
             <div className="tw-text-xs tw-text-muted-foreground">({component.type})</div>
           </div>
@@ -95,12 +110,12 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ layout = [], onLayoutChange
           {/* Component Palette (Draggable Sources) */}
           <div className="tw-flex-1 tw-space-y-4">
             <h3 className="tw-text-lg tw-font-semibold tw-text-foreground">Available Components</h3>
-            <Droppable droppableId="component-palette" isDropDisabled={false}> {/* Allow dropping back to palette to remove */}
-              {(provided: DroppableProvided) => (
+            <Droppable droppableId="component-palette" isDropDisabled={false}>
+              {(provided: import('react-beautiful-dnd').DroppableProvided) => (
                 <div {...provided.droppableProps} ref={provided.innerRef} className="tw-flex tw-flex-wrap tw-gap-2 tw-p-4 tw-border tw-rounded-lg tw-bg-muted/20 tw-min-h-[100px]">
                   {sampleComponents.map((comp, index) => (
                     <Draggable key={`palette-${comp.id}`} draggableId={`palette-${comp.id}`} index={index}>
-                      {(provided: DraggableProvided) => (
+                      {(provided: import('react-beautiful-dnd').DraggableProvided) => (
                         <Card
                           ref={provided.innerRef}
                           {...provided.draggableProps}
@@ -124,7 +139,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ layout = [], onLayoutChange
           <div className="tw-flex-1 tw-space-y-4">
             <h3 className="tw-text-lg tw-font-semibold tw-text-foreground">Layout Board</h3>
             <Droppable droppableId="layout-board">
-              {(provided: DroppableProvided) => (
+              {(provided: import('react-beautiful-dnd').DroppableProvided) => (
                 <div {...provided.droppableProps} ref={provided.innerRef} className="tw-min-h-[200px] tw-p-4 tw-border-2 tw-border-dashed tw-rounded-lg tw-bg-muted/50">
                   {layout.length > 0 ? (
                     layout.map((component, index) => (

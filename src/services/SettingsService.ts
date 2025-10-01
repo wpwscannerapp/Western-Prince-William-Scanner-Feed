@@ -9,7 +9,7 @@ export interface AppSettings {
   logo_url: string | null;
   favicon_url: string | null;
   custom_css: string | null;
-  layout: Array<{ id: string; type: string; content: string }>; // Changed content to required string
+  layout: Array<{ id: string; type: string; content: string }>;
   updated_at: string;
 }
 
@@ -50,7 +50,7 @@ export const SettingsService = {
   async updateSettings(settings: Partial<AppSettings>): Promise<boolean> {
     try {
       // Ensure there's always an ID for upsert, or insert if none exists
-      const { data: existingSettings } = await supabase // Removed unused 'fetchError'
+      const { data: existingSettings } = await supabase
         .from('app_settings')
         .select('id')
         .limit(1)
@@ -79,24 +79,6 @@ export const SettingsService = {
     }
   },
 
-  async fetchSettingsHistory(): Promise<any[]> {
-    try {
-      const { data, error } = await supabase
-        .from('app_settings_history')
-        .select('id, created_at, settings, layout')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        handleError(error, 'Failed to load version history.');
-        return [];
-      }
-      return data || [];
-    } catch (err) {
-      handleError(err, 'An unexpected error occurred while loading version history.');
-      return [];
-    }
-  },
-
   async insertSettingsHistory(settings: AppSettings): Promise<boolean> {
     try {
       const { error } = await supabase.from('app_settings_history').insert({
@@ -112,6 +94,26 @@ export const SettingsService = {
     } catch (err) {
       handleError(err, 'An unexpected error occurred while saving settings to history.');
       return false;
+    }
+  },
+
+  async fetchSettingsHistory(): Promise<
+    Array<{ id: string; created_at: string; settings: AppSettings; layout?: AppSettings['layout'] }> | null
+  > {
+    try {
+      const { data, error } = await supabase
+        .from('app_settings_history')
+        .select('id, created_at, settings, layout')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        handleError(error, 'Failed to load version history.');
+        return null;
+      }
+      return data || [];
+    } catch (err) {
+      handleError(err, 'An unexpected error occurred while loading version history.');
+      return null;
     }
   },
 
