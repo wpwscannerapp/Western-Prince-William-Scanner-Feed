@@ -118,7 +118,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ layout = [], onLayoutChange
             <h3 className="tw-text-lg tw-font-semibold tw-text-foreground">Available Components</h3>
             <Droppable droppableId="component-palette" isDropDisabled={false}>
               {(provided: import('react-beautiful-dnd').DroppableProvided) => (
-                <div {...provided.droppableProps} ref={provided.innerRef} className="tw-flex tw-flex-wrap tw-gap-2 tw-p-4 tw-border tw-rounded-lg tw-bg-muted/20 tw-min-h-[100px]">
+                <div {...provided.droppableProps} ref={provided.innerRef} className="tw-flex tw-flex-wrap tw-gap-2 tw-p-4 tw-border tw-rounded-lg tw-bg-gray-100 tw-bg-opacity-20 tw-min-h-[100px]">
                   {sampleComponents.map((comp, index) => (
                     <Draggable key={`palette-${comp.id}`} draggableId={`palette-${comp.id}`} index={index}>
                       {(provided: DraggableProvided) => {
@@ -159,7 +159,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ layout = [], onLayoutChange
                   {...provided.droppableProps}
                   ref={provided.innerRef}
                   // Removed style={provided.droppableProps.style} as it does not exist on droppableProps
-                  className={`tw-min-h-[200px] tw-p-4 tw-border-2 tw-border-dashed tw-rounded-lg tw-bg-muted/50`}
+                  className={`tw-min-h-[200px] tw-p-4 tw-border-2 tw-border-dashed tw-rounded-lg tw-bg-gray-100 tw-bg-opacity-50`}
                 >
                   {layout.length > 0 ? (
                     layout.map((component, index) => (
