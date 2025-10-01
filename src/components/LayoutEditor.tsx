@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided } from 'react-beautiful-dnd';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Save, RotateCcw, Monitor, Tablet, Smartphone } from 'lucide-react';
@@ -139,7 +139,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ onLayoutSaved }) => {
             <h3 className="tw-text-lg tw-font-semibold tw-text-foreground">Draggable Blocks</h3>
             <DragDropContext onDragEnd={onDragEnd}>
               <Droppable droppableId="layout-blocks">
-                {(provided) => (
+                {(provided: DroppableProvided) => (
                   <div
                     {...provided.droppableProps}
                     ref={provided.innerRef}
@@ -147,7 +147,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ onLayoutSaved }) => {
                   >
                     {layout.map((block, index) => (
                       <Draggable key={block.id} draggableId={block.id} index={index}>
-                        {(provided) => (
+                        {(provided: DraggableProvided) => (
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
@@ -176,7 +176,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ onLayoutSaved }) => {
           </div>
 
           <div className="tw-flex-1 tw-space-y-4">
-            <h3 className="tw-text-lg tw-font-semibold tw-text-foreground">Live Preview</h3>
+            <h3 className="tw-lg tw-font-semibold tw-text-foreground">Live Preview</h3>
             <div className="tw-flex tw-justify-center tw-gap-2 tw-mb-4">
               <Button variant={previewMode === 'desktop' ? 'secondary' : 'outline'} size="icon" onClick={() => setPreviewMode('desktop')} aria-label="Desktop preview">
                 <Monitor className="tw-h-4 tw-w-4" />
