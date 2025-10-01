@@ -11,83 +11,85 @@ import { supabase } from '@/integrations/supabase/client';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useIsSubscribed } from '@/hooks/useIsSubscribed'; // Import new hook
+import { handleError } from '@/utils/errorHandler'; // Import error handler
+import { POST_POLL_INTERVAL_MS } from '@/lib/constants'; // Import constant
 
 const HomePage = () => {
   const { user } = useAuth();
   const { isAdmin, loading: isAdminLoading } = useIsAdmin();
+  const { isSubscribed, loading: isSubscribedLoading } = useIsSubscribed(); // Use new hook
   const [posts, setPosts] = useState<Post[]>([]);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
-  const [isSubscribed, setIsSubscribed] = useState(false);
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
   const [postFormLoading, setPostFormLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const observer = useRef<IntersectionObserver | null>(null);
-  const lastPostRef = useCallback((node: HTMLDivElement) => {
-    if (loading) return;
-    if (observer.current) observer.current.disconnect();
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        setPage(prevPage => prevPage + 1);
-      }
-    });
-    if (node) observer.current.observe(node);
-  }, [loading, hasMore]);
 
-  useEffect(() => {
-    const checkSubscriptionStatus = async () => {
-      if (isAdminLoading) return;
-
-      if (isAdmin) {
-        setIsSubscribed(true);
-        return;
-      }
-
-      if (user) {
-        try {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('subscription_status')
-            .eq('id', user.id)
-            .single();
-
-          if (error) {
-            console.error('Error fetching profile for subscription status:', error);
-            setIsSubscribed(false);
-          } else if (profile) {
-            setIsSubscribed(profile.subscription_status === 'trialing' || profile.subscription_status === 'active');
-          } else {
-            setIsSubscribed(false);
+  // Debounce IntersectionObserver: Add a 300ms debounce to lastPostRef
+  const lastPostRef = useCallback(
+    (node: HTMLDivElement) => {
+      if (loading || !hasMore) return; // Also check hasMore
+      if (observer.current) observer.current.disconnect();
+      observer.current = new IntersectionObserver(
+        entries => {
+          if (entries[0].isIntersecting && hasMore) {
+            // Add a small delay to prevent multiple rapid calls
+            setTimeout(() => setPage(prev => prev + 1), 300);
           }
-        } catch (err) {
-          console.error('Error checking subscription status:', err);
-          setError('Failed to check subscription status');
-        }
-      } else {
-        setIsSubscribed(false);
+        },
+        { threshold: 0.1 } // Trigger when 10% of the element is visible
+      );
+      if (node) observer.current.observe(node);
+    },
+    [loading, hasMore]
+  );
+
+  // Consolidate Fetch Logic: Combine useEffect hooks for fetching posts
+  useEffect(() => {
+    const fetchInitialPosts = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const initialPosts = await PostService.fetchPosts(0);
+        setPosts(initialPosts);
+        setHasMore(initialPosts.length === PostService.POSTS_PER_PAGE);
+      } catch (err) {
+        setError(handleError(err, 'Failed to load posts. Please try again.'));
+      } finally {
+        setLoading(false);
       }
     };
-    checkSubscriptionStatus();
-  }, [user, isAdmin, isAdminLoading]);
 
-  const fetchPosts = useCallback(async (pageNum: number, append: boolean = true) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const newPosts = await PostService.fetchPosts(pageNum);
-      if (newPosts.length === 0) {
-        setHasMore(false);
-      } else {
-        setPosts(prevPosts => (append ? [...prevPosts, ...newPosts] : newPosts));
+    fetchInitialPosts();
+  }, []); // Run only once on mount for initial load
+
+  useEffect(() => {
+    const fetchMorePosts = async () => {
+      if (page === 0) return; // Initial load handled by separate useEffect
+      setLoading(true);
+      setError(null);
+      try {
+        const newPosts = await PostService.fetchPosts(page);
+        if (newPosts.length === 0) {
+          setHasMore(false);
+        } else {
+          setPosts(prevPosts => [...prevPosts, ...newPosts]);
+        }
+      } catch (err) {
+        setError(handleError(err, 'Failed to load more posts. Please try again.'));
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('Error fetching posts:', err);
-      setError('Failed to load posts. Please try again.');
-    } finally {
-      setLoading(false);
+    };
+
+    if (page > 0) {
+      fetchMorePosts();
     }
-  }, []);
+  }, [page]); // Fetch more posts when page changes (after initial load)
+
 
   const fetchNewPosts = useCallback(async () => {
     if (posts.length === 0) return;
@@ -95,41 +97,45 @@ const HomePage = () => {
       const latestTimestamp = posts[0].timestamp;
       const newFetchedPosts = await PostService.fetchNewPosts(latestTimestamp);
       if (newFetchedPosts.length > 0) {
-        setPosts(prevPosts => [...newFetchedPosts, ...prevPosts]);
-        setNewPostsAvailable(true);
+        setPosts(prevPosts => {
+          const uniqueNewPosts = newFetchedPosts.filter(
+            newPost => !prevPosts.some(existingPost => existingPost.id === newPost.id)
+          );
+          if (uniqueNewPosts.length > 0) {
+            setNewPostsAvailable(true);
+            return [...uniqueNewPosts, ...prevPosts];
+          }
+          return prevPosts;
+        });
       }
     } catch (err) {
-      console.error('Error fetching new posts:', err);
-      toast.error('Failed to fetch new posts.');
+      handleError(err, 'Failed to fetch new posts.');
     }
   }, [posts]);
 
+  // Configurable Interval: Use an environment variable for the polling interval
   useEffect(() => {
-    fetchPosts(0, false);
-  }, [fetchPosts]);
-
-  useEffect(() => {
-    if (page > 0) {
-      fetchPosts(page);
-    }
-  }, [page, fetchPosts]);
-
-  useEffect(() => {
+    const pollInterval = parseInt(import.meta.env.VITE_POLL_INTERVAL || '', 10) || POST_POLL_INTERVAL_MS;
     const interval = setInterval(() => {
       if (isSubscribed || isAdmin) {
         fetchNewPosts();
       }
-    }, 30000);
+    }, pollInterval);
     return () => clearInterval(interval);
   }, [fetchNewPosts, isSubscribed, isAdmin]);
 
+  // Supabase channel to prevent duplicate posts
   useEffect(() => {
     const channel = supabase
       .channel('public:posts')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, (payload) => {
         const newPost = payload.new as Post;
-        setPosts(prevPosts => [newPost, ...prevPosts]);
-        setNewPostsAvailable(true);
+        setPosts(prevPosts => {
+          // Prevent Duplicate Posts: Check for duplicates in the Supabase channel
+          if (prevPosts.some(p => p.id === newPost.id)) return prevPosts;
+          setNewPostsAvailable(true); // Indicate new posts are available
+          return [newPost, ...prevPosts];
+        });
       })
       .subscribe();
 
@@ -156,16 +162,16 @@ const HomePage = () => {
       
       if (newPost) {
         toast.success('Post created successfully!', { id: 'create-post' });
-        setPosts(prevPosts => [newPost, ...prevPosts]);
-        setNewPostsAvailable(true);
+        // New posts are handled by the real-time subscription, so no need to manually add here
+        // setPosts(prevPosts => [newPost, ...prevPosts]);
+        // setNewPostsAvailable(true); // Realtime listener will set this
         return true;
       } else {
-        toast.error('Failed to create post.', { id: 'create-post' });
+        handleError(null, 'Failed to create post.');
         return false;
       }
     } catch (err) {
-      console.error('Error creating post:', err);
-      toast.error('An error occurred while creating the post.', { id: 'create-post' });
+      handleError(err, 'An error occurred while creating the post.');
       return false;
     } finally {
       setPostFormLoading(false);
@@ -174,8 +180,20 @@ const HomePage = () => {
 
   const handleRetry = () => {
     setError(null);
-    fetchPosts(0, false);
+    setPage(0); // Reset page to refetch from start
+    setPosts([]); // Clear existing posts
+    setHasMore(true); // Assume there's more to fetch
   };
+
+  // Show loading for subscription status as well
+  if (isAdminLoading || isSubscribedLoading) {
+    return (
+      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
+        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+        <p className="tw-ml-2">Loading feed...</p>
+      </div>
+    );
+  }
 
   if (error) {
     return (
@@ -222,7 +240,7 @@ const HomePage = () => {
             <div className="tw-text-center tw-py-12">
               <p className="tw-text-muted-foreground tw-mb-4">No posts available yet. Check back soon!</p>
               {isAdmin && (
-                <Button onClick={() => fetchPosts(0, false)} variant="outline">
+                <Button onClick={handleRetry} variant="outline">
                   Refresh
                 </Button>
               )}
@@ -254,6 +272,7 @@ const HomePage = () => {
           onClick={scrollToTop}
           className="tw-fixed tw-bottom-6 tw-right-6 tw-rounded-full tw-shadow-lg tw-p-3 tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground tw-animate-bounce"
           size="icon"
+          aria-label="Scroll to new posts" // Accessibility: Add ARIA attribute
         >
           <ArrowUp className="tw-h-5 tw-w-5" />
           <span className="tw-sr-only">Scroll to new posts</span>

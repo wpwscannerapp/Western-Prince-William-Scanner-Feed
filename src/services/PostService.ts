@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { StorageService } from './StorageService';
+import { handleError } from '@/utils/errorHandler'; // Import error handler
 
 export interface Post {
   id: string;
@@ -23,20 +24,16 @@ export interface Comment {
   } | null;
 }
 
-const POSTS_PER_PAGE = 10;
+export const POSTS_PER_PAGE = 10; // Export POSTS_PER_PAGE
 
-// Helper for logging Supabase errors
+// Helper for logging Supabase errors - now using centralized handleError
 const logSupabaseError = (functionName: string, error: any) => {
-  console.error(`Error in ${functionName}:`, {
-    message: error?.message,
-    code: error?.code,
-    details: error?.details,
-    hint: error?.hint,
-    originalError: error, // Keep the original error object for full context
-  });
+  handleError(error, `Error in ${functionName}`);
 };
 
 export const PostService = {
+  POSTS_PER_PAGE, // Make it accessible via PostService.POSTS_PER_PAGE
+
   async fetchPosts(page: number = 0): Promise<Post[]> {
     const { data, error } = await supabase
       .from('posts')

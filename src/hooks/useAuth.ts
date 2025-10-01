@@ -1,12 +1,13 @@
 import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
+import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js'; // Import AuthError
 import { toast } from 'sonner';
 
 interface AuthState {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  error: AuthError | null; // Add error state
 }
 
 export function useAuth() {
@@ -14,17 +15,18 @@ export function useAuth() {
     session: null,
     user: null,
     loading: true,
+    error: null, // Initialize error
   });
 
   React.useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event: AuthChangeEvent, session: Session | null) => {
-        setAuthState({ session, user: session?.user || null, loading: false });
+        setAuthState({ session, user: session?.user || null, loading: false, error: null }); // Clear error on state change
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setAuthState({ session, user: session?.user || null, loading: false });
+      setAuthState({ session, user: session?.user || null, loading: false, error: null }); // Clear error on initial session fetch
     });
 
     return () => {
@@ -33,8 +35,10 @@ export function useAuth() {
   }, []);
 
   const signUp = async (email: string, password: string) => {
+    setAuthState(prev => ({ ...prev, error: null })); // Clear previous error
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) {
+      setAuthState(prev => ({ ...prev, error })); // Set error
       toast.error(error.message);
       return { error };
     }
@@ -43,9 +47,11 @@ export function useAuth() {
   };
 
   const signIn = async (email: string, password: string) => {
+    setAuthState(prev => ({ ...prev, error: null })); // Clear previous error
     console.log('Attempting sign-in with:', { email, password: '***' }); // Log email, mask password
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      setAuthState(prev => ({ ...prev, error })); // Set error
       toast.error(error.message);
       return { error };
     }
@@ -54,8 +60,10 @@ export function useAuth() {
   };
 
   const signOut = async () => {
+    setAuthState(prev => ({ ...prev, error: null })); // Clear previous error
     const { error } = await supabase.auth.signOut();
     if (error) {
+      setAuthState(prev => ({ ...prev, error })); // Set error
       toast.error(error.message);
       return { error };
     }
@@ -64,10 +72,12 @@ export function useAuth() {
   };
 
   const forgotPassword = async (email: string) => {
+    setAuthState(prev => ({ ...prev, error: null })); // Clear previous error
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${import.meta.env.VITE_APP_URL}/reset-password`, // Dynamically use VITE_APP_URL
     });
     if (error) {
+      setAuthState(prev => ({ ...prev, error })); // Set error
       toast.error(error.message);
       return { error };
     }

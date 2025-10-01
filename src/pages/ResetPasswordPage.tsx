@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from 'react'; // Removed useEffect
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { handleError } from '@/utils/errorHandler';
+import { SUPABASE_API_TIMEOUT_MS } from '@/lib/constants';
 
 const resetPasswordSchema = z.object({
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
@@ -39,38 +41,52 @@ const ResetPasswordPage = () => {
     setLoading(true);
     const refreshToken = searchParams.get('refresh_token');
     
-    if (!refreshToken) {
-      toast.error('Invalid reset link. Please request a new password reset.');
+    if (!refreshToken || typeof refreshToken !== 'string' || refreshToken.length < 10) {
+      handleError(null, 'Invalid reset link. Please request a new password reset.');
       setLoading(false);
       return;
     }
 
-    // Set the session with the refresh token
-    const { error: sessionError } = await supabase.auth.setSession({
-      refresh_token: refreshToken,
-      access_token: '', // Supabase will generate this
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      handleError(null, 'Password reset request timed out. Please try again.');
+    }, parseInt(import.meta.env.VITE_SUPABASE_API_TIMEOUT || '', 10) || SUPABASE_API_TIMEOUT_MS);
 
-    if (sessionError) {
-      toast.error('Invalid or expired reset link. Please request a new password reset.');
+    try {
+      const { error: sessionError } = await supabase.auth.setSession({
+        refresh_token: refreshToken,
+        access_token: '',
+      }); // Removed signal option
+
+      if (sessionError) {
+        handleError(sessionError, 'Invalid or expired reset link. Please request a new password reset.');
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        password: values.password,
+      }); // Removed signal option
+
+      if (error) {
+        handleError(error, 'Failed to reset password.');
+        setLoading(false);
+        return;
+      }
+
+      toast.success('Password reset successfully!');
+      setResetComplete(true);
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        // Timeout already handled by the setTimeout callback
+      } else {
+        handleError(err, 'An unexpected error occurred during password reset.');
+      }
+    } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
-      return;
     }
-
-    // Update the user's password
-    const { error } = await supabase.auth.updateUser({
-      password: values.password,
-    });
-
-    if (error) {
-      toast.error(`Failed to reset password: ${error.message}`);
-      setLoading(false);
-      return;
-    }
-
-    toast.success('Password reset successfully!');
-    setResetComplete(true);
-    setLoading(false);
   };
 
   if (resetComplete) {

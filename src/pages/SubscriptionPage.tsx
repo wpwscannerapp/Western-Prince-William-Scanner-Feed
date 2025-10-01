@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Lock, Loader2 } from 'lucide-react';
@@ -6,16 +6,27 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { StripeClient } from '@/integrations/stripe/client'; // Import StripeClient
+import { StripeClient } from '@/integrations/stripe/client';
+import { useIsSubscribed } from '@/hooks/useIsSubscribed'; // Import new hook
+import { handleError } from '@/utils/errorHandler'; // Import error handler
 
 const SubscriptionPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { isSubscribed, loading: isSubscribedLoading } = useIsSubscribed(); // Use new hook
   const [isLoading, setIsLoading] = React.useState(false);
 
+  // Check Subscription Status: Redirect subscribed users
+  useEffect(() => {
+    if (!authLoading && !isSubscribedLoading && isSubscribed) {
+      toast.info('You are already subscribed!');
+      navigate('/home');
+    }
+  }, [isSubscribed, isSubscribedLoading, authLoading, navigate]);
+
   const handleStartFreeTrial = async () => {
-    if (!user || !user.email) { // Ensure user and user.email exist
-      toast.error('You must be logged in to start a free trial.');
+    if (!user || !user.email) {
+      handleError(null, 'You must be logged in to start a free trial.');
       navigate('/auth');
       return;
     }
@@ -26,26 +37,37 @@ const SubscriptionPage = () => {
     try {
       const priceId = import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID;
       if (!priceId) {
-        toast.error('Stripe price ID is not configured. Please contact support.', { id: 'sub-loading' });
+        handleError(null, 'Stripe price ID is not configured. Please contact support.');
+        toast.dismiss('sub-loading');
         setIsLoading(false);
         return;
       }
 
-      // Pass user.email to the createCheckoutSession function
       const checkoutUrl = await StripeClient.createCheckoutSession(priceId, user.id, user.email);
 
       if (checkoutUrl) {
-        window.location.href = checkoutUrl; // Redirect to Stripe Checkout
+        window.location.href = checkoutUrl;
       } else {
-        toast.error('Failed to initiate Stripe checkout. Please try again.', { id: 'sub-loading' });
+        // Specific Error Messages: Improve error handling
+        handleError(null, 'Failed to initiate Stripe checkout. Please try again.');
+        toast.dismiss('sub-loading');
       }
     } catch (err: any) {
-      console.error('Unexpected error during subscription:', err);
-      toast.error(`An unexpected error occurred: ${err.message}`, { id: 'sub-loading' });
+      handleError(err, 'An unexpected error occurred during subscription.');
+      toast.dismiss('sub-loading');
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (authLoading || isSubscribedLoading || (isSubscribed && !authLoading && !isSubscribedLoading)) {
+    return (
+      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
+        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+        <p className="tw-ml-2">Checking subscription status...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
@@ -57,8 +79,9 @@ const SubscriptionPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="tw-space-y-6">
+          {/* Dynamic Pricing: Use an environment variable */}
           <div className="tw-text-4xl tw-font-extrabold tw-text-foreground">
-            $5.99<span className="tw-text-xl tw-font-medium tw-text-muted-foreground">/month</span>
+            ${import.meta.env.VITE_STRIPE_PRICE || '5.99'}<span className="tw-text-xl tw-font-medium tw-text-muted-foreground">/month</span>
           </div>
           <p className="tw-text-lg tw-text-muted-foreground">
             Start your 7-day free trial today!

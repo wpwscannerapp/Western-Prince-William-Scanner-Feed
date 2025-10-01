@@ -9,12 +9,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import CommentCard from './CommentCard';
+import { handleError } from '@/utils/errorHandler'; // Import error handler
 
 interface PostCardProps {
   post: Post;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post }) => {
+const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => { // Memoize the component
   const { user } = useAuth();
   const isAdminPost = !!post.admin_id;
 
@@ -42,8 +43,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       setHasLiked(likedStatus);
       setComments(fetchedComments);
     } catch (err) {
-      console.error('Error fetching post data:', err);
-      setError('Failed to load post data. Please try again.');
+      setError(handleError(err, 'Failed to load post data. Please try again.'));
     }
   };
 
@@ -77,31 +77,24 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
   const handleLikeToggle = async () => {
     if (!user) {
-      toast.error('You must be logged in to like a post.');
+      handleError(null, 'You must be logged in to like a post.');
       return;
     }
     setIsLiking(true);
     try {
       if (hasLiked) {
         const success = await PostService.removeLike(post.id, user.id);
-        if (success) {
-          setHasLiked(false);
-          setLikesCount(prev => Math.max(0, prev - 1));
-        } else {
-          toast.error('Failed to unlike post.');
+        if (!success) {
+          handleError(null, 'Failed to unlike post.');
         }
       } else {
         const success = await PostService.addLike(post.id, user.id);
-        if (success) {
-          setHasLiked(true);
-          setLikesCount(prev => prev + 1);
-        } else {
-          toast.error('Failed to like post.');
+        if (!success) {
+          handleError(null, 'Failed to like post.');
         }
       }
     } catch (err) {
-      console.error('Error toggling like:', err);
-      toast.error('An error occurred while liking the post.');
+      handleError(err, 'An error occurred while liking the post.');
     } finally {
       setIsLiking(false);
     }
@@ -109,11 +102,11 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
   const handleAddComment = async () => {
     if (!user) {
-      toast.error('You must be logged in to comment.');
+      handleError(null, 'You must be logged in to comment.');
       return;
     }
     if (newCommentContent.trim() === '') {
-      toast.error('Comment cannot be empty.');
+      handleError(null, 'Comment cannot be empty.');
       return;
     }
 
@@ -124,14 +117,12 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       
       if (newComment) {
         toast.success('Comment added!', { id: 'add-comment' });
-        setComments(prev => [...prev, newComment]);
         setNewCommentContent('');
       } else {
-        toast.error('Failed to add comment.', { id: 'add-comment' });
+        handleError(null, 'Failed to add comment.', { id: 'add-comment' });
       }
     } catch (err) {
-      console.error('Error adding comment:', err);
-      toast.error('An error occurred while adding the comment.', { id: 'add-comment' });
+      handleError(err, 'An error occurred while adding the comment.', { id: 'add-comment' });
     } finally {
       setIsCommenting(false);
     }
@@ -162,8 +153,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         const fetchedComments = await PostService.fetchComments(post.id);
         setComments(fetchedComments);
       } catch (err) {
-        console.error('Error fetching comments:', err);
-        setError('Failed to load comments. Please try again.');
+        setError(handleError(err, 'Failed to load comments. Please try again.'));
       } finally {
         setLoadingComments(false);
       }
@@ -198,7 +188,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.style.display = 'none';
-              setError('Failed to load image');
+              setError(handleError(null, 'Failed to load image.'));
             }}
           />
         )}
@@ -266,6 +256,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       </CardFooter>
     </Card>
   );
-};
+});
 
 export default PostCard;
