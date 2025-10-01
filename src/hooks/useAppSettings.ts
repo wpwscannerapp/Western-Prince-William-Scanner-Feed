@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SettingsService, AppSettings } from '@/services/SettingsService';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
-import { hexToHsl } from '@/lib/hexToHsl'; // Import the utility
+import { hexToHsl, darkenHexColor } from '@/lib/hexToHsl'; // Import darkenHexColor
 
 export function useAppSettings() {
   const queryClient = useQueryClient();
@@ -19,10 +19,14 @@ export function useAppSettings() {
       // Apply primary color
       document.documentElement.style.setProperty('--app-primary-color-hex', appSettings.primary_color);
       document.documentElement.style.setProperty('--primary', hexToHsl(appSettings.primary_color));
+      // Calculate and set darker primary color
+      document.documentElement.style.setProperty('--app-primary-color-darker-hex', darkenHexColor(appSettings.primary_color, 10)); // Darken by 10%
 
       // Apply secondary color
       document.documentElement.style.setProperty('--app-secondary-color-hex', appSettings.secondary_color);
       document.documentElement.style.setProperty('--secondary', hexToHsl(appSettings.secondary_color));
+      // Calculate and set darker secondary color
+      document.documentElement.style.setProperty('--app-secondary-color-darker-hex', darkenHexColor(appSettings.secondary_color, 10)); // Darken by 10%
 
       // Apply font family
       document.documentElement.style.setProperty('--app-font-family', appSettings.font_family);
