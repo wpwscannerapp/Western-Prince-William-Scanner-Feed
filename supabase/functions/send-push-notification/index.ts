@@ -1,13 +1,11 @@
 // @ts-ignore
 /// <reference lib="deno.ns" />
 // @ts-ignore
-import "node:util"; // Explicitly import node:util for web-push compatibility
-// @ts-ignore
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 // @ts-ignore
-import webPush from 'https://esm.sh/web-push@3.6.7'; // Import web-push library
+import { WebPush } from 'https://deno.land/x/webpush_deno@v1.0.0/mod.ts'; // Using Deno-native webpush library
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,9 +23,9 @@ interface UserSubscription {
 }
 
 serve(async (req: Request) => {
-  console.log('Edge Function send-push-notification started.'); // Added logging
+  console.log('Edge Function send-push-notification started.');
   if (req.method === 'OPTIONS') {
-    console.log('OPTIONS request received.'); // Added logging
+    console.log('OPTIONS request received.');
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -37,7 +35,7 @@ serve(async (req: Request) => {
       // @ts-ignore
       Deno.env.get('SUPABASE_URL')!,
       // @ts-ignore
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! // Use service role key for admin operations
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
     // @ts-ignore
@@ -56,13 +54,13 @@ serve(async (req: Request) => {
     // 1. Authenticate and Authorize Admin
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) {
-      console.error('Authentication failed:', userError?.message); // Added logging
+      console.error('Authentication failed:', userError?.message);
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    console.log('User authenticated:', user.id); // Added logging
+    console.log('User authenticated:', user.id);
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
@@ -71,49 +69,51 @@ serve(async (req: Request) => {
       .single();
 
     if (profileError || profile?.role !== 'admin') {
-      console.error('Authorization failed: User is not admin or profile error:', profileError?.message); // Added logging
+      console.error('Authorization failed: User is not admin or profile error:', profileError?.message);
       return new Response(JSON.stringify({ error: 'Forbidden: Only administrators can send notifications.' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    console.log('User authorized as admin.'); // Added logging
+    console.log('User authorized as admin.');
 
     // 2. Get notification payload
     const { title, body, url } = await req.json();
-    console.log('Notification payload received:', { title, body, url }); // Added logging
+    console.log('Notification payload received:', { title, body, url });
 
     if (!title || !body) {
-      console.error('Missing title or body for notification.'); // Added logging
+      console.error('Missing title or body for notification.');
       return new Response(JSON.stringify({ error: 'Missing title or body for notification' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // 3. Configure web-push
+    // 3. Configure web-push with webpush_deno
     // @ts-ignore
-    const webPushPublicKey = Deno.env.get('VITE_WEB_PUSH_PUBLIC_KEY'); // Public key from .env
+    const webPushPublicKey = Deno.env.get('VITE_WEB_PUSH_PUBLIC_KEY');
     // @ts-ignore
-    const webPushPrivateKey = Deno.env.get('WEB_PUSH_SECRET_KEY'); // Private key from Supabase secrets
+    const webPushPrivateKey = Deno.env.get('WEB_PUSH_SECRET_KEY');
 
-    console.log('VAPID Public Key (first 10 chars):', webPushPublicKey ? webPushPublicKey.substring(0, 10) : 'NOT SET'); // Added logging
-    console.log('VAPID Private Key (first 10 chars):', webPushPrivateKey ? webPushPrivateKey.substring(0, 10) : 'NOT SET'); // Added logging
+    console.log('VAPID Public Key (first 10 chars):', webPushPublicKey ? webPushPublicKey.substring(0, 10) : 'NOT SET');
+    console.log('VAPID Private Key (first 10 chars):', webPushPrivateKey ? webPushPrivateKey.substring(0, 10) : 'NOT SET');
 
     if (!webPushPublicKey || !webPushPrivateKey) {
-      console.error('Web Push VAPID keys not configured.'); // Added logging
+      console.error('Web Push VAPID keys not configured.');
       return new Response(JSON.stringify({ error: 'Web Push VAPID keys not configured.' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    webPush.setVapidDetails(
-      'mailto:admin@example.com', // Replace with a real email or contact
-      webPushPublicKey,
-      webPushPrivateKey
-    );
-    console.log('webPush VAPID details set.'); // Added logging
+    const webPushClient = new WebPush({
+      vapidKeys: {
+        publicKey: webPushPublicKey,
+        privateKey: webPushPrivateKey,
+      },
+      subject: 'mailto:admin@example.com', // Replace with a real email or contact
+    });
+    console.log('webPushClient initialized with VAPID details.');
 
     // 4. Fetch all subscriptions
     const { data: subscriptions, error: fetchError } = await supabaseAdmin
@@ -127,10 +127,10 @@ serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    console.log(`Fetched ${subscriptions?.length || 0} subscriptions.`); // Added logging
+    console.log(`Fetched ${subscriptions?.length || 0} subscriptions.`);
 
     if (!subscriptions || subscriptions.length === 0) {
-      console.log('No active subscriptions found.'); // Added logging
+      console.log('No active subscriptions found.');
       return new Response(JSON.stringify({ message: 'No active subscriptions found.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -147,7 +147,7 @@ serve(async (req: Request) => {
         },
       };
       try {
-        await webPush.sendNotification(pushSubscription, notificationPayload);
+        await webPushClient.sendNotification(pushSubscription, notificationPayload);
         console.log(`Notification sent to ${sub.user_id}`);
       } catch (pushError: any) {
         console.error(`Failed to send notification to ${sub.user_id}:`, pushError);
@@ -160,7 +160,7 @@ serve(async (req: Request) => {
     });
 
     await Promise.all(sendPromises);
-    console.log('All notification send attempts completed.'); // Added logging
+    console.log('All notification send attempts completed.');
 
     return new Response(JSON.stringify({ message: 'Notifications sent successfully (or attempted).' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
