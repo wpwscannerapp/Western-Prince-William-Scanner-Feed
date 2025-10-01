@@ -1,20 +1,20 @@
 import React, { useState, useCallback } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided } from 'react-beautiful-dnd';
-import { Card, Button } from '@/components/ui/card'; // Card is imported from ui/card, Button from ui/button
-import { GripVertical, Eye, Monitor, Tablet, Smartphone } from 'lucide-react'; // For drag icon and preview icons
+import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { GripVertical, Monitor, Tablet, Smartphone } from 'lucide-react';
 
-interface LayoutBlock {
+interface LayoutEditorProps {
+  onLayoutChange: (newLayout: LayoutBlock[]) => void;
+  layout: LayoutBlock[];
+}
+
+export interface LayoutBlock {
   id: string;
   type: string;
   content: string;
 }
 
-interface LayoutEditorProps {
-  layout: LayoutBlock[];
-  onLayoutChange: (newLayout: LayoutBlock[]) => void;
-}
-
-// Sample components for dragging (extend as needed)
 const sampleComponents: LayoutBlock[] = [
   { id: 'header', type: 'Header', content: 'App Header with Logo' },
   { id: 'sidebar', type: 'Sidebar', content: 'Navigation Menu' },
@@ -60,7 +60,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ layout = [], onLayoutChange
 
   const DraggableComponent = ({ component, index }: { component: LayoutBlock; index: number }) => (
     <Draggable draggableId={component.id} index={index}>
-      {(provided: DraggableProvided, snapshot) => (
+      {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}

@@ -46,7 +46,7 @@ export function useAppSettings() {
   useEffect(() => {
     const channel = supabase
       .channel('public:app_settings_channel') // Unique channel name
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_settings' }, (payload) => {
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_settings' }, () => { // Removed unused 'payload'
         // Invalidate the query to refetch all settings
         queryClient.invalidateQueries({ queryKey: ['app_settings'] });
       })

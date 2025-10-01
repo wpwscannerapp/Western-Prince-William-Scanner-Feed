@@ -9,7 +9,7 @@ export interface AppSettings {
   logo_url: string | null;
   favicon_url: string | null;
   custom_css: string | null;
-  layout: Array<{ id: string; type: string; content?: string }>;
+  layout: Array<{ id: string; type: string; content: string }>; // Changed content to required string
   updated_at: string;
 }
 
@@ -50,7 +50,7 @@ export const SettingsService = {
   async updateSettings(settings: Partial<AppSettings>): Promise<boolean> {
     try {
       // Ensure there's always an ID for upsert, or insert if none exists
-      const { data: existingSettings, error: fetchError } = await supabase
+      const { data: existingSettings } = await supabase // Removed unused 'fetchError'
         .from('app_settings')
         .select('id')
         .limit(1)
