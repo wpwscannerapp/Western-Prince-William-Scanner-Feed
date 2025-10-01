@@ -21,6 +21,7 @@ export interface Comment {
     first_name: string | null;
     last_name: string | null;
     avatar_url: string | null;
+    username: string | null; // Add username to profiles sub-object
   } | null;
 }
 
@@ -217,7 +218,7 @@ export const PostService = {
     const { data, error } = await supabase
       .from('comments')
       .insert({ post_id: postId, user_id: userId, content })
-      .select('*, profiles(first_name, last_name, avatar_url)')
+      .select('*, profiles(first_name, last_name, avatar_url, username)') // Select username
       .single();
 
     if (error) {
@@ -230,7 +231,7 @@ export const PostService = {
   async fetchComments(postId: string): Promise<Comment[]> {
     const { data, error } = await supabase
       .from('comments')
-      .select('*, profiles(first_name, last_name, avatar_url)')
+      .select('*, profiles(first_name, last_name, avatar_url, username)') // Select username
       .eq('post_id', postId)
       .order('created_at', { ascending: true });
 
@@ -246,7 +247,7 @@ export const PostService = {
       .from('comments')
       .update({ content, updated_at: new Date().toISOString() })
       .eq('id', commentId)
-      .select('*, profiles(first_name, last_name, avatar_url)')
+      .select('*, profiles(first_name, last_name, avatar_url, username)') // Select username
       .single();
 
     if (error) {
@@ -275,8 +276,8 @@ export const PostService = {
       const { data, error } = await supabase
         .from('posts')
         .select('*')
-        .neq('id', currentPostId) // Exclude the current post
-        .order('timestamp', { ascending: false }) // Order by most recent
+        .neq('id', currentPostId)
+        .order('timestamp', { ascending: false })
         .limit(limit);
 
       if (error) {
