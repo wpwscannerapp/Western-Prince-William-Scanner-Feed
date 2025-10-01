@@ -7,7 +7,6 @@ export interface Profile {
   avatar_url: string | null;
   subscription_status: string;
   role: string;
-  username: string | null; // Added username field
   updated_at: string;
 }
 
@@ -28,7 +27,7 @@ export const ProfileService = {
 
   async updateProfile(
     userId: string,
-    updates: { first_name?: string | null; last_name?: string | null; avatar_url?: string | null; username?: string | null }
+    updates: { first_name?: string | null; last_name?: string | null; avatar_url?: string | null }
   ): Promise<Profile | null> {
     const { data, error } = await supabase
       .from('profiles')

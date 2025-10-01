@@ -12,18 +12,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { ProfileService, Profile } from '@/services/ProfileService';
 import { StorageService } from '@/services/StorageService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { handleError } from '@/utils/errorHandler'; // Import handleError
 
 const profileSchema = z.object({
-  first_name: z.string().max(50, { message: 'First name too long.' }).optional().or(z.literal('')),
-  last_name: z.string().max(50, { message: 'Last name too long.' }).optional().or(z.literal('')),
-  username: z
-    .string()
-    .min(3, { message: 'Username must be at least 3 characters.' })
-    .max(20, { message: 'Username must be at most 20 characters.' })
-    .regex(/^[a-zA-Z0-9_]+$/, { message: 'Username can only contain letters, numbers, and underscores.' })
-    .optional() // Make optional for initial load if not set
-    .or(z.literal('')), // Allow empty string for optional field
+  first_name: z.string().min(1, { message: 'First name is required.' }).max(50, { message: 'First name too long.' }).optional().or(z.literal('')),
+  last_name: z.string().min(1, { message: 'Last name is required.' }).max(50, { message: 'Last name too long.' }).optional().or(z.literal('')),
   avatar: z.any().optional(),
 });
 
@@ -40,19 +32,14 @@ const ProfileForm: React.FC = () => {
     enabled: !!user,
   });
 
-  const updateProfileMutation = useMutation<Profile | null, Error, { first_name?: string | null; last_name?: string | null; avatar_url?: string | null; username?: string | null }>({
+  const updateProfileMutation = useMutation<Profile | null, Error, { first_name?: string | null; last_name?: string | null; avatar_url?: string | null }>({
     mutationFn: (updates) => user ? ProfileService.updateProfile(user.id, updates) : Promise.resolve(null),
     onSuccess: () => {
       toast.success('Profile updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
     },
     onError: (error) => {
-      // Handle unique constraint error for username
-      if (error.message.includes('duplicate key value violates unique constraint "profiles_username_key"')) {
-        handleError(error, 'Username already taken. Please choose another.');
-      } else {
-        handleError(error, `Failed to update profile: ${error.message}`);
-      }
+      toast.error(`Failed to update profile: ${error.message}`);
     },
   });
 
@@ -61,7 +48,6 @@ const ProfileForm: React.FC = () => {
     defaultValues: {
       first_name: '',
       last_name: '',
-      username: '',
       avatar: undefined,
     },
   });
@@ -75,7 +61,6 @@ const ProfileForm: React.FC = () => {
       form.reset({
         first_name: profile.first_name || '',
         last_name: profile.last_name || '',
-        username: profile.username || '', // Set username from profile
         avatar: undefined,
       });
       setImagePreview(profile.avatar_url || null);
@@ -103,7 +88,7 @@ const ProfileForm: React.FC = () => {
 
   const onSubmit = async (values: ProfileFormValues) => {
     if (!user) {
-      handleError(null, 'You must be logged in to update your profile.');
+      toast.error('You must be logged in to update your profile.');
       return;
     }
 
@@ -120,7 +105,7 @@ const ProfileForm: React.FC = () => {
         avatarUrl = newAvatarUrl;
         toast.success('Avatar uploaded!', { id: 'avatar-upload' });
       } else {
-        handleError(null, 'Failed to upload avatar.', { id: 'avatar-upload' });
+        toast.error('Failed to upload avatar.', { id: 'avatar-upload' });
         setIsUploading(false);
         return;
       }
@@ -133,7 +118,7 @@ const ProfileForm: React.FC = () => {
         avatarUrl = null;
         toast.success('Avatar removed!', { id: 'avatar-remove' });
       } else {
-        handleError(null, 'Failed to remove avatar.', { id: 'avatar-remove' });
+        toast.error('Failed to remove avatar.', { id: 'avatar-remove' });
         setIsUploading(false);
         return;
       }
@@ -147,7 +132,6 @@ const ProfileForm: React.FC = () => {
     const updates = {
       first_name: values.first_name || null,
       last_name: values.last_name || null,
-      username: values.username || null, // Include username in updates
       avatar_url: avatarUrl,
     };
 
@@ -244,24 +228,6 @@ const ProfileForm: React.FC = () => {
             <p id="last-name-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.last_name.message}</p>
           )}
         </div>
-      </div>
-
-      <div>
-        <Label htmlFor="username">Username</Label>
-        <Input
-          id="username"
-          placeholder="Enter your username"
-          {...form.register('username')}
-          className="tw-mt-1 tw-input"
-          disabled={updateProfileMutation.isPending || isUploading}
-          aria-invalid={form.formState.errors.username ? "true" : "false"}
-          aria-describedby={form.formState.errors.username ? "username-error" : undefined}
-        />
-        {form.formState.errors.username && (
-          <p id="username-error" className="tw-text-destructive tw-text-sm tw-mt-1">
-            {form.formState.errors.username.message}
-          </p>
-        )}
       </div>
 
       <div>

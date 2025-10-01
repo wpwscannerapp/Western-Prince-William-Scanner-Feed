@@ -224,7 +224,6 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
                 onKeyDown={handleKeyDown}
                 disabled={isCommenting || !user}
                 className="tw-flex-1 tw-input"
-                aria-label="Comment input" // Accessibility: Add ARIA attribute
               />
               <Button onClick={handleAddComment} disabled={isCommenting || !user} className="tw-button">
                 {isCommenting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
@@ -236,7 +235,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
                 <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
               </div>
             ) : (
-              <div className="tw-space-y-3" aria-live="polite"> {/* Accessibility: Add ARIA attribute */}
+              <div className="tw-space-y-3">
                 {comments.length === 0 ? (
                   <p className="tw-text-sm tw-text-muted-foreground tw-text-center">No comments yet. Be the first!</p>
                 ) : (
