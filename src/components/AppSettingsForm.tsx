@@ -1,126 +1,344 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import { useTheme } from '@/hooks/useTheme';
-import { useAppSettings } from '@/hooks/useAppSettings';
-import { SettingsService } from '@/services/SettingsService';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'; // Import Tabs components
+import { ChromePicker } from 'react-color';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Loader2, RotateCcw } from 'lucide-react'; // For loading and revert icon
+import { useIsAdmin } from '@/hooks/useIsAdmin'; // For RBAC
+import { SettingsService, AppSettings } from '@/services/SettingsService'; // Updated import
+import { hexToHsl } from '@/lib/hexToHsl'; // Import hexToHsl utility
 import LayoutEditor from './LayoutEditor'; // Import the new LayoutEditor component
 
+// Extend schema with layout
+const settingsSchema = z.object({
+  primary_color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid hex color'),
+  secondary_color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid hex color'),
+  font_family: z.string().min(1, 'Font family is required'),
+  logo_url: z.string().url().optional().or(z.literal('')),
+  favicon_url: z.string().url().optional().or(z.literal('')),
+  custom_css: z.string().optional(),
+  layout: z.array(z.object({ id: z.string(), type: z.string(), content: z.string() })).optional(), // New: Layout as array of components
+});
+
+type SettingsFormValues = z.infer<typeof settingsSchema>;
+
 const AppSettingsForm: React.FC = () => {
-  const { theme, toggleTheme } = useTheme();
-  const { primaryColor, isLoadingPrimaryColor } = useAppSettings();
-  const [currentPrimaryColor, setCurrentPrimaryColor] = useState<string>('#2196F3');
-  const [isSavingColor, setIsSavingColor] = useState(false);
-  const [activeTab, setActiveTab] = useState('appearance'); // New state for active tab
+  const { isAdmin, loading: isAdminLoading } = useIsAdmin();
+  const [isLoading, setIsLoading] = useState(true); // Initial loading for settings
+  const [isSaving, setIsSaving] = useState(false); // For save button
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [versionHistory, setVersionHistory] = useState<any[]>([]);
+
+  const form = useForm<SettingsFormValues>({
+    resolver: zodResolver(settingsSchema),
+    defaultValues: {
+      primary_color: '#2196F3',
+      secondary_color: '#4CAF50',
+      font_family: 'Inter',
+      logo_url: '',
+      favicon_url: '',
+      custom_css: '',
+      layout: [], // Default empty layout
+    },
+  });
+
+  const fetchSettingsAndHistory = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const currentSettings = await SettingsService.getSettings();
+      if (currentSettings) {
+        form.reset(currentSettings);
+        applyStyles(currentSettings);
+      }
+
+      const history = await SettingsService.fetchSettingsHistory();
+      setVersionHistory(history);
+    } catch (err) {
+      handleError(err, 'Failed to load app settings or history.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [form]);
 
   useEffect(() => {
-    if (primaryColor) {
-      setCurrentPrimaryColor(primaryColor);
+    if (!isAdminLoading) {
+      fetchSettingsAndHistory();
     }
-  }, [primaryColor]);
+  }, [isAdminLoading, fetchSettingsAndHistory]);
 
-  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCurrentPrimaryColor(e.target.value);
-  };
+  // RBAC Check
+  if (isAdminLoading || isLoading) {
+    return (
+      <Card className="tw-bg-card tw-border-border tw-shadow-lg">
+        <CardContent className="tw-py-8 tw-text-center">
+          <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary tw-mx-auto" />
+          <p className="tw-mt-2 tw-text-muted-foreground">Loading settings...</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
-  const handleSavePrimaryColor = async () => {
-    setIsSavingColor(true);
-    toast.loading('Saving primary color...', { id: 'save-color' });
+  if (!isAdmin) {
+    return (
+      <Card className="tw-bg-card tw-border-border tw-shadow-lg">
+        <CardContent className="tw-py-8 tw-text-center">
+          <p className="tw-text-destructive">Access denied. Only Administrators can modify settings.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const onSubmit = async (values: SettingsFormValues) => {
+    setIsSaving(true);
     try {
-      const success = await SettingsService.updateSetting('primary_color', currentPrimaryColor);
-      if (success) {
-        toast.success('Primary color updated!', { id: 'save-color' });
-      } else {
-        handleError(null, 'Failed to save primary color.', { id: 'save-color' });
-      }
+      toast.loading('Saving settings...', { id: 'save-settings' });
+      const success = await SettingsService.updateSettings(values);
+      if (!success) throw new Error('Failed to update settings in database.');
+
+      // Save to history
+      const historySuccess = await SettingsService.insertSettingsHistory(values);
+      if (!historySuccess) console.warn('Failed to save settings to history.');
+
+      toast.success('Settings saved successfully!', { id: 'save-settings' });
+      applyStyles(values);
+      fetchSettingsAndHistory(); // Refresh history
     } catch (err) {
-      handleError(err, 'An unexpected error occurred while saving color.', { id: 'save-color' });
+      handleError(err, 'Failed to save settings.');
     } finally {
-      setIsSavingColor(false);
+      setIsSaving(false);
     }
   };
 
-  // Callback for when layout is saved in LayoutEditor
-  const handleLayoutSaved = () => {
-    // Invalidate app_layout query if you were caching it in useAppSettings
-    // queryClient.invalidateQueries(['app_setting', 'app_layout']);
-    // For now, just a toast or console log is sufficient
-    console.log('Layout saved successfully from editor!');
+  const applyStyles = (settings: AppSettings) => {
+    document.documentElement.style.setProperty('--app-primary-color-hex', settings.primary_color);
+    document.documentElement.style.setProperty('--primary', hexToHsl(settings.primary_color));
+    document.documentElement.style.setProperty('--app-secondary-color-hex', settings.secondary_color);
+    document.documentElement.style.setProperty('--secondary', hexToHsl(settings.secondary_color));
+    document.documentElement.style.setProperty('--app-font-family', settings.font_family);
+    
+    const customCssId = 'custom-app-css';
+    let styleTag = document.getElementById(customCssId) as HTMLStyleElement;
+    if (!styleTag) {
+      styleTag = document.createElement('style');
+      styleTag.id = customCssId;
+      document.head.appendChild(styleTag);
+    }
+    styleTag.textContent = settings.custom_css || '';
   };
+
+  const handleRevert = async (historyId: string) => {
+    setIsSaving(true);
+    try {
+      toast.loading('Reverting settings...', { id: 'revert-settings' });
+      const historyEntry = await SettingsService.getSettingsFromHistory(historyId);
+      if (!historyEntry) throw new Error('History entry not found.');
+
+      const success = await SettingsService.updateSettings(historyEntry.settings);
+      if (!success) throw new Error('Failed to revert settings in database.');
+
+      form.reset(historyEntry.settings);
+      applyStyles(historyEntry.settings);
+      toast.success('Reverted to previous settings!', { id: 'revert-settings' });
+      fetchSettingsAndHistory(); // Refresh history
+    } catch (err) {
+      handleError(err, 'Failed to revert settings.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const watchLayout = form.watch('layout');
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="tw-w-full">
-      <TabsList className="tw-grid tw-w-full tw-grid-cols-2"> {/* Adjusted grid-cols for new tab */}
-        <TabsTrigger value="appearance">Appearance</TabsTrigger>
-        <TabsTrigger value="layout-editor">Layout Editor</TabsTrigger>
-      </TabsList>
-      <TabsContent value="appearance" className="tw-mt-4">
-        <Card className="tw-bg-card tw-border-border tw-shadow-lg">
-          <CardHeader>
-            <CardTitle className="tw-text-xl tw-font-bold tw-text-foreground">Appearance Settings</CardTitle>
-            <CardDescription className="tw-text-muted-foreground">
-              Customize the look and feel of the application.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="tw-space-y-6">
-            <div className="tw-flex tw-items-center tw-justify-between tw-space-x-2">
-              <Label htmlFor="dark-mode-toggle" className="tw-flex tw-flex-col tw-space-y-1">
-                <span className="tw-text-base tw-font-medium tw-leading-none">Dark Mode</span>
-                <span className="tw-text-sm tw-text-muted-foreground">
-                  Enable dark theme for a more comfortable viewing experience.
-                </span>
-              </Label>
-              <Switch
-                id="dark-mode-toggle"
-                checked={theme === 'dark'}
-                onCheckedChange={toggleTheme}
+    <Card className="tw-bg-card tw-border-border tw-shadow-lg">
+      <CardHeader>
+        <CardTitle className="tw-text-xl tw-font-bold tw-text-foreground">Application Settings</CardTitle>
+        <CardDescription className="tw-text-muted-foreground">Customize the look and feel and layout of your application.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="theme">
+          <TabsList className="tw-grid tw-w-full tw-grid-cols-5">
+            <TabsTrigger value="theme">Theme</TabsTrigger>
+            <TabsTrigger value="branding">Branding</TabsTrigger>
+            <TabsTrigger value="custom">Custom CSS</TabsTrigger>
+            <TabsTrigger value="layout">Layout</TabsTrigger> {/* New Tab */}
+            <TabsTrigger value="history">History</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="theme" className="tw-space-y-4 tw-mt-4">
+            <div>
+              <Label htmlFor="primaryColor">Primary Color</Label>
+              <ChromePicker
+                color={form.watch('primary_color')}
+                onChange={(color) => form.setValue('primary_color', color.hex)}
+                disableAlpha
+                className="tw-mt-2"
               />
+              {form.formState.errors.primary_color && (
+                <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.primary_color.message}</p>
+              )}
             </div>
+            <div>
+              <Label htmlFor="secondaryColor">Secondary Color</Label>
+              <ChromePicker
+                color={form.watch('secondary_color')}
+                onChange={(color) => form.setValue('secondary_color', color.hex)}
+                disableAlpha
+                className="tw-mt-2"
+              />
+              {form.formState.errors.secondary_color && (
+                <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.secondary_color.message}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="fontFamily">Font Family</Label>
+              <Input
+                id="fontFamily"
+                placeholder="e.g., Inter, sans-serif"
+                {...form.register('font_family')}
+                className="tw-mt-1 tw-bg-input tw-text-foreground"
+              />
+              {form.formState.errors.font_family && (
+                <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.font_family.message}</p>
+              )}
+            </div>
+          </TabsContent>
 
+          <TabsContent value="branding" className="tw-space-y-4 tw-mt-4">
+            <div>
+              <Label htmlFor="logoUrl">Logo URL</Label>
+              <Input
+                id="logoUrl"
+                placeholder="https://example.com/logo.png"
+                {...form.register('logo_url')}
+                className="tw-mt-1 tw-bg-input tw-text-foreground"
+              />
+              {form.formState.errors.logo_url && (
+                <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.logo_url.message}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="faviconUrl">Favicon URL</Label>
+              <Input
+                id="faviconUrl"
+                placeholder="https://example.com/favicon.ico"
+                {...form.register('favicon_url')}
+                className="tw-mt-1 tw-bg-input tw-text-foreground"
+              />
+              {form.formState.errors.favicon_url && (
+                <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.favicon_url.message}</p>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="custom" className="tw-space-y-4 tw-mt-4">
+            <div>
+              <Label htmlFor="customCss">Custom CSS</Label>
+              <Textarea
+                id="customCss"
+                placeholder="body { background-color: #f0f0f0; }"
+                {...form.register('custom_css')}
+                className="tw-mt-1 tw-min-h-[150px] tw-bg-input tw-text-foreground"
+              />
+              {form.formState.errors.custom_css && (
+                <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.custom_css.message}</p>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="layout" className="tw-space-y-4 tw-mt-4">
+            <LayoutEditor layout={watchLayout || []} onLayoutChange={(newLayout) => form.setValue('layout', newLayout as any)} />
+            {form.formState.errors.layout && (
+              <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.layout.message}</p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="history" className="tw-space-y-4 tw-mt-4">
+            {versionHistory.length === 0 ? (
+              <p className="tw-text-muted-foreground">No version history available.</p>
+            ) : (
+              <div className="tw-space-y-2">
+                {versionHistory.map((entry) => (
+                  <div key={entry.id} className="tw-flex tw-justify-between tw-items-center tw-py-2 tw-px-3 tw-bg-muted/30 tw-rounded-md tw-border tw-border-border">
+                    <span className="tw-text-sm tw-text-foreground">{new Date(entry.created_at).toLocaleString()}</span>
+                    <Button onClick={() => handleRevert(entry.id)} variant="outline" size="sm" disabled={isSaving}>
+                      <RotateCcw className="tw-mr-2 tw-h-4 tw-w-4" /> Revert
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+        <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-6">
+          <Button onClick={() => setPreviewOpen(true)} variant="outline" disabled={isSaving}>
+            <Eye className="tw-mr-2 tw-h-4 tw-w-4" /> Preview Changes
+          </Button>
+          <Button onClick={form.handleSubmit(onSubmit)} disabled={isSaving}>
+            {isSaving && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
+            Save Settings
+          </Button>
+        </div>
+      </CardContent>
+      
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="sm:tw-max-w-[800px] tw-max-h-[90vh] tw-flex tw-flex-col">
+          <DialogHeader>
+            <DialogTitle>Preview Appearance</DialogTitle>
+          </DialogHeader>
+          <div className="tw-flex-1 tw-overflow-auto tw-p-4 tw-border tw-rounded-md tw-bg-background" style={{ fontFamily: form.watch('font_family') }}>
+            <h3 className="tw-text-lg tw-font-semibold tw-mb-2">Layout Preview</h3>
+            <div className="tw-space-y-2 tw-border tw-border-dashed tw-p-2 tw-rounded-md">
+              {watchLayout?.length === 0 ? (
+                <p className="tw-text-muted-foreground tw-text-center">No components in layout.</p>
+              ) : (
+                watchLayout?.map((comp) => (
+                  <div key={comp.id} className="tw-p-3 tw-rounded-md tw-bg-primary tw-text-primary-foreground tw-text-sm">
+                    {comp.content}
+                  </div>
+                ))
+              )}
+            </div>
+            <h3 className="tw-text-lg tw-font-semibold tw-mt-4 tw-mb-2">Color & Font Preview</h3>
             <div className="tw-space-y-2">
-              <Label htmlFor="primary-color-picker" className="tw-flex tw-flex-col tw-space-y-1">
-                <span className="tw-text-base tw-font-medium tw-leading-none">Primary Color</span>
-                <span className="tw-text-sm tw-text-muted-foreground">
-                  Choose the main accent color for your application.
-                </span>
-              </Label>
+              <p className="tw-text-foreground">This text uses the selected font family.</p>
               <div className="tw-flex tw-items-center tw-gap-2">
-                <Input
-                  id="primary-color-picker"
-                  type="color"
-                  value={currentPrimaryColor}
-                  onChange={handleColorChange}
-                  className="tw-h-10 tw-w-10 tw-p-0 tw-border-none tw-cursor-pointer [&::-webkit-color-swatch]:tw-rounded-md [&::-webkit-color-swatch-wrapper]:tw-p-0"
-                  disabled={isLoadingPrimaryColor || isSavingColor}
-                />
-                <Input
-                  type="text"
-                  value={currentPrimaryColor}
-                  onChange={handleColorChange}
-                  className="tw-flex-1 tw-bg-input tw-text-foreground"
-                  disabled={isLoadingPrimaryColor || isSavingColor}
-                />
-                <Button onClick={handleSavePrimaryColor} disabled={isLoadingPrimaryColor || isSavingColor}>
-                  {isSavingColor && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
-                  Save Color
-                </Button>
+                <span className="tw-text-sm">Primary Color:</span>
+                <div className="tw-h-6 tw-w-6 tw-rounded-full tw-border" style={{ backgroundColor: form.watch('primary_color') }}></div>
+                <span className="tw-text-sm tw-text-muted-foreground">{form.watch('primary_color')}</span>
+              </div>
+              <div className="tw-flex tw-items-center tw-gap-2">
+                <span className="tw-text-sm">Secondary Color:</span>
+                <div className="tw-h-6 tw-w-6 tw-rounded-full tw-border" style={{ backgroundColor: form.watch('secondary_color') }}></div>
+                <span className="tw-text-sm tw-text-muted-foreground">{form.watch('secondary_color')}</span>
               </div>
             </div>
-            {/* Add more settings here as needed */}
-          </CardContent>
-        </Card>
-      </TabsContent>
-      <TabsContent value="layout-editor" className="tw-mt-4">
-        <LayoutEditor onLayoutSaved={handleLayoutSaved} />
-      </TabsContent>
-    </Tabs>
+            {form.watch('logo_url') && (
+              <div className="tw-mt-4">
+                <h3 className="tw-text-lg tw-font-semibold tw-mb-2">Logo Preview</h3>
+                <img src={form.watch('logo_url')} alt="Logo Preview" className="tw-max-h-20 tw-max-w-full tw-object-contain" />
+              </div>
+            )}
+            {form.watch('custom_css') && (
+              <div className="tw-mt-4">
+                <h3 className="tw-text-lg tw-font-semibold tw-mb-2">Custom CSS Applied</h3>
+                <p className="tw-text-sm tw-text-muted-foreground">Custom CSS is active in this preview.</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 };
 

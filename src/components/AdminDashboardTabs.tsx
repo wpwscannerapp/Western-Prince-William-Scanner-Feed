@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import PostForm from '@/components/PostForm';
 import AdminPostTable from '@/components/AdminPostTable';
 import AnalyticsCard from '@/components/AnalyticsCard';
-import AppSettingsForm from '@/components/AppSettingsForm';
+import AppSettingsForm from '@/components/AppSettingsForm'; // Updated import
 import AdminNotificationSender from '@/components/AdminNotificationSender';
 import { PostService } from '@/services/PostService';
 import { useAuth } from '@/hooks/useAuth';
@@ -209,15 +209,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
         )}
       </TabsContent>
       <TabsContent value="settings" className="tw-space-y-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Application Settings</CardTitle>
-            <CardDescription>Customize your application</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AppSettingsForm />
-          </CardContent>
-        </Card>
+        <AppSettingsForm />
       </TabsContent>
       <TabsContent value="notifications" className="tw-space-y-8">
         <Card>

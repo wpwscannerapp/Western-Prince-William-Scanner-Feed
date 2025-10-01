@@ -1,34 +1,54 @@
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { SettingsService } from '@/services/SettingsService';
+import { SettingsService, AppSettings } from '@/services/SettingsService';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
+import { hexToHsl } from '@/lib/hexToHsl'; // Import the utility
 
 export function useAppSettings() {
   const queryClient = useQueryClient();
 
-  const { data: primaryColor, isLoading: isLoadingPrimaryColor, error: primaryColorError } = useQuery<string | null, Error>({
-    queryKey: ['app_setting', 'primary_color'],
-    queryFn: () => SettingsService.getSetting('primary_color'),
+  const { data: appSettings, isLoading: isLoadingAppSettings, error: appSettingsError } = useQuery<AppSettings | null, Error>({
+    queryKey: ['app_settings'],
+    queryFn: () => SettingsService.getSettings(),
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
   useEffect(() => {
-    if (primaryColor) {
-      document.documentElement.style.setProperty('--app-primary-color-hex', primaryColor);
-      // Convert hex to HSL for Tailwind CSS variables if needed, or use direct hex
-      // For simplicity, we'll use the hex directly in globals.css for now.
+    if (appSettings) {
+      // Apply primary color
+      document.documentElement.style.setProperty('--app-primary-color-hex', appSettings.primary_color);
+      document.documentElement.style.setProperty('--primary', hexToHsl(appSettings.primary_color));
+
+      // Apply secondary color
+      document.documentElement.style.setProperty('--app-secondary-color-hex', appSettings.secondary_color);
+      document.documentElement.style.setProperty('--secondary', hexToHsl(appSettings.secondary_color));
+
+      // Apply font family
+      document.documentElement.style.setProperty('--app-font-family', appSettings.font_family);
+      
+      // Apply custom CSS
+      const customCssId = 'custom-app-css';
+      let styleTag = document.getElementById(customCssId) as HTMLStyleElement;
+      if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = customCssId;
+        document.head.appendChild(styleTag);
+      }
+      styleTag.textContent = appSettings.custom_css || '';
+
+      // For logo_url, favicon_url, layout - these would be consumed by specific components
+      // For example, a LayoutProvider could use appSettings.layout
+      // A Logo component could use appSettings.logo_url
     }
-  }, [primaryColor]);
+  }, [appSettings]);
 
   useEffect(() => {
     const channel = supabase
-      .channel('public:app_settings')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_settings', filter: 'setting_name=eq.primary_color' }, (payload) => {
-        const updatedSetting = payload.new as { setting_name: string; setting_value: string };
-        if (updatedSetting.setting_name === 'primary_color') {
-          queryClient.invalidateQueries({ queryKey: ['app_setting', 'primary_color'] });
-        }
+      .channel('public:app_settings_channel') // Unique channel name
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_settings' }, (payload) => {
+        // Invalidate the query to refetch all settings
+        queryClient.invalidateQueries({ queryKey: ['app_settings'] });
       })
       .subscribe();
 
@@ -37,9 +57,9 @@ export function useAppSettings() {
     };
   }, [queryClient]);
 
-  if (primaryColorError) {
-    handleError(primaryColorError, 'Failed to load application settings.');
+  if (appSettingsError) {
+    handleError(appSettingsError, 'Failed to load application settings.');
   }
 
-  return { primaryColor, isLoadingPrimaryColor };
+  return { appSettings, isLoadingAppSettings };
 }

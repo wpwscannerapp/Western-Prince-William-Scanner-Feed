@@ -1,43 +1,135 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 
+export interface AppSettings {
+  id: string;
+  primary_color: string;
+  secondary_color: string;
+  font_family: string;
+  logo_url: string | null;
+  favicon_url: string | null;
+  custom_css: string | null;
+  layout: Array<{ id: string; type: string; content?: string }>;
+  updated_at: string;
+}
+
 export const SettingsService = {
-  async getSetting(name: string): Promise<string | null> {
+  async getSettings(): Promise<AppSettings | null> {
     try {
       const { data, error } = await supabase
         .from('app_settings')
-        .select('setting_value')
-        .eq('setting_name', name)
+        .select('*')
+        .limit(1)
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') { // No rows found
-          return null;
+        if (error.code === 'PGRST116') { // No rows found, return default structure
+          console.warn('No app_settings found, returning default structure.');
+          return {
+            id: 'default', // Placeholder ID
+            primary_color: '#2196F3',
+            secondary_color: '#4CAF50',
+            font_family: 'Inter',
+            logo_url: null,
+            favicon_url: null,
+            custom_css: null,
+            layout: [],
+            updated_at: new Date().toISOString(),
+          };
         }
-        handleError(error, `Failed to fetch setting: ${name}`);
+        handleError(error, `Failed to fetch app settings.`);
         return null;
       }
-      return data.setting_value;
+      return data as AppSettings;
     } catch (err) {
-      handleError(err, `An unexpected error occurred while fetching setting: ${name}`);
+      handleError(err, `An unexpected error occurred while fetching app settings.`);
       return null;
     }
   },
 
-  async updateSetting(name: string, value: string): Promise<boolean> {
+  async updateSettings(settings: Partial<AppSettings>): Promise<boolean> {
     try {
+      // Ensure there's always an ID for upsert, or insert if none exists
+      const { data: existingSettings, error: fetchError } = await supabase
+        .from('app_settings')
+        .select('id')
+        .limit(1)
+        .single();
+
+      let upsertData = { ...settings, updated_at: new Date().toISOString() };
+      if (existingSettings) {
+        upsertData = { ...upsertData, id: existingSettings.id };
+      } else if (!settings.id) {
+        // If no existing settings and no ID provided, let Supabase generate one
+        delete (upsertData as any).id;
+      }
+
       const { error } = await supabase
         .from('app_settings')
-        .upsert({ setting_name: name, setting_value: value, updated_at: new Date().toISOString() }, { onConflict: 'setting_name' });
+        .upsert(upsertData, { onConflict: 'id' }); // Use 'id' for conflict resolution
 
       if (error) {
-        handleError(error, `Failed to update setting: ${name}`);
+        handleError(error, `Failed to update app settings.`);
         return false;
       }
       return true;
     } catch (err) {
-      handleError(err, `An unexpected error occurred while updating setting: ${name}`);
+      handleError(err, `An unexpected error occurred while updating app settings.`);
       return false;
     }
   },
+
+  async fetchSettingsHistory(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('app_settings_history')
+        .select('id, created_at, settings, layout')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        handleError(error, 'Failed to load version history.');
+        return [];
+      }
+      return data || [];
+    } catch (err) {
+      handleError(err, 'An unexpected error occurred while loading version history.');
+      return [];
+    }
+  },
+
+  async insertSettingsHistory(settings: AppSettings): Promise<boolean> {
+    try {
+      const { error } = await supabase.from('app_settings_history').insert({
+        settings: settings,
+        layout: settings.layout, // Store layout separately as requested, though it's in settings JSONB
+        created_at: new Date().toISOString(),
+      });
+      if (error) {
+        handleError(error, 'Failed to save settings to history.');
+        return false;
+      }
+      return true;
+    } catch (err) {
+      handleError(err, 'An unexpected error occurred while saving settings to history.');
+      return false;
+    }
+  },
+
+  async getSettingsFromHistory(historyId: string): Promise<{ settings: AppSettings, layout: any } | null> {
+    try {
+      const { data, error } = await supabase
+        .from('app_settings_history')
+        .select('settings, layout')
+        .eq('id', historyId)
+        .single();
+      if (error) {
+        handleError(error, 'Failed to fetch settings from history.');
+        return null;
+      }
+      return data as { settings: AppSettings, layout: any };
+    } catch (err) {
+      handleError(err, 'An unexpected error occurred while fetching settings from history.');
+      return null;
+    }
+  }
 };

@@ -51,6 +51,8 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
 
     --app-primary-color-hex: #2196F3; /* Default primary color in hex */
+    --app-secondary-color-hex: #4CAF50; /* Default secondary color in hex */
+    --app-font-family: Inter, sans-serif; /* Default font family */
   }
 
   .dark {
@@ -92,6 +94,8 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
 
     --app-primary-color-hex: #2196F3; /* Default primary color in hex */
+    --app-secondary-color-hex: #4CAF50; /* Default secondary color in hex */
+    --app-font-family: Inter, sans-serif; /* Default font family */
   }
 }
 
@@ -105,13 +109,18 @@
   .tw-ring-primary { --tw-ring-color: var(--app-primary-color-hex); }
   .tw-shadow-glow { box-shadow: 0 0 10px color-mix(in srgb, var(--app-primary-color-hex) 50%, transparent); }
   .dark .tw-shadow-glow { box-shadow: 0 0 15px color-mix(in srgb, var(--app-primary-color-hex) 70%, transparent); }
-  /* Add other primary-related classes as needed */
+  
+  /* Dynamically set secondary color using the hex value */
+  .tw-bg-secondary { background-color: var(--app-secondary-color-hex); }
+  .tw-text-secondary { color: var(--app-secondary-color-hex); }
+  .tw-border-secondary { border-color: var(--app-secondary-color-hex); }
+  .hover\\:tw-bg-secondary\\/90:hover { background-color: color-mix(in srgb, var(--app-secondary-color-hex) 90%, black); }
+  .hover\\:tw-text-secondary:hover { color: var(--app-secondary-color-hex); }
+  .tw-ring-secondary { --tw-ring-color: var(--app-secondary-color-hex); }
 
-  * {
-    border-color: hsl(var(--border));
-  }
-
+  /* Apply font family */
   body {
+    font-family: var(--app-font-family);
     @apply tw-bg-background tw-text-foreground;
   }
 
