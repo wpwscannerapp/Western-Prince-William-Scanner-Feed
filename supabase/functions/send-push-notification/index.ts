@@ -1,4 +1,3 @@
-/// <reference lib="deno.ns" />
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // @ts-ignore
@@ -22,18 +21,26 @@ interface UserSubscription {
 }
 
 serve(async (req: Request) => {
+  console.log('Edge Function send-push-notification started.'); // Added logging
   if (req.method === 'OPTIONS') {
+    console.log('OPTIONS request received.'); // Added logging
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // @ts-ignore
     const supabaseAdmin = createClient(
+      // @ts-ignore
       Deno.env.get('SUPABASE_URL')!,
+      // @ts-ignore
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! // Use service role key for admin operations
     );
 
+    // @ts-ignore
     const supabaseClient = createClient(
+      // @ts-ignore
       Deno.env.get('SUPABASE_URL')!,
+      // @ts-ignore
       Deno.env.get('SUPABASE_ANON_KEY')!,
       {
         global: {
@@ -45,11 +52,13 @@ serve(async (req: Request) => {
     // 1. Authenticate and Authorize Admin
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) {
+      console.error('Authentication failed:', userError?.message); // Added logging
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    console.log('User authenticated:', user.id); // Added logging
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
@@ -58,16 +67,20 @@ serve(async (req: Request) => {
       .single();
 
     if (profileError || profile?.role !== 'admin') {
+      console.error('Authorization failed: User is not admin or profile error:', profileError?.message); // Added logging
       return new Response(JSON.stringify({ error: 'Forbidden: Only administrators can send notifications.' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    console.log('User authorized as admin.'); // Added logging
 
     // 2. Get notification payload
     const { title, body, url } = await req.json();
+    console.log('Notification payload received:', { title, body, url }); // Added logging
 
     if (!title || !body) {
+      console.error('Missing title or body for notification.'); // Added logging
       return new Response(JSON.stringify({ error: 'Missing title or body for notification' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -75,10 +88,16 @@ serve(async (req: Request) => {
     }
 
     // 3. Configure web-push
+    // @ts-ignore
     const webPushPublicKey = Deno.env.get('VITE_WEB_PUSH_PUBLIC_KEY'); // Public key from .env
+    // @ts-ignore
     const webPushPrivateKey = Deno.env.get('WEB_PUSH_SECRET_KEY'); // Private key from Supabase secrets
 
+    console.log('VAPID Public Key (first 10 chars):', webPushPublicKey ? webPushPublicKey.substring(0, 10) : 'NOT SET'); // Added logging
+    console.log('VAPID Private Key (first 10 chars):', webPushPrivateKey ? webPushPrivateKey.substring(0, 10) : 'NOT SET'); // Added logging
+
     if (!webPushPublicKey || !webPushPrivateKey) {
+      console.error('Web Push VAPID keys not configured.'); // Added logging
       return new Response(JSON.stringify({ error: 'Web Push VAPID keys not configured.' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -90,6 +109,7 @@ serve(async (req: Request) => {
       webPushPublicKey,
       webPushPrivateKey
     );
+    console.log('webPush VAPID details set.'); // Added logging
 
     // 4. Fetch all subscriptions
     const { data: subscriptions, error: fetchError } = await supabaseAdmin
@@ -103,8 +123,10 @@ serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    console.log(`Fetched ${subscriptions?.length || 0} subscriptions.`); // Added logging
 
     if (!subscriptions || subscriptions.length === 0) {
+      console.log('No active subscriptions found.'); // Added logging
       return new Response(JSON.stringify({ message: 'No active subscriptions found.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -134,6 +156,7 @@ serve(async (req: Request) => {
     });
 
     await Promise.all(sendPromises);
+    console.log('All notification send attempts completed.'); // Added logging
 
     return new Response(JSON.stringify({ message: 'Notifications sent successfully (or attempted).' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
