@@ -14,8 +14,15 @@ import { StorageService } from '@/services/StorageService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const profileSchema = z.object({
-  first_name: z.string().min(1, { message: 'First name is required.' }).max(50, { message: 'First name too long.' }).optional().or(z.literal('')),
-  last_name: z.string().min(1, { message: 'Last name is required.' }).max(50, { message: 'Last name too long.' }).optional().or(z.literal('')),
+  first_name: z.string().max(50, { message: 'First name too long.' }).optional().or(z.literal('')),
+  last_name: z.string().max(50, { message: 'Last name too long.' }).optional().or(z.literal('')),
+  username: z
+    .string()
+    .min(3, { message: 'Username must be at least 3 characters.' })
+    .max(20, { message: 'Username must be at most 20 characters.' })
+    .regex(/^[a-zA-Z0-9_]+$/, { message: 'Username can only contain letters, numbers, and underscores.' })
+    .optional()
+    .or(z.literal('')), // Allow empty string for optional username
   avatar: z.any().optional(),
 });
 
@@ -32,14 +39,18 @@ const ProfileForm: React.FC = () => {
     enabled: !!user,
   });
 
-  const updateProfileMutation = useMutation<Profile | null, Error, { first_name?: string | null; last_name?: string | null; avatar_url?: string | null }>({
+  const updateProfileMutation = useMutation<Profile | null, Error, { first_name?: string | null; last_name?: string | null; avatar_url?: string | null; username?: string | null }>({
     mutationFn: (updates) => user ? ProfileService.updateProfile(user.id, updates) : Promise.resolve(null),
     onSuccess: () => {
       toast.success('Profile updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
     },
     onError: (error) => {
-      toast.error(`Failed to update profile: ${error.message}`);
+      if (error.message.includes('duplicate key value violates unique constraint "profiles_username_key"')) {
+        toast.error('Username already taken. Please choose another.');
+      } else {
+        toast.error(`Failed to update profile: ${error.message}`);
+      }
     },
   });
 
@@ -48,6 +59,7 @@ const ProfileForm: React.FC = () => {
     defaultValues: {
       first_name: '',
       last_name: '',
+      username: '', // Initialize username
       avatar: undefined,
     },
   });
@@ -61,7 +73,8 @@ const ProfileForm: React.FC = () => {
       form.reset({
         first_name: profile.first_name || '',
         last_name: profile.last_name || '',
-        avatar: undefined,
+        username: profile.username || '', // Set username from fetched profile
+        avatar: undefined, // Clear file input on edit
       });
       setImagePreview(profile.avatar_url || null);
     }
@@ -132,6 +145,7 @@ const ProfileForm: React.FC = () => {
     const updates = {
       first_name: values.first_name || null,
       last_name: values.last_name || null,
+      username: values.username || null, // Include username in updates
       avatar_url: avatarUrl,
     };
 
@@ -228,6 +242,24 @@ const ProfileForm: React.FC = () => {
             <p id="last-name-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.last_name.message}</p>
           )}
         </div>
+      </div>
+
+      <div>
+        <Label htmlFor="username">Username</Label>
+        <Input
+          id="username"
+          placeholder="Enter your username"
+          {...form.register('username')}
+          className="tw-mt-1 tw-input"
+          disabled={updateProfileMutation.isPending || isUploading}
+          aria-invalid={form.formState.errors.username ? "true" : "false"}
+          aria-describedby={form.formState.errors.username ? "username-error" : undefined}
+        />
+        {form.formState.errors.username && (
+          <p id="username-error" className="tw-text-destructive tw-text-sm tw-mt-1">
+            {form.formState.errors.username.message}
+          </p>
+        )}
       </div>
 
       <div>

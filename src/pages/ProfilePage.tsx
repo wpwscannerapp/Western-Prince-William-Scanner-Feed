@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { ProfileService, Profile } from '@/services/ProfileService';
 import { handleError } from '@/utils/errorHandler';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'; // Import Card components
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'; // Removed CardContent
 
 const ProfilePage = () => {
   const { user } = useAuth();
@@ -44,9 +44,8 @@ const ProfilePage = () => {
           <CardTitle className="tw-text-3xl tw-font-bold tw-text-center">{PROFILE_TITLE}</CardTitle>
           <CardDescription className="tw-text-center tw-text-muted-foreground">{PROFILE_DESCRIPTION}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <ProfileForm />
-        </CardContent>
+        {/* ProfileForm now contains its own CardContent */}
+        <ProfileForm />
       </Card>
       <MadeWithDyad />
     </div>

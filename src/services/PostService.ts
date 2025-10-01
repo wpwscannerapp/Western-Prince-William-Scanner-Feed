@@ -17,11 +17,8 @@ export interface Comment {
   content: string;
   created_at: string;
   updated_at: string;
-  profiles: {
-    first_name: string | null;
-    last_name: string | null;
-    avatar_url: string | null;
-  } | null;
+  username: string | null; // Added username directly to Comment interface
+  avatar_url: string | null; // Added avatar_url directly to Comment interface
 }
 
 export const POSTS_PER_PAGE = 10;
@@ -217,20 +214,45 @@ export const PostService = {
     const { data, error } = await supabase
       .from('comments')
       .insert({ post_id: postId, user_id: userId, content })
-      .select('*, profiles(first_name, last_name, avatar_url)')
+      .select(`
+        id,
+        post_id,
+        user_id,
+        content,
+        created_at,
+        updated_at,
+        profiles (username, avatar_url)
+      `)
       .single();
 
     if (error) {
       logSupabaseError('addComment', error);
       return null;
     }
-    return data as Comment;
+    return {
+      id: data.id,
+      post_id: data.post_id,
+      user_id: data.user_id,
+      content: data.content,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      username: data.profiles?.[0]?.username || null, // Access first element if profiles is an array
+      avatar_url: data.profiles?.[0]?.avatar_url || null, // Access first element if profiles is an array
+    } as Comment;
   },
 
   async fetchComments(postId: string): Promise<Comment[]> {
     const { data, error } = await supabase
       .from('comments')
-      .select('*, profiles(first_name, last_name, avatar_url)')
+      .select(`
+        id,
+        post_id,
+        user_id,
+        content,
+        created_at,
+        updated_at,
+        profiles (username, avatar_url)
+      `)
       .eq('post_id', postId)
       .order('created_at', { ascending: true });
 
@@ -238,7 +260,16 @@ export const PostService = {
       logSupabaseError('fetchComments', error);
       return [];
     }
-    return data as Comment[];
+    return data.map(comment => ({
+      id: comment.id,
+      post_id: comment.post_id,
+      user_id: comment.user_id,
+      content: comment.content,
+      created_at: comment.created_at,
+      updated_at: comment.updated_at,
+      username: comment.profiles?.[0]?.username || null, // Access first element if profiles is an array
+      avatar_url: comment.profiles?.[0]?.avatar_url || null, // Access first element if profiles is an array
+    })) as Comment[];
   },
 
   async updateComment(commentId: string, content: string): Promise<Comment | null> {
@@ -246,14 +277,31 @@ export const PostService = {
       .from('comments')
       .update({ content, updated_at: new Date().toISOString() })
       .eq('id', commentId)
-      .select('*, profiles(first_name, last_name, avatar_url)')
+      .select(`
+        id,
+        post_id,
+        user_id,
+        content,
+        created_at,
+        updated_at,
+        profiles (username, avatar_url)
+      `)
       .single();
 
     if (error) {
       logSupabaseError('updateComment', error);
       return null;
     }
-    return data as Comment;
+    return {
+      id: data.id,
+      post_id: data.post_id,
+      user_id: data.user_id,
+      content: data.content,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      username: data.profiles?.[0]?.username || null, // Access first element if profiles is an array
+      avatar_url: data.profiles?.[0]?.avatar_url || null, // Access first element if profiles is an array
+    } as Comment;
   },
 
   async deleteComment(commentId: string): Promise<boolean> {

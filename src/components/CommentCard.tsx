@@ -75,11 +75,8 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
     setError(null);
   };
 
-  const displayName = comment.profiles?.first_name && comment.profiles?.last_name
-    ? `${comment.profiles.first_name} ${comment.profiles.last_name}`
-    : user?.email || 'Anonymous';
-
-  const displayAvatar = comment.profiles?.avatar_url || undefined;
+  const displayName = comment.username || user?.email || 'Anonymous'; // Prioritize username
+  const displayAvatar = comment.avatar_url || undefined;
   const avatarFallback = displayName.charAt(0).toUpperCase();
 
   if (error) {
