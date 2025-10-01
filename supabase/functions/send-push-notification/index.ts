@@ -5,7 +5,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 // @ts-ignore
-import { WebPush } from 'https://deno.land/x/webpush_deno@v1.0.0/mod.ts'; // Using Deno-native webpush library
+import webPush from 'https://esm.sh/web-push@3.6.7?target=deno&deno-std=0.190.0'; // Explicitly target Deno for compatibility
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -89,7 +89,7 @@ serve(async (req: Request) => {
       });
     }
 
-    // 3. Configure web-push with webpush_deno
+    // 3. Configure web-push
     // @ts-ignore
     const webPushPublicKey = Deno.env.get('VITE_WEB_PUSH_PUBLIC_KEY');
     // @ts-ignore
@@ -106,14 +106,12 @@ serve(async (req: Request) => {
       });
     }
 
-    const webPushClient = new WebPush({
-      vapidKeys: {
-        publicKey: webPushPublicKey,
-        privateKey: webPushPrivateKey,
-      },
-      subject: 'mailto:admin@example.com', // Replace with a real email or contact
-    });
-    console.log('webPushClient initialized with VAPID details.');
+    webPush.setVapidDetails(
+      'mailto:admin@example.com',
+      webPushPublicKey,
+      webPushPrivateKey
+    );
+    console.log('webPush VAPID details set.');
 
     // 4. Fetch all subscriptions
     const { data: subscriptions, error: fetchError } = await supabaseAdmin
@@ -147,11 +145,10 @@ serve(async (req: Request) => {
         },
       };
       try {
-        await webPushClient.sendNotification(pushSubscription, notificationPayload);
+        await webPush.sendNotification(pushSubscription, notificationPayload);
         console.log(`Notification sent to ${sub.user_id}`);
       } catch (pushError: any) {
         console.error(`Failed to send notification to ${sub.user_id}:`, pushError);
-        // If subscription is no longer valid (e.g., 410 Gone), delete it
         if (pushError.statusCode === 410) {
           console.log(`Deleting expired subscription for ${sub.user_id}`);
           await supabaseAdmin.from('user_subscriptions').delete().eq('id', sub.id);
