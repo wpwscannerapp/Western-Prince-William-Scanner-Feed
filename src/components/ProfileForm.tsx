@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, Camera, XCircle, User } from 'lucide-react';
+import { Loader2, Camera, XCircle, User, CheckCircle2, XCircle as XCircleIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { ProfileService, Profile } from '@/services/ProfileService';
 import { StorageService } from '@/services/StorageService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import useDebounce from '@/hooks/useDebounce';
+import { supabase } from '@/integrations/supabase/client'; // Added this import
 
 const profileSchema = z.object({
   first_name: z.string().max(50, { message: 'First name too long.' }).optional().or(z.literal('')),
@@ -59,7 +61,7 @@ const ProfileForm: React.FC = () => {
     defaultValues: {
       first_name: '',
       last_name: '',
-      username: '', // Initialize username
+      username: '',
       avatar: undefined,
     },
   });
@@ -67,18 +69,71 @@ const ProfileForm: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState<'checking' | 'available' | 'taken' | null>(null);
+
+  const currentUsernameValue = form.watch('username');
+  const debouncedUsername = useDebounce(currentUsernameValue, 500); // Debounce for 500ms
 
   useEffect(() => {
     if (profile) {
       form.reset({
         first_name: profile.first_name || '',
         last_name: profile.last_name || '',
-        username: profile.username || '', // Set username from fetched profile
-        avatar: undefined, // Clear file input on edit
+        username: profile.username || '',
+        avatar: undefined,
       });
       setImagePreview(profile.avatar_url || null);
     }
   }, [profile, form]);
+
+  // Function to check username availability
+  const checkUsernameAvailability = async (username: string) => {
+    if (!username || username.length < 3) {
+      setUsernameStatus(null);
+      return;
+    }
+    if (username === profile?.username) { // If it's the current user's username, it's implicitly available
+      setUsernameStatus(null);
+      return;
+    }
+
+    setUsernameStatus('checking');
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username)
+        .neq('id', user?.id) // Exclude current user's profile
+        .limit(1);
+
+      if (error) {
+        console.error('Error checking username availability:', error);
+        setUsernameStatus(null); // Reset status on error
+        return;
+      }
+
+      if (data && data.length > 0) {
+        setUsernameStatus('taken');
+      } else {
+        setUsernameStatus('available');
+      }
+    } catch (err) {
+      console.error('Unexpected error checking username availability:', err);
+      setUsernameStatus(null); // Reset status on unexpected error
+    }
+  };
+
+  // Effect to trigger username availability check
+  useEffect(() => {
+    if (debouncedUsername !== undefined && debouncedUsername !== profile?.username) {
+      checkUsernameAvailability(debouncedUsername);
+    } else if (debouncedUsername === profile?.username) {
+      setUsernameStatus(null); // Reset status if it's the user's current username
+    } else {
+      setUsernameStatus(null); // Clear status if input is empty or invalid length
+    }
+  }, [debouncedUsername, profile?.username, user?.id]);
+
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -102,6 +157,11 @@ const ProfileForm: React.FC = () => {
   const onSubmit = async (values: ProfileFormValues) => {
     if (!user) {
       toast.error('You must be logged in to update your profile.');
+      return;
+    }
+
+    if (usernameStatus === 'taken' || usernameStatus === 'checking') {
+      toast.error('Please resolve username issues before saving.');
       return;
     }
 
@@ -143,7 +203,7 @@ const ProfileForm: React.FC = () => {
     const updates = {
       first_name: values.first_name || null,
       last_name: values.last_name || null,
-      username: values.username || null, // Include username in updates
+      username: values.username || null,
       avatar_url: avatarUrl,
     };
 
@@ -167,6 +227,8 @@ const ProfileForm: React.FC = () => {
     );
   }
 
+  const isSubmitDisabled = updateProfileMutation.isPending || isUploading || usernameStatus === 'checking' || usernameStatus === 'taken';
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="tw-space-y-6 tw-p-6 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm">
       <div className="tw-flex tw-flex-col tw-items-center tw-gap-4">
@@ -188,7 +250,7 @@ const ProfileForm: React.FC = () => {
             onChange={handleImageChange}
             className="tw-hidden"
             ref={fileInputRef}
-            disabled={updateProfileMutation.isPending || isUploading}
+            disabled={isSubmitDisabled}
             aria-label="Upload new avatar image"
           />
           {(imagePreview || profile?.avatar_url) && (imageFile || profile?.avatar_url) && (
@@ -198,7 +260,7 @@ const ProfileForm: React.FC = () => {
               size="icon"
               className="tw-absolute tw-top-0 tw-right-0 tw-h-7 tw-w-7 tw-rounded-full tw-bg-background/70 hover:tw-bg-background tw-opacity-0 group-hover:tw-opacity-100 tw-transition-opacity tw-button"
               onClick={handleRemoveImage}
-              disabled={updateProfileMutation.isPending || isUploading}
+              disabled={isSubmitDisabled}
               aria-label="Remove avatar image"
             >
               <XCircle className="tw-h-4 tw-w-4 tw-text-destructive" />
@@ -216,8 +278,8 @@ const ProfileForm: React.FC = () => {
             id="first_name"
             placeholder="John"
             {...form.register('first_name')}
-            className="tw-mt-1 tw-input"
-            disabled={updateProfileMutation.isPending || isUploading}
+            className="tw-mt-2 tw-input"
+            disabled={isSubmitDisabled}
             aria-invalid={form.formState.errors.first_name ? "true" : "false"}
             aria-describedby={form.formState.errors.first_name ? "first-name-error" : undefined}
           />
@@ -231,8 +293,8 @@ const ProfileForm: React.FC = () => {
             id="last_name"
             placeholder="Doe"
             {...form.register('last_name')}
-            className="tw-mt-1 tw-input"
-            disabled={updateProfileMutation.isPending || isUploading}
+            className="tw-mt-2 tw-input"
+            disabled={isSubmitDisabled}
             aria-invalid={form.formState.errors.last_name ? "true" : "false"}
             aria-describedby={form.formState.errors.last_name ? "last-name-error" : undefined}
           />
@@ -243,27 +305,35 @@ const ProfileForm: React.FC = () => {
       </div>
 
       <div>
-        <Label htmlFor="username">Username</Label>
-        {/* Changed from tw-mt-1 to tw-mt-2 */}
+        <div className="tw-flex tw-items-center tw-gap-2">
+          <Label htmlFor="username">Username</Label>
+          {usernameStatus === 'checking' && <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin tw-text-muted-foreground" />}
+          {usernameStatus === 'available' && <CheckCircle2 className="tw-h-4 tw-w-4 tw-text-green-500" />}
+          {usernameStatus === 'taken' && <XCircleIcon className="tw-h-4 tw-w-4 tw-text-destructive" />}
+        </div>
         <Input
           id="username"
           placeholder="Enter your username"
           {...form.register('username')}
           className="tw-mt-2 tw-input"
-          disabled={updateProfileMutation.isPending || isUploading}
-          aria-invalid={form.formState.errors.username ? "true" : "false"}
-          aria-describedby={form.formState.errors.username ? "username-error" : undefined}
+          disabled={isSubmitDisabled}
+          aria-invalid={form.formState.errors.username || usernameStatus === 'taken' ? "true" : "false"}
+          aria-describedby={form.formState.errors.username || usernameStatus === 'taken' ? "username-error" : undefined}
         />
         {form.formState.errors.username && (
           <p id="username-error" className="tw-text-destructive tw-text-sm tw-mt-1">
             {form.formState.errors.username.message}
           </p>
         )}
+        {usernameStatus === 'taken' && !form.formState.errors.username && (
+          <p id="username-error" className="tw-text-destructive tw-text-sm tw-mt-1">
+            This username is already taken.
+          </p>
+        )}
       </div>
 
       <div>
         <Label htmlFor="email">Email</Label>
-        {/* Changed from tw-mt-1 to tw-mt-2 */}
         <Input
           id="email"
           type="email"
@@ -278,7 +348,7 @@ const ProfileForm: React.FC = () => {
       <Button 
         type="submit" 
         className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground tw-button" 
-        disabled={updateProfileMutation.isPending || isUploading}
+        disabled={isSubmitDisabled}
       >
         {(updateProfileMutation.isPending || isUploading) && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
         Save Changes
