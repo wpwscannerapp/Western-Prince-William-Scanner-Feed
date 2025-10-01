@@ -6,15 +6,15 @@ import NotificationBell from '@/components/NotificationBell';
 import PostForm from '@/components/PostForm';
 import { Post, PostService } from '@/services/PostService';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, ArrowUp, MessageCircle } from 'lucide-react'; // Import MessageCircle
+import { Loader2, ArrowUp, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useIsSubscribed } from '@/hooks/useIsSubscribed';
 import { handleError } from '@/utils/errorHandler';
-import { POST_POLL_INTERVAL_MS } from '@/lib/constants';
-import SkeletonLoader from '@/components/SkeletonLoader'; // Import SkeletonLoader
+import { POLL_INTERVAL } from '@/config'; // Import from config.ts
+import SkeletonLoader from '@/components/SkeletonLoader';
 
 const HomePage = () => {
   const { user } = useAuth();
@@ -111,7 +111,7 @@ const HomePage = () => {
   }, [posts]);
 
   useEffect(() => {
-    const pollInterval = parseInt(import.meta.env.VITE_POLL_INTERVAL || '', 10) || POST_POLL_INTERVAL_MS;
+    const pollInterval = POLL_INTERVAL; // Use constant from config.ts
     const interval = setInterval(() => {
       if (isSubscribed || isAdmin) {
         fetchNewPosts();
@@ -207,7 +207,7 @@ const HomePage = () => {
     <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8 tw-relative tw-max-w-2xl">
       <div className="tw-flex tw-justify-between tw-items-center tw-mb-6">
         <h1 className="tw-text-3xl tw-font-bold tw-text-foreground">Home Feed</h1>
-        <NotificationBell aria-label="Toggle notifications" /> {/* Accessibility: Add ARIA attribute */}
+        <NotificationBell aria-label="Toggle notifications" />
       </div>
 
       <p className="tw-text-center tw-text-muted-foreground tw-mb-8">
@@ -224,7 +224,6 @@ const HomePage = () => {
         </div>
       )}
 
-      {/* Modern Feed Layout */}
       <div className={`tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-6 ${!isSubscribed && !isAdmin ? 'tw-relative' : ''}`} aria-live="polite">
         <div className={!isSubscribed && !isAdmin ? 'tw-blur-sm tw-pointer-events-none' : ''}>
           {posts.length === 0 && !loading && (
@@ -239,7 +238,7 @@ const HomePage = () => {
             </div>
           )}
           
-          {loading && posts.length === 0 && ( // Show skeleton only if no posts are loaded yet
+          {loading && posts.length === 0 && (
             <SkeletonLoader count={3} className="tw-col-span-full" />
           )}
 
@@ -249,7 +248,7 @@ const HomePage = () => {
             </div>
           ))}
           
-          {loading && posts.length > 0 && ( // Show loader for "loading more"
+          {loading && posts.length > 0 && (
             <div className="tw-flex tw-justify-center tw-items-center tw-py-8 tw-gap-2 tw-text-muted-foreground tw-col-span-full">
               <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
               <span>Loading more posts...</span>

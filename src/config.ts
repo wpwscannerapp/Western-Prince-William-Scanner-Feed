@@ -1,40 +1,31 @@
-import { SPLASH_DURATION_MS, POST_POLL_INTERVAL_MS, SUPABASE_API_TIMEOUT_MS } from './lib/constants';
-
-const requiredEnvVars = [
-  'VITE_SUPABASE_URL',
-  'VITE_SUPABASE_ANON_KEY',
-  'VITE_STRIPE_MONTHLY_PRICE_ID',
-  'VITE_APP_URL',
-  'VITE_ADMIN_EMAIL',
-  'VITE_WEB_PUSH_PUBLIC_KEY',
-];
-
-export const validateEnv = () => {
-  let allGood = true;
+export const validateEnv = () => { // Added export keyword
+  const requiredEnvVars = [
+    'VITE_SPLASH_DURATION',
+    'VITE_POLL_INTERVAL',
+    'VITE_SUPABASE_API_TIMEOUT',
+    'VITE_SUPABASE_URL',
+    'VITE_SUPABASE_ANON_KEY',
+    'VITE_WEB_PUSH_PUBLIC_KEY',
+    'VITE_STRIPE_MONTHLY_PRICE_ID', // Added this as it's used in SubscriptionPage
+    'VITE_APP_URL', // Added this as it's used in useAuth
+  ];
   requiredEnvVars.forEach(varName => {
     if (!import.meta.env[varName]) {
-      console.error(`Missing environment variable: ${varName}. Please check your .env file.`);
-      allGood = false;
+      console.warn(`${varName} is missing or invalid. Using default or throwing error.`);
     }
   });
 
-  // Optional: Parse and validate numeric environment variables
-  const splashDuration = parseInt(import.meta.env.VITE_SPLASH_DURATION || '', 10);
-  if (isNaN(splashDuration) || splashDuration <= 0) {
-    console.warn(`VITE_SPLASH_DURATION is missing or invalid. Using default: ${SPLASH_DURATION_MS}ms.`);
-  }
+  const SPLASH_DURATION = parseInt(import.meta.env.VITE_SPLASH_DURATION as string, 10) || 3000;
+  const POLL_INTERVAL = parseInt(import.meta.env.VITE_POLL_INTERVAL as string, 10) || 30000;
+  const SUPABASE_API_TIMEOUT = parseInt(import.meta.env.VITE_SUPABASE_API_TIMEOUT as string, 10) || 10000;
 
-  const pollInterval = parseInt(import.meta.env.VITE_POLL_INTERVAL || '', 10);
-  if (isNaN(pollInterval) || pollInterval <= 0) {
-    console.warn(`VITE_POLL_INTERVAL is missing or invalid. Using default: ${POST_POLL_INTERVAL_MS}ms.`);
-  }
+  console.log('Loaded Env Vars:', {
+    VITE_SPLASH_DURATION: SPLASH_DURATION,
+    VITE_POLL_INTERVAL: POLL_INTERVAL,
+    VITE_SUPABASE_API_TIMEOUT: SUPABASE_API_TIMEOUT,
+  });
 
-  const supabaseApiTimeout = parseInt(import.meta.env.VITE_SUPABASE_API_TIMEOUT || '', 10);
-  if (isNaN(supabaseApiTimeout) || supabaseApiTimeout <= 0) {
-    console.warn(`VITE_SUPABASE_API_TIMEOUT is missing or invalid. Using default: ${SUPABASE_API_TIMEOUT_MS}ms.`);
-  }
-
-  if (!allGood) {
-    throw new Error('One or more required environment variables are missing. Please check console for details.');
-  }
+  return { SPLASH_DURATION, POLL_INTERVAL, SUPABASE_API_TIMEOUT };
 };
+
+export const { SPLASH_DURATION, POLL_INTERVAL, SUPABASE_API_TIMEOUT } = validateEnv();

@@ -1,13 +1,14 @@
 import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js'; // Import AuthError
+import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js';
 import { toast } from 'sonner';
+// Removed: import { SUPABASE_API_TIMEOUT } from '@/config'; // Import from config.ts
 
 interface AuthState {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  error: AuthError | null; // Add error state
+  error: AuthError | null;
 }
 
 export function useAuth() {
@@ -15,18 +16,18 @@ export function useAuth() {
     session: null,
     user: null,
     loading: true,
-    error: null, // Initialize error
+    error: null,
   });
 
   React.useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event: AuthChangeEvent, session: Session | null) => {
-        setAuthState({ session, user: session?.user || null, loading: false, error: null }); // Clear error on state change
+        setAuthState({ session, user: session?.user || null, loading: false, error: null });
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setAuthState({ session, user: session?.user || null, loading: false, error: null }); // Clear error on initial session fetch
+      setAuthState({ session, user: session?.user || null, loading: false, error: null });
     });
 
     return () => {
@@ -35,10 +36,10 @@ export function useAuth() {
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    setAuthState(prev => ({ ...prev, error: null })); // Clear previous error
+    setAuthState(prev => ({ ...prev, error: null }));
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) {
-      setAuthState(prev => ({ ...prev, error })); // Set error
+      setAuthState(prev => ({ ...prev, error }));
       toast.error(error.message);
       return { error };
     }
@@ -47,11 +48,11 @@ export function useAuth() {
   };
 
   const signIn = async (email: string, password: string) => {
-    setAuthState(prev => ({ ...prev, error: null })); // Clear previous error
-    console.log('Attempting sign-in with:', { email, password: '***' }); // Log email, mask password
+    setAuthState(prev => ({ ...prev, error: null }));
+    console.log('Attempting sign-in with:', { email, password: '***' });
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      setAuthState(prev => ({ ...prev, error })); // Set error
+      setAuthState(prev => ({ ...prev, error }));
       toast.error(error.message);
       return { error };
     }
@@ -60,10 +61,10 @@ export function useAuth() {
   };
 
   const signOut = async () => {
-    setAuthState(prev => ({ ...prev, error: null })); // Clear previous error
+    setAuthState(prev => ({ ...prev, error: null }));
     const { error } = await supabase.auth.signOut();
     if (error) {
-      setAuthState(prev => ({ ...prev, error })); // Set error
+      setAuthState(prev => ({ ...prev, error }));
       toast.error(error.message);
       return { error };
     }
@@ -72,12 +73,12 @@ export function useAuth() {
   };
 
   const forgotPassword = async (email: string) => {
-    setAuthState(prev => ({ ...prev, error: null })); // Clear previous error
+    setAuthState(prev => ({ ...prev, error: null }));
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${import.meta.env.VITE_APP_URL}/reset-password`, // Dynamically use VITE_APP_URL
+      redirectTo: `${import.meta.env.VITE_APP_URL}/reset-password`,
     });
     if (error) {
-      setAuthState(prev => ({ ...prev, error })); // Set error
+      setAuthState(prev => ({ ...prev, error }));
       toast.error(error.message);
       return { error };
     }

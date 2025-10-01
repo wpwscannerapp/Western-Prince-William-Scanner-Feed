@@ -1,8 +1,9 @@
+// @ts-ignore
 /// <reference lib="deno.ns" />
 // @ts-ignore
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.223.0/http/server.ts"; // Updated Deno std version
 // @ts-ignore
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4'; // Updated Supabase JS version
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,7 +17,9 @@ serve(async (req: Request) => {
 
   try {
     const supabaseClient = createClient(
+      // @ts-ignore
       Deno.env.get('SUPABASE_URL')!,
+      // @ts-ignore
       Deno.env.get('SUPABASE_ANON_KEY')!,
       {
         global: {
@@ -35,28 +38,23 @@ serve(async (req: Request) => {
 
     const { action, subscription } = await req.json();
 
-    if (!action || !subscription || !subscription.endpoint || !subscription.keys) {
+    if (!action || !subscription || !subscription.endpoint) {
       return new Response(JSON.stringify({ error: 'Missing action or subscription data' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { endpoint, keys } = subscription;
-    const { p256dh, auth } = keys;
-
     if (action === 'subscribe') {
       const { error } = await supabaseClient
-        .from('user_subscriptions')
+        .from('push_subscriptions') // Use new table
         .upsert(
           {
             user_id: user.id,
-            endpoint,
-            p256dh,
-            auth,
+            subscription: subscription, // Store full JSONB object
             updated_at: new Date().toISOString(),
           },
-          { onConflict: 'endpoint' } // Update if endpoint already exists
+          { onConflict: 'subscription->>endpoint' } // Conflict on endpoint within JSONB
         );
 
       if (error) {
@@ -71,9 +69,9 @@ serve(async (req: Request) => {
       });
     } else if (action === 'unsubscribe') {
       const { error } = await supabaseClient
-        .from('user_subscriptions')
+        .from('push_subscriptions') // Use new table
         .delete()
-        .eq('endpoint', endpoint)
+        .eq('subscription->>endpoint', subscription.endpoint) // Query by endpoint within JSONB
         .eq('user_id', user.id); // Ensure user can only delete their own
 
       if (error) {
@@ -92,7 +90,7 @@ serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in manage-subscription Edge Function:', error);
     return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,

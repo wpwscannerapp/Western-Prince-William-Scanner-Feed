@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import SplashScreen from '@/components/SplashScreen'; // Removed unused import
 import { useAuth } from '@/hooks/useAuth';
-import { SPLASH_DURATION_MS } from '@/lib/constants';
-import { handleError } from '@/utils/errorHandler'; // Corrected import syntax
+import { handleError } from '@/utils/errorHandler';
+import { SPLASH_DURATION } from '@/config'; // Import from config.ts
 
 const Index = () => {
   const [splashLoading, setSplashLoading] = useState(true);
@@ -11,7 +10,7 @@ const Index = () => {
   const { user, loading: authLoading, error } = useAuth();
 
   useEffect(() => {
-    const splashDuration = parseInt(import.meta.env.VITE_SPLASH_DURATION || '', 10) || SPLASH_DURATION_MS;
+    const splashDuration = SPLASH_DURATION; // Use constant from config.ts
     document.documentElement.style.setProperty('--splash-duration', `${splashDuration / 1000}s`);
 
     const timer = setTimeout(() => {

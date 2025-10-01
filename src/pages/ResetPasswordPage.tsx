@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form'; // Corrected import path for useForm
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Loader2, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { handleError } from '@/utils/errorHandler';
-import { SUPABASE_API_TIMEOUT_MS } from '@/lib/constants';
+import { SUPABASE_API_TIMEOUT } from '@/config'; // Import from config.ts
 
 const resetPasswordSchema = z.object({
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
@@ -64,7 +64,7 @@ const ResetPasswordPage = () => {
     const timeoutId = setTimeout(() => {
       controller.abort();
       handleError(null, 'Password reset request timed out. Please try again.');
-    }, parseInt(import.meta.env.VITE_SUPABASE_API_TIMEOUT || '', 10) || SUPABASE_API_TIMEOUT_MS);
+    }, SUPABASE_API_TIMEOUT); // Use constant from config.ts
 
     try {
       const { error: sessionError } = await supabase.auth.setSession({
