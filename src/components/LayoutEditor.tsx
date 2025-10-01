@@ -1,8 +1,9 @@
+// src/components/LayoutEditor.tsx
 import React, { useState, useCallback } from 'react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable, DraggableProvided } from 'react-beautiful-dnd';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { GripVertical, Monitor, Tablet, Smartphone } from 'lucide-react'; // Removed unused 'Eye'
+import { GripVertical, Monitor, Tablet, Smartphone } from 'lucide-react'; // Removed unused 'Eye' import
 
 // Define types explicitly
 export interface LayoutComponent { // Exported for use in AppSettingsForm
@@ -70,24 +71,29 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ layout = [], onLayoutChange
     index: number;
   }) => (
     <Draggable draggableId={component.id} index={index}>
-      {(provided: import('react-beautiful-dnd').DraggableProvided, snapshot: import('react-beautiful-dnd').DraggableStateSnapshot) => (
-        <div
-          ref={provided.innerRef}
-          {...provided.draggableProps}
-          className={`tw-p-4 tw-mb-2 tw-bg-card tw-border tw-rounded-lg tw-shadow-sm ${
-            snapshot.isDragging ? 'tw-shadow-lg tw-scale-105' : ''
-          }`}
-        >
-          <div className="tw-flex tw-items-center tw-justify-between">
-            <GripVertical
-              {...provided.dragHandleProps}
-              className="tw-h-5 tw-w-5 tw-text-muted-foreground tw-cursor-grab"
-            />
-            <span className="tw-font-medium">{component.content}</span>
-            <div className="tw-text-xs tw-text-muted-foreground">({component.type})</div>
+      {(provided: DraggableProvided, snapshot: import('react-beautiful-dnd').DraggableStateSnapshot) => {
+        // Destructure onTransitionEnd to avoid type mismatch when spreading
+        const { onTransitionEnd, ...draggablePropsWithoutTransitionEnd } = provided.draggableProps;
+        return (
+          <div
+            ref={provided.innerRef}
+            {...draggablePropsWithoutTransitionEnd} // Spread props excluding onTransitionEnd
+            style={provided.draggableProps.style} // Apply style explicitly
+            className={`tw-p-4 tw-mb-2 tw-bg-card tw-border tw-rounded-lg tw-shadow-sm ${
+              snapshot.isDragging ? 'tw-shadow-lg tw-scale-105' : ''
+            }`}
+          >
+            <div className="tw-flex tw-items-center tw-justify-between">
+              {/* Wrap GripVertical to avoid spreading incompatible props directly onto SVG */}
+              <div {...provided.dragHandleProps} className="tw-h-5 tw-w-5 tw-text-muted-foreground tw-cursor-grab">
+                <GripVertical />
+              </div>
+              <span className="tw-font-medium">{component.content}</span>
+              <div className="tw-text-xs tw-text-muted-foreground">({component.type})</div>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      }}
     </Draggable>
   );
 
@@ -115,17 +121,26 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ layout = [], onLayoutChange
                 <div {...provided.droppableProps} ref={provided.innerRef} className="tw-flex tw-flex-wrap tw-gap-2 tw-p-4 tw-border tw-rounded-lg tw-bg-muted/20 tw-min-h-[100px]">
                   {sampleComponents.map((comp, index) => (
                     <Draggable key={`palette-${comp.id}`} draggableId={`palette-${comp.id}`} index={index}>
-                      {(provided: import('react-beautiful-dnd').DraggableProvided) => (
-                        <Card
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          className="tw-flex-0 tw-w-32 tw-cursor-grab tw-text-center tw-p-2 tw-shadow-sm hover:tw-shadow-md"
-                        >
-                          <GripVertical className="tw-mx-auto tw-mb-1 tw-h-4 tw-w-4" />
-                          <p className="tw-text-xs">{comp.type}</p>
-                        </Card>
-                      )}
+                      {(provided: DraggableProvided) => {
+                        // Destructure onTransitionEnd to avoid type mismatch when spreading
+                        const { onTransitionEnd, ...draggablePropsWithoutTransitionEnd } = provided.draggableProps;
+                        return (
+                          <Card
+                            ref={provided.innerRef}
+                            {...draggablePropsWithoutTransitionEnd} // Spread props excluding onTransitionEnd
+                            style={provided.draggableProps.style} // Apply style explicitly
+                            className="tw-flex-0 tw-w-32 tw-cursor-grab tw-text-center tw-p-2 tw-shadow-sm hover:tw-shadow-md"
+                          >
+                            <div
+                              {...provided.dragHandleProps}
+                              className="tw-mx-auto tw-mb-1 tw-h-4 tw-w-4 tw-cursor-grab"
+                            >
+                              <GripVertical />
+                            </div>
+                            <p className="tw-text-xs">{comp.type}</p>
+                          </Card>
+                        );
+                      }}
                     </Draggable>
                   ))}
                   {provided.placeholder}
@@ -140,7 +155,12 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ layout = [], onLayoutChange
             <h3 className="tw-text-lg tw-font-semibold tw-text-foreground">Layout Board</h3>
             <Droppable droppableId="layout-board">
               {(provided: import('react-beautiful-dnd').DroppableProvided) => (
-                <div {...provided.droppableProps} ref={provided.innerRef} className="tw-min-h-[200px] tw-p-4 tw-border-2 tw-border-dashed tw-rounded-lg tw-bg-muted/50">
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  // Removed style={provided.droppableProps.style} as it does not exist on droppableProps
+                  className={`tw-min-h-[200px] tw-p-4 tw-border-2 tw-border-dashed tw-rounded-lg tw-bg-muted/50`}
+                >
                   {layout.length > 0 ? (
                     layout.map((component, index) => (
                       <DraggableComponent key={component.id} component={component} index={index} />
