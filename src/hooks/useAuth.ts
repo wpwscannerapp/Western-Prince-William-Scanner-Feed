@@ -2,7 +2,7 @@ import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-// Removed: import { SUPABASE_API_TIMEOUT } from '@/config'; // Import from config.ts
+// Removed: import { SUPABASE_API_TIMEOUT } from '@/config'; 
 
 interface AuthState {
   session: Session | null;
