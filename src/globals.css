@@ -106,24 +106,6 @@
 }
 
 @layer base {
-  /* Dynamically set primary color using the hex value */
-  .tw-bg-primary { background-color: var(--app-primary-color-hex); }
-  .tw-text-primary { color: var(--app-primary-color-hex); }
-  .tw-border-primary { border-color: var(--app-primary-color-hex); }
-  .hover\\:tw-bg-primary\\/90:hover { background-color: var(--app-primary-color-darker-hex); }
-  .hover\\:tw-text-primary:hover { color: var(--app-primary-color-hex); }
-  .tw-ring-primary { --tw-ring-color: var(--app-primary-color-hex); }
-  .tw-shadow-glow { box-shadow: 0 0 10px rgb(var(--app-primary-color-rgb) / 0.5); }
-  .dark .tw-shadow-glow { box-shadow: 0 0 15px rgb(var(--app-primary-color-rgb) / 0.7); }
-
-  /* Dynamically set secondary color using the hex value */
-  .tw-bg-secondary { background-color: var(--app-secondary-color-hex); }
-  .tw-text-secondary { color: var(--app-secondary-color-hex); }
-  .tw-border-secondary { border-color: var(--app-secondary-color-hex); }
-  .hover\\:tw-bg-secondary\\/90:hover { background-color: var(--app-secondary-color-darker-hex); }
-  .hover\\:tw-text-secondary:hover { color: var(--app-secondary-color-hex); }
-  .tw-ring-secondary { --tw-ring-color: var(--app-secondary-color-hex); }
-
   /* Apply font family */
   body {
     font-family: var(--app-font-family);
