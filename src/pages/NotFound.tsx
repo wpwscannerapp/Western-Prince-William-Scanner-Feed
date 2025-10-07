@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     if (import.meta.env.DEV) {
@@ -16,7 +17,7 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-p-4">
+    <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-p-4">
       <div className="tw-text-center">
         <img src="/Logo.png" alt="Page Not Found" className="tw-h-48 tw-mx-auto tw-mb-4" aria-hidden="true" />
         <h1 className="tw-text-4xl tw-font-bold tw-mb-4">404</h1>
@@ -30,6 +31,9 @@ const NotFound = () => {
           </Button>
         </div>
       </div>
+      <footer className="tw-w-full tw-py-4 tw-text-center tw-text-xs tw-text-muted-foreground tw-mt-8">
+        © {currentYear} Western Prince William Scanner Feed. All rights reserved.
+      </footer>
     </div>
   );
 };

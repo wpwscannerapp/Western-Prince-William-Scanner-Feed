@@ -28,6 +28,7 @@ const ResetPasswordPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [resetComplete, setResetComplete] = useState(false);
+  const currentYear = new Date().getFullYear();
 
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
@@ -104,7 +105,7 @@ const ResetPasswordPage = () => {
 
   if (resetComplete) {
     return (
-      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
+      <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
         <Card className="tw-w-full tw-max-w-lg">
           <CardHeader className="tw-text-center">
             <CheckCircle className="tw-h-12 tw-w-12 tw-text-primary tw-mx-auto tw-mb-4 tw-animate-pulse" aria-hidden="true" />
@@ -117,12 +118,15 @@ const ResetPasswordPage = () => {
             </Button>
           </CardContent>
         </Card>
+        <footer className="tw-w-full tw-py-4 tw-text-center tw-text-xs tw-text-muted-foreground tw-mt-8">
+          © {currentYear} Western Prince William Scanner Feed. All rights reserved.
+        </footer>
       </div>
     );
   }
 
   return (
-    <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
+    <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
       <Card className="tw-w-full tw-max-w-lg">
         <CardHeader>
           <CardTitle className="tw-text-2xl tw-font-bold">Reset Password</CardTitle>
@@ -172,6 +176,9 @@ const ResetPasswordPage = () => {
           </form>
         </CardContent>
       </Card>
+      <footer className="tw-w-full tw-py-4 tw-text-center tw-text-xs tw-text-muted-foreground tw-mt-8">
+        © {currentYear} Western Prince William Scanner Feed. All rights reserved.
+      </footer>
     </div>
   );
 };

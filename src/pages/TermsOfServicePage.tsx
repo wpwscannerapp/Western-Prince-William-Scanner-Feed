@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 
 const TermsOfServicePage: React.FC = () => {
   const navigate = useNavigate();
+  const currentYear = new Date().getFullYear();
 
   return (
-    <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-4xl"> {/* Removed tw-pt-24 as Layout handles it */}
-      <Card className="tw-bg-card tw-border-border tw-shadow-lg">
+    <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-4xl tw-flex tw-flex-col tw-min-h-screen">
+      <Card className="tw-bg-card tw-border-border tw-shadow-lg tw-flex-grow">
         <CardHeader className="tw-text-center">
           <CardTitle className="tw-text-3xl tw-font-bold tw-text-foreground">Terms of Service</CardTitle>
           <CardDescription className="tw-text-muted-foreground tw-mt-2">
@@ -65,6 +66,9 @@ const TermsOfServicePage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+      <footer className="tw-w-full tw-py-4 tw-text-center tw-text-xs tw-text-muted-foreground tw-mt-8">
+        © {currentYear} Western Prince William Scanner Feed. All rights reserved.
+      </footer>
     </div>
   );
 };

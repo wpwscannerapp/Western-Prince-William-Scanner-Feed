@@ -14,6 +14,7 @@ const SubscriptionPage = () => {
   const { user, loading: authLoading } = useAuth();
   const { isSubscribed, loading: isSubscribedLoading } = useIsSubscribed();
   const [isLoading, setIsLoading] = React.useState(false);
+  const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     if (!authLoading && !isSubscribedLoading && isSubscribed) {
@@ -128,6 +129,9 @@ const SubscriptionPage = () => {
           </p>
         </CardContent>
       </Card>
+      <footer className="tw-w-full tw-py-4 tw-text-center tw-text-xs tw-text-muted-foreground tw-mt-8">
+        © {currentYear} Western Prince William Scanner Feed. All rights reserved.
+      </footer>
     </div>
   );
 };
