@@ -4,9 +4,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // @ts-ignore
 import Stripe from "https://esm.sh/stripe@16.2.0?target=deno&deno-std=0.190.0";
-// The createClient import is not strictly needed if supabaseAdmin is removed,
-// but keeping it for completeness if future logic requires it.
-// import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+// @ts-ignore
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,16 +18,27 @@ serve(async (req: Request) => {
   }
 
   try {
-    // supabaseAdmin is not used in this specific function, as the profile update
-    // is handled by the stripe-webhook Edge Function.
-    // If you need to interact with Supabase from this function in the future,
-    // uncomment and use the createClient import and supabaseAdmin variable.
-    /*
-    const supabaseAdmin = createClient(
+    // Initialize Supabase client for authentication
+    const supabaseClient = createClient(
+      // @ts-ignore
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      // @ts-ignore
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      {
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! },
+        },
+      }
     );
-    */
+
+    // Authenticate the user
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // @ts-ignore
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
@@ -40,6 +50,25 @@ serve(async (req: Request) => {
 
     if (!priceId || !userId || !userEmail) {
       return new Response(JSON.stringify({ error: 'Missing priceId, userId, or userEmail' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate that the userId from the request matches the authenticated user's ID
+    if (userId !== user.id) {
+      return new Response(JSON.stringify({ error: 'Forbidden: User ID mismatch' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate priceId by attempting to retrieve it from Stripe
+    try {
+      await stripe.prices.retrieve(priceId);
+    } catch (priceError: any) {
+      console.error('Stripe Price ID validation failed:', priceError);
+      return new Response(JSON.stringify({ error: 'Invalid Stripe Price ID provided.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
