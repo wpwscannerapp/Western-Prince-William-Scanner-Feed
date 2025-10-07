@@ -56,7 +56,7 @@ const TermsOfServicePage: React.FC = () => {
           <p>These Terms shall be governed by the laws of the Commonwealth of Virginia, without regard to its conflict of law principles.</p>
 
           <h2>9. Contact Us</h2>
-          <p>If you have any questions about these Terms, please contact us at support@example.com.</p>
+          <p>If you have any questions about these Terms, please contact us at wpwscannerfeed@gmail.com.</p>
 
           <div className="tw-flex tw-justify-center tw-mt-8">
             <Button onClick={() => navigate(-1)} className="tw-button">
