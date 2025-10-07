@@ -229,7 +229,9 @@ export const PostService = {
       logSupabaseError('addComment', error);
       return null;
     }
-    // Correctly access username and avatar_url from the profiles object
+    console.log('Supabase data for addComment:', data); // DEBUG LOG
+    // Access username and avatar_url from the profiles object (or first element if it's an array)
+    const profileData = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
     return {
       id: data.id,
       post_id: data.post_id,
@@ -237,8 +239,8 @@ export const PostService = {
       content: data.content,
       created_at: data.created_at,
       updated_at: data.updated_at,
-      username: data.profiles?.[0]?.username || null, 
-      avatar_url: data.profiles?.[0]?.avatar_url || null,
+      username: profileData?.username || null, 
+      avatar_url: profileData?.avatar_url || null,
     } as Comment;
   },
 
@@ -261,17 +263,21 @@ export const PostService = {
       logSupabaseError('fetchComments', error);
       return [];
     }
-    return data.map(comment => ({
-      id: comment.id,
-      post_id: comment.post_id,
-      user_id: comment.user_id,
-      content: comment.content,
-      created_at: comment.created_at,
-      updated_at: comment.updated_at,
-      // Correctly access username and avatar_url from the profiles object
-      username: comment.profiles?.[0]?.username || null, 
-      avatar_url: comment.profiles?.[0]?.avatar_url || null,
-    })) as Comment[];
+    console.log('Supabase data for fetchComments:', data); // DEBUG LOG
+    return data.map(comment => {
+      // Access username and avatar_url from the profiles object (or first element if it's an array)
+      const profileData = Array.isArray(comment.profiles) ? comment.profiles[0] : comment.profiles;
+      return {
+        id: comment.id,
+        post_id: comment.post_id,
+        user_id: comment.user_id,
+        content: comment.content,
+        created_at: comment.created_at,
+        updated_at: comment.updated_at,
+        username: profileData?.username || null, 
+        avatar_url: profileData?.avatar_url || null,
+      };
+    }) as Comment[];
   },
 
   async updateComment(commentId: string, content: string): Promise<Comment | null> {
@@ -294,7 +300,9 @@ export const PostService = {
       logSupabaseError('updateComment', error);
       return null;
     }
-    // Correctly access username and avatar_url from the profiles object
+    console.log('Supabase data for updateComment:', data); // DEBUG LOG
+    // Access username and avatar_url from the profiles object (or first element if it's an array)
+    const profileData = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
     return {
       id: data.id,
       post_id: data.post_id,
@@ -302,8 +310,8 @@ export const PostService = {
       content: data.content,
       created_at: data.created_at,
       updated_at: data.updated_at,
-      username: data.profiles?.[0]?.username || null, 
-      avatar_url: data.profiles?.[0]?.avatar_url || null,
+      username: profileData?.username || null, 
+      avatar_url: profileData?.avatar_url || null,
     } as Comment;
   },
 

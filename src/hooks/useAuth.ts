@@ -62,14 +62,25 @@ export function useAuth() {
 
   const signOut = async () => {
     setAuthState(prev => ({ ...prev, error: null }));
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      setAuthState(prev => ({ ...prev, error }));
-      toast.error(error.message);
-      return { error };
+    try {
+      console.log('Attempting Supabase signOut...'); // Debug log
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        setAuthState(prev => ({ ...prev, error }));
+        console.error('Supabase signOut error:', error); // Detailed error log
+        toast.error(error.message);
+        return { error };
+      }
+      console.log('Supabase signOut successful.'); // Debug log
+      toast.success('Logged out successfully!');
+      // Explicitly reset auth state after successful logout
+      setAuthState({ session: null, user: null, loading: false, error: null });
+      return { success: true };
+    } catch (e: any) {
+      console.error('Unexpected error during signOut:', e); // Catch unexpected errors
+      toast.error(e.message || 'An unexpected error occurred during logout.');
+      return { error: e };
     }
-    toast.success('Logged out successfully!');
-    return { success: true };
   };
 
   const forgotPassword = async (email: string) => {
