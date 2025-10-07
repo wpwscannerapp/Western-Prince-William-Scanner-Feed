@@ -1,9 +1,10 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, User, Shield, LogIn, LogOut, CreditCard } from 'lucide-react'; // Added CreditCard icon
+import { Home, User, Shield, LogIn, LogOut, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Button } from '@/components/ui/button';
+import NotificationBell from './NotificationBell'; // Import NotificationBell
 
 const TopNavBar = () => {
   const { user, loading, signOut } = useAuth();
@@ -16,7 +17,7 @@ const TopNavBar = () => {
 
   // Define navigation items that are always present for logged-in users
   const loggedInNavItems = [
-    { name: 'Home Page', icon: Home, path: '/home' },
+    { name: 'Home', icon: Home, path: '/home' }, // Changed 'Home Page' to 'Home' for brevity in nav
     { name: 'Profile', icon: User, path: '/profile' },
   ];
 
@@ -26,7 +27,7 @@ const TopNavBar = () => {
         <div className="tw-flex tw-items-center">
           <span className="tw-text-lg tw-font-bold tw-text-foreground">Western Prince William Scanner Feed</span>
         </div>
-        <div className="tw-flex tw-space-x-6 tw-items-center">
+        <div className="tw-flex tw-space-x-4 tw-items-center"> {/* Adjusted spacing */}
           {!loading && user ? ( // If user is logged in
             <>
               {loggedInNavItems.map((item) => (
@@ -58,6 +59,7 @@ const TopNavBar = () => {
                   Admin
                 </NavLink>
               )}
+              <NotificationBell aria-label="Toggle notifications" /> {/* Notification Bell here */}
               <Button variant="ghost" size="sm" onClick={handleSignOut} className="tw-text-muted-foreground hover:tw-text-primary">
                 <LogOut className="tw-h-5 tw-w-5 tw-mr-1" />
                 Logout

@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { ProfileService, Profile } from '@/services/ProfileService';
 import { handleError } from '@/utils/errorHandler';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'; // Removed CardContent
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 const ProfilePage = () => {
   const { user } = useAuth();
@@ -37,16 +37,14 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8 tw-max-w-2xl">
+    <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-2xl"> {/* Removed tw-pt-8 as Layout handles it */}
       <Card className="tw-w-full tw-max-w-md tw-mx-auto tw-bg-card tw-shadow-lg">
         <CardHeader>
           <CardTitle className="tw-text-3xl tw-font-bold tw-text-center">{PROFILE_TITLE}</CardTitle>
           <CardDescription className="tw-text-center tw-text-muted-foreground">{PROFILE_DESCRIPTION}</CardDescription>
         </CardHeader>
-        {/* ProfileForm now contains its own CardContent */}
         <ProfileForm />
       </Card>
-      <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
     </div>
   );
 };

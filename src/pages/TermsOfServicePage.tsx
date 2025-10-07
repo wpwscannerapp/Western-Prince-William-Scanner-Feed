@@ -7,7 +7,7 @@ const TermsOfServicePage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="tw-container tw-mx-auto tw-p-4 tw-pt-24 tw-max-w-4xl">
+    <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-4xl"> {/* Removed tw-pt-24 as Layout handles it */}
       <Card className="tw-bg-card tw-border-border tw-shadow-lg">
         <CardHeader className="tw-text-center">
           <CardTitle className="tw-text-3xl tw-font-bold tw-text-foreground">Terms of Service</CardTitle>
@@ -65,7 +65,6 @@ const TermsOfServicePage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-      <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
     </div>
   );
 };

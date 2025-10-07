@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Lock, Loader2 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom'; // Corrected import syntax and added Link
+import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { StripeClient } from '@/integrations/stripe/client';
@@ -128,7 +128,6 @@ const SubscriptionPage = () => {
           </p>
         </CardContent>
       </Card>
-      <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
     </div>
   );
 };

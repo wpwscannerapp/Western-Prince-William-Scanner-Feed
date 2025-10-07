@@ -1,11 +1,12 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-// TopNavBar is now global, so remove import and usage here
+import { MadeWithDyad } from '@/components/made-with-dyad'; // Import MadeWithDyad
 
 const Layout: React.FC = () => {
   return (
-    <main className="tw-flex-grow"> {/* No top padding needed here, it's handled in App.tsx */}
+    <main className="tw-flex-grow tw-pt-16"> {/* Added tw-pt-16 for TopNavBar height */}
       <Outlet />
+      <MadeWithDyad /> {/* Added MadeWithDyad here */}
     </main>
   );
 };

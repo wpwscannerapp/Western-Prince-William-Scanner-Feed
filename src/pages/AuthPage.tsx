@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { APP_NAME, APP_DESCRIPTION } from '@/lib/constants';
 import { handleError } from '@/utils/errorHandler';
-import { Card, CardContent } from '@/components/ui/card'; // Import Card and CardContent
+import { Card, CardContent } from '@/components/ui/card';
 
 const AuthPage = () => {
   const { user, loading, error } = useAuth();
@@ -40,7 +40,7 @@ const AuthPage = () => {
     <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-primary/10 tw-to-background tw-text-foreground tw-p-4">
       {/* Branded Hero Section */}
       <div className="tw-relative tw-z-20 tw-text-center tw-mb-8 tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-xl">
-        <img src="/Logo.png" alt="WPW Scanner Logo" className="tw-h-16 tw-mx-auto tw-mb-4" aria-hidden="true" /> {/* Using Logo.png */}
+        <img src="/Logo.png" alt="WPW Scanner Logo" className="tw-h-16 tw-mx-auto tw-mb-4" aria-hidden="true" />
         <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-text-foreground tw-mb-4">{APP_NAME}</h1>
         <p className="tw-text-lg tw-text-muted-foreground tw-mb-6">{APP_DESCRIPTION}</p>
       </div>
@@ -60,7 +60,6 @@ const AuthPage = () => {
           </div>
         )}
       </div>
-      <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
     </div>
   );
 };

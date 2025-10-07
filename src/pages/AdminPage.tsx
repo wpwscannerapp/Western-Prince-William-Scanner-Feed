@@ -6,7 +6,6 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import AdminDashboardTabs from '@/components/AdminDashboardTabs';
 import { Button } from '@/components/ui/button';
-// import { handleError } from '@/utils/errorHandler'; // Removed unused import
 import AdminSidebar from '@/components/AdminSidebar';
 
 const AdminPage = () => {
@@ -49,7 +48,6 @@ const AdminPage = () => {
             Retry
           </Button>
         </div>
-        <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
       </div>
     );
   }
@@ -62,7 +60,6 @@ const AdminPage = () => {
         <div className="tw-grid tw-gap-4">
           <AdminDashboardTabs activeTab={activeTab} />
         </div>
-        <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
       </main>
     </div>
   );

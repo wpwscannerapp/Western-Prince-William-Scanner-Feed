@@ -19,7 +19,7 @@ const PostDetailPage: React.FC = () => {
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [previousPost, setPreviousPost] = useState<Post | null>(null); // Changed from relatedPosts
+  const [previousPost, setPreviousPost] = useState<Post | null>(null);
   
   // Comment states
   const [comments, setComments] = useState<Comment[]>([]);
@@ -172,13 +172,12 @@ const PostDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="tw-container tw-mx-auto tw-p-4 tw-pt-24 tw-max-w-3xl">
+    <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-3xl"> {/* Removed tw-pt-24 as Layout handles it */}
       <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
         Back to Home Page
       </Button>
       <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground tw-text-center">Post Detail</h1>
       <div className="tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-md" aria-labelledby={`post-title-${post.id}`}>
-        {/* PostCard is now just for display, not interaction */}
         <PostCard post={post} /> 
       </div>
 
@@ -229,13 +228,11 @@ const PostDetailPage: React.FC = () => {
       {previousPost && (
         <div className="tw-mt-8">
           <h2 className="tw-text-2xl tw-font-semibold tw-mb-4 tw-text-foreground">Previous Post</h2>
-          <div className="tw-grid tw-grid-cols-1"> {/* Changed to single column for one post */}
+          <div className="tw-grid tw-grid-cols-1">
             <PostCard post={previousPost} />
           </div>
         </div>
       )}
-
-      <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
     </div>
   );
 };
