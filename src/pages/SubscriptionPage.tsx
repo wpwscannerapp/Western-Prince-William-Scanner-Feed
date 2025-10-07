@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Lock, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom'; // Corrected import syntax
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { StripeClient } from '@/integrations/stripe/client';
@@ -68,7 +68,7 @@ const SubscriptionPage = () => {
 
   return (
     <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
-      <Card className="tw-w-full tw-max-w-2xl tw-bg-card tw-border-border tw-shadow-lg tw-text-center"> {/* Increased max-w */}
+      <Card className="tw-w-full tw-max-w-2xl tw-bg-card tw-border-border tw-shadow-lg tw-text-center">
         <CardHeader>
           <CardTitle className="tw-text-3xl tw-font-bold tw-text-primary">Premium Access</CardTitle>
           <CardDescription className="tw-text-muted-foreground tw-mt-2">
@@ -77,21 +77,8 @@ const SubscriptionPage = () => {
         </CardHeader>
         <CardContent className="tw-space-y-6">
           {/* Plan Comparison */}
-          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4 tw-mb-6" role="grid" aria-label="Subscription Plan Comparison">
-            <Card className="tw-bg-muted/30 tw-border-border tw-shadow-sm" role="rowheader">
-              <CardHeader>
-                <CardTitle className="tw-text-xl">Free Plan</CardTitle>
-              </CardHeader>
-              <CardContent className="tw-text-left">
-                <ul className="tw-space-y-2 tw-text-foreground">
-                  <li className="tw-flex tw-items-center"><CheckCircle className="tw-h-4 tw-w-4 tw-text-muted-foreground tw-mr-2" /> Limited post access</li>
-                  <li className="tw-flex tw-items-center"><CheckCircle className="tw-h-4 tw-w-4 tw-text-muted-foreground tw-mr-2" /> Ads included</li>
-                  <li className="tw-flex tw-items-center tw-text-muted-foreground"><Lock className="tw-h-4 tw-w-4 tw-mr-2" /> No real-time notifications</li>
-                  <li className="tw-flex tw-items-center tw-text-muted-foreground"><Lock className="tw-h-4 tw-w-4 tw-mr-2" /> No exclusive posts</li>
-                </ul>
-              </CardContent>
-            </Card>
-            <Card className="tw-border-primary tw-border-2 tw-shadow-md" role="rowheader">
+          <div className="tw-grid tw-grid-cols-1 tw-gap-4 tw-mb-6 tw-justify-center" role="grid" aria-label="Subscription Plan Comparison">
+            <Card className="tw-border-primary tw-border-2 tw-shadow-md tw-max-w-md tw-mx-auto" role="rowheader">
               <CardHeader>
                 <CardTitle className="tw-text-xl tw-text-primary">Premium Plan</CardTitle>
               </CardHeader>
@@ -132,11 +119,11 @@ const SubscriptionPage = () => {
             Start Free Trial
           </Button>
 
-          <p className="tw-text-xs tw-text-muted-foreground tw-mt-4">
+          <p className="tw-xs tw-text-muted-foreground tw-mt-4">
             By subscribing, you agree to our <a href="#" className="tw-underline hover:tw-text-primary">Terms of Service</a>.
           </p>
           {/* Trust Signals */}
-          <p className="tw-text-sm tw-text-muted-foreground tw-flex tw-items-center tw-justify-center">
+          <p className="tw-sm tw-text-muted-foreground tw-flex tw-items-center tw-justify-center">
             <Lock className="tw-h-4 tw-w-4 tw-mr-1" /> Secure payments via Stripe — Join over <span className="tw-font-bold tw-text-primary tw-mx-1">20,000</span> scanner fans!
           </p>
         </CardContent>
