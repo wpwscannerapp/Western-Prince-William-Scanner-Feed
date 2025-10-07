@@ -8,11 +8,14 @@ import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
 import PostDetailPage from "./pages/PostDetailPage";
+import IncidentsPage from "./pages/IncidentsPage"; // Import new page
+import WeatherPage from "./pages/WeatherPage";     // Import new page
+import TrafficPage from "./pages/TrafficPage";     // Import new page
 import Layout from "./components/Layout";
 import AuthPage from "./pages/AuthPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
-import TermsOfServicePage from "./pages/TermsOfServicePage"; // Import the new page
+import TermsOfServicePage from "./pages/TermsOfServicePage";
 import { useAuth } from "./hooks/useAuth";
 import { useAppSettings } from "./hooks/useAppSettings";
 import TopNavBar from "./components/TopNavBar";
@@ -59,12 +62,15 @@ const App = () => (
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/subscribe" element={<SubscriptionPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/terms-of-service" element={<TermsOfServicePage />} /> {/* New route */}
+              <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
               {/* Protected routes that use the Layout */}
               <Route element={<ProtectedRoute />}>
                 <Route element={<Layout />}>
                   <Route path="/home" element={<HomePage />} />
+                  <Route path="/home/incidents" element={<IncidentsPage />} /> {/* New route */}
+                  <Route path="/home/weather" element={<WeatherPage />} />     {/* New route */}
+                  <Route path="/home/traffic" element={<TrafficPage />} />     {/* New route */}
                   <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/admin" element={<AdminPage />} />
                   <Route path="/posts/:postId" element={<PostDetailPage />} />

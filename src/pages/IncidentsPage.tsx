@@ -13,8 +13,9 @@ import { useIsSubscribed } from '@/hooks/useIsSubscribed';
 import { handleError } from '@/utils/errorHandler';
 import { POLL_INTERVAL } from '@/config';
 import SkeletonLoader from '@/components/SkeletonLoader';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
-const IncidentsTile: React.FC = () => {
+const IncidentsPage: React.FC = () => {
   const { user } = useAuth();
   const { isAdmin, loading: isAdminLoading } = useIsAdmin();
   const { isSubscribed, loading: isSubscribedLoading } = useIsSubscribed();
@@ -26,6 +27,7 @@ const IncidentsTile: React.FC = () => {
   const [postFormLoading, setPostFormLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const observer = useRef<IntersectionObserver | null>(null);
+  const navigate = useNavigate(); // Initialize useNavigate
 
   const lastPostRef = useCallback(
     (node: HTMLDivElement) => {
@@ -176,7 +178,7 @@ const IncidentsTile: React.FC = () => {
 
   if (isAdminLoading || isSubscribedLoading) {
     return (
-      <div className="tw-flex tw-items-center tw-justify-center tw-py-8">
+      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
         <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
         <p className="tw-ml-2">Loading incidents...</p>
       </div>
@@ -193,9 +195,13 @@ const IncidentsTile: React.FC = () => {
   }
 
   return (
-    <div className="tw-p-4 tw-relative"> {/* Added padding here for content within the tile */}
+    <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-xl">
+      <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
+        Back to Dashboard
+      </Button>
+      <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground tw-text-center">Incidents Feed</h1>
       <p className="tw-text-center tw-text-muted-foreground tw-mb-8">
-        Welcome to your WPW Scanner Feed!
+        Real-time scanner updates for Western Prince William.
       </p>
 
       {isAdmin && (
@@ -261,4 +267,4 @@ const IncidentsTile: React.FC = () => {
   );
 };
 
-export default IncidentsTile;
+export default IncidentsPage;
