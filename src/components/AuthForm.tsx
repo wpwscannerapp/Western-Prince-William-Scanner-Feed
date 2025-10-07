@@ -69,13 +69,13 @@ const AuthForm = () => {
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="tw-space-y-4">
         <div>
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email" className="tw-mb-2 tw-block">Email</Label>
           <Input
             id="email"
             type="email"
             placeholder="you@example.com"
             {...form.register('email')}
-            className="tw-mt-1 tw-bg-input tw-text-foreground"
+            className="tw-bg-input tw-text-foreground"
             autoComplete="email"
           />
           {form.formState.errors.email && (
@@ -85,13 +85,13 @@ const AuthForm = () => {
         
         {!showForgotPassword && (
           <div>
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="tw-mb-2 tw-block">Password</Label>
             <Input
               id="password"
               type="password"
               placeholder="••••••••"
               {...form.register('password')}
-              className="tw-mt-1 tw-bg-input tw-text-foreground"
+              className="tw-bg-input tw-text-foreground"
               autoComplete={isLogin ? "current-password" : "new-password"}
             />
             {form.formState.errors.password && (

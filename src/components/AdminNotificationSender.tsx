@@ -105,12 +105,12 @@ const AdminNotificationSender: React.FC = () => {
       <CardContent>
         <form onSubmit={form.handleSubmit(onSubmit)} className="tw-space-y-6">
           <div>
-            <Label htmlFor="title">Title</Label>
+            <Label htmlFor="title" className="tw-mb-2 tw-block">Title</Label>
             <Input
               id="title"
               placeholder="New Scanner Update!"
               {...form.register('title')}
-              className="tw-mt-1 tw-bg-input tw-text-foreground"
+              className="tw-bg-input tw-text-foreground"
               disabled={isLoading}
             />
             {form.formState.errors.title && (
@@ -119,12 +119,12 @@ const AdminNotificationSender: React.FC = () => {
           </div>
 
           <div>
-            <Label htmlFor="body">Message Body</Label>
+            <Label htmlFor="body" className="tw-mb-2 tw-block">Message Body</Label>
             <Textarea
               id="body"
               placeholder="Units dispatched to..."
               {...form.register('body')}
-              className="tw-mt-1 tw-min-h-[100px] tw-bg-input tw-text-foreground"
+              className="tw-min-h-[100px] tw-bg-input tw-text-foreground"
               disabled={isLoading}
             />
             {form.formState.errors.body && (
@@ -133,13 +133,13 @@ const AdminNotificationSender: React.FC = () => {
           </div>
 
           <div>
-            <Label htmlFor="url">Link (Optional)</Label>
+            <Label htmlFor="url" className="tw-mb-2 tw-block">Link (Optional)</Label>
             <Input
               id="url"
               type="url"
               placeholder="https://your-app.com/posts/123"
               {...form.register('url')}
-              className="tw-mt-1 tw-bg-input tw-text-foreground"
+              className="tw-bg-input tw-text-foreground"
               disabled={isLoading}
             />
             {form.formState.errors.url && (

@@ -273,12 +273,12 @@ const ProfileForm: React.FC = () => {
 
       <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
         <div>
-          <Label htmlFor="first_name">First Name</Label>
+          <Label htmlFor="first_name" className="tw-mb-2 tw-block">First Name</Label>
           <Input
             id="first_name"
             placeholder="John"
             {...form.register('first_name')}
-            className="tw-mt-2 tw-input"
+            className="tw-input"
             disabled={isSubmitDisabled}
             aria-invalid={form.formState.errors.first_name ? "true" : "false"}
             aria-describedby={form.formState.errors.first_name ? "first-name-error" : undefined}
@@ -288,12 +288,12 @@ const ProfileForm: React.FC = () => {
           )}
         </div>
         <div>
-          <Label htmlFor="last_name">Last Name</Label>
+          <Label htmlFor="last_name" className="tw-mb-2 tw-block">Last Name</Label>
           <Input
             id="last_name"
             placeholder="Doe"
             {...form.register('last_name')}
-            className="tw-mt-2 tw-input"
+            className="tw-input"
             disabled={isSubmitDisabled}
             aria-invalid={form.formState.errors.last_name ? "true" : "false"}
             aria-describedby={form.formState.errors.last_name ? "last-name-error" : undefined}
@@ -305,7 +305,7 @@ const ProfileForm: React.FC = () => {
       </div>
 
       <div>
-        <div className="tw-flex tw-items-center tw-gap-2">
+        <div className="tw-flex tw-items-center tw-gap-2 tw-mb-2">
           <Label htmlFor="username">Username</Label>
           {usernameStatus === 'checking' && <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin tw-text-muted-foreground" />}
           {usernameStatus === 'available' && <CheckCircle2 className="tw-h-4 tw-w-4 tw-text-green-500" />}
@@ -315,7 +315,7 @@ const ProfileForm: React.FC = () => {
           id="username"
           placeholder="Enter your username"
           {...form.register('username')}
-          className="tw-mt-2 tw-input"
+          className="tw-input"
           disabled={isSubmitDisabled}
           aria-invalid={form.formState.errors.username || usernameStatus === 'taken' ? "true" : "false"}
           aria-describedby={form.formState.errors.username || usernameStatus === 'taken' ? "username-error" : undefined}
@@ -333,13 +333,13 @@ const ProfileForm: React.FC = () => {
       </div>
 
       <div>
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email" className="tw-mb-2 tw-block">Email</Label>
         <Input
           id="email"
           type="email"
           value={user?.email || ''}
           disabled
-          className="tw-mt-2 tw-bg-muted tw-input"
+          className="tw-bg-muted tw-input"
           aria-label="User email address (disabled)"
         />
         <p className="tw-text-xs tw-text-muted-foreground tw-mt-1">Email cannot be changed here.</p>

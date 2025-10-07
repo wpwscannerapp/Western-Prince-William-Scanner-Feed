@@ -131,13 +131,13 @@ const ResetPasswordPage = () => {
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="tw-space-y-4">
             <div>
-              <Label htmlFor="password">New Password</Label>
+              <Label htmlFor="password" className="tw-mb-2 tw-block">New Password</Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="••••••••"
                 {...form.register('password')}
-                className="tw-mt-1 tw-bg-input tw-text-foreground tw-input"
+                className="tw-bg-input tw-text-foreground tw-input"
                 aria-describedby={form.formState.errors.password ? "password-error" : undefined}
               />
               {form.watch('password') && (
@@ -151,13 +151,13 @@ const ResetPasswordPage = () => {
             </div>
             
             <div>
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Label htmlFor="confirmPassword" className="tw-mb-2 tw-block">Confirm New Password</Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 placeholder="••••••••"
                 {...form.register('confirmPassword')}
-                className="tw-mt-1 tw-bg-input tw-text-foreground tw-input"
+                className="tw-bg-input tw-text-foreground tw-input"
                 aria-describedby={form.formState.errors.confirmPassword ? "confirm-password-error" : undefined}
               />
               {form.formState.errors.confirmPassword && (

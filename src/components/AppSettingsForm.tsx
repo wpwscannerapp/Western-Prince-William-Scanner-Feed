@@ -187,9 +187,9 @@ const AppSettingsForm: React.FC = () => {
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="theme" className="tw-space-y-4 tw-mt-4">
+          <TabsContent value="theme" className="tw-space-y-6 tw-mt-4">
             <div>
-              <Label htmlFor="primaryColor">Primary Color</Label>
+              <Label htmlFor="primaryColor" className="tw-mb-2 tw-block">Primary Color</Label>
               <ChromePicker
                 color={form.watch('primary_color')}
                 onChange={(color: { hex: string }) => form.setValue('primary_color', color.hex)}
@@ -201,7 +201,7 @@ const AppSettingsForm: React.FC = () => {
               )}
             </div>
             <div>
-              <Label htmlFor="secondaryColor">Secondary Color</Label>
+              <Label htmlFor="secondaryColor" className="tw-mb-2 tw-block">Secondary Color</Label>
               <ChromePicker
                 color={form.watch('secondary_color')}
                 onChange={(color: { hex: string }) => form.setValue('secondary_color', color.hex)}
@@ -213,12 +213,12 @@ const AppSettingsForm: React.FC = () => {
               )}
             </div>
             <div>
-              <Label htmlFor="fontFamily">Font Family</Label>
+              <Label htmlFor="fontFamily" className="tw-mb-2 tw-block">Font Family</Label>
               <Input
                 id="fontFamily"
                 placeholder="e.g., Inter, sans-serif"
                 {...form.register('font_family')}
-                className="tw-mt-1 tw-bg-input tw-text-foreground"
+                className="tw-bg-input tw-text-foreground"
               />
               {form.formState.errors.font_family && (
                 <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.font_family.message}</p>
@@ -226,26 +226,26 @@ const AppSettingsForm: React.FC = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="branding" className="tw-space-y-4 tw-mt-4">
+          <TabsContent value="branding" className="tw-space-y-6 tw-mt-4">
             <div>
-              <Label htmlFor="logoUrl">Logo URL</Label>
+              <Label htmlFor="logoUrl" className="tw-mb-2 tw-block">Logo URL</Label>
               <Input
                 id="logoUrl"
                 placeholder="https://example.com/logo.png"
                 {...form.register('logo_url')}
-                className="tw-mt-1 tw-bg-input tw-text-foreground"
+                className="tw-bg-input tw-text-foreground"
               />
               {form.formState.errors.logo_url && (
                 <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.logo_url.message}</p>
               )}
             </div>
             <div>
-              <Label htmlFor="faviconUrl">Favicon URL</Label>
+              <Label htmlFor="faviconUrl" className="tw-mb-2 tw-block">Favicon URL</Label>
               <Input
                 id="faviconUrl"
                 placeholder="https://example.com/favicon.ico"
                 {...form.register('favicon_url')}
-                className="tw-mt-1 tw-bg-input tw-text-foreground"
+                className="tw-bg-input tw-text-foreground"
               />
               {form.formState.errors.favicon_url && (
                 <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.favicon_url.message}</p>
@@ -253,14 +253,14 @@ const AppSettingsForm: React.FC = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="custom" className="tw-space-y-4 tw-mt-4">
+          <TabsContent value="custom" className="tw-space-y-6 tw-mt-4">
             <div>
-              <Label htmlFor="customCss">Custom CSS</Label>
+              <Label htmlFor="customCss" className="tw-mb-2 tw-block">Custom CSS</Label>
               <Textarea
                 id="customCss"
                 placeholder="body { background-color: #f0f0f0; }"
                 {...form.register('custom_css')}
-                className="tw-mt-1 tw-min-h-[150px] tw-bg-input tw-text-foreground"
+                className="tw-min-h-[150px] tw-bg-input tw-text-foreground"
               />
               {form.formState.errors.custom_css && (
                 <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.custom_css.message}</p>
@@ -268,7 +268,7 @@ const AppSettingsForm: React.FC = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="layout" className="tw-space-y-4 tw-mt-4">
+          <TabsContent value="layout" className="tw-space-y-6 tw-mt-4">
             <LayoutEditor layout={watchLayout || []} onLayoutChange={(newLayout) => form.setValue('layout', newLayout as LayoutComponent[])} />
             {form.formState.errors.layout && (
               <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.layout.message}</p>

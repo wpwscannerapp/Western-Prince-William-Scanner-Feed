@@ -88,14 +88,14 @@ const PostForm: React.FC<PostFormProps> = ({ initialPost, onSubmit, onCancel, is
   };
 
   return (
-    <form onSubmit={form.handleSubmit(handleSubmit)} className="tw-space-y-4 tw-p-4 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm">
+    <form onSubmit={form.handleSubmit(handleSubmit)} className="tw-space-y-6 tw-p-4 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm">
       <div>
-        <Label htmlFor="post-text">Post Content</Label>
+        <Label htmlFor="post-text" className="tw-mb-2 tw-block">Post Content</Label>
         <Textarea
           id="post-text"
           placeholder="Enter scanner update here..."
           {...form.register('text')}
-          className="tw-mt-1 tw-min-h-[100px] tw-bg-input tw-text-foreground"
+          className="tw-min-h-[100px] tw-bg-input tw-text-foreground"
           disabled={isLoading}
         />
         {form.formState.errors.text && (
@@ -104,7 +104,7 @@ const PostForm: React.FC<PostFormProps> = ({ initialPost, onSubmit, onCancel, is
       </div>
 
       <div>
-        <Label htmlFor="image-upload" className="tw-flex tw-items-center tw-gap-2 tw-cursor-pointer">
+        <Label htmlFor="image-upload" className="tw-flex tw-items-center tw-gap-2 tw-cursor-pointer tw-mb-2 tw-block">
           <ImageIcon className="tw-h-4 tw-w-4" /> Upload Image (Optional)
         </Label>
         <Input
@@ -112,7 +112,7 @@ const PostForm: React.FC<PostFormProps> = ({ initialPost, onSubmit, onCancel, is
           type="file"
           accept="image/*"
           onChange={handleImageChange}
-          className="tw-mt-1 tw-block tw-w-full tw-text-sm tw-text-muted-foreground file:tw-mr-4 file:tw-py-2 file:tw-px-4 file:tw-rounded-full file:tw-border-0 file:tw-text-sm file:tw-font-semibold file:tw-bg-primary file:tw-text-primary-foreground hover:file:tw-bg-primary/90"
+          className="tw-block tw-w-full tw-text-sm tw-text-muted-foreground file:tw-mr-4 file:tw-py-2 file:tw-px-4 file:tw-rounded-full file:tw-border-0 file:tw-text-sm file:tw-font-semibold file:tw-bg-primary file:tw-text-primary-foreground hover:file:tw-bg-primary/90"
           disabled={isLoading}
         />
         {imagePreview && (
