@@ -317,24 +317,27 @@ export const PostService = {
     return true;
   },
 
-  // Placeholder for fetching related posts
-  async fetchRelatedPosts(currentPostId: string, limit: number = 3): Promise<Post[]> {
+  async fetchPreviousPost(currentPostTimestamp: string): Promise<Post | null> {
     try {
       const { data, error } = await supabase
         .from('posts')
         .select('*')
-        .neq('id', currentPostId) // Exclude the current post
-        .order('timestamp', { ascending: false }) // Order by most recent
-        .limit(limit);
+        .lt('timestamp', currentPostTimestamp) // Get posts older than the current one
+        .order('timestamp', { ascending: false }) // Order by most recent first
+        .limit(1)
+        .single();
 
       if (error) {
-        logSupabaseError('fetchRelatedPosts', error);
-        return [];
+        if (error.code === 'PGRST116') { // No rows found
+          return null;
+        }
+        logSupabaseError('fetchPreviousPost', error);
+        return null;
       }
-      return data as Post[];
+      return data as Post;
     } catch (err) {
-      logSupabaseError('fetchRelatedPosts', err);
-      return [];
+      logSupabaseError('fetchPreviousPost', err);
+      return null;
     }
   },
 };

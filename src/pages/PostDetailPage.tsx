@@ -20,7 +20,7 @@ const PostDetailPage: React.FC = () => {
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
+  const [previousPost, setPreviousPost] = useState<Post | null>(null); // Changed from relatedPosts
   
   // Comment states
   const [comments, setComments] = useState<Comment[]>([]);
@@ -41,6 +41,9 @@ const PostDetailPage: React.FC = () => {
       const fetchedPost = await PostService.fetchSinglePost(postId);
       if (fetchedPost) {
         setPost(fetchedPost);
+        // Fetch previous post after the current post is loaded
+        const fetchedPreviousPost = await PostService.fetchPreviousPost(fetchedPost.timestamp);
+        setPreviousPost(fetchedPreviousPost);
       } else {
         setError(handleError(null, 'Failed to load post or post not found.'));
       }
@@ -48,19 +51,6 @@ const PostDetailPage: React.FC = () => {
       setError(handleError(err, 'An unexpected error occurred while loading the post.'));
     } finally {
       setLoading(false);
-    }
-  }, [postId]);
-
-  const fetchRelatedPosts = useCallback(async () => {
-    try {
-      const allPosts = await PostService.fetchPosts(0);
-      const filteredRelated = allPosts
-        .filter(p => p.id !== postId)
-        .slice(0, 2);
-      setRelatedPosts(filteredRelated);
-    } catch (err) {
-      handleError(err, 'Failed to load related posts.');
-      setRelatedPosts([]);
     }
   }, [postId]);
 
@@ -79,7 +69,6 @@ const PostDetailPage: React.FC = () => {
 
   useEffect(() => {
     fetchSinglePost();
-    fetchRelatedPosts();
     fetchCommentsForPost(); // Fetch comments when the page loads
 
     // Set up real-time subscription for comments
@@ -93,7 +82,7 @@ const PostDetailPage: React.FC = () => {
     return () => {
       supabase.removeChannel(commentsChannel);
     };
-  }, [fetchSinglePost, fetchRelatedPosts, fetchCommentsForPost, postId]);
+  }, [fetchSinglePost, fetchCommentsForPost, postId]);
 
   const handleAddComment = async () => {
     if (!user) {
@@ -237,15 +226,12 @@ const PostDetailPage: React.FC = () => {
         )}
       </div>
 
-      {/* Related Posts Section */}
-      {relatedPosts.length > 0 && (
+      {/* Previous Post Section */}
+      {previousPost && (
         <div className="tw-mt-8">
-          <h2 className="tw-text-2xl tw-font-semibold tw-mb-4 tw-text-foreground">Related Posts</h2>
-          <div className="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 tw-gap-4">
-            {relatedPosts.map(relatedPost => (
-              // Render related posts as clickable cards
-              <PostCard key={relatedPost.id} post={relatedPost} />
-            ))}
+          <h2 className="tw-text-2xl tw-font-semibold tw-mb-4 tw-text-foreground">Previous Post</h2>
+          <div className="tw-grid tw-grid-cols-1"> {/* Changed to single column for one post */}
+            <PostCard post={previousPost} />
           </div>
         </div>
       )}
