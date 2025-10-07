@@ -215,7 +215,7 @@ const HomePage = () => {
       </p>
 
       {isAdmin && (
-        <div className="tw-sticky tw-top-20 tw-z-10 tw-bg-background tw-p-4 tw-shadow-md tw-mb-8 tw-rounded-lg">
+        <div className="tw-bg-background tw-p-4 tw-shadow-md tw-mb-8 tw-rounded-lg"> {/* Removed tw-sticky, tw-top-20, tw-z-10 */}
           <h2 className="tw-text-2xl tw-font-semibold tw-text-foreground tw-mb-4">Create New Post</h2>
           <PostForm
             onSubmit={handleCreatePost}
