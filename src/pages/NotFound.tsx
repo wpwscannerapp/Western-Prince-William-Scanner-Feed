@@ -18,7 +18,7 @@ const NotFound = () => {
   return (
     <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-p-4">
       <div className="tw-text-center">
-        <img src="/placeholder.svg" alt="Page Not Found" className="tw-h-48 tw-mx-auto tw-mb-4" aria-hidden="true" /> {/* Using placeholder.svg */}
+        <img src="/Logo.png" alt="Page Not Found" className="tw-h-48 tw-mx-auto tw-mb-4" aria-hidden="true" /> {/* Using Logo.png */}
         <h1 className="tw-text-4xl tw-font-bold tw-mb-4">404</h1>
         <p className="tw-text-xl tw-text-muted-foreground tw-mb-4">
           Oops! The page <span className="tw-font-mono tw-text-primary">{location.pathname}</span> does not exist.

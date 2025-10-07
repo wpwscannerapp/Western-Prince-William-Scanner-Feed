@@ -1,8 +1,8 @@
-const CACHE_NAME = 'wpw-scanner-feed-cache-v6'; // Incremented cache version
+const CACHE_NAME = 'wpw-scanner-feed-cache-v7'; // Incremented cache version
 const urlsToCache = [
   '/',
   '/index.html',
-  '/placeholder.svg',
+  '/Logo.png', // Updated to new logo
   '/manifest.json',
   '/favicon.ico'
 ];
