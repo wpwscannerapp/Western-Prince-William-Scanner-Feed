@@ -229,7 +229,6 @@ export const PostService = {
       logSupabaseError('addComment', error);
       return null;
     }
-    console.log('Supabase data for addComment:', data); // DEBUG LOG
     // Access username and avatar_url from the profiles object (or first element if it's an array)
     const profileData = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
     return {
@@ -263,7 +262,6 @@ export const PostService = {
       logSupabaseError('fetchComments', error);
       return [];
     }
-    console.log('Supabase data for fetchComments:', data); // DEBUG LOG
     return data.map(comment => {
       // Access username and avatar_url from the profiles object (or first element if it's an array)
       const profileData = Array.isArray(comment.profiles) ? comment.profiles[0] : comment.profiles;
@@ -300,7 +298,6 @@ export const PostService = {
       logSupabaseError('updateComment', error);
       return null;
     }
-    console.log('Supabase data for updateComment:', data); // DEBUG LOG
     // Access username and avatar_url from the profiles object (or first element if it's an array)
     const profileData = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
     return {

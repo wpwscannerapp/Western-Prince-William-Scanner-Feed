@@ -64,16 +64,26 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, error: null }));
     try {
       console.log('Attempting Supabase signOut...'); // Debug log
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        setAuthState(prev => ({ ...prev, error }));
-        console.error('Supabase signOut error:', error); // Detailed error log
-        toast.error(error.message);
-        return { error };
+
+      // Check if there's an active session before attempting to sign out from Supabase
+      // This prevents "Auth session missing" error if the session is already cleared locally
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+
+      if (currentSession) {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          setAuthState(prev => ({ ...prev, error }));
+          console.error('Supabase signOut error:', error); // Detailed error log
+          toast.error(error.message);
+          return { error };
+        }
+        console.log('Supabase signOut successful.'); // Debug log
+      } else {
+        console.log('No active session found, skipping Supabase signOut API call.');
       }
-      console.log('Supabase signOut successful.'); // Debug log
+
       toast.success('Logged out successfully!');
-      // Explicitly reset auth state after successful logout
+      // Explicitly reset auth state after successful logout or if no session was found
       setAuthState({ session: null, user: null, loading: false, error: null });
       return { success: true };
     } catch (e: any) {
