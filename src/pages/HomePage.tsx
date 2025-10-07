@@ -188,7 +188,7 @@ const HomePage = () => {
     return (
       <div className="tw-container tw-mx-auto tw-p-4 tw-pt-24 tw-relative tw-max-w-xl">
         <div className="tw-flex tw-justify-between tw-items-center tw-mb-6">
-          <h1 className="tw-text-3xl tw-font-bold tw-text-foreground">Home Feed</h1>
+          <h1 className="tw-text-3xl tw-font-bold tw-text-foreground">Home Page</h1>
           <NotificationBell />
         </div>
         
@@ -205,7 +205,7 @@ const HomePage = () => {
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-pt-24 tw-relative tw-max-w-xl">
       <div className="tw-flex tw-justify-between tw-items-center tw-mb-6">
-        <h1 className="tw-text-3xl tw-font-bold tw-text-foreground">Home Feed</h1>
+        <h1 className="tw-text-3xl tw-font-bold tw-text-foreground">Home Page</h1>
         <NotificationBell aria-label="Toggle notifications" />
       </div>
 

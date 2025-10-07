@@ -146,7 +146,7 @@ const PostDetailPage: React.FC = () => {
         <div className="tw-text-center">
           <h1 className="tw-text-2xl tw-font-bold tw-text-foreground tw-mb-4">Post Not Found</h1>
           <p className="tw-text-muted-foreground">The post you are looking for does not exist or has been removed.</p>
-          <Button onClick={() => navigate('/home')} className="tw-mt-4 tw-button">Go to Home</Button>
+          <Button onClick={() => navigate('/home')} className="tw-mt-4 tw-button">Go to Home Page</Button>
         </div>
       </div>
     );
@@ -160,7 +160,7 @@ const PostDetailPage: React.FC = () => {
           <p className="tw-text-muted-foreground">{error}</p>
           <div className="tw-flex tw-justify-center tw-gap-2 tw-mt-4">
             <Button onClick={fetchSinglePost} className="tw-button">Retry</Button>
-            <Button onClick={() => navigate('/home')} variant="outline" className="tw-button">Go to Home</Button>
+            <Button onClick={() => navigate('/home')} variant="outline" className="tw-button">Go to Home Page</Button>
           </div>
         </div>
       </div>
@@ -174,7 +174,7 @@ const PostDetailPage: React.FC = () => {
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-pt-24 tw-max-w-3xl">
       <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
-        Back to Feed
+        Back to Home Page
       </Button>
       <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground tw-text-center">Post Detail</h1>
       <div className="tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-md" aria-labelledby={`post-title-${post.id}`}>

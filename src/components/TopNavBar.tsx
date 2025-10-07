@@ -16,7 +16,7 @@ const TopNavBar = () => {
 
   // Define navigation items that are always present for logged-in users
   const loggedInNavItems = [
-    { name: 'Home Feed', icon: Home, path: '/home' },
+    { name: 'Home Page', icon: Home, path: '/home' },
     { name: 'Profile', icon: User, path: '/profile' },
   ];
 
