@@ -229,6 +229,7 @@ export const PostService = {
       logSupabaseError('addComment', error);
       return null;
     }
+    // Correctly access username and avatar_url from the profiles object
     return {
       id: data.id,
       post_id: data.post_id,
@@ -236,8 +237,8 @@ export const PostService = {
       content: data.content,
       created_at: data.created_at,
       updated_at: data.updated_at,
-      username: data.profiles?.[0]?.username || null, // Access first element if profiles is an array
-      avatar_url: data.profiles?.[0]?.avatar_url || null, // Access first element if profiles is an array
+      username: data.profiles?.[0]?.username || null, 
+      avatar_url: data.profiles?.[0]?.avatar_url || null,
     } as Comment;
   },
 
@@ -267,8 +268,9 @@ export const PostService = {
       content: comment.content,
       created_at: comment.created_at,
       updated_at: comment.updated_at,
-      username: comment.profiles?.[0]?.username || null, // Access first element if profiles is an array
-      avatar_url: comment.profiles?.[0]?.avatar_url || null, // Access first element if profiles is an array
+      // Correctly access username and avatar_url from the profiles object
+      username: comment.profiles?.[0]?.username || null, 
+      avatar_url: comment.profiles?.[0]?.avatar_url || null,
     })) as Comment[];
   },
 
@@ -292,6 +294,7 @@ export const PostService = {
       logSupabaseError('updateComment', error);
       return null;
     }
+    // Correctly access username and avatar_url from the profiles object
     return {
       id: data.id,
       post_id: data.post_id,
@@ -299,8 +302,8 @@ export const PostService = {
       content: data.content,
       created_at: data.created_at,
       updated_at: data.updated_at,
-      username: data.profiles?.[0]?.username || null, // Access first element if profiles is an array
-      avatar_url: data.profiles?.[0]?.avatar_url || null, // Access first element if profiles is an array
+      username: data.profiles?.[0]?.username || null, 
+      avatar_url: data.profiles?.[0]?.avatar_url || null,
     } as Comment;
   },
 
