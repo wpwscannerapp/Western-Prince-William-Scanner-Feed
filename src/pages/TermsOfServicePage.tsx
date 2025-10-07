@@ -15,7 +15,7 @@ const TermsOfServicePage: React.FC = () => {
             Last Updated: July 26, 2024
           </CardDescription>
         </CardHeader>
-        <CardContent className="tw-prose dark:tw-prose-invert tw-max-w-none tw-p-6">
+        <CardContent className="tw-prose dark:tw-prose-invert tw-max-w-none tw-p-6 tw-text-foreground">
           <p>Welcome to Western Prince William Scanner Feed! These Terms of Service ("Terms") govern your access to and use of our website, services, and applications (collectively, the "Service"). By accessing or using the Service, you agree to be bound by these Terms.</p>
 
           <h2>1. Acceptance of Terms</h2>
