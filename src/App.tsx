@@ -12,10 +12,11 @@ import Layout from "./components/Layout";
 import AuthPage from "./pages/AuthPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import TermsOfServicePage from "./pages/TermsOfServicePage"; // Import the new page
 import { useAuth } from "./hooks/useAuth";
-import { useAppSettings } from "./hooks/useAppSettings"; // Import useAppSettings
+import { useAppSettings } from "./hooks/useAppSettings";
 import TopNavBar from "./components/TopNavBar";
-import { Button } from "./components/ui/button"; // Import Button for feedback
+import { Button } from "./components/ui/button";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/subscribe" element={<SubscriptionPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/terms-of-service" element={<TermsOfServicePage />} /> {/* New route */}
 
               {/* Protected routes that use the Layout */}
               <Route element={<ProtectedRoute />}>

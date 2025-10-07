@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Lock, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom'; // Corrected import syntax
+import { useNavigate, Link } from 'react-router-dom'; // Corrected import syntax and added Link
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { StripeClient } from '@/integrations/stripe/client';
@@ -120,7 +120,7 @@ const SubscriptionPage = () => {
           </Button>
 
           <p className="tw-xs tw-text-muted-foreground tw-mt-4">
-            By subscribing, you agree to our <a href="#" className="tw-underline hover:tw-text-primary">Terms of Service</a>.
+            By subscribing, you agree to our <Link to="/terms-of-service" className="tw-underline hover:tw-text-primary">Terms of Service</Link>.
           </p>
           {/* Trust Signals */}
           <p className="tw-sm tw-text-muted-foreground tw-flex tw-items-center tw-justify-center">
