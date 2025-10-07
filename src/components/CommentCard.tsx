@@ -81,7 +81,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
 
   if (error) {
     return (
-      <div className="tw-flex tw-space-x-3 tw-p-3 tw-bg-muted/30 tw-rounded-lg tw-border tw-border-border">
+      <div className="tw-flex tw-gap-3 tw-p-4 tw-bg-destructive/10 tw-rounded-lg tw-border tw-border-destructive">
         <div className="tw-flex-1">
           <p className="tw-text-destructive">Error: {error}</p>
           <Button onClick={() => setError(null)} variant="outline" size="sm" className="tw-mt-2">
@@ -93,7 +93,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
   }
 
   return (
-    <div className="tw-flex tw-space-x-3 tw-p-3 tw-bg-muted/30 tw-rounded-lg tw-border tw-border-border">
+    <div className="tw-flex tw-gap-3 tw-p-4 tw-bg-background tw-rounded-lg tw-border tw-border-border">
       <Avatar className="tw-h-8 tw-w-8">
         <AvatarImage src={displayAvatar} alt={displayName} />
         <AvatarFallback className="tw-bg-secondary tw-text-secondary-foreground">
@@ -126,7 +126,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
             </div>
           </div>
         ) : (
-          <p className="tw-text-sm tw-text-foreground tw-whitespace-pre-wrap">{comment.content}</p>
+          <p className="tw-text-sm tw-text-foreground tw-whitespace-pre-wrap tw-leading-relaxed">{comment.content}</p>
         )}
         {isOwner && !isEditing && (
           <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-2">

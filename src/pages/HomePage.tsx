@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useIsSubscribed } from '@/hooks/useIsSubscribed';
 import { handleError } from '@/utils/errorHandler';
-import { POLL_INTERVAL } from '@/config'; // Import from config.ts
+import { POLL_INTERVAL } from '@/config';
 import SkeletonLoader from '@/components/SkeletonLoader';
 
 const HomePage = () => {
@@ -111,7 +111,7 @@ const HomePage = () => {
   }, [posts]);
 
   useEffect(() => {
-    const pollInterval = POLL_INTERVAL; // Use constant from config.ts
+    const pollInterval = POLL_INTERVAL;
     const interval = setInterval(() => {
       if (isSubscribed || isAdmin) {
         fetchNewPosts();
@@ -187,7 +187,7 @@ const HomePage = () => {
 
   if (error) {
     return (
-      <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8 tw-relative tw-max-w-2xl">
+      <div className="tw-container tw-mx-auto tw-p-4 tw-pt-24 tw-relative tw-max-w-xl">
         <div className="tw-flex tw-justify-between tw-items-center tw-mb-6">
           <h1 className="tw-text-3xl tw-font-bold tw-text-foreground">Home Feed</h1>
           <NotificationBell />
@@ -204,7 +204,7 @@ const HomePage = () => {
   }
 
   return (
-    <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8 tw-relative tw-max-w-2xl">
+    <div className="tw-container tw-mx-auto tw-p-4 tw-pt-24 tw-relative tw-max-w-xl">
       <div className="tw-flex tw-justify-between tw-items-center tw-mb-6">
         <h1 className="tw-text-3xl tw-font-bold tw-text-foreground">Home Feed</h1>
         <NotificationBell aria-label="Toggle notifications" />
@@ -215,7 +215,7 @@ const HomePage = () => {
       </p>
 
       {isAdmin && (
-        <div className="tw-sticky tw-top-16 tw-z-10 tw-bg-background tw-p-4 tw-shadow-md tw-mb-8 tw-rounded-lg">
+        <div className="tw-sticky tw-top-20 tw-z-10 tw-bg-background tw-p-4 tw-shadow-md tw-mb-8 tw-rounded-lg">
           <h2 className="tw-text-2xl tw-font-semibold tw-text-foreground tw-mb-4">Create New Post</h2>
           <PostForm
             onSubmit={handleCreatePost}
@@ -224,7 +224,7 @@ const HomePage = () => {
         </div>
       )}
 
-      <div className={`tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-6 ${!isSubscribed && !isAdmin ? 'tw-relative' : ''}`} aria-live="polite">
+      <div className={`tw-space-y-6 ${!isSubscribed && !isAdmin ? 'tw-relative' : ''}`} aria-live="polite">
         <div className={!isSubscribed && !isAdmin ? 'tw-blur-sm tw-pointer-events-none' : ''}>
           {posts.length === 0 && !loading && (
             <div className="tw-text-center tw-py-12 tw-col-span-full">

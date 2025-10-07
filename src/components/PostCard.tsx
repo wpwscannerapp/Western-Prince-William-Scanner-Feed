@@ -177,7 +177,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
         <PostHeader timestamp={post.timestamp} isAdminPost={isAdminPost} />
       </div>
       <CardContent className="tw-pt-2 tw-px-4 tw-pb-4">
-        <p className="tw-text-base tw-mb-4 tw-whitespace-pre-wrap">{post.text}</p>
+        <p className="tw-text-base tw-mb-3 tw-whitespace-pre-wrap tw-leading-relaxed">{post.text}</p>
         {post.image_url && (
           <img
             src={post.image_url}
@@ -215,7 +215,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
         </div>
 
         {showComments && (
-          <div className="tw-w-full tw-space-y-4 tw-mt-4">
+          <div className="tw-w-full tw-space-y-4 tw-mt-4 tw-border-t tw-border-border tw-pt-4">
             <div className="tw-flex tw-gap-2">
               <Input
                 placeholder="Add a comment..."
