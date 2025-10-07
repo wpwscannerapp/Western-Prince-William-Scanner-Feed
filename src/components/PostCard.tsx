@@ -46,6 +46,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
     const likesChannel = supabase
       .channel(`public:likes:post_id=eq.${post.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'likes', filter: `post_id=eq.${post.id}` }, () => {
+        // When a real-time update comes, re-fetch to ensure consistency
         PostService.fetchLikesCount(post.id).then(setLikesCount);
         if (user) {
           PostService.hasUserLiked(post.id, user.id).then(setHasLiked);
@@ -73,19 +74,31 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
       return;
     }
     setIsLiking(true);
+
+    // Optimistic UI update
+    const previousHasLiked = hasLiked;
+    const previousLikesCount = likesCount;
+    setHasLiked(!previousHasLiked);
+    setLikesCount(prev => (previousHasLiked ? prev - 1 : prev + 1));
+
     try {
-      if (hasLiked) {
-        const success = await PostService.removeLike(post.id, user.id);
-        if (!success) {
-          handleError(null, 'Failed to unlike post.');
-        }
+      let success: boolean;
+      if (previousHasLiked) {
+        success = await PostService.removeLike(post.id, user.id);
       } else {
-        const success = await PostService.addLike(post.id, user.id);
-        if (!success) {
-          handleError(null, 'Failed to like post.');
-        }
+        success = await PostService.addLike(post.id, user.id);
+      }
+
+      if (!success) {
+        // Revert UI if API call fails
+        setHasLiked(previousHasLiked);
+        setLikesCount(previousLikesCount);
+        handleError(null, `Failed to ${previousHasLiked ? 'unlike' : 'like'} post.`);
       }
     } catch (err) {
+      // Revert UI on unexpected error
+      setHasLiked(previousHasLiked);
+      setLikesCount(previousLikesCount);
       handleError(err, 'An error occurred while liking the post.');
     } finally {
       setIsLiking(false);
