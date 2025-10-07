@@ -24,12 +24,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    },
-
-    /* Include custom declaration files */
-    "typeRoots": ["./node_modules/@types", "./src/types"],
-    "types": ["react-beautiful-dnd", "react-color"]
+    }
   },
-  "include": ["src/**/*", "src/types/**/*"],
+  "include": ["src", "src/types/global.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
