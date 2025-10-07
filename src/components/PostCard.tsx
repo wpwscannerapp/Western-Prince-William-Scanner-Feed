@@ -2,14 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Heart, MessageCircle, Loader2 } from 'lucide-react';
-import { Post, Comment, PostService } from '@/services/PostService';
+import { Post, PostService } from '@/services/PostService';
 import PostHeader from './PostHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { Input } from '@/components/ui/input';
-import CommentCard from './CommentCard';
 import { handleError } from '@/utils/errorHandler';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 interface PostCardProps {
   post: Post;
@@ -18,37 +16,32 @@ interface PostCardProps {
 const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
   const { user } = useAuth();
   const isAdminPost = !!post.admin_id;
+  const navigate = useNavigate(); // Initialize useNavigate
 
   const [likesCount, setLikesCount] = useState(0);
   const [hasLiked, setHasLiked] = useState(false);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [newCommentContent, setNewCommentContent] = useState('');
   const [isLiking, setIsLiking] = useState(false);
-  const [isCommenting, setIsCommenting] = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [loadingComments, setLoadingComments] = useState(false);
+  const [commentsCount, setCommentsCount] = useState(0); // New state for comments count
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLikesAndComments = async () => {
-    if (!user) return;
-
+  const fetchLikesAndCommentsCount = async () => {
     try {
-      const [likes, likedStatus, fetchedComments] = await Promise.all([
+      const [likes, likedStatus, comments] = await Promise.all([
         PostService.fetchLikesCount(post.id),
-        PostService.hasUserLiked(post.id, user.id),
-        PostService.fetchComments(post.id),
+        user ? PostService.hasUserLiked(post.id, user.id) : Promise.resolve(false),
+        PostService.fetchComments(post.id), // Fetch comments to get count
       ]);
 
       setLikesCount(likes);
       setHasLiked(likedStatus);
-      setComments(fetchedComments);
+      setCommentsCount(comments.length); // Set comments count
     } catch (err) {
       setError(handleError(err, 'Failed to load post data. Please try again.'));
     }
   };
 
   useEffect(() => {
-    fetchLikesAndComments();
+    fetchLikesAndCommentsCount();
 
     const likesChannel = supabase
       .channel(`public:likes:post_id=eq.${post.id}`)
@@ -63,7 +56,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
     const commentsChannel = supabase
       .channel(`public:comments:post_id=eq.${post.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: `post_id=eq.${post.id}` }, () => {
-        PostService.fetchComments(post.id).then(setComments);
+        PostService.fetchComments(post.id).then(fetchedComments => setCommentsCount(fetchedComments.length));
       })
       .subscribe();
 
@@ -73,7 +66,8 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
     };
   }, [post.id, user]);
 
-  const handleLikeToggle = async () => {
+  const handleLikeToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent navigating to post detail when liking
     if (!user) {
       handleError(null, 'You must be logged in to like a post.');
       return;
@@ -98,64 +92,8 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
     }
   };
 
-  const handleAddComment = async () => {
-    if (!user) {
-      handleError(null, 'You must be logged in to comment.');
-      return;
-    }
-    if (newCommentContent.trim() === '') {
-      handleError(null, 'Comment cannot be empty.');
-      return;
-    }
-
-    setIsCommenting(true);
-    try {
-      toast.loading('Adding comment...', { id: 'add-comment' });
-      const newComment = await PostService.addComment(post.id, user.id, newCommentContent);
-      
-      if (newComment) {
-        toast.success('Comment added!', { id: 'add-comment' });
-        setNewCommentContent('');
-      } else {
-        handleError(null, 'Failed to add comment.', { id: 'add-comment' });
-      }
-    } catch (err) {
-      handleError(err, 'An error occurred while adding the comment.', { id: 'add-comment' });
-    } finally {
-      setIsCommenting(false);
-    }
-  };
-
-  const handleCommentUpdated = (updatedComment: Comment) => {
-    setComments(prev => prev.map(c => (c.id === updatedComment.id ? updatedComment : c)));
-  };
-
-  const handleCommentDeleted = (commentId: string) => {
-    setComments(prev => prev.filter(c => c.id !== commentId));
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      handleAddComment();
-    }
-  };
-
-  const handleShowComments = async () => {
-    const newShowState = !showComments;
-    setShowComments(newShowState);
-    
-    if (newShowState && comments.length === 0 && !loadingComments) {
-      setLoadingComments(true);
-      try {
-        const fetchedComments = await PostService.fetchComments(post.id);
-        setComments(fetchedComments);
-      } catch (err) {
-        setError(handleError(err, 'Failed to load comments. Please try again.'));
-      } finally {
-        setLoadingComments(false);
-      }
-    }
+  const handlePostClick = () => {
+    navigate(`/posts/${post.id}`);
   };
 
   if (error) {
@@ -172,7 +110,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
   }
 
   return (
-    <Card className="tw-w-full tw-bg-card tw-border tw-border-border tw-shadow-md tw-text-foreground tw-rounded-lg">
+    <Card className="tw-w-full tw-bg-card tw-border tw-border-border tw-shadow-md tw-text-foreground tw-rounded-lg tw-cursor-pointer" onClick={handlePostClick}>
       <div className="tw-p-4 tw-pb-2">
         <PostHeader timestamp={post.timestamp} isAdminPost={isAdminPost} />
       </div>
@@ -207,51 +145,12 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleShowComments}
+            onClick={handlePostClick} // Clicking comment button also navigates to detail page
             className="tw-text-muted-foreground hover:tw-text-primary tw-button"
           >
-            <MessageCircle className="tw-h-4 tw-w-4 tw-mr-1" /> {comments.length} Comment{comments.length !== 1 ? 's' : ''}
+            <MessageCircle className="tw-h-4 tw-w-4 tw-mr-1" /> {commentsCount} Comment{commentsCount !== 1 ? 's' : ''}
           </Button>
         </div>
-
-        {showComments && (
-          <div className="tw-w-full tw-space-y-4 tw-mt-4 tw-border-t tw-border-border tw-pt-4">
-            <div className="tw-flex tw-gap-2">
-              <Input
-                placeholder="Add a comment..."
-                value={newCommentContent}
-                onChange={(e) => setNewCommentContent(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={isCommenting || !user}
-                className="tw-flex-1 tw-input"
-              />
-              <Button onClick={handleAddComment} disabled={isCommenting || !user} className="tw-button">
-                {isCommenting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
-                Comment
-              </Button>
-            </div>
-            {loadingComments ? (
-              <div className="tw-flex tw-justify-center tw-py-4">
-                <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
-              </div>
-            ) : (
-              <div className="tw-space-y-3">
-                {comments.length === 0 ? (
-                  <p className="tw-text-sm tw-text-muted-foreground tw-text-center">No comments yet. Be the first!</p>
-                ) : (
-                  comments.map(comment => (
-                    <CommentCard
-                      key={comment.id}
-                      comment={comment}
-                      onCommentUpdated={handleCommentUpdated}
-                      onCommentDeleted={handleCommentDeleted}
-                    />
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-        )}
       </CardFooter>
     </Card>
   );

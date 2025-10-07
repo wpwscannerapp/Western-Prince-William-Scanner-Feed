@@ -1,19 +1,32 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Post, PostService } from '@/services/PostService';
+import { Post, Comment, PostService } from '@/services/PostService';
 import PostCard from '@/components/PostCard';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MessageCircle } from 'lucide-react';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Button } from '@/components/ui/button';
 import { handleError } from '@/utils/errorHandler';
+import { Input } from '@/components/ui/input';
+import CommentCard from '@/components/CommentCard';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const PostDetailPage: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [relatedPosts, setRelatedPosts] = useState<Post[]>([]); // State for related posts
+  const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
+  
+  // Comment states
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newCommentContent, setNewCommentContent] = useState('');
+  const [isCommenting, setIsCommenting] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(false);
 
   const fetchSinglePost = useCallback(async () => {
     if (!postId) {
@@ -38,15 +51,12 @@ const PostDetailPage: React.FC = () => {
     }
   }, [postId]);
 
-  // Hypothetical fetch for related posts
   const fetchRelatedPosts = useCallback(async () => {
-    // In a real application, this would fetch posts related by tags, keywords, etc.
-    // For now, we'll simulate by fetching a few recent posts excluding the current one.
     try {
-      const allPosts = await PostService.fetchPosts(0); // Fetch some posts
+      const allPosts = await PostService.fetchPosts(0);
       const filteredRelated = allPosts
         .filter(p => p.id !== postId)
-        .slice(0, 2); // Get up to 2 related posts
+        .slice(0, 2);
       setRelatedPosts(filteredRelated);
     } catch (err) {
       handleError(err, 'Failed to load related posts.');
@@ -54,10 +64,84 @@ const PostDetailPage: React.FC = () => {
     }
   }, [postId]);
 
+  const fetchCommentsForPost = useCallback(async () => {
+    if (!postId) return;
+    setLoadingComments(true);
+    try {
+      const fetchedComments = await PostService.fetchComments(postId);
+      setComments(fetchedComments);
+    } catch (err) {
+      setError(handleError(err, 'Failed to load comments. Please try again.'));
+    } finally {
+      setLoadingComments(false);
+    }
+  }, [postId]);
+
   useEffect(() => {
     fetchSinglePost();
-    fetchRelatedPosts(); // Fetch related posts when component mounts or postId changes
-  }, [fetchSinglePost, fetchRelatedPosts]);
+    fetchRelatedPosts();
+    fetchCommentsForPost(); // Fetch comments when the page loads
+
+    // Set up real-time subscription for comments
+    const commentsChannel = supabase
+      .channel(`public:comments:post_id=eq.${postId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: `post_id=eq.${postId}` }, () => {
+        fetchCommentsForPost(); // Re-fetch comments on any change
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(commentsChannel);
+    };
+  }, [fetchSinglePost, fetchRelatedPosts, fetchCommentsForPost, postId]);
+
+  const handleAddComment = async () => {
+    if (!user) {
+      handleError(null, 'You must be logged in to comment.');
+      return;
+    }
+    if (newCommentContent.trim() === '') {
+      handleError(null, 'Comment cannot be empty.');
+      return;
+    }
+    if (!postId) {
+      handleError(null, 'Post ID is missing for commenting.');
+      return;
+    }
+
+    setIsCommenting(true);
+    try {
+      toast.loading('Adding comment...', { id: 'add-comment' });
+      const newComment = await PostService.addComment(postId, user.id, newCommentContent);
+      
+      if (newComment) {
+        toast.success('Comment added!', { id: 'add-comment' });
+        setNewCommentContent('');
+        // Comments will be re-fetched by the real-time subscription
+      } else {
+        handleError(null, 'Failed to add comment.', { id: 'add-comment' });
+      }
+    } catch (err) {
+      handleError(err, 'An error occurred while adding the comment.', { id: 'add-comment' });
+    } finally {
+      setIsCommenting(false);
+    }
+  };
+
+  const handleCommentUpdated = (updatedComment: Comment) => {
+    setComments(prev => prev.map(c => (c.id === updatedComment.id ? updatedComment : c)));
+  };
+
+  const handleCommentDeleted = (commentId: string) => {
+    setComments(prev => prev.filter(c => c.id !== commentId));
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleAddComment();
+    }
+  };
 
   if (loading) {
     return (
@@ -100,13 +184,57 @@ const PostDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="tw-container tw-mx-auto tw-p-4 tw-pt-8 tw-max-w-3xl">
+    <div className="tw-container tw-mx-auto tw-p-4 tw-pt-24 tw-max-w-3xl">
       <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
         Back to Feed
       </Button>
       <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground tw-text-center">Post Detail</h1>
       <div className="tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-md" aria-labelledby={`post-title-${post.id}`}>
-        <PostCard post={post} />
+        {/* PostCard is now just for display, not interaction */}
+        <PostCard post={post} /> 
+      </div>
+
+      {/* Comments Section */}
+      <div className="tw-mt-8 tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-md">
+        <h2 className="tw-text-2xl tw-font-semibold tw-mb-4 tw-text-foreground tw-flex tw-items-center tw-gap-2">
+          <MessageCircle className="tw-h-6 tw-w-6" /> Comments ({comments.length})
+        </h2>
+        <div className="tw-flex tw-gap-2 tw-mb-6">
+          <Input
+            placeholder="Add a comment..."
+            value={newCommentContent}
+            onChange={(e) => setNewCommentContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isCommenting || !user}
+            className="tw-flex-1 tw-input"
+          />
+          <Button onClick={handleAddComment} disabled={isCommenting || !user} className="tw-button">
+            {isCommenting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
+            Comment
+          </Button>
+        </div>
+
+        {loadingComments ? (
+          <div className="tw-flex tw-justify-center tw-py-4">
+            <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
+            <span className="tw-ml-2 tw-text-muted-foreground">Loading comments...</span>
+          </div>
+        ) : (
+          <div className="tw-space-y-4">
+            {comments.length === 0 ? (
+              <p className="tw-text-sm tw-text-muted-foreground tw-text-center">No comments yet. Be the first!</p>
+            ) : (
+              comments.map(comment => (
+                <CommentCard
+                  key={comment.id}
+                  comment={comment}
+                  onCommentUpdated={handleCommentUpdated}
+                  onCommentDeleted={handleCommentDeleted}
+                />
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       {/* Related Posts Section */}
@@ -115,6 +243,7 @@ const PostDetailPage: React.FC = () => {
           <h2 className="tw-text-2xl tw-font-semibold tw-mb-4 tw-text-foreground">Related Posts</h2>
           <div className="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 tw-gap-4">
             {relatedPosts.map(relatedPost => (
+              // Render related posts as clickable cards
               <PostCard key={relatedPost.id} post={relatedPost} />
             ))}
           </div>
