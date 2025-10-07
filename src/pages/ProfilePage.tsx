@@ -1,5 +1,4 @@
 import ProfileForm from '@/components/ProfileForm';
-import { MadeWithDyad } from '@/components/made-with-dyad';
 import { PROFILE_TITLE, PROFILE_DESCRIPTION } from '@/lib/constants';
 import { Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -47,7 +46,7 @@ const ProfilePage = () => {
         {/* ProfileForm now contains its own CardContent */}
         <ProfileForm />
       </Card>
-      <MadeWithDyad />
+      <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
     </div>
   );
 };

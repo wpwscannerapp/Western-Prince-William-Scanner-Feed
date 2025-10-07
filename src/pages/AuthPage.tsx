@@ -60,6 +60,7 @@ const AuthPage = () => {
           </div>
         )}
       </div>
+      <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
     </div>
   );
 };

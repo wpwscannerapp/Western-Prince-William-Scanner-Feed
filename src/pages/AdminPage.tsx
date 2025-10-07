@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { MadeWithDyad } from '@/components/made-with-dyad';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -50,7 +49,7 @@ const AdminPage = () => {
             Retry
           </Button>
         </div>
-        <MadeWithDyad />
+        <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
       </div>
     );
   }
@@ -63,7 +62,7 @@ const AdminPage = () => {
         <div className="tw-grid tw-gap-4">
           <AdminDashboardTabs activeTab={activeTab} />
         </div>
-        <MadeWithDyad />
+        <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
       </main>
     </div>
   );

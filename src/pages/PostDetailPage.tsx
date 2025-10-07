@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Post, Comment, PostService } from '@/services/PostService';
 import PostCard from '@/components/PostCard';
 import { Loader2, MessageCircle } from 'lucide-react';
-import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Button } from '@/components/ui/button';
 import { handleError } from '@/utils/errorHandler';
 import { Input } from '@/components/ui/input';
@@ -236,7 +235,7 @@ const PostDetailPage: React.FC = () => {
         </div>
       )}
 
-      <MadeWithDyad />
+      <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
     </div>
   );
 };

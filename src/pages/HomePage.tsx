@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { MadeWithDyad } from '@/components/made-with-dyad';
 import PostCard from '@/components/PostCard';
 import SubscribeOverlay from '@/components/SubscribeOverlay';
 import NotificationBell from '@/components/NotificationBell';
@@ -198,7 +197,7 @@ const HomePage = () => {
           <Button onClick={handleRetry}>Retry</Button>
         </div>
         
-        <MadeWithDyad />
+        <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
       </div>
     );
   }
@@ -274,7 +273,7 @@ const HomePage = () => {
         </Button>
       )}
 
-      <MadeWithDyad />
+      <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
     </div>
   );
 };
