@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, User, Shield, LogIn, LogOut } from 'lucide-react';
+import { Home, User, Shield, LogIn, LogOut, CreditCard } from 'lucide-react'; // Added CreditCard icon
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 
 const TopNavBar = () => {
   const { user, loading, signOut } = useAuth();
-  const { isAdmin } = useIsAdmin(); // Destructure isAdmin from the hook
+  const { isAdmin } = useIsAdmin();
   const location = useLocation();
 
   const handleSignOut = async () => {
@@ -24,7 +24,6 @@ const TopNavBar = () => {
     <nav className="tw-fixed tw-top-0 tw-left-0 tw-right-0 tw-bg-card tw-border-b tw-border-border tw-shadow-lg tw-z-50">
       <div className="tw-container tw-mx-auto tw-flex tw-justify-between tw-items-center tw-h-16 tw-px-4">
         <div className="tw-flex tw-items-center">
-          {/* Removed logo image */}
           <span className="tw-text-lg tw-font-bold tw-text-foreground">Western Prince William Scanner Feed</span>
         </div>
         <div className="tw-flex tw-space-x-6 tw-items-center">
@@ -65,19 +64,37 @@ const TopNavBar = () => {
               </Button>
             </>
           ) : ( // If user is not logged in and not loading
-            !loading && location.pathname !== '/auth' && ( // Only show login if not on auth page
-              <NavLink
-                to="/auth"
-                className={({ isActive }) =>
-                  cn(
-                    "tw-flex tw-items-center tw-text-sm tw-font-medium tw-text-muted-foreground tw-transition-colors hover:tw-text-primary",
-                    isActive && "tw-text-primary"
-                  )
-                }
-              >
-                <LogIn className="tw-h-5 tw-w-5 tw-mr-1" />
-                Login
-              </NavLink>
+            !loading && (
+              <>
+                {location.pathname !== '/auth' && ( // Only show login if not on auth page
+                  <NavLink
+                    to="/auth"
+                    className={({ isActive }) =>
+                      cn(
+                        "tw-flex tw-items-center tw-text-sm tw-font-medium tw-text-muted-foreground tw-transition-colors hover:tw-text-primary",
+                        isActive && "tw-text-primary"
+                      )
+                    }
+                  >
+                    <LogIn className="tw-h-5 tw-w-5 tw-mr-1" />
+                    Login
+                  </NavLink>
+                )}
+                {location.pathname !== '/subscribe' && ( // Show subscribe link if not on subscribe page
+                  <NavLink
+                    to="/subscribe"
+                    className={({ isActive }) =>
+                      cn(
+                        "tw-flex tw-items-center tw-text-sm tw-font-medium tw-text-muted-foreground tw-transition-colors hover:tw-text-primary",
+                        isActive && "tw-text-primary"
+                      )
+                    }
+                  >
+                    <CreditCard className="tw-h-5 tw-w-5 tw-mr-1" />
+                    Subscribe
+                  </NavLink>
+                )}
+              </>
             )
           )}
         </div>
