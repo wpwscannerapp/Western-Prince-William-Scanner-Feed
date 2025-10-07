@@ -12,13 +12,11 @@ import { toast } from 'sonner';
 import { handleError } from '@/utils/errorHandler';
 import { ChromePicker } from 'react-color';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-// Removed unused import: import { DragDropContext } from 'react-beautiful-dnd';
 import { Loader2, RotateCcw, Eye } from 'lucide-react';
-// Removed unused import: import { useAuth } from '@/hooks/useAuth'; // Corrected import syntax
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import LayoutEditor, { LayoutComponent } from './LayoutEditor'; // Corrected import for LayoutComponent
+import LayoutEditor, { LayoutComponent } from './LayoutEditor';
 import { SettingsService, AppSettings } from '@/services/SettingsService';
-import { hexToHsl } from '@/lib/hexToHsl';
+// Removed hexToHsl import as it's no longer used directly here
 
 // Extend schema with layout
 const settingsSchema = z.object({
@@ -34,7 +32,6 @@ const settingsSchema = z.object({
 type SettingsFormValues = z.infer<typeof settingsSchema>;
 
 const AppSettingsForm: React.FC = () => {
-  // Removed unused 'user' variable from useAuth()
   const { isAdmin, loading: isAdminLoading } = useIsAdmin();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -71,7 +68,7 @@ const AppSettingsForm: React.FC = () => {
           layout: currentSettings.layout || [],
         };
         form.reset(formValues);
-        applyStyles(currentSettings);
+        // Removed direct style application here
       }
 
       const history = await SettingsService.fetchSettingsHistory();
@@ -131,8 +128,8 @@ const AppSettingsForm: React.FC = () => {
       if (!historySuccess) console.warn('Failed to save settings to history.');
 
       toast.success('Settings saved successfully!', { id: 'save-settings' });
-      applyStyles(settingsForHistory);
-      fetchSettingsAndHistory();
+      // Removed direct style application here. useAppSettings will handle it.
+      fetchSettingsAndHistory(); // Re-fetch to update history and trigger useAppSettings
     } catch (err) {
       handleError(err, 'Failed to save settings.');
     } finally {
@@ -140,22 +137,7 @@ const AppSettingsForm: React.FC = () => {
     }
   };
 
-  const applyStyles = (settings: AppSettings) => {
-    document.documentElement.style.setProperty('--app-primary-color-hex', settings.primary_color);
-    document.documentElement.style.setProperty('--primary', hexToHsl(settings.primary_color));
-    document.documentElement.style.setProperty('--app-secondary-color-hex', settings.secondary_color);
-    document.documentElement.style.setProperty('--secondary', hexToHsl(settings.secondary_color));
-    document.documentElement.style.setProperty('--app-font-family', settings.font_family);
-    
-    const customCssId = 'custom-app-css';
-    let styleTag = document.getElementById(customCssId) as HTMLStyleElement;
-    if (!styleTag) {
-      styleTag = document.createElement('style');
-      styleTag.id = customCssId;
-      document.head.appendChild(styleTag);
-    }
-    styleTag.textContent = settings.custom_css || '';
-  };
+  // Removed applyStyles function as it's no longer needed here
 
   const handleRevert = async (historyId: string) => {
     setIsSaving(true);
@@ -177,9 +159,9 @@ const AppSettingsForm: React.FC = () => {
         layout: historyEntry.settings.layout || [],
       };
       form.reset(formValues);
-      applyStyles(historyEntry.settings);
+      // Removed direct style application here. useAppSettings will handle it.
       toast.success('Reverted to previous settings!', { id: 'revert-settings' });
-      fetchSettingsAndHistory();
+      fetchSettingsAndHistory(); // Re-fetch to update history and trigger useAppSettings
     } catch (err) {
       handleError(err, 'Failed to revert settings.');
     } finally {
@@ -339,7 +321,7 @@ const AppSettingsForm: React.FC = () => {
                 ))
               )}
             </div>
-            <h3 className="tw-text-lg tw-font-semibold tw-mt-4 tw-mb-2">Color & Font Preview</h3>
+            <h3 className="tw-lg tw-font-semibold tw-mt-4 tw-mb-2">Color & Font Preview</h3>
             <div className="tw-space-y-2">
               <p className="tw-text-foreground">This text uses the selected font family.</p>
               <div className="tw-flex tw-items-center tw-gap-2">
@@ -355,13 +337,13 @@ const AppSettingsForm: React.FC = () => {
             </div>
             {form.watch('logo_url') && (
               <div className="tw-mt-4">
-                <h3 className="tw-text-lg tw-font-semibold tw-mb-2">Logo Preview</h3>
+                <h3 className="tw-lg tw-font-semibold tw-mb-2">Logo Preview</h3>
                 <img src={form.watch('logo_url') || undefined} alt="Logo Preview" className="tw-max-h-20 tw-max-w-full tw-object-contain" />
               </div>
             )}
             {form.watch('custom_css') && (
               <div className="tw-mt-4">
-                <h3 className="tw-text-lg tw-font-semibold tw-mb-2">Custom CSS Applied</h3>
+                <h3 className="tw-lg tw-font-semibold tw-mb-2">Custom CSS Applied</h3>
                 <p className="tw-text-sm tw-text-muted-foreground">Custom CSS is active in this preview.</p>
               </div>
             )}

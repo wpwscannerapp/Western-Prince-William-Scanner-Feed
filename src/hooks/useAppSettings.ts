@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SettingsService, AppSettings } from '@/services/SettingsService';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
-import { hexToHsl, darkenHexColor, hexToRgb } from '@/lib/hexToHsl'; // Import hexToRgb
+import { hexToHsl, darkenHexColor, hexToRgb } from '@/lib/hexToHsl';
 
 export function useAppSettings() {
   const queryClient = useQueryClient();
@@ -18,7 +18,7 @@ export function useAppSettings() {
     if (appSettings) {
       // Apply primary color
       document.documentElement.style.setProperty('--app-primary-color-hex', appSettings.primary_color);
-      document.documentElement.style.setProperty('--primary', hexToHsl(appSettings.primary_color));
+      document.documentElement.style.setProperty('--primary', hexToHsl(appSettings.primary_color)); // Set the main --primary HSL variable
       // Calculate and set darker primary color
       document.documentElement.style.setProperty('--app-primary-color-darker-hex', darkenHexColor(appSettings.primary_color, 10)); // Darken by 10%
       // Set primary color RGB for shadows
@@ -27,12 +27,14 @@ export function useAppSettings() {
 
       // Apply secondary color
       document.documentElement.style.setProperty('--app-secondary-color-hex', appSettings.secondary_color);
-      document.documentElement.style.setProperty('--secondary', hexToHsl(appSettings.secondary_color));
+      document.documentElement.style.setProperty('--secondary', hexToHsl(appSettings.secondary_color)); // Set the main --secondary HSL variable
       // Calculate and set darker secondary color
       document.documentElement.style.setProperty('--app-secondary-color-darker-hex', darkenHexColor(appSettings.secondary_color, 10)); // Darken by 10%
 
       // Apply font family
       document.documentElement.style.setProperty('--app-font-family', appSettings.font_family);
+      // Also set the base font-family for direct CSS usage if needed
+      document.documentElement.style.setProperty('font-family', appSettings.font_family);
       
       // Apply custom CSS
       const customCssId = 'custom-app-css';
