@@ -14,7 +14,6 @@ const SubscriptionPage = () => {
   const { user, loading: authLoading } = useAuth();
   const { isSubscribed, loading: isSubscribedLoading } = useIsSubscribed();
   const [isLoading, setIsLoading] = React.useState(false);
-  const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     if (!authLoading && !isSubscribedLoading && isSubscribed) {
@@ -78,8 +77,21 @@ const SubscriptionPage = () => {
         </CardHeader>
         <CardContent className="tw-space-y-6">
           {/* Plan Comparison */}
-          <div className="tw-grid tw-grid-cols-1 tw-gap-4 tw-mb-6 tw-justify-center" role="grid" aria-label="Subscription Plan Comparison">
-            <Card className="tw-border-primary tw-border-2 tw-shadow-md tw-max-w-md tw-mx-auto" role="rowheader">
+          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4 tw-mb-6 tw-justify-center" role="grid" aria-label="Subscription Plan Comparison">
+            <Card className="tw-bg-muted/30 tw-border-border tw-shadow-sm" role="rowheader">
+              <CardHeader>
+                <CardTitle className="tw-text-xl">Free Plan</CardTitle>
+              </CardHeader>
+              <CardContent className="tw-text-left">
+                <ul className="tw-space-y-2 tw-text-foreground">
+                  <li className="tw-flex tw-items-center"><CheckCircle className="tw-h-4 tw-w-4 tw-text-muted-foreground tw-mr-2" /> Limited post access</li>
+                  <li className="tw-flex tw-items-center"><CheckCircle className="tw-h-4 tw-w-4 tw-text-muted-foreground tw-mr-2" /> Ads included</li>
+                  <li className="tw-flex tw-items-center tw-text-muted-foreground"><Lock className="tw-h-4 tw-w-4 tw-mr-2" /> No real-time notifications</li>
+                  <li className="tw-flex tw-items-center tw-text-muted-foreground"><Lock className="tw-h-4 tw-w-4 tw-mr-2" /> No exclusive posts</li>
+                </ul>
+              </CardContent>
+            </Card>
+            <Card className="tw-border-primary tw-border-2 tw-shadow-md" role="rowheader">
               <CardHeader>
                 <CardTitle className="tw-text-xl tw-text-primary">Premium Plan</CardTitle>
               </CardHeader>
@@ -120,18 +132,16 @@ const SubscriptionPage = () => {
             Start Free Trial
           </Button>
 
-          <p className="tw-xs tw-text-muted-foreground tw-mt-4">
+          <p className="tw-text-xs tw-text-muted-foreground tw-mt-4">
             By subscribing, you agree to our <Link to="/terms-of-service" className="tw-underline hover:tw-text-primary">Terms of Service</Link>.
           </p>
           {/* Trust Signals */}
-          <p className="tw-sm tw-text-muted-foreground tw-flex tw-items-center tw-justify-center">
+          <p className="tw-text-sm tw-text-muted-foreground tw-flex tw-items-center tw-justify-center">
             <Lock className="tw-h-4 tw-w-4 tw-mr-1" /> Secure payments via Stripe — Join over <span className="tw-font-bold tw-text-primary tw-mx-1">20,000</span> scanner fans!
           </p>
         </CardContent>
       </Card>
-      <footer className="tw-w-full tw-py-4 tw-text-center tw-text-xs tw-text-muted-foreground tw-mt-8">
-        © {currentYear} Western Prince William Scanner Feed. All rights reserved.
-      </footer>
+      <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
     </div>
   );
 };

@@ -48,18 +48,20 @@ const AdminPage = () => {
             Retry
           </Button>
         </div>
+        <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
       </div>
     );
   }
 
   return (
-    <div className="tw-flex tw-min-h-screen tw-bg-background">
+    <div className="tw-flex tw-flex-col md:tw-flex-row tw-min-h-screen tw-bg-background"> {/* Changed to flex-col on mobile, flex-row on md */}
       <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
       <main className="tw-flex-1 tw-p-4 md:tw-p-8">
         <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground">Admin Dashboard</h1>
         <div className="tw-grid tw-gap-4">
           <AdminDashboardTabs activeTab={activeTab} />
         </div>
+        <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
       </main>
     </div>
   );

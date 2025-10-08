@@ -10,7 +10,6 @@ import { Card, CardContent } from '@/components/ui/card';
 const AuthPage = () => {
   const { user, loading, error } = useAuth();
   const navigate = useNavigate();
-  const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     if (!loading && user) {
@@ -61,9 +60,7 @@ const AuthPage = () => {
           </div>
         )}
       </div>
-      <footer className="tw-w-full tw-py-4 tw-text-center tw-text-xs tw-text-muted-foreground tw-mt-8">
-        © {currentYear} Western Prince William Scanner Feed. All rights reserved.
-      </footer>
+      <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
     </div>
   );
 };

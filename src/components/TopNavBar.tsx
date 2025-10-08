@@ -4,7 +4,8 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Button } from '@/components/ui/button';
-import NotificationBell from './NotificationBell'; // Import NotificationBell
+import NotificationBell from './NotificationBell';
+import MobileNav from './MobileNav'; // Import MobileNav
 
 const TopNavBar = () => {
   const { user, loading, signOut } = useAuth();
@@ -17,7 +18,7 @@ const TopNavBar = () => {
 
   // Define navigation items that are always present for logged-in users
   const loggedInNavItems = [
-    { name: 'Home', icon: Home, path: '/home' }, // Changed 'Home Page' to 'Home' for brevity in nav
+    { name: 'Home Page', icon: Home, path: '/home' },
     { name: 'Profile', icon: User, path: '/profile' },
   ];
 
@@ -25,10 +26,11 @@ const TopNavBar = () => {
     <nav className="tw-fixed tw-top-0 tw-left-0 tw-right-0 tw-bg-card tw-border-b tw-border-border tw-shadow-lg tw-z-50">
       <div className="tw-container tw-mx-auto tw-flex tw-justify-between tw-items-center tw-h-16 tw-px-4">
         <div className="tw-flex tw-items-center">
-          <span className="tw-text-lg tw-font-bold tw-text-foreground">Western Prince William Scanner Feed</span>
+          <MobileNav /> {/* Mobile navigation trigger */}
+          <span className="tw-text-lg tw-font-bold tw-text-foreground tw-ml-2 md:tw-ml-0">Western Prince William Scanner Feed</span>
         </div>
-        <div className="tw-flex tw-space-x-4 tw-items-center"> {/* Adjusted spacing */}
-          {!loading && user ? ( // If user is logged in
+        <div className="tw-hidden md:tw-flex tw-space-x-4 tw-items-center"> {/* Desktop navigation */}
+          {!loading && user ? (
             <>
               {loggedInNavItems.map((item) => (
                 <NavLink
@@ -45,7 +47,7 @@ const TopNavBar = () => {
                   {item.name}
                 </NavLink>
               ))}
-              {isAdmin && ( // Admin link only for admins
+              {isAdmin && (
                 <NavLink
                   to="/admin"
                   className={({ isActive }) =>
@@ -59,16 +61,16 @@ const TopNavBar = () => {
                   Admin
                 </NavLink>
               )}
-              <NotificationBell aria-label="Toggle notifications" /> {/* Notification Bell here */}
+              <NotificationBell aria-label="Toggle notifications" />
               <Button variant="ghost" size="sm" onClick={handleSignOut} className="tw-text-muted-foreground hover:tw-text-primary">
                 <LogOut className="tw-h-5 tw-w-5 tw-mr-1" />
                 Logout
               </Button>
             </>
-          ) : ( // If user is not logged in and not loading
+          ) : (
             !loading && (
               <>
-                {location.pathname !== '/auth' && ( // Only show login if not on auth page
+                {location.pathname !== '/auth' && (
                   <NavLink
                     to="/auth"
                     className={({ isActive }) =>
@@ -82,7 +84,7 @@ const TopNavBar = () => {
                     Login
                   </NavLink>
                 )}
-                {location.pathname !== '/subscribe' && ( // Show subscribe link if not on subscribe page
+                {location.pathname !== '/subscribe' && (
                   <NavLink
                     to="/subscribe"
                     className={({ isActive }) =>
