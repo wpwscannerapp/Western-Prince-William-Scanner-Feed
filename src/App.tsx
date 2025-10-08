@@ -25,15 +25,18 @@ const queryClient = new QueryClient();
 
 // Component to apply app settings and render children
 const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
+  console.log('AppSettingsProvider: Rendering...');
   useAppSettings(); // This hook handles setting CSS variables
   return <>{children}</>;
 };
 
 // ProtectedRoute component to guard routes
 const ProtectedRoute = () => {
+  console.log('ProtectedRoute: Checking authentication...');
   const { user, loading } = useAuth();
 
   if (loading) {
+    console.log('ProtectedRoute: Auth loading...');
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
         <p>Loading...</p>
@@ -42,59 +45,64 @@ const ProtectedRoute = () => {
   }
 
   if (!user) {
+    console.log('ProtectedRoute: User not authenticated, navigating to /auth.');
     return <Navigate to="/auth" replace />;
   }
 
+  console.log('ProtectedRoute: User authenticated, rendering Outlet.');
   // If authenticated, render the Outlet for nested routes
   return <Outlet />;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Sonner />
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AppSettingsProvider> {/* Wrap the entire app with AppSettingsProvider */}
-          <TopNavBar />
-          <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/subscribe" element={<SubscriptionPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+const App = () => {
+  console.log('App: Rendering...');
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Sonner />
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <AppSettingsProvider> {/* Wrap the entire app with AppSettingsProvider */}
+            <TopNavBar />
+            <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/subscribe" element={<SubscriptionPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
-              {/* Protected routes that use the Layout */}
-              <Route element={<ProtectedRoute />}>
-                <Route element={<Layout />}>
-                  <Route path="/home" element={<HomePage />} />
-                  <Route path="/home/incidents" element={<IncidentsPage />} /> {/* New route */}
-                  <Route path="/home/weather" element={<WeatherPage />} />     {/* New route */}
-                  <Route path="/home/traffic" element={<TrafficPage />} />     {/* New route */}
-                  <Route path="/profile" element={<ProfilePage />} />
-                  <Route path="/admin" element={<AdminPage />} />
-                  <Route path="/posts/:postId" element={<PostDetailPage />} />
+                {/* Protected routes that use the Layout */}
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<Layout />}>
+                    <Route path="/home" element={<HomePage />} />
+                    <Route path="/home/incidents" element={<IncidentsPage />} /> {/* New route */}
+                    <Route path="/home/weather" element={<WeatherPage />} />     {/* New route */}
+                    <Route path="/home/traffic" element={<TrafficPage />} />     {/* New route */}
+                    <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/admin" element={<AdminPage />} />
+                    <Route path="/posts/:postId" element={<PostDetailPage />} />
+                  </Route>
                 </Route>
-              </Route>
 
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </div>
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div>
 
-          {/* Floating Feedback Button */}
-          <Button
-            variant="outline"
-            className="tw-fixed tw-bottom-4 tw-right-4 tw-rounded-full tw-shadow-lg tw-button tw-z-50"
-            onClick={() => window.open('mailto:support@example.com')}
-            aria-label="Send feedback"
-          >
-            Feedback
-          </Button>
-        </AppSettingsProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+            {/* Floating Feedback Button */}
+            <Button
+              variant="outline"
+              className="tw-fixed tw-bottom-4 tw-right-4 tw-rounded-full tw-shadow-lg tw-button tw-z-50"
+              onClick={() => window.open('mailto:support@example.com')}
+              aria-label="Send feedback"
+            >
+              Feedback
+            </Button>
+          </AppSettingsProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

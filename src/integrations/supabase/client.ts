@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+console.log('Supabase Client: VITE_SUPABASE_URL:', supabaseUrl ? 'Set' : 'Missing');
+console.log('Supabase Client: VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Set' : 'Missing');
+
 if (!supabaseUrl) {
   throw new Error('VITE_SUPABASE_URL is not defined in environment variables. Please check your .env file.');
 }
@@ -16,3 +19,4 @@ if (!supabaseUrl.startsWith('http://') && !supabaseUrl.startsWith('https://')) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+console.log('Supabase Client: Client created successfully.');
