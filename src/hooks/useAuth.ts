@@ -2,8 +2,9 @@ import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import { SessionService } from '@/services/SessionService'; // Import SessionService
-import { MAX_CONCURRENT_SESSIONS } from '@/config'; // Import MAX_CONCURRENT_SESSIONS
+import { SessionService } from '@/services/SessionService';
+import { MAX_CONCURRENT_SESSIONS } from '@/config';
+import { ProfileService } from '@/services/ProfileService'; // Import ProfileService
 
 interface AuthState {
   session: Session | null;
@@ -41,8 +42,14 @@ export function useAuth() {
       return;
     }
 
-    // Delete oldest sessions if limit is exceeded
-    await SessionService.deleteOldestSessions(session.user.id, MAX_CONCURRENT_SESSIONS);
+    // Fetch user profile to check role
+    const profile = await ProfileService.fetchProfile(session.user.id);
+    const isCurrentUserAdmin = profile?.role === 'admin';
+
+    if (!isCurrentUserAdmin) {
+      // Delete oldest sessions if limit is exceeded for non-admin users
+      await SessionService.deleteOldestSessions(session.user.id, MAX_CONCURRENT_SESSIONS);
+    }
 
     // Create a new session record
     await SessionService.createSession(session.user.id, newSessionId, session.expires_in);
