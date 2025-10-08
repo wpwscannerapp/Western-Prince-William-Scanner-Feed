@@ -27,7 +27,7 @@ const TopNavBar = () => {
       <div className="tw-container tw-mx-auto tw-flex tw-justify-between tw-items-center tw-h-16 tw-px-4">
         <div className="tw-flex tw-items-center">
           <MobileNav /> {/* Mobile navigation trigger */}
-          <span className="tw-text-lg tw-font-bold tw-text-foreground tw-ml-2 md:tw-ml-0">Western Prince William Scanner Feed</span>
+          <span className="tw-text-base sm:tw-text-lg tw-font-bold tw-text-foreground tw-ml-2 md:tw-ml-0 tw-whitespace-normal tw-break-words tw-max-w-[calc(100vw-120px)]">Western Prince William Scanner Feed</span>
         </div>
         <div className="tw-hidden md:tw-flex tw-space-x-4 tw-items-center"> {/* Desktop navigation */}
           {!loading && user ? (
@@ -52,8 +52,8 @@ const TopNavBar = () => {
                   to="/admin"
                   className={({ isActive }) =>
                     cn(
-                      "tw-flex tw-items-center tw-text-sm tw-font-medium tw-text-muted-foreground tw-transition-colors hover:tw-text-primary",
-                      isActive && "tw-text-primary"
+                        "tw-flex tw-items-center tw-text-sm tw-font-medium tw-text-muted-foreground tw-transition-colors hover:tw-text-primary",
+                        isActive && "tw-text-primary"
                     )
                   }
                 >
