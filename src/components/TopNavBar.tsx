@@ -27,7 +27,8 @@ const TopNavBar = () => {
       <div className="tw-container tw-mx-auto tw-flex tw-justify-between tw-items-center tw-h-16 tw-px-4">
         <div className="tw-flex tw-items-center">
           <MobileNav /> {/* Mobile navigation trigger */}
-          <span className="tw-text-base sm:tw-text-lg tw-font-bold tw-text-foreground tw-ml-2 md:tw-ml-0 tw-whitespace-normal tw-break-words tw-max-w-[calc(100vw-120px)]">Western Prince William Scanner Feed</span>
+          {/* Adjusted text size for xs screens and max-width calculation */}
+          <span className="tw-text-sm xs:tw-text-base sm:tw-text-lg tw-font-bold tw-text-foreground tw-ml-2 md:tw-ml-0 tw-whitespace-normal tw-break-words tw-max-w-[calc(100vw-80px)] md:tw-max-w-none">Western Prince William Scanner Feed</span>
         </div>
         <div className="tw-hidden md:tw-flex tw-space-x-4 tw-items-center"> {/* Desktop navigation */}
           {!loading && user ? (
