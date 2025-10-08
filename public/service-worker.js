@@ -18,6 +18,12 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // IMPORTANT: Bypass service worker for non-http(s) requests (e.g., chrome-extension://)
+  if (!event.request.url.startsWith('http')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   // Bypass service worker for Supabase API calls
   if (event.request.url.includes('supabase.co')) {
     event.respondWith(fetch(event.request));
