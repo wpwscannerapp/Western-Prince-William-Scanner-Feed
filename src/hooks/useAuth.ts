@@ -65,8 +65,10 @@ export function useAuth() {
   }, []);
 
   React.useEffect(() => {
+    console.log('useAuth: Initializing auth state listener...');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, session: Session | null) => {
+        console.log('useAuth: onAuthStateChange event:', _event, 'session:', session ? 'present' : 'null');
         setAuthState({ session, user: session?.user || null, loading: false, error: null });
 
         if (session) {
@@ -78,6 +80,7 @@ export function useAuth() {
     );
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('useAuth: getSession result:', session ? 'present' : 'null');
       setAuthState({ session, user: session?.user || null, loading: false, error: null });
       if (session) {
         await handleSessionCreation(session);
@@ -87,16 +90,19 @@ export function useAuth() {
     });
 
     return () => {
+      console.log('useAuth: Unsubscribing from auth state changes.');
       subscription.unsubscribe();
     };
   }, [handleSessionCreation, handleSessionDeletion]);
 
   const signUp = async (email: string, password: string) => {
     setAuthState(prev => ({ ...prev, error: null }));
+    console.log('Attempting sign-up with:', { email, password: '***' });
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) {
       setAuthState(prev => ({ ...prev, error }));
       toast.error(error.message);
+      console.error('useAuth: SignUp error:', error);
       return { error };
     }
     toast.success('Signup successful! Please check your email to confirm your account.');
@@ -110,6 +116,7 @@ export function useAuth() {
     if (error) {
       setAuthState(prev => ({ ...prev, error }));
       toast.error(error.message);
+      console.error('useAuth: SignIn error:', error);
       return { error };
     }
     toast.success('Logged in successfully!');
@@ -156,6 +163,7 @@ export function useAuth() {
     if (error) {
       setAuthState(prev => ({ ...prev, error }));
       toast.error(error.message);
+      console.error('useAuth: Forgot password error:', error);
       return { error };
     }
     toast.success('Password reset email sent. Check your inbox!');
