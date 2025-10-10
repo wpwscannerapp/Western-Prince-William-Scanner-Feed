@@ -68,9 +68,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('AuthContext: Failed to create session.');
       handleError(null, 'Failed to create session record.'); // Use handleError
     }
-  }, []);
+  }, []); // Dependencies are stable
 
-  const handleSessionDeletion = useCallback(async (userId?: string) => {
+  const handleSessionDeletion = useCallback(async (userIdToDelete?: string) => {
     console.log('AuthContext: handleSessionDeletion called.');
     const currentSessionId = localStorage.getItem(SESSION_ID_KEY);
     if (currentSessionId) {
@@ -82,12 +82,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // If a userId is provided, also clean up any other sessions for that user
-    if (userId) {
-      console.log('AuthContext: Deleting all sessions for user:', userId);
-      await SessionService.deleteAllSessionsForUser(userId);
+    if (userIdToDelete) {
+      console.log('AuthContext: Deleting all sessions for user:', userIdToDelete);
+      await SessionService.deleteAllSessionsForUser(userIdToDelete);
     }
     console.log('AuthContext: Session(s) deleted and removed from localStorage.');
-  }, []);
+  }, []); // Dependencies are stable
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -95,8 +95,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const getInitialSession = async () => {
       console.log('AuthContext: getInitialSession started.');
+      let initialSession: Session | null = null; // Declare outside try block
       try {
-        const { data: { session: initialSession }, error: initialError } = await supabase.auth.getSession();
+        const { data: { session: fetchedSession }, error: initialError } = await supabase.auth.getSession();
+        initialSession = fetchedSession; // Assign to the outer variable
         console.log('AuthContext: getInitialSession result:', initialSession ? 'present' : 'null', 'Error:', initialError);
         if (initialError) {
           setError(initialError);
@@ -107,7 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (initialSession) {
           await handleSessionCreation(initialSession);
         } else {
-          await handleSessionDeletion();
+          await handleSessionDeletion(undefined); // Pass undefined when session is null
         }
       } catch (err: any) {
         console.error('AuthContext: Unexpected error in getInitialSession:', err);
@@ -116,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } finally {
         if (isMountedRef.current) {
           setLoading(false);
-          console.log(`AuthContext: getInitialSession finished. Loading set to false. User: ${user ? 'present' : 'null'}`);
+          console.log(`AuthContext: getInitialSession finished. Loading set to false. User: ${initialSession?.user ? 'present' : 'null'}`);
         }
       }
     };
@@ -136,11 +138,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (currentSession) {
             await handleSessionCreation(currentSession);
           } else {
-            await handleSessionDeletion();
+            await handleSessionDeletion(undefined); // Pass undefined when session is null
           }
           if (isMountedRef.current) {
             setLoading(false);
-            console.log(`AuthContext: onAuthStateChange finished. Loading set to false. User: ${user ? 'present' : 'null'}`);
+            console.log(`AuthContext: onAuthStateChange finished. Loading set to false. User: ${currentSession?.user ? 'present' : 'null'}`);
           }
         }
       );
@@ -156,7 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         subscriptionRef.current = null;
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion]); // Removed 'user' from dependencies
+  }, [handleSessionCreation, handleSessionDeletion]); // Dependencies are stable
 
   const signUp = async (email: string, password: string) => {
     setError(null);
