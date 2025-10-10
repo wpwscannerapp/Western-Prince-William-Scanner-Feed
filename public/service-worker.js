@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wpw-scanner-feed-cache-v7'; // Incremented cache version
+const CACHE_NAME = 'wpw-scanner-feed-cache-v8'; // Incremented cache version
 const urlsToCache = [
   '/',
   '/index.html',
@@ -8,6 +8,7 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', (event) => {
+  console.log(`Service Worker: Installing cache ${CACHE_NAME}`);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -82,12 +83,14 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
+  console.log(`Service Worker: Activating new cache ${CACHE_NAME}`);
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
+            console.log(`Service Worker: Deleting old cache ${cacheName}`);
             return caches.delete(cacheName);
           }
         })
