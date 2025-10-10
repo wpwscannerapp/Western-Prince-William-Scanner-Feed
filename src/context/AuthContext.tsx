@@ -66,15 +66,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     console.log('AuthProvider: Mounted. Initializing auth state listener...');
+
+    // Explicitly fetch initial session to ensure loading state is resolved quickly
+    const getInitialSession = async () => {
+      const { data: { session: initialSession }, error: initialError } = await supabase.auth.getSession();
+      console.log('AuthProvider: Initial getSession result:', initialSession ? 'present' : 'null', 'Error:', initialError);
+      if (initialError) {
+        setError(initialError);
+      }
+      setSession(initialSession);
+      setUser(initialSession?.user || null);
+      setLoading(false); // Set loading to false after initial check
+      console.log(`AuthProvider: State after initial getSession: loading=${false}, user=${initialSession?.user ? 'present' : 'null'}`);
+      if (initialSession) {
+        await handleSessionCreation(initialSession);
+      } else {
+        await handleSessionDeletion();
+      }
+    };
+
+    getInitialSession(); // Call it immediately on mount
+
+    // Set up the onAuthStateChange listener for subsequent changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
         console.log(`AuthProvider: onAuthStateChange event: ${_event} session: ${currentSession ? 'present' : 'null'}`);
         setSession(currentSession);
         setUser(currentSession?.user || null);
         setError(null);
-        setLoading(false); // Always set loading to false after the first auth state change
-        console.log(`AuthProvider: State after onAuthStateChange: loading=${false}, user=${currentSession?.user ? 'present' : 'null'}`);
-
+        // No need to set loading here, as getInitialSession already handled it.
+        // This listener is for *changes* after the initial load.
 
         if (currentSession) {
           await handleSessionCreation(currentSession);
