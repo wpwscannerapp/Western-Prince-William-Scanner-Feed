@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import AuthInitializer from '@/components/AuthInitializer'; // Import AuthInitializer
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import { SPLASH_DURATION } from '@/config'; // Import from config.ts
 
 const Index = () => {
   const [splashLoading, setSplashLoading] = useState(true);
+  const navigate = useNavigate(); // Initialize useNavigate
 
   useEffect(() => {
     const splashDuration = SPLASH_DURATION; // Use constant from config.ts
@@ -11,10 +12,11 @@ const Index = () => {
 
     const timer = setTimeout(() => {
       setSplashLoading(false);
+      navigate('/initial-route-check', { replace: true }); // Navigate after splash
     }, splashDuration);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [navigate]); // Add navigate to dependency array
 
   if (splashLoading) {
     return (
@@ -29,8 +31,8 @@ const Index = () => {
     );
   }
 
-  // Once splash is done, render AuthInitializer to handle auth and routing
-  return <AuthInitializer />;
+  // This component should not render anything after navigation
+  return null;
 };
 
 export default Index;
