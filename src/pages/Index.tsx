@@ -10,12 +10,10 @@ const Index = () => {
   const { user, loading: authLoading, error } = useAuth();
 
   useEffect(() => {
-    console.log('Index: splashLoading effect running. Current splashLoading:', splashLoading);
     const splashDuration = SPLASH_DURATION; // Use constant from config.ts
     document.documentElement.style.setProperty('--splash-duration', `${splashDuration / 1000}s`);
 
     const timer = setTimeout(() => {
-      console.log('Index: Splash duration ended, setting splashLoading to false.');
       setSplashLoading(false);
     }, splashDuration);
 
@@ -23,20 +21,16 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
-    console.log('Index: Navigation effect running. splashLoading:', splashLoading, 'authLoading:', authLoading, 'user:', user ? 'present' : 'null');
     if (!splashLoading && !authLoading) {
       if (user) {
-        console.log('Index: User authenticated, navigating to /home.');
         navigate('/home');
       } else {
-        console.log('Index: User not authenticated, navigating to /auth.');
         navigate('/auth');
       }
     }
   }, [splashLoading, authLoading, user, navigate]);
 
   if (error) {
-    console.error('Index: Auth error detected:', error);
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
         <div className="tw-text-center">
@@ -48,7 +42,6 @@ const Index = () => {
   }
 
   if (splashLoading || authLoading) {
-    console.log('Index: Still showing loading screen (splashLoading or authLoading is true).');
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-primary/20 tw-to-background tw-animate-fade-in" aria-label="Loading application">
         <div className="tw-flex tw-flex-col tw-items-center tw-gap-4">

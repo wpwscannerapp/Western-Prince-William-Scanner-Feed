@@ -48,24 +48,6 @@ export const SessionService = {
     }
   },
 
-  async deleteAllSessionsForUser(userId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('user_sessions')
-        .delete()
-        .eq('user_id', userId);
-
-      if (error) {
-        handleError(error, 'Failed to delete all user sessions.');
-        return false;
-      }
-      return true;
-    } catch (err) {
-      handleError(err, 'An unexpected error occurred while deleting all user sessions.');
-      return false;
-    }
-  },
-
   async countActiveSessions(userId: string): Promise<number> {
     try {
       const { count, error } = await supabase
