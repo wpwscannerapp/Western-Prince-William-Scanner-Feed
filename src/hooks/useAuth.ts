@@ -27,39 +27,32 @@ export function useAuth() {
   const handleSessionCreation = React.useCallback(async (session: Session) => {
     if (!session.user || !session.expires_in) return;
 
-    const currentSessionId = localStorage.getItem(SESSION_ID_KEY);
-    let newSessionId = currentSessionId;
-
-    if (!newSessionId) {
-      newSessionId = crypto.randomUUID();
-      localStorage.setItem(SESSION_ID_KEY, newSessionId);
-    }
-
-    // Check if this session_id is already valid for this user
-    const isValid = await SessionService.isValidSession(session.user.id, newSessionId);
-    if (isValid) {
-      // Session already exists and is valid, no need to create a new one or delete old ones
-      return;
-    }
+    // Always generate a new, unique session ID for this browser instance
+    const newSessionId = crypto.randomUUID();
+    localStorage.setItem(SESSION_ID_KEY, newSessionId);
 
     // Fetch user profile to check role
     const profile = await ProfileService.fetchProfile(session.user.id);
     const isCurrentUserAdmin = profile?.role === 'admin';
 
+    // Delete all existing sessions for this user to ensure a clean slate
+    // This is crucial to prevent duplicate key errors on 'session_id' if an old entry exists
+    await SessionService.deleteAllSessionsForUser(session.user.id);
+
+    // Create a new session record with the newly generated ID
+    await SessionService.createSession(session.user.id, newSessionId, session.expires_in);
+
     if (!isCurrentUserAdmin) {
-      // Delete oldest sessions if limit is exceeded for non-admin users
+      // After creating the new session, enforce the concurrent session limit for non-admin users
       await SessionService.deleteOldestSessions(session.user.id, MAX_CONCURRENT_SESSIONS);
     }
-
-    // Create a new session record
-    await SessionService.createSession(session.user.id, newSessionId, session.expires_in);
   }, []);
 
   // Function to handle session deletion
   const handleSessionDeletion = React.useCallback(async () => {
     const currentSessionId = localStorage.getItem(SESSION_ID_KEY);
     if (currentSessionId) {
-      await SessionService.deleteSession(currentSessionId);
+      await SessionService.deleteSession(currentSessionId); // Delete only the specific session
       localStorage.removeItem(SESSION_ID_KEY);
     }
   }, []);
@@ -72,17 +65,25 @@ export function useAuth() {
         setAuthState({ session, user: session?.user || null, loading: false, error: null });
 
         if (session) {
-          await handleSessionCreation(session);
+          // Only trigger session creation logic on actual sign-in or user update events
+          // This prevents creating new sessions on every page load if the session is already valid
+          if (_event === 'SIGNED_IN' || _event === 'USER_UPDATED') {
+            await handleSessionCreation(session);
+          }
         } else {
           await handleSessionDeletion();
         }
       }
     );
 
+    // Initial session check
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       console.log('useAuth: getSession result:', session ? 'present' : 'null');
       setAuthState({ session, user: session?.user || null, loading: false, error: null });
       if (session) {
+        // If a session exists on initial load, ensure it's properly registered
+        // This might be a refresh or direct navigation with an existing session
+        // We should still ensure a unique session ID is used and old ones are cleaned up.
         await handleSessionCreation(session);
       } else {
         await handleSessionDeletion();
@@ -127,7 +128,7 @@ export function useAuth() {
   const signOut = async () => {
     setAuthState(prev => ({ ...prev, error: null }));
     try {
-      console.log('Attempting Supabase signOut...'); // Debug log
+      console.log('Attempting Supabase signOut...');
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -135,21 +136,21 @@ export function useAuth() {
           console.warn('Supabase signOut: Session already missing or invalid on server. Proceeding with local logout.');
           toast.success('Logged out successfully!');
           setAuthState({ session: null, user: null, loading: false, error: null });
-          await handleSessionDeletion(); // Ensure local session is also cleared
+          await handleSessionDeletion();
           return { success: true };
         }
         setAuthState(prev => ({ ...prev, error }));
-        console.error('Supabase signOut error:', error); // Detailed error log
+        console.error('Supabase signOut error:', error);
         toast.error(error.message);
         return { error };
       }
-      console.log('Supabase signOut successful.'); // Debug log
+      console.log('Supabase signOut successful.');
       toast.success('Logged out successfully!');
       setAuthState({ session: null, user: null, loading: false, error: null });
-      await handleSessionDeletion(); // Ensure local session is also cleared
+      await handleSessionDeletion();
       return { success: true };
     } catch (e: any) {
-      console.error('Unexpected error during signOut:', e); // Catch unexpected errors
+      console.error('Unexpected error during signOut:', e);
       toast.error(e.message || 'An unexpected error occurred during logout.');
       return { error: e };
     }
