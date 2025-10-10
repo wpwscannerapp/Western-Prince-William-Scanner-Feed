@@ -8,9 +8,10 @@ import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
 import PostDetailPage from "./pages/PostDetailPage";
-import IncidentsPage from "./pages/IncidentsPage"; // Import new page
-import WeatherPage from "./pages/WeatherPage";     // Import new page
-import TrafficPage from "./pages/TrafficPage";     // Import new page
+import IncidentsPage from "./pages/IncidentsPage";
+import WeatherPage from "./pages/WeatherPage";
+import TrafficPage from "./pages/TrafficPage";
+import LiveScannerPage from "./pages/LiveScannerPage"; // Import new page
 import Layout from "./components/Layout";
 import AuthPage from "./pages/AuthPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
@@ -75,9 +76,10 @@ const App = () => {
                 <Route element={<ProtectedRoute />}>
                   <Route element={<Layout />}>
                     <Route path="/home" element={<HomePage />} />
-                    <Route path="/home/incidents" element={<IncidentsPage />} /> {/* New route */}
-                    <Route path="/home/weather" element={<WeatherPage />} />     {/* New route */}
-                    <Route path="/home/traffic" element={<TrafficPage />} />     {/* New route */}
+                    <Route path="/home/incidents" element={<IncidentsPage />} />
+                    <Route path="/home/live-scanner" element={<LiveScannerPage />} /> {/* New route */}
+                    <Route path="/home/weather" element={<WeatherPage />} />
+                    <Route path="/home/traffic" element={<TrafficPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
                     <Route path="/admin" element={<AdminPage />} />
                     <Route path="/posts/:postId" element={<PostDetailPage />} />
