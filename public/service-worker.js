@@ -1,19 +1,20 @@
-const CACHE_NAME = 'wpw-scanner-feed-cache-v7'; // Incremented cache version
+const CACHE_NAME = 'wpw-scanner-feed-cache-v8'; // Incremented cache version again
 const urlsToCache = [
   '/',
   '/index.html',
-  '/Logo.png', // Updated to new logo
+  '/Logo.png',
   '/manifest.json',
   '/favicon.ico'
 ];
 
 self.addEventListener('install', (event) => {
+  console.log('Service Worker: Installing cache:', CACHE_NAME);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
+      .then(() => self.skipWaiting()) // Activate new service worker immediately
   );
 });
 
@@ -76,17 +77,19 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
+  console.log('Service Worker: Activating new service worker:', CACHE_NAME);
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
+            console.log('Service Worker: Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim()) // Take control of all clients immediately
   );
 });
 
@@ -95,7 +98,6 @@ self.addEventListener('push', (event) => {
   const data = event.data?.json() || { title: 'New Update', body: 'Check out the latest scanner feed!' };
   const options = {
     body: data.body,
-    // Removed icon and badge references
     data: {
       url: data.url || '/',
     },
