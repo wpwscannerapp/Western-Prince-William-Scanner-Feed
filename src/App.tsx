@@ -2,7 +2,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Index from "./pages/Index";
+import Index from "./pages/Index"; // This is now the splash screen component
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/AuthPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
@@ -21,6 +21,7 @@ import TrafficPage from '@/pages/TrafficPage';
 import ProfilePage from '@/pages/ProfilePage';
 import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
+import React, { useState, useCallback } from 'react'; // Import useState and useCallback
 
 const queryClient = new QueryClient();
 
@@ -30,23 +31,32 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Sonner />
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AuthProvider>
-          <AppSettingsProvider>
-            <TopNavBar />
-            <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
-              <Routes>
-                {/* The Index component now wraps all other routes */}
-                <Route path="/" element={<Index />}>
+const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
+
+  const handleSplashComplete = useCallback(() => {
+    setShowSplash(false);
+  }, []);
+
+  if (showSplash) {
+    return <Index onSplashComplete={handleSplashComplete} />;
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Sonner />
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <AuthProvider>
+            <AppSettingsProvider>
+              <TopNavBar />
+              <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
+                <Routes>
                   {/* Public routes that don't require authentication */}
-                  <Route path="auth" element={<AuthPage />} />
-                  <Route path="subscribe" element={<SubscriptionPage />} />
-                  <Route path="reset-password" element={<ResetPasswordPage />} />
-                  <Route path="terms-of-service" element={<TermsOfServicePage />} />
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/subscribe" element={<SubscriptionPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
                   {/* Protected routes wrapped by AuthGate */}
                   <Route element={<AuthGate><Layout /></AuthGate>}>
@@ -62,24 +72,24 @@ const App = () => (
 
                   {/* Catch-all for 404 - ensure it's after all other specific routes */}
                   <Route path="*" element={<NotFound />} />
-                </Route>
-              </Routes>
-            </div>
+                </Routes>
+              </div>
 
-            {/* Floating Feedback Button */}
-            <Button
-              variant="outline"
-              className="tw-fixed tw-bottom-4 tw-right-4 tw-rounded-full tw-shadow-lg tw-button tw-z-50"
-              onClick={() => window.open('mailto:support@example.com')}
-              aria-label="Send feedback"
-            >
-              Feedback
-            </Button>
-          </AppSettingsProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+              {/* Floating Feedback Button */}
+              <Button
+                variant="outline"
+                className="tw-fixed tw-bottom-4 tw-right-4 tw-rounded-full tw-shadow-lg tw-button tw-z-50"
+                onClick={() => window.open('mailto:support@example.com')}
+                aria-label="Send feedback"
+              >
+                Feedback
+              </Button>
+            </AppSettingsProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
