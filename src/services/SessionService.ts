@@ -36,11 +36,19 @@ export const SessionService = {
   },
 
   async deleteSession(sessionId: string): Promise<boolean> {
+    // Only attempt database deletion if a user is currently authenticated
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.warn('SessionService: No authenticated user, skipping database session deletion.');
+      return true; // Consider it successful for local purposes
+    }
+
     try {
       const { error } = await supabase
         .from('user_sessions')
         .delete()
-        .eq('session_id', sessionId);
+        .eq('session_id', sessionId)
+        .eq('user_id', user.id); // Ensure only the current user's session is deleted
 
       if (error) {
         handleError(error, 'Failed to delete user session.');
@@ -54,6 +62,13 @@ export const SessionService = {
   },
 
   async deleteAllSessionsForUser(userId: string): Promise<boolean> {
+    // Only attempt database deletion if a user is currently authenticated and matches the target userId
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.id !== userId) {
+      console.warn('SessionService: No authenticated user or user mismatch, skipping database all sessions deletion.');
+      return true; // Consider it successful for local purposes
+    }
+
     try {
       const { error } = await supabase
         .from('user_sessions')
@@ -91,6 +106,13 @@ export const SessionService = {
   },
 
   async deleteOldestSessions(userId: string, limit: number): Promise<boolean> {
+    // Only attempt database deletion if a user is currently authenticated and matches the target userId
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.id !== userId) {
+      console.warn('SessionService: No authenticated user or user mismatch, skipping database oldest sessions deletion.');
+      return true; // Consider it successful for local purposes
+    }
+
     try {
       const { data: sessions, error: fetchError } = await supabase
         .from('user_sessions')
