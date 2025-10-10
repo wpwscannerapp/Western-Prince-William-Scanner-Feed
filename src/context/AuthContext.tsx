@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -22,13 +22,11 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start as true
   const [error, setError] = useState<AuthError | null>(null);
-  const isInitialLoadRef = useRef(true); // To track if it's the very first load
 
   const SESSION_ID_KEY = 'wpw_session_id';
 
-  // Function to handle session creation and cleanup
   const handleSessionCreation = useCallback(async (currentSession: Session) => {
     if (!currentSession.user || !currentSession.expires_in) return;
 
@@ -55,7 +53,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await SessionService.createSession(currentSession.user.id, newSessionId, currentSession.expires_in);
   }, []);
 
-  // Function to handle session deletion
   const handleSessionDeletion = useCallback(async () => {
     const currentSessionId = localStorage.getItem(SESSION_ID_KEY);
     if (currentSessionId) {
@@ -72,12 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(currentSession);
         setUser(currentSession?.user || null);
         setError(null);
-
-        if (isInitialLoadRef.current) {
-          setLoading(false); // Only set loading to false on the very first auth state change
-          isInitialLoadRef.current = false;
-          console.log('AuthProvider: Loading set to false after FIRST onAuthStateChange.');
-        }
+        setLoading(false); // Always set loading to false after the first auth state change
 
         if (currentSession) {
           await handleSessionCreation(currentSession);
@@ -87,35 +79,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Initial session check (only if not already handled by onAuthStateChange)
-    if (isInitialLoadRef.current) {
-      supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
-        console.log(`AuthProvider: Initial getSession result: ${initialSession ? 'present' : 'null'}`);
-        setSession(initialSession);
-        setUser(initialSession?.user || null);
-        setError(null);
-        
-        if (isInitialLoadRef.current) { // Double check in case onAuthStateChange fired first
-          setLoading(false);
-          isInitialLoadRef.current = false;
-          console.log('AuthProvider: Loading set to false after FIRST getSession.');
-        }
-
-        if (initialSession) {
-          await handleSessionCreation(initialSession);
-        } else {
-          await handleSessionDeletion();
-        }
-      });
-    }
+    // The `loading` state will remain true until the first onAuthStateChange fires.
+    // This ensures that `loading` is only set to false once the auth state is definitively known.
 
     return () => {
       console.log('AuthProvider: Unsubscribing from auth state changes.');
       subscription.unsubscribe();
     };
-  }, []); // Empty dependency array to run only once
+  }, [handleSessionCreation, handleSessionDeletion]); // Dependencies for useCallback functions
 
-  // Log current loading state from AuthProvider
   useEffect(() => {
     console.log('AuthProvider: Current loading state:', loading);
   }, [loading]);
