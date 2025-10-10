@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { SPLASH_DURATION } from '@/config'; // Import from config.ts
-import { useAuth } from '@/context/AuthContext'; // Import useAuth
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useAuth } from '@/context/AuthContext'; // Import useAuth
+import { SPLASH_DURATION } from '@/config'; // Import from config.ts
 
 const Index: React.FC = () => {
   const { user, loading: authLoading } = useAuth(); // Use auth loading state
