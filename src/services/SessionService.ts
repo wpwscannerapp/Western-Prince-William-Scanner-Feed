@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
+import { Session } from '@supabase/supabase-js'; // Import Session type
 
 export interface UserSession {
   id: string;
@@ -10,12 +11,16 @@ export interface UserSession {
 }
 
 export const SessionService = {
-  async createSession(userId: string, sessionId: string, expiresInSeconds: number): Promise<UserSession | null> {
-    const expiresAt = new Date(Date.now() + expiresInSeconds * 1000).toISOString();
+  async createSession(session: Session, sessionId: string): Promise<UserSession | null> {
+    if (!session.user || !session.expires_in) {
+      handleError(null, 'Invalid session data provided for creation.');
+      return null;
+    }
+    const expiresAt = new Date(Date.now() + session.expires_in * 1000).toISOString();
     try {
       const { data, error } = await supabase
         .from('user_sessions')
-        .insert({ user_id: userId, session_id: sessionId, expires_at: expiresAt })
+        .insert({ user_id: session.user.id, session_id: sessionId, expires_at: expiresAt })
         .select()
         .single();
 
@@ -44,6 +49,24 @@ export const SessionService = {
       return true;
     } catch (err) {
       handleError(err, 'An unexpected error occurred while deleting user session.');
+      return false;
+    }
+  },
+
+  async deleteAllSessionsForUser(userId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('user_sessions')
+        .delete()
+        .eq('user_id', userId);
+
+      if (error) {
+        handleError(error, 'Failed to delete all user sessions.');
+        return false;
+      }
+      return true;
+    } catch (err) {
+      handleError(err, 'An unexpected error occurred while deleting all user sessions.');
       return false;
     }
   },

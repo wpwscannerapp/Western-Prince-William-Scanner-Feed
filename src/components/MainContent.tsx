@@ -9,7 +9,7 @@ import TermsOfServicePage from "@/pages/TermsOfServicePage";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import TopNavBar from "@/components/TopNavBar";
 import { Button } from "@/components/ui/button";
-import AuthGate from "@/components/AuthGate";
+import ProtectedRoute from "@/components/ProtectedRoute"; // Corrected import from AuthGate
 import Layout from '@/components/Layout';
 import HomePage from '@/pages/HomePage';
 import IncidentsPage from '@/pages/IncidentsPage';
@@ -47,9 +47,9 @@ const MainContent: React.FC = () => {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
-          {/* Protected routes wrapped by AuthGate */}
-          <Route element={<AuthGate><Layout /></AuthGate>}>
-            <Route index element={<Navigate to="/home" replace />} /> {/* Redirect root to home if authenticated */}
+          {/* Protected routes wrapped by ProtectedRoute */}
+          <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+            <Route index element={<Navigate to="/" replace />} /> {/* Redirect root to home if authenticated */}
             <Route path="home" element={<HomePage />} />
             <Route path="home/incidents" element={<IncidentsPage />} />
             <Route path="home/weather" element={<WeatherPage />} />

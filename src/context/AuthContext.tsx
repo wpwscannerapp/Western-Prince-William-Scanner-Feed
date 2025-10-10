@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { SessionService } from '@/services/SessionService';
 import { MAX_CONCURRENT_SESSIONS } from '@/config';
 import { ProfileService } from '@/services/ProfileService';
+import { handleError } from '@/utils/errorHandler';
 
 interface AuthState {
   session: Session | null;
@@ -22,78 +23,84 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // Start as true
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AuthError | null>(null);
+  const subscriptionRef = useRef<any>(null); // Track Supabase subscription
+  const isMountedRef = useRef(true); // Track component mount state
 
   const SESSION_ID_KEY = 'wpw_session_id';
 
-  console.log('AuthProvider: Rendering...');
-
   const handleSessionCreation = useCallback(async (currentSession: Session) => {
-    console.log('handleSessionCreation: Called with session:', currentSession ? 'present' : 'null');
+    console.log('AuthContext: handleSessionCreation called with session:', currentSession ? 'present' : 'null');
     if (!currentSession.user || !currentSession.expires_in) {
-      console.log('handleSessionCreation: No user or expires_in, skipping session creation.');
+      console.log('AuthContext: No user or expires_in in session, skipping session creation.');
       return;
     }
 
-    const currentSessionId = localStorage.getItem(SESSION_ID_KEY);
-    let newSessionId = currentSessionId;
-
-    if (!newSessionId) {
-      newSessionId = crypto.randomUUID();
-      localStorage.setItem(SESSION_ID_KEY, newSessionId);
-      console.log('handleSessionCreation: Generated new session ID:', newSessionId);
+    let currentSessionId = localStorage.getItem(SESSION_ID_KEY);
+    if (!currentSessionId) {
+      currentSessionId = crypto.randomUUID();
+      localStorage.setItem(SESSION_ID_KEY, currentSessionId);
+      console.log('AuthContext: Generated new session ID:', currentSessionId);
     } else {
-      console.log('handleSessionCreation: Found existing session ID:', newSessionId);
+      console.log('AuthContext: Found existing session ID:', currentSessionId);
     }
 
-    const isValid = await SessionService.isValidSession(currentSession.user.id, newSessionId);
+    const isValid = await SessionService.isValidSession(currentSession.user.id, currentSessionId);
     if (isValid) {
-      console.log('handleSessionCreation: Session is already valid, no action needed.');
+      console.log('AuthContext: Session is already valid, no action needed.');
       return;
     }
 
     const profile = await ProfileService.fetchProfile(currentSession.user.id);
     const isCurrentUserAdmin = profile?.role === 'admin';
-    console.log('handleSessionCreation: User role:', profile?.role);
+    console.log('AuthContext: User role:', profile?.role);
 
     if (!isCurrentUserAdmin) {
-      console.log('handleSessionCreation: User is not admin, checking concurrent sessions.');
+      console.log('AuthContext: User is not admin, checking concurrent sessions.');
       await SessionService.deleteOldestSessions(currentSession.user.id, MAX_CONCURRENT_SESSIONS);
     }
 
-    const createdSession = await SessionService.createSession(currentSession.user.id, newSessionId, currentSession.expires_in);
+    const createdSession = await SessionService.createSession(currentSession, currentSessionId);
     if (createdSession) {
-      console.log('handleSessionCreation: Session created successfully.');
+      console.log('AuthContext: Session created successfully.');
     } else {
-      console.error('handleSessionCreation: Failed to create session.');
+      console.error('AuthContext: Failed to create session.');
+      handleError(null, 'Failed to create session record.'); // Use handleError
     }
   }, []);
 
-  const handleSessionDeletion = useCallback(async () => {
-    console.log('handleSessionDeletion: Called.');
+  const handleSessionDeletion = useCallback(async (userId?: string) => {
+    console.log('AuthContext: handleSessionDeletion called.');
     const currentSessionId = localStorage.getItem(SESSION_ID_KEY);
     if (currentSessionId) {
-      console.log('handleSessionDeletion: Deleting session ID:', currentSessionId);
+      console.log('AuthContext: Deleting specific session ID:', currentSessionId);
       await SessionService.deleteSession(currentSessionId);
       localStorage.removeItem(SESSION_ID_KEY);
-      console.log('handleSessionDeletion: Session deleted and removed from localStorage.');
     } else {
-      console.log('handleSessionDeletion: No session ID found in localStorage to delete.');
+      console.log('AuthContext: No specific session ID found in localStorage to delete.');
     }
+
+    // If a userId is provided, also clean up any other sessions for that user
+    if (userId) {
+      console.log('AuthContext: Deleting all sessions for user:', userId);
+      await SessionService.deleteAllSessionsForUser(userId);
+    }
+    console.log('AuthContext: Session(s) deleted and removed from localStorage.');
   }, []);
 
   useEffect(() => {
-    console.log('AuthProvider: Mounted. Initializing auth state listener...');
+    isMountedRef.current = true;
+    console.log('AuthContext: Mounting AuthProvider, initializing auth state listener');
 
     const getInitialSession = async () => {
-      console.log('AuthProvider: getInitialSession started.');
+      console.log('AuthContext: getInitialSession started.');
       try {
         const { data: { session: initialSession }, error: initialError } = await supabase.auth.getSession();
-        console.log('AuthProvider: getInitialSession result:', initialSession ? 'present' : 'null', 'Error:', initialError);
+        console.log('AuthContext: getInitialSession result:', initialSession ? 'present' : 'null', 'Error:', initialError);
         if (initialError) {
           setError(initialError);
-          console.error('AuthProvider: Error fetching initial session:', initialError);
+          handleError(initialError, 'Error fetching initial session.'); // Use handleError
         }
         setSession(initialSession);
         setUser(initialSession?.user || null);
@@ -103,49 +110,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await handleSessionDeletion();
         }
       } catch (err: any) {
-        console.error('AuthProvider: Unexpected error in getInitialSession:', err);
+        console.error('AuthContext: Unexpected error in getInitialSession:', err);
         setError(err);
+        handleError(err, 'Unexpected error during session initialization.'); // Use handleError
       } finally {
-        setLoading(false); // Ensure loading is always set to false after initial check
-        console.log(`AuthProvider: getInitialSession finished. Loading set to false. User: ${user ? 'present' : 'null'}`);
+        if (isMountedRef.current) {
+          setLoading(false);
+          console.log(`AuthContext: getInitialSession finished. Loading set to false. User: ${user ? 'present' : 'null'}`);
+        }
       }
     };
 
-    getInitialSession(); // Call it immediately on mount
+    // Only initialize if no subscription exists
+    if (!subscriptionRef.current) {
+      getInitialSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event: AuthChangeEvent, currentSession: Session | null) => {
-        console.log(`AuthProvider: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
-        setSession(currentSession);
-        setUser(currentSession?.user || null);
-        setError(null); // Clear any previous errors on auth state change
+      console.log('AuthContext: Setting up onAuthStateChange listener');
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (_event: AuthChangeEvent, currentSession: Session | null) => {
+          console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
+          setSession(currentSession);
+          setUser(currentSession?.user || null);
+          setError(null); // Clear any previous errors on auth state change
 
-        if (currentSession) {
-          await handleSessionCreation(currentSession);
-        } else {
-          await handleSessionDeletion();
+          if (currentSession) {
+            await handleSessionCreation(currentSession);
+          } else {
+            await handleSessionDeletion();
+          }
+          if (isMountedRef.current) {
+            setLoading(false);
+            console.log(`AuthContext: onAuthStateChange finished. Loading set to false. User: ${user ? 'present' : 'null'}`);
+          }
         }
-        setLoading(false); // Ensure loading is false after any auth state change
-        console.log(`AuthProvider: onAuthStateChange finished. Loading set to false. User: ${user ? 'present' : 'null'}`);
-      }
-    );
+      );
+      subscriptionRef.current = subscription;
+    }
 
     return () => {
-      console.log('AuthProvider: Unmounting. Unsubscribing from auth state changes.');
-      subscription.unsubscribe();
+      console.log('AuthContext: Unmounting AuthProvider, cleaning up');
+      isMountedRef.current = false;
+      if (subscriptionRef.current) {
+        console.log('AuthContext: Unsubscribing from auth state changes');
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+      }
     };
-  }, [handleSessionCreation, handleSessionDeletion]); // Removed `user` from dependencies
-
-  useEffect(() => {
-    console.log('AuthProvider: Current loading state:', loading);
-  }, [loading]);
+  }, [handleSessionCreation, handleSessionDeletion, user]);
 
   const signUp = async (email: string, password: string) => {
     setError(null);
     const { data, error: authError } = await supabase.auth.signUp({ email, password });
     if (authError) {
       setError(authError);
-      toast.error(authError.message);
+      handleError(authError, authError.message); // Use handleError
       return { error: authError };
     }
     toast.success('Signup successful! Please check your email to confirm your account.');
@@ -157,7 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
     if (authError) {
       setError(authError);
-      toast.error(authError.message);
+      handleError(authError, authError.message); // Use handleError
       return { error: authError };
     }
     toast.success('Logged in successfully!');
@@ -175,22 +193,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(null);
           setUser(null);
           setLoading(false);
-          await handleSessionDeletion();
+          await handleSessionDeletion(user?.id); // Pass user ID for full cleanup
           return { success: true };
         }
         setError(authError);
-        toast.error(authError.message);
+        handleError(authError, authError.message); // Use handleError
         return { success: false, error: authError };
       }
       toast.success('Logged out successfully!');
       setSession(null);
       setUser(null);
       setLoading(false);
-      await handleSessionDeletion();
+      await handleSessionDeletion(user?.id); // Pass user ID for full cleanup
       return { success: true };
     } catch (e: any) {
       setError(e);
-      toast.error(e.message || 'An unexpected error occurred during logout.');
+      handleError(e, e.message || 'An unexpected error occurred during logout.'); // Use handleError
       return { success: false, error: e };
     }
   };
@@ -202,7 +220,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     if (authError) {
       setError(authError);
-      toast.error(authError.message);
+      handleError(authError, authError.message); // Use handleError
       return { success: false, error: authError };
     }
     toast.success('Password reset email sent. Check your inbox!');

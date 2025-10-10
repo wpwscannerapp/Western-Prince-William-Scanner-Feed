@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wpw-scanner-feed-cache-v9'; // Incremented cache version
+const CACHE_NAME = 'wpw-scanner-feed-cache-v10'; // Incremented cache version
 const urlsToCache = [
   '/',
   '/index.html',
