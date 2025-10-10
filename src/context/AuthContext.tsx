@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     await SessionService.createSession(currentSession.user.id, newSessionId, currentSession.expires_in);
-  }, []);
+  }, []); // Dependencies for handleSessionCreation
 
   const handleSessionDeletion = useCallback(async () => {
     const currentSessionId = localStorage.getItem(SESSION_ID_KEY);
@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await SessionService.deleteSession(currentSessionId);
       localStorage.removeItem(SESSION_ID_KEY);
     }
-  }, []);
+  }, []); // Dependencies for handleSessionDeletion
 
   useEffect(() => {
     console.log('AuthProvider: Initializing auth state listener...');
@@ -70,6 +70,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(currentSession?.user || null);
         setError(null);
         setLoading(false); // Always set loading to false after the first auth state change
+        console.log(`AuthProvider: State after onAuthStateChange: loading=${false}, user=${currentSession?.user ? 'present' : 'null'}`);
+
 
         if (currentSession) {
           await handleSessionCreation(currentSession);
@@ -86,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthProvider: Unsubscribing from auth state changes.');
       subscription.unsubscribe();
     };
-  }, [handleSessionCreation, handleSessionDeletion]); // Dependencies for useCallback functions
+  }, []); // Empty dependency array to run only once on mount
 
   useEffect(() => {
     console.log('AuthProvider: Current loading state:', loading);
