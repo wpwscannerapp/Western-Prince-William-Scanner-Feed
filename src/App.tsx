@@ -34,6 +34,10 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
 const ProtectedRoute = () => {
   const { user, loading } = useAuth();
 
+  console.log('ProtectedRoute: Checking authentication...');
+  console.log('ProtectedRoute: Current auth loading state:', loading);
+
+
   if (loading) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">

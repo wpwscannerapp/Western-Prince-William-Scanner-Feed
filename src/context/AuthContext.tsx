@@ -27,6 +27,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const SESSION_ID_KEY = 'wpw_session_id';
 
+  // Log AuthProvider mount
+  console.log('AuthProvider: Rendering...');
+
   const handleSessionCreation = useCallback(async (currentSession: Session) => {
     if (!currentSession.user || !currentSession.expires_in) return;
 
@@ -51,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     await SessionService.createSession(currentSession.user.id, newSessionId, currentSession.expires_in);
-  }, []); // Dependencies for handleSessionCreation
+  }, []);
 
   const handleSessionDeletion = useCallback(async () => {
     const currentSessionId = localStorage.getItem(SESSION_ID_KEY);
@@ -59,10 +62,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await SessionService.deleteSession(currentSessionId);
       localStorage.removeItem(SESSION_ID_KEY);
     }
-  }, []); // Dependencies for handleSessionDeletion
+  }, []);
 
   useEffect(() => {
-    console.log('AuthProvider: Initializing auth state listener...');
+    console.log('AuthProvider: Mounted. Initializing auth state listener...');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
         console.log(`AuthProvider: onAuthStateChange event: ${_event} session: ${currentSession ? 'present' : 'null'}`);
@@ -81,14 +84,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // The `loading` state will remain true until the first onAuthStateChange fires.
-    // This ensures that `loading` is only set to false once the auth state is definitively known.
-
     return () => {
-      console.log('AuthProvider: Unsubscribing from auth state changes.');
+      console.log('AuthProvider: Unmounting. Unsubscribing from auth state changes.');
       subscription.unsubscribe();
     };
-  }, []); // Empty dependency array to run only once on mount
+  }, [handleSessionCreation, handleSessionDeletion]); // Dependencies for useCallback functions
 
   useEffect(() => {
     console.log('AuthProvider: Current loading state:', loading);
