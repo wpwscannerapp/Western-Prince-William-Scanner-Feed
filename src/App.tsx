@@ -20,7 +20,8 @@ import { useAuth } from "./hooks/useAuth";
 import { useAppSettings } from "./hooks/useAppSettings";
 import TopNavBar from "./components/TopNavBar";
 import { Button } from "./components/ui/button";
-import { AuthProvider } from "@/context/AuthContext.tsx"; // Updated to use alias
+import { AuthProvider } from "@/context/AuthContext.tsx";
+import AuthInitializer from "./components/AuthInitializer"; // Import AuthInitializer
 
 const queryClient = new QueryClient();
 
@@ -59,27 +60,31 @@ const App = () => (
     <TooltipProvider>
       <Sonner />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AuthProvider> {/* Wrap with AuthProvider */}
+        <AuthProvider>
           <AppSettingsProvider>
             <TopNavBar />
             <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
               <Routes>
-                <Route path="/" element={<Index />} />
+                {/* The root path will now be handled by AuthInitializer */}
+                <Route path="/" element={<Index />} /> {/* Index page for splash screen */}
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/subscribe" element={<SubscriptionPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
-                {/* Protected routes that use the Layout */}
-                <Route element={<ProtectedRoute />}>
-                  <Route element={<Layout />}>
-                    <Route path="/home" element={<HomePage />} />
-                    <Route path="/home/incidents" element={<IncidentsPage />} />
-                    <Route path="/home/weather" element={<WeatherPage />} />
-                    <Route path="/home/traffic" element={<TrafficPage />} />
-                    <Route path="/profile" element={<ProfilePage />} />
-                    <Route path="/admin" element={<AdminPage />} />
-                    <Route path="/posts/:postId" element={<PostDetailPage />} />
+                {/* AuthInitializer will handle initial redirect after auth loads */}
+                <Route element={<AuthInitializer />}>
+                  {/* Protected routes that use the Layout */}
+                  <Route element={<ProtectedRoute />}>
+                    <Route element={<Layout />}>
+                      <Route path="/home" element={<HomePage />} />
+                      <Route path="/home/incidents" element={<IncidentsPage />} />
+                      <Route path="/home/weather" element={<WeatherPage />} />
+                      <Route path="/home/traffic" element={<TrafficPage />} />
+                      <Route path="/profile" element={<ProfilePage />} />
+                      <Route path="/admin" element={<AdminPage />} />
+                      <Route path="/posts/:postId" element={<PostDetailPage />} />
+                    </Route>
                   </Route>
                 </Route>
 
