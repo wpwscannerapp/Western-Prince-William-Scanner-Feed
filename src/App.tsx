@@ -8,9 +8,9 @@ import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
 import PostDetailPage from "./pages/PostDetailPage";
-import IncidentsPage from "./pages/IncidentsPage"; // Import new page
-import WeatherPage from "./pages/WeatherPage";     // Import new page
-import TrafficPage from "./pages/TrafficPage";     // Import new page
+import IncidentsPage from "./pages/IncidentsPage";
+import WeatherPage from "./pages/WeatherPage";
+import TrafficPage from "./pages/TrafficPage";
 import Layout from "./components/Layout";
 import AuthPage from "./pages/AuthPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
@@ -20,6 +20,7 @@ import { useAuth } from "./hooks/useAuth";
 import { useAppSettings } from "./hooks/useAppSettings";
 import TopNavBar from "./components/TopNavBar";
 import { Button } from "./components/ui/button";
+import { AuthProvider } from "@/context/AuthContext.tsx"; // Updated to use alias
 
 const queryClient = new QueryClient();
 
@@ -54,44 +55,46 @@ const App = () => (
     <TooltipProvider>
       <Sonner />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AppSettingsProvider> {/* Wrap the entire app with AppSettingsProvider */}
-          <TopNavBar />
-          <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/subscribe" element={<SubscriptionPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+        <AuthProvider> {/* Wrap with AuthProvider */}
+          <AppSettingsProvider>
+            <TopNavBar />
+            <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/subscribe" element={<SubscriptionPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
-              {/* Protected routes that use the Layout */}
-              <Route element={<ProtectedRoute />}>
-                <Route element={<Layout />}>
-                  <Route path="/home" element={<HomePage />} />
-                  <Route path="/home/incidents" element={<IncidentsPage />} /> {/* New route */}
-                  <Route path="/home/weather" element={<WeatherPage />} />     {/* New route */}
-                  <Route path="/home/traffic" element={<TrafficPage />} />     {/* New route */}
-                  <Route path="/profile" element={<ProfilePage />} />
-                  <Route path="/admin" element={<AdminPage />} />
-                  <Route path="/posts/:postId" element={<PostDetailPage />} />
+                {/* Protected routes that use the Layout */}
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<Layout />}>
+                    <Route path="/home" element={<HomePage />} />
+                    <Route path="/home/incidents" element={<IncidentsPage />} />
+                    <Route path="/home/weather" element={<WeatherPage />} />
+                    <Route path="/home/traffic" element={<TrafficPage />} />
+                    <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/admin" element={<AdminPage />} />
+                    <Route path="/posts/:postId" element={<PostDetailPage />} />
+                  </Route>
                 </Route>
-              </Route>
 
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </div>
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div>
 
-          {/* Floating Feedback Button */}
-          <Button
-            variant="outline"
-            className="tw-fixed tw-bottom-4 tw-right-4 tw-rounded-full tw-shadow-lg tw-button tw-z-50"
-            onClick={() => window.open('mailto:support@example.com')}
-            aria-label="Send feedback"
-          >
-            Feedback
-          </Button>
-        </AppSettingsProvider>
+            {/* Floating Feedback Button */}
+            <Button
+              variant="outline"
+              className="tw-fixed tw-bottom-4 tw-right-4 tw-rounded-full tw-shadow-lg tw-button tw-z-50"
+              onClick={() => window.open('mailto:support@example.com')}
+              aria-label="Send feedback"
+            >
+              Feedback
+            </Button>
+          </AppSettingsProvider>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
