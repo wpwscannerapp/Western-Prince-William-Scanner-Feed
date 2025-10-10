@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -24,10 +24,10 @@ const resetPasswordSchema = z.object({
 type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 const ResetPasswordPage = () => {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [resetComplete, setResetComplete] = useState(false);
+  const [tokens, setTokens] = useState<{ accessToken: string | null; refreshToken: string | null }>({ accessToken: null, refreshToken: null });
   const currentYear = new Date().getFullYear();
 
   const form = useForm<ResetPasswordFormValues>({
@@ -37,6 +37,26 @@ const ResetPasswordPage = () => {
       confirmPassword: '',
     },
   });
+
+  useEffect(() => {
+    const parseHashParams = () => {
+      const hash = window.location.hash.substring(1); // Remove '#'
+      const params = new URLSearchParams(hash);
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      setTokens({ accessToken, refreshToken });
+
+      // Clear hash from URL after parsing to prevent re-processing on refresh
+      if (accessToken || refreshToken) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    };
+
+    parseHashParams();
+    // Add a listener for hash changes if the user navigates within the app
+    window.addEventListener('hashchange', parseHashParams);
+    return () => window.removeEventListener('hashchange', parseHashParams);
+  }, []);
 
   const getPasswordStrength = (password: string) => {
     let score = 0;
@@ -53,10 +73,10 @@ const ResetPasswordPage = () => {
 
   const onSubmit = async (values: ResetPasswordFormValues) => {
     setLoading(true);
-    const refreshToken = searchParams.get('refresh_token');
+    const { accessToken, refreshToken } = tokens;
     
-    if (!refreshToken || typeof refreshToken !== 'string' || refreshToken.length < 10) {
-      handleError(null, 'Invalid reset link. Please request a new password reset.');
+    if (!accessToken || !refreshToken) {
+      handleError(null, 'Invalid reset link. Missing access or refresh token. Please request a new password reset.');
       setLoading(false);
       return;
     }
@@ -69,8 +89,8 @@ const ResetPasswordPage = () => {
 
     try {
       const { error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
         refresh_token: refreshToken,
-        access_token: '',
       });
 
       if (sessionError) {
