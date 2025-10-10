@@ -27,11 +27,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const SESSION_ID_KEY = 'wpw_session_id';
 
-  // Log AuthProvider mount
   console.log('AuthProvider: Rendering...');
 
   const handleSessionCreation = useCallback(async (currentSession: Session) => {
-    if (!currentSession.user || !currentSession.expires_in) return;
+    if (!currentSession.user || !currentSession.expires_in) {
+      console.log('handleSessionCreation: No user or expires_in, skipping session creation.');
+      return;
+    }
 
     const currentSessionId = localStorage.getItem(SESSION_ID_KEY);
     let newSessionId = currentSessionId;
@@ -39,63 +41,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!newSessionId) {
       newSessionId = crypto.randomUUID();
       localStorage.setItem(SESSION_ID_KEY, newSessionId);
+      console.log('handleSessionCreation: Generated new session ID:', newSessionId);
+    } else {
+      console.log('handleSessionCreation: Found existing session ID:', newSessionId);
     }
 
     const isValid = await SessionService.isValidSession(currentSession.user.id, newSessionId);
     if (isValid) {
+      console.log('handleSessionCreation: Session is already valid, no action needed.');
       return;
     }
 
     const profile = await ProfileService.fetchProfile(currentSession.user.id);
     const isCurrentUserAdmin = profile?.role === 'admin';
+    console.log('handleSessionCreation: User role:', profile?.role);
 
     if (!isCurrentUserAdmin) {
+      console.log('handleSessionCreation: User is not admin, checking concurrent sessions.');
       await SessionService.deleteOldestSessions(currentSession.user.id, MAX_CONCURRENT_SESSIONS);
     }
 
-    await SessionService.createSession(currentSession.user.id, newSessionId, currentSession.expires_in);
+    const createdSession = await SessionService.createSession(currentSession.user.id, newSessionId, currentSession.expires_in);
+    if (createdSession) {
+      console.log('handleSessionCreation: Session created successfully.');
+    } else {
+      console.error('handleSessionCreation: Failed to create session.');
+    }
   }, []);
 
   const handleSessionDeletion = useCallback(async () => {
     const currentSessionId = localStorage.getItem(SESSION_ID_KEY);
     if (currentSessionId) {
+      console.log('handleSessionDeletion: Deleting session ID:', currentSessionId);
       await SessionService.deleteSession(currentSessionId);
       localStorage.removeItem(SESSION_ID_KEY);
+      console.log('handleSessionDeletion: Session deleted and removed from localStorage.');
+    } else {
+      console.log('handleSessionDeletion: No session ID found in localStorage to delete.');
     }
   }, []);
 
   useEffect(() => {
     console.log('AuthProvider: Mounted. Initializing auth state listener...');
 
-    // Explicitly fetch initial session to ensure loading state is resolved quickly
     const getInitialSession = async () => {
-      const { data: { session: initialSession }, error: initialError } = await supabase.auth.getSession();
-      console.log('AuthProvider: Initial getSession result:', initialSession ? 'present' : 'null', 'Error:', initialError);
-      if (initialError) {
-        setError(initialError);
-      }
-      setSession(initialSession);
-      setUser(initialSession?.user || null);
-      setLoading(false); // Set loading to false after initial check
-      console.log(`AuthProvider: State after initial getSession: loading=${false}, user=${initialSession?.user ? 'present' : 'null'}`);
-      if (initialSession) {
-        await handleSessionCreation(initialSession);
-      } else {
-        await handleSessionDeletion();
+      try {
+        const { data: { session: initialSession }, error: initialError } = await supabase.auth.getSession();
+        console.log('AuthProvider: Initial getSession result:', initialSession ? 'present' : 'null', 'Error:', initialError);
+        if (initialError) {
+          setError(initialError);
+          console.error('AuthProvider: Error fetching initial session:', initialError);
+        }
+        setSession(initialSession);
+        setUser(initialSession?.user || null);
+        if (initialSession) {
+          await handleSessionCreation(initialSession);
+        } else {
+          await handleSessionDeletion();
+        }
+      } catch (err: any) {
+        console.error('AuthProvider: Unexpected error in getInitialSession:', err);
+        setError(err);
+      } finally {
+        setLoading(false); // Ensure loading is always set to false
+        console.log(`AuthProvider: State after initial getSession: loading=${user ? 'present' : 'null'}`);
       }
     };
 
-    getInitialSession(); // Call it immediately on mount
+    getInitialSession();
 
-    // Set up the onAuthStateChange listener for subsequent changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
-        console.log(`AuthProvider: onAuthStateChange event: ${_event} session: ${currentSession ? 'present' : 'null'}`);
+        console.log(`AuthProvider: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
         setSession(currentSession);
         setUser(currentSession?.user || null);
-        setError(null);
-        // No need to set loading here, as getInitialSession already handled it.
-        // This listener is for *changes* after the initial load.
+        setError(null); // Clear any previous errors on auth state change
 
         if (currentSession) {
           await handleSessionCreation(currentSession);
@@ -109,7 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthProvider: Unmounting. Unsubscribing from auth state changes.');
       subscription.unsubscribe();
     };
-  }, [handleSessionCreation, handleSessionDeletion]); // Dependencies for useCallback functions
+  }, [handleSessionCreation, handleSessionDeletion, user]); // Added user to dependencies to ensure handleSessionCreation/Deletion are up-to-date
 
   useEffect(() => {
     console.log('AuthProvider: Current loading state:', loading);
