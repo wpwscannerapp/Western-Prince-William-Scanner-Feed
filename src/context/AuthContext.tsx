@@ -23,7 +23,7 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start loading as true
   const [error, setError] = useState<AuthError | null>(null);
   const subscriptionRef = useRef<any>(null); // Track Supabase subscription
   const isMountedRef = useRef(true); // Track component mount state
@@ -111,41 +111,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('AuthContext: useEffect for auth state listener started.');
 
-    const getInitialSession = async () => {
-      console.log('AuthContext: getInitialSession started.');
-      let initialSession: Session | null = null;
-      try {
-        const { data: { session: fetchedSession }, error: initialError } = await supabase.auth.getSession();
-        initialSession = fetchedSession;
-        console.log('AuthContext: getInitialSession result:', initialSession ? 'present' : 'null', 'Error:', initialError);
-        if (initialError) {
-          handleError(initialError, 'Error fetching initial session.');
-        }
-        setSession(initialSession);
-        setUser(initialSession?.user || null);
-        if (initialSession) {
-          await handleSessionCreation(initialSession);
-        } else {
-          await handleSessionDeletion(undefined);
-        }
-      } catch (err: any) {
-        console.error('AuthContext: Unexpected error in getInitialSession:', err);
-        handleError(err, 'Unexpected error during session initialization.');
-      } finally {
+    // The onAuthStateChange listener will fire immediately with the current session status
+    // and will be the primary source of truth for setting initial session/user and loading state.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event: AuthChangeEvent, currentSession: Session | null) => {
+        console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
         if (isMountedRef.current) {
-          setLoading(false);
-          console.log(`AuthContext: getInitialSession finished. Loading set to false. User: ${initialSession?.user ? 'present' : 'null'}`);
-        }
-      }
-    };
-
-    if (!subscriptionRef.current) {
-      getInitialSession();
-
-      console.log('AuthContext: Setting up onAuthStateChange listener');
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (_event: AuthChangeEvent, currentSession: Session | null) => {
-          console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
           setSession(currentSession);
           setUser(currentSession?.user || null);
           setError(null); // Clear any previous errors on auth state change
@@ -155,14 +126,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             await handleSessionDeletion(undefined);
           }
-          if (isMountedRef.current) {
-            setLoading(false);
-            console.log(`AuthContext: onAuthStateChange finished. Loading set to false. User: ${currentSession?.user ? 'present' : 'null'}`);
-          }
+          setLoading(false); // Set loading to false after the first state change is processed
+          console.log(`AuthContext: onAuthStateChange finished. Loading set to false. User: ${currentSession?.user ? 'present' : 'null'}`);
         }
-      );
-      subscriptionRef.current = subscription;
-    }
+      }
+    );
+    subscriptionRef.current = subscription;
 
     return () => {
       console.log('AuthContext: Cleanup function for auth state listener.');
