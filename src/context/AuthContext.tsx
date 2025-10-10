@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SessionService } from '@/services/SessionService';
 import { MAX_CONCURRENT_SESSIONS } from '@/config';
 import { ProfileService } from '@/services/ProfileService';
-import { handleError } from '@/utils/errorHandler';
+import { handleError as globalHandleError } from '@/utils/errorHandler'; // Renamed to avoid conflict
 
 interface AuthState {
   session: Session | null;
@@ -27,8 +27,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<AuthError | null>(null);
   const subscriptionRef = useRef<any>(null); // Track Supabase subscription
   const isMountedRef = useRef(true); // Track component mount state
+  const mountCountRef = useRef(0); // For debugging mount/unmount cycles
 
   const SESSION_ID_KEY = 'wpw_session_id';
+
+  useEffect(() => {
+    mountCountRef.current += 1;
+    console.log(`AuthContext: Mounting AuthProvider (mount count: ${mountCountRef.current})`);
+    return () => {
+      isMountedRef.current = false; // Set to false on unmount
+      console.log(`AuthContext: Unmounting AuthProvider (mount count: ${mountCountRef.current})`);
+    };
+  }, []);
+
+  const handleError = useCallback((err: any, defaultMessage: string) => {
+    const authError = err instanceof AuthError ? err : new AuthError(err.message || defaultMessage, err.name);
+    if (isMountedRef.current) {
+      setError(authError);
+    }
+    globalHandleError(authError, defaultMessage); // Use the global error handler with toast
+    return authError;
+  }, []);
 
   const handleSessionCreation = useCallback(async (currentSession: Session) => {
     console.log('AuthContext: handleSessionCreation called with session:', currentSession ? 'present' : 'null');
@@ -66,9 +85,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthContext: Session created successfully.');
     } else {
       console.error('AuthContext: Failed to create session.');
-      handleError(null, 'Failed to create session record.'); // Use handleError
+      handleError(new Error('Failed to create session record.'), 'Failed to create session record.');
     }
-  }, []); // Dependencies are stable
+  }, [handleError]);
 
   const handleSessionDeletion = useCallback(async (userIdToDelete?: string) => {
     console.log('AuthContext: handleSessionDeletion called.');
@@ -87,34 +106,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await SessionService.deleteAllSessionsForUser(userIdToDelete);
     }
     console.log('AuthContext: Session(s) deleted and removed from localStorage.');
-  }, []); // Dependencies are stable
+  }, [handleError]);
 
   useEffect(() => {
-    isMountedRef.current = true;
-    console.log('AuthContext: Mounting AuthProvider, initializing auth state listener');
+    console.log('AuthContext: useEffect for auth state listener started.');
 
     const getInitialSession = async () => {
       console.log('AuthContext: getInitialSession started.');
-      let initialSession: Session | null = null; // Declare outside try block
+      let initialSession: Session | null = null;
       try {
         const { data: { session: fetchedSession }, error: initialError } = await supabase.auth.getSession();
-        initialSession = fetchedSession; // Assign to the outer variable
+        initialSession = fetchedSession;
         console.log('AuthContext: getInitialSession result:', initialSession ? 'present' : 'null', 'Error:', initialError);
         if (initialError) {
-          setError(initialError);
-          handleError(initialError, 'Error fetching initial session.'); // Use handleError
+          handleError(initialError, 'Error fetching initial session.');
         }
         setSession(initialSession);
         setUser(initialSession?.user || null);
         if (initialSession) {
           await handleSessionCreation(initialSession);
         } else {
-          await handleSessionDeletion(undefined); // Pass undefined when session is null
+          await handleSessionDeletion(undefined);
         }
       } catch (err: any) {
         console.error('AuthContext: Unexpected error in getInitialSession:', err);
-        setError(err);
-        handleError(err, 'Unexpected error during session initialization.'); // Use handleError
+        handleError(err, 'Unexpected error during session initialization.');
       } finally {
         if (isMountedRef.current) {
           setLoading(false);
@@ -123,7 +139,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // Only initialize if no subscription exists
     if (!subscriptionRef.current) {
       getInitialSession();
 
@@ -138,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (currentSession) {
             await handleSessionCreation(currentSession);
           } else {
-            await handleSessionDeletion(undefined); // Pass undefined when session is null
+            await handleSessionDeletion(undefined);
           }
           if (isMountedRef.current) {
             setLoading(false);
@@ -150,22 +165,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     return () => {
-      console.log('AuthContext: Unmounting AuthProvider, cleaning up');
-      isMountedRef.current = false;
+      console.log('AuthContext: Cleanup function for auth state listener.');
       if (subscriptionRef.current) {
         console.log('AuthContext: Unsubscribing from auth state changes');
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion]); // Dependencies are stable
+  }, [handleSessionCreation, handleSessionDeletion, handleError]); // Dependencies are stable
 
   const signUp = async (email: string, password: string) => {
     setError(null);
     const { data, error: authError } = await supabase.auth.signUp({ email, password });
     if (authError) {
-      setError(authError);
-      handleError(authError, authError.message); // Use handleError
+      handleError(authError, authError.message);
       return { error: authError };
     }
     toast.success('Signup successful! Please check your email to confirm your account.');
@@ -176,8 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
     if (authError) {
-      setError(authError);
-      handleError(authError, authError.message); // Use handleError
+      handleError(authError, authError.message);
       return { error: authError };
     }
     toast.success('Logged in successfully!');
@@ -195,22 +207,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(null);
           setUser(null);
           setLoading(false);
-          await handleSessionDeletion(user?.id); // Pass user ID for full cleanup
+          await handleSessionDeletion(user?.id);
           return { success: true };
         }
-        setError(authError);
-        handleError(authError, authError.message); // Use handleError
+        handleError(authError, authError.message);
         return { success: false, error: authError };
       }
       toast.success('Logged out successfully!');
       setSession(null);
       setUser(null);
       setLoading(false);
-      await handleSessionDeletion(user?.id); // Pass user ID for full cleanup
+      await handleSessionDeletion(user?.id);
       return { success: true };
     } catch (e: any) {
-      setError(e);
-      handleError(e, e.message || 'An unexpected error occurred during logout.'); // Use handleError
+      handleError(e, e.message || 'An unexpected error occurred during logout.');
       return { success: false, error: e };
     }
   };
@@ -221,8 +231,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       redirectTo: `${import.meta.env.VITE_APP_URL}/reset-password`,
     });
     if (authError) {
-      setError(authError);
-      handleError(authError, authError.message); // Use handleError
+      handleError(authError, authError.message);
       return { success: false, error: authError };
     }
     toast.success('Password reset email sent. Check your inbox!');
