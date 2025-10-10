@@ -156,7 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         subscriptionRef.current = null;
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion, user]);
+  }, [handleSessionCreation, handleSessionDeletion]); // Removed 'user' from dependencies
 
   const signUp = async (email: string, password: string) => {
     setError(null);
