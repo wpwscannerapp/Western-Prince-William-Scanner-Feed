@@ -23,11 +23,13 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start as true
   const [error, setError] = useState<AuthError | null>(null);
   const isMountedRef = useRef(true);
   const mountCountRef = useRef(0);
-  const isInitialLoadCheckedRef = useRef(false); // New ref to track if initial session check is done
+
+  // Ref to ensure initial session check runs only once per component instance
+  const initialSessionChecked = useRef(false);
 
   useEffect(() => {
     mountCountRef.current += 1;
@@ -105,27 +107,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AuthContext: Session(s) deleted and removed from localStorage.');
   }, [handleError]);
 
+  // Effect for initial session check and setting up auth state listener
   useEffect(() => {
-    console.log('AuthContext: useEffect for auth state listener started.');
+    // This effect runs twice in Strict Mode, but initialSessionChecked ref ensures logic runs once per "mount"
+    if (initialSessionChecked.current) {
+      console.log('AuthContext: Skipping initial session check on Strict Mode remount.');
+      return;
+    }
+    initialSessionChecked.current = true; // Mark as checked for this instance
 
+    console.log('AuthContext: Performing initial session check and setting up listener.');
+
+    const getInitialSession = async () => {
+      try {
+        const { data: { session: initialSession }, error: initialError } = await supabase.auth.getSession();
+        if (isMountedRef.current) {
+          setSession(initialSession);
+          setUser(initialSession?.user || null);
+          setError(initialError);
+          setLoading(false); // Set loading to false after initial check
+          console.log(`AuthContext: Initial getSession finished. Loading set to false. User: ${initialSession?.user ? 'present' : 'null'}`);
+
+          if (initialSession) {
+            await handleSessionCreation(initialSession);
+          } else {
+            await handleSessionDeletion(undefined);
+          }
+        }
+      } catch (err: any) {
+        if (isMountedRef.current) {
+          handleError(err, 'Failed to retrieve initial session.');
+          setLoading(false); // Ensure loading is false even on error
+        }
+      }
+    };
+
+    getInitialSession();
+
+    // Set up the real-time auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
         console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
         if (isMountedRef.current) {
           setSession(currentSession);
           setUser(currentSession?.user || null);
-          setError(null);
+          setError(null); // Clear error on any new auth state change
 
-          // Only set loading to false once the initial session check is complete
-          if (!isInitialLoadCheckedRef.current) {
-            setLoading(false);
-            isInitialLoadCheckedRef.current = true;
-            console.log(`AuthContext: Initial load check finished. Loading set to false. User: ${currentSession?.user ? 'present' : 'null'}`);
-          } else {
-            // For subsequent events (e.g., SIGNED_OUT after initial load), ensure loading is false
-            setLoading(false); 
-            console.log(`AuthContext: Subsequent auth state change. Loading set to false. User: ${currentSession?.user ? 'present' : 'null'}`);
-          }
+          // For subsequent events, ensure loading is false (it should already be from initial check)
+          setLoading(false); 
+          console.log(`AuthContext: Auth state changed. Loading set to false. User: ${currentSession?.user ? 'present' : 'null'}`);
 
           if (currentSession) {
             await handleSessionCreation(currentSession);
@@ -143,7 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         subscription.unsubscribe();
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion, handleError]);
+  }, [handleSessionCreation, handleSessionDeletion, handleError]); // Dependencies for callbacks
 
   const signUp = async (email: string, password: string) => {
     setError(null);
