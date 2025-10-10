@@ -1,7 +1,7 @@
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom"; // Removed Navigate, Outlet
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/AuthPage";
@@ -12,7 +12,15 @@ import { useAppSettings } from "./hooks/useAppSettings";
 import TopNavBar from "./components/TopNavBar";
 import { Button } from "./components/ui/button";
 import { AuthProvider } from "@/context/AuthContext.tsx";
-import AuthGate from "./components/AuthGate"; // Import AuthGate
+import AuthGate from "./components/AuthGate";
+import Layout from '@/components/Layout';
+import HomePage from '@/pages/HomePage';
+import IncidentsPage from '@/pages/IncidentsPage';
+import WeatherPage from '@/pages/WeatherPage';
+import TrafficPage from '@/pages/TrafficPage';
+import ProfilePage from '@/pages/ProfilePage';
+import AdminPage from '@/pages/AdminPage';
+import PostDetailPage from '@/pages/PostDetailPage';
 
 const queryClient = new QueryClient();
 
@@ -32,20 +40,29 @@ const App = () => (
             <TopNavBar />
             <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
               <Routes>
-                {/* The root path renders Index, which then renders AuthGate via Outlet */}
+                {/* The Index component now wraps all other routes */}
                 <Route path="/" element={<Index />}>
-                  <Route index element={<AuthGate />} /> {/* AuthGate as the default child of Index */}
-                  <Route path="*" element={<AuthGate />} /> {/* AuthGate handles all paths under / */}
+                  {/* Public routes that don't require authentication */}
+                  <Route path="auth" element={<AuthPage />} />
+                  <Route path="subscribe" element={<SubscriptionPage />} />
+                  <Route path="reset-password" element={<ResetPasswordPage />} />
+                  <Route path="terms-of-service" element={<TermsOfServicePage />} />
+
+                  {/* Protected routes wrapped by AuthGate */}
+                  <Route element={<AuthGate><Layout /></AuthGate>}>
+                    <Route index element={<Navigate to="/home" replace />} /> {/* Redirect root to home if authenticated */}
+                    <Route path="home" element={<HomePage />} />
+                    <Route path="home/incidents" element={<IncidentsPage />} />
+                    <Route path="home/weather" element={<WeatherPage />} />
+                    <Route path="home/traffic" element={<TrafficPage />} />
+                    <Route path="profile" element={<ProfilePage />} />
+                    <Route path="admin" element={<AdminPage />} />
+                    <Route path="posts/:postId" element={<PostDetailPage />} />
+                  </Route>
+
+                  {/* Catch-all for 404 - ensure it's after all other specific routes */}
+                  <Route path="*" element={<NotFound />} />
                 </Route>
-
-                {/* Public routes */}
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/subscribe" element={<SubscriptionPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-                <Route path="/terms-of-service" element={<TermsOfServicePage />} />
-
-                {/* Catch-all route for 404 - ensure it's after all other specific routes */}
-                <Route path="*" element={<NotFound />} />
               </Routes>
             </div>
 
