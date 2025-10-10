@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { SessionService } from '@/services/SessionService';
 import { MAX_CONCURRENT_SESSIONS } from '@/config';
 import { ProfileService } from '@/services/ProfileService';
-import { handleError as globalHandleError } from '@/utils/errorHandler'; // Renamed to avoid conflict
+import { handleError as globalHandleError } from '@/utils/errorHandler';
 
 interface AuthState {
   session: Session | null;
@@ -23,19 +23,17 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // Start loading as true
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AuthError | null>(null);
-  const subscriptionRef = useRef<any>(null); // Track Supabase subscription
-  const isMountedRef = useRef(true); // Track component mount state
-  const mountCountRef = useRef(0); // For debugging mount/unmount cycles
-
-  const SESSION_ID_KEY = 'wpw_session_id';
+  const isMountedRef = useRef(true);
+  const mountCountRef = useRef(0);
+  const isInitialLoadCheckedRef = useRef(false); // New ref to track if initial session check is done
 
   useEffect(() => {
     mountCountRef.current += 1;
     console.log(`AuthContext: Mounting AuthProvider (mount count: ${mountCountRef.current})`);
     return () => {
-      isMountedRef.current = false; // Set to false on unmount
+      isMountedRef.current = false;
       console.log(`AuthContext: Unmounting AuthProvider (mount count: ${mountCountRef.current})`);
     };
   }, []);
@@ -45,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isMountedRef.current) {
       setError(authError);
     }
-    globalHandleError(authError, defaultMessage); // Use the global error handler with toast
+    globalHandleError(authError, defaultMessage);
     return authError;
   }, []);
 
@@ -56,10 +54,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    let currentSessionId = localStorage.getItem(SESSION_ID_KEY);
+    let currentSessionId = localStorage.getItem('wpw_session_id');
     if (!currentSessionId) {
       currentSessionId = crypto.randomUUID();
-      localStorage.setItem(SESSION_ID_KEY, currentSessionId);
+      localStorage.setItem('wpw_session_id', currentSessionId);
       console.log('AuthContext: Generated new session ID:', currentSessionId);
     } else {
       console.log('AuthContext: Found existing session ID:', currentSessionId);
@@ -91,16 +89,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleSessionDeletion = useCallback(async (userIdToDelete?: string) => {
     console.log('AuthContext: handleSessionDeletion called.');
-    const currentSessionId = localStorage.getItem(SESSION_ID_KEY);
+    const currentSessionId = localStorage.getItem('wpw_session_id');
     if (currentSessionId) {
       console.log('AuthContext: Deleting specific session ID:', currentSessionId);
       await SessionService.deleteSession(currentSessionId);
-      localStorage.removeItem(SESSION_ID_KEY);
+      localStorage.removeItem('wpw_session_id');
     } else {
       console.log('AuthContext: No specific session ID found in localStorage to delete.');
     }
 
-    // If a userId is provided, also clean up any other sessions for that user
     if (userIdToDelete) {
       console.log('AuthContext: Deleting all sessions for user:', userIdToDelete);
       await SessionService.deleteAllSessionsForUser(userIdToDelete);
@@ -111,37 +108,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('AuthContext: useEffect for auth state listener started.');
 
-    // The onAuthStateChange listener will fire immediately with the current session status
-    // and will be the primary source of truth for setting initial session/user and loading state.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
         console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
         if (isMountedRef.current) {
           setSession(currentSession);
           setUser(currentSession?.user || null);
-          setError(null); // Clear any previous errors on auth state change
+          setError(null);
+
+          // Only set loading to false once the initial session check is complete
+          if (!isInitialLoadCheckedRef.current) {
+            setLoading(false);
+            isInitialLoadCheckedRef.current = true;
+            console.log(`AuthContext: Initial load check finished. Loading set to false. User: ${currentSession?.user ? 'present' : 'null'}`);
+          } else {
+            // For subsequent events (e.g., SIGNED_OUT after initial load), ensure loading is false
+            setLoading(false); 
+            console.log(`AuthContext: Subsequent auth state change. Loading set to false. User: ${currentSession?.user ? 'present' : 'null'}`);
+          }
 
           if (currentSession) {
             await handleSessionCreation(currentSession);
           } else {
             await handleSessionDeletion(undefined);
           }
-          setLoading(false); // Set loading to false after the first state change is processed
-          console.log(`AuthContext: onAuthStateChange finished. Loading set to false. User: ${currentSession?.user ? 'present' : 'null'}`);
         }
       }
     );
-    subscriptionRef.current = subscription;
 
     return () => {
       console.log('AuthContext: Cleanup function for auth state listener.');
-      if (subscriptionRef.current) {
+      if (subscription) {
         console.log('AuthContext: Unsubscribing from auth state changes');
-        subscriptionRef.current.unsubscribe();
-        subscriptionRef.current = null;
+        subscription.unsubscribe();
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion, handleError]); // Dependencies are stable
+  }, [handleSessionCreation, handleSessionDeletion, handleError]);
 
   const signUp = async (email: string, password: string) => {
     setError(null);
