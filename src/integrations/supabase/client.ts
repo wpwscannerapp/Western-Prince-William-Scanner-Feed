@@ -19,3 +19,4 @@ if (!supabaseUrl.startsWith('http://') && !supabaseUrl.startsWith('https://')) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+console.log('Supabase Client Debug: Client created successfully.');

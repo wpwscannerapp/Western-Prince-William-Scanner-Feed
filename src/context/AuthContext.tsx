@@ -30,6 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   console.log('AuthProvider: Rendering...');
 
   const handleSessionCreation = useCallback(async (currentSession: Session) => {
+    console.log('handleSessionCreation: Called with session:', currentSession ? 'present' : 'null');
     if (!currentSession.user || !currentSession.expires_in) {
       console.log('handleSessionCreation: No user or expires_in, skipping session creation.');
       return;
@@ -70,6 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const handleSessionDeletion = useCallback(async () => {
+    console.log('handleSessionDeletion: Called.');
     const currentSessionId = localStorage.getItem(SESSION_ID_KEY);
     if (currentSessionId) {
       console.log('handleSessionDeletion: Deleting session ID:', currentSessionId);
@@ -85,9 +87,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AuthProvider: Mounted. Initializing auth state listener...');
 
     const getInitialSession = async () => {
+      console.log('AuthProvider: getInitialSession started.');
       try {
         const { data: { session: initialSession }, error: initialError } = await supabase.auth.getSession();
-        console.log('AuthProvider: Initial getSession result:', initialSession ? 'present' : 'null', 'Error:', initialError);
+        console.log('AuthProvider: getInitialSession result:', initialSession ? 'present' : 'null', 'Error:', initialError);
         if (initialError) {
           setError(initialError);
           console.error('AuthProvider: Error fetching initial session:', initialError);
@@ -103,12 +106,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('AuthProvider: Unexpected error in getInitialSession:', err);
         setError(err);
       } finally {
-        setLoading(false); // Ensure loading is always set to false
-        console.log(`AuthProvider: State after initial getSession: loading=${user ? 'present' : 'null'}`);
+        setLoading(false); // Ensure loading is always set to false after initial check
+        console.log(`AuthProvider: getInitialSession finished. Loading set to false. User: ${user ? 'present' : 'null'}`);
       }
     };
 
-    getInitialSession();
+    getInitialSession(); // Call it immediately on mount
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
@@ -122,6 +125,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           await handleSessionDeletion();
         }
+        setLoading(false); // Ensure loading is false after any auth state change
+        console.log(`AuthProvider: onAuthStateChange finished. Loading set to false. User: ${user ? 'present' : 'null'}`);
       }
     );
 
@@ -129,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthProvider: Unmounting. Unsubscribing from auth state changes.');
       subscription.unsubscribe();
     };
-  }, [handleSessionCreation, handleSessionDeletion, user]); // Added user to dependencies to ensure handleSessionCreation/Deletion are up-to-date
+  }, [handleSessionCreation, handleSessionDeletion]); // Removed `user` from dependencies
 
   useEffect(() => {
     console.log('AuthProvider: Current loading state:', loading);
