@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom'; // Use Outlet to render children
+import AuthInitializer from '@/components/AuthInitializer'; // Import AuthInitializer
 import { SPLASH_DURATION } from '@/config'; // Import from config.ts
 
 const Index = () => {
@@ -29,8 +29,8 @@ const Index = () => {
     );
   }
 
-  // Once splash is done, render the Outlet. AuthInitializer will handle the actual navigation.
-  return <Outlet />;
+  // Once splash is done, render AuthInitializer to handle auth and routing
+  return <AuthInitializer />;
 };
 
 export default Index;
