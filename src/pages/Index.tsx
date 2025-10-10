@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { Outlet } from 'react-router-dom'; // Import Outlet to render children
 import { SPLASH_DURATION } from '@/config'; // Import from config.ts
 
 const Index = () => {
   const [splashLoading, setSplashLoading] = useState(true);
-  const navigate = useNavigate(); // Initialize useNavigate
 
   useEffect(() => {
     const splashDuration = SPLASH_DURATION; // Use constant from config.ts
@@ -12,11 +11,10 @@ const Index = () => {
 
     const timer = setTimeout(() => {
       setSplashLoading(false);
-      navigate('/initial-route-check', { replace: true }); // Navigate after splash
     }, splashDuration);
 
     return () => clearTimeout(timer);
-  }, [navigate]); // Add navigate to dependency array
+  }, []);
 
   if (splashLoading) {
     return (
@@ -31,8 +29,8 @@ const Index = () => {
     );
   }
 
-  // This component should not render anything after navigation
-  return null;
+  // Once splash is done, render the Outlet. AuthGate will handle the actual auth check and routing.
+  return <Outlet />;
 };
 
 export default Index;

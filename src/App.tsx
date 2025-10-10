@@ -1,27 +1,18 @@
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom"; // Removed Navigate, Outlet
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import HomePage from "./pages/HomePage";
-import ProfilePage from "./pages/ProfilePage";
-import AdminPage from "./pages/AdminPage";
-import PostDetailPage from "./pages/PostDetailPage";
-import IncidentsPage from "./pages/IncidentsPage";
-import WeatherPage from "./pages/WeatherPage";
-import TrafficPage from "./pages/TrafficPage";
-import Layout from "./components/Layout";
 import AuthPage from "./pages/AuthPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import TermsOfServicePage from "./pages/TermsOfServicePage";
-import { useAuth } from "./hooks/useAuth";
 import { useAppSettings } from "./hooks/useAppSettings";
 import TopNavBar from "./components/TopNavBar";
 import { Button } from "./components/ui/button";
 import { AuthProvider } from "@/context/AuthContext.tsx";
-import InitialRouter from "./components/InitialRouter"; // Import InitialRouter
+import AuthGate from "./components/AuthGate"; // Import AuthGate
 
 const queryClient = new QueryClient();
 
@@ -29,30 +20,6 @@ const queryClient = new QueryClient();
 const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
   useAppSettings(); // This hook handles setting CSS variables
   return <>{children}</>;
-};
-
-// ProtectedRoute component to guard routes
-const ProtectedRoute = () => {
-  const { user, loading } = useAuth();
-
-  console.log('ProtectedRoute: Checking authentication...');
-  console.log('ProtectedRoute: Current auth loading state:', loading);
-
-
-  if (loading) {
-    return (
-      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
-        <p>Loading...</p>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  // If authenticated, render the Outlet for nested routes
-  return <Outlet />;
 };
 
 const App = () => (
@@ -65,10 +32,11 @@ const App = () => (
             <TopNavBar />
             <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
               <Routes>
-                {/* The root path renders the splash screen */}
-                <Route path="/" element={<Index />} /> 
-                {/* This route handles the initial auth check and redirection after splash */}
-                <Route path="/initial-route-check" element={<InitialRouter />} />
+                {/* The root path renders Index, which then renders AuthGate via Outlet */}
+                <Route path="/" element={<Index />}>
+                  <Route index element={<AuthGate />} /> {/* AuthGate as the default child of Index */}
+                  <Route path="*" element={<AuthGate />} /> {/* AuthGate handles all paths under / */}
+                </Route>
 
                 {/* Public routes */}
                 <Route path="/auth" element={<AuthPage />} />
@@ -76,20 +44,7 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
-                {/* Protected routes */}
-                <Route element={<ProtectedRoute />}>
-                  <Route element={<Layout />}>
-                    <Route path="/home" element={<HomePage />} />
-                    <Route path="/home/incidents" element={<IncidentsPage />} />
-                    <Route path="/home/weather" element={<WeatherPage />} />
-                    <Route path="/home/traffic" element={<TrafficPage />} />
-                    <Route path="/profile" element={<ProfilePage />} />
-                    <Route path="/admin" element={<AdminPage />} />
-                    <Route path="/posts/:postId" element={<PostDetailPage />} />
-                  </Route>
-                </Route>
-
-                {/* Catch-all route for 404 */}
+                {/* Catch-all route for 404 - ensure it's after all other specific routes */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div>
