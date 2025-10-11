@@ -14,9 +14,14 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { location } = await req.json();
+    // Log the raw request body for debugging
+    const rawBody = await req.text();
+    console.log('Edge Function: Received raw request body:', rawBody);
+
+    const { location } = JSON.parse(rawBody); // Parse the raw body to get location
 
     if (!location) {
+      console.error('Edge Function: Missing location parameter in parsed body.');
       return new Response(JSON.stringify({ error: 'Missing location parameter' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -50,7 +55,6 @@ serve(async (req: Request) => {
     const { lat, lng } = geocodingData.results[0].geometry.location;
 
     // Step 2: Construct the Google Maps Embed API URL with 'view' mode.
-    // Removed '&layer=traffic' as it's not supported in 'view' mode for the Embed API.
     const embedUrl = `https://www.google.com/maps/embed/v1/view?key=${googleMapsApiKey}&center=${lat},${lng}&zoom=12`;
 
     return new Response(JSON.stringify({ embedUrl }), {
