@@ -14,9 +14,6 @@ serve(async (req: Request) => {
   }
 
   try {
-    // No user authentication needed for this function, as it only constructs a public URL.
-    // The API key is handled as a Supabase secret.
-
     const { location } = await req.json();
 
     if (!location) {
@@ -37,9 +34,24 @@ serve(async (req: Request) => {
       });
     }
 
-    // Construct the Google Maps Embed API URL with traffic mode
-    // The 'q' parameter can accept city names, zip codes, or addresses.
-    const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(location)}&mode=traffic&zoom=12`;
+    // Step 1: Geocode the location to get latitude and longitude
+    const geocodingUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${googleMapsApiKey}`;
+    const geocodingResponse = await fetch(geocodingUrl);
+    const geocodingData = await geocodingResponse.json();
+
+    if (!geocodingResponse.ok || geocodingData.status !== 'OK' || geocodingData.results.length === 0) {
+      console.error('Geocoding failed:', geocodingData);
+      return new Response(JSON.stringify({ error: 'Could not find coordinates for the specified location. Please try a more specific address or city.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { lat, lng } = geocodingData.results[0].geometry.location;
+
+    // Step 2: Construct the Google Maps Embed API URL with 'view' mode and 'layer=traffic'
+    // The 'center' parameter is required for 'view' mode.
+    const embedUrl = `https://www.google.com/maps/embed/v1/view?key=${googleMapsApiKey}&center=${lat},${lng}&zoom=12&layer=traffic`;
 
     return new Response(JSON.stringify({ embedUrl }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
