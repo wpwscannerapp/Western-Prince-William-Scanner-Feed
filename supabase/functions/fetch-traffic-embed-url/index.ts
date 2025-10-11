@@ -54,8 +54,8 @@ serve(async (req: Request) => {
 
     const { lat, lng } = geocodingData.results[0].geometry.location;
 
-    // Step 2: Construct the Google Maps Embed API URL with 'view' mode.
-    const embedUrl = `https://www.google.com/maps/embed/v1/view?key=${googleMapsApiKey}&center=${lat},${lng}&zoom=12`;
+    // Step 2: Construct the Google Maps Embed API URL with 'traffic' mode.
+    const embedUrl = `https://www.google.com/maps/embed/v1/traffic?key=${googleMapsApiKey}&center=${lat},${lng}&zoom=12`;
 
     return new Response(JSON.stringify({ embedUrl }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
