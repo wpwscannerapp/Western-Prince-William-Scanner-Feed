@@ -13,9 +13,17 @@ export interface AppSettings {
   updated_at: string;
 }
 
+export interface ContactCard {
+  id: string; // Unique ID for react-hook-form field array
+  name: string;
+  title: string;
+  email: string;
+  phone: string;
+}
+
 export interface ContactSettings {
   id: string;
-  phone_numbers: string[];
+  contact_cards: ContactCard[]; // Changed from phone_numbers: string[]
   updated_at: string;
 }
 
@@ -154,7 +162,7 @@ export const SettingsService = {
         if (error.code === 'PGRST116') { // No rows found, return default structure
           return {
             id: 'default', // Placeholder ID
-            phone_numbers: [],
+            contact_cards: [], // Default to empty array
             updated_at: new Date().toISOString(),
           };
         }
@@ -168,7 +176,7 @@ export const SettingsService = {
     }
   },
 
-  async updateContactSettings(phoneNumbers: string[]): Promise<boolean> {
+  async updateContactSettings(contactCards: ContactCard[]): Promise<boolean> { // Updated parameter type
     try {
       const { data: existingSettings } = await supabase
         .from('contact_settings')
@@ -176,16 +184,14 @@ export const SettingsService = {
         .limit(1)
         .single();
 
-      let upsertData: Partial<ContactSettings> = { // Explicitly type as Partial<ContactSettings>
-        phone_numbers: phoneNumbers,
+      let upsertData: Partial<ContactSettings> = {
+        contact_cards: contactCards, // Use new column name and type
         updated_at: new Date().toISOString(),
       };
 
       if (existingSettings) {
-        upsertData.id = existingSettings.id; // Assign directly
+        upsertData.id = existingSettings.id;
       }
-      // If no existingSettings, upsertData will not have an 'id', and Supabase will generate one.
-      // The `delete (upsertData as any).id;` line is no longer needed.
 
       const { error } = await supabase
         .from('contact_settings')
