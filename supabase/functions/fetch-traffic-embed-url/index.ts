@@ -18,7 +18,7 @@ serve(async (req: Request) => {
     console.log('Edge Function: Received raw request body:', rawBody);
     
     const { location } = JSON.parse(rawBody);
-    console.log('Edge Function: Parsed location:', location); // Added log for parsed location
+    console.log('Edge Function: Parsed location:', location);
 
     if (!location) {
       console.error('Edge Function: Missing location parameter in parsed body.');
@@ -45,11 +45,20 @@ serve(async (req: Request) => {
     
     const geocodingResponse = await fetch(geocodingUrl);
     const geocodingData = await geocodingResponse.json();
-    console.log('Edge Function: Geocoding Response HTTP Status:', geocodingResponse.status); // More specific log
-    console.log('Edge Function: Geocoding Data Status:', geocodingData.status); // Log Google's status
+    console.log('Edge Function: Geocoding Response HTTP Status:', geocodingResponse.status);
+    console.log('Edge Function: Geocoding Data Status:', geocodingData.status);
     console.log('Edge Function: Geocoding Data:', JSON.stringify(geocodingData, null, 2));
 
-    if (!geocodingResponse.ok || geocodingData.status !== 'OK' || geocodingData.results.length === 0) {
+    // Explicitly check for Google API error messages
+    if (geocodingData.status === 'REQUEST_DENIED' || geocodingData.error_message) {
+      console.error('Google Geocoding API denied request:', geocodingData.error_message || 'Unknown denial reason');
+      return new Response(JSON.stringify({ error: geocodingData.error_message || 'Google Maps API request denied. Please check your API key and permissions.' }), {
+        status: 400, // Still a client-side issue (bad key/permissions)
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!geocodingResponse.ok || geocodingData.results.length === 0) {
       console.error('Geocoding failed or returned no results:', geocodingData);
       return new Response(JSON.stringify({ error: 'Could not find coordinates for the specified location. Please try a more specific address or city.' }), {
         status: 400,
