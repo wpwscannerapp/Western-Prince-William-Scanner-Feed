@@ -42,7 +42,7 @@ const WeatherPage: React.FC = () => {
 
   const fetchWeather = async () => {
     if (!city) {
-      toast.error('Please enter a city.');
+      toast.error('Please enter a city or zip code.');
       return;
     }
 
@@ -96,7 +96,7 @@ const WeatherPage: React.FC = () => {
         <CardContent className="tw-p-6">
           <div className="tw-flex tw-gap-2 tw-mb-6">
             <Input
-              placeholder="Enter city, e.g., Gainesville"
+              placeholder="Enter city or zip code, e.g., Gainesville or 20155"
               value={city}
               onChange={(e) => setCity(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && fetchWeather()}
