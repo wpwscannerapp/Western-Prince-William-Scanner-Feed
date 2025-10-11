@@ -16,7 +16,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from '@/components/Layout';
 import HomePage from '@/pages/HomePage';
 import IncidentsPage from '@/pages/IncidentsPage';
-import WeatherPage from '@/pages/WeatherPage';
 import TrafficPage from '@/pages/TrafficPage';
 import ProfilePage from '@/pages/ProfilePage';
 import AdminPage from '@/pages/AdminPage';
@@ -57,7 +56,6 @@ const App = () => {
                     {/* No index route here, as / is handled by Index.tsx */}
                     <Route path="home" element={<HomePage />} />
                     <Route path="home/incidents" element={<IncidentsPage />} />
-                    <Route path="home/weather" element={<WeatherPage />} />
                     <Route path="home/traffic" element={<TrafficPage />} />
                     <Route path="home/contact-us" element={<ContactUsPage />} /> {/* New route */}
                     <Route path="profile" element={<ProfilePage />} />

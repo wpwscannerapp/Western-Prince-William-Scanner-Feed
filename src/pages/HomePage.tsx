@@ -14,14 +14,6 @@ const HomePage: React.FC = () => {
           icon="/Logo.png" 
         />
 
-        {/* Weather Updates Tile */}
-        <Tile 
-          title="Weather Updates" 
-          description="Local weather conditions and alerts." 
-          to="/home/weather" 
-          icon="/Logo.png" 
-        />
-
         {/* Traffic Info Tile */}
         <Tile 
           title="Traffic Info" 
