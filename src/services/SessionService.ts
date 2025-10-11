@@ -25,7 +25,8 @@ export const SessionService = {
         .single();
 
       if (error) {
-        handleError(error, 'Failed to create user session.');
+        // Pass the specific Supabase error message to handleError for better debugging
+        handleError(error, `Failed to create user session: ${error.message}`);
         return null;
       }
       return data as UserSession;

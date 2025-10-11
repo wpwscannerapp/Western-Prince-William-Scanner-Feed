@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Users can create their own sessions" ON public.user_sessions;
