@@ -20,13 +20,15 @@ export const SessionService = {
     try {
       const { data, error } = await supabase
         .from('user_sessions')
-        .insert({ user_id: session.user.id, session_id: sessionId, expires_at: expiresAt })
+        .upsert(
+          { user_id: session.user.id, session_id: sessionId, expires_at: expiresAt },
+          { onConflict: 'session_id' } // Use upsert to prevent 409 conflicts on session_id
+        )
         .select()
         .single();
 
       if (error) {
-        // Pass the specific Supabase error message to handleError for better debugging
-        handleError(error, `Failed to create user session: ${error.message}`);
+        handleError(error, `Failed to create or update user session: ${error.message}`);
         return null;
       }
       return data as UserSession;
@@ -155,13 +157,14 @@ export const SessionService = {
         .eq('user_id', userId)
         .eq('session_id', sessionId)
         .gt('expires_at', new Date().toISOString())
-        .single();
+        .limit(1); // Returns T[] | null
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
+      if (error) {
         handleError(error, 'Failed to validate session.');
         return false;
       }
-      return !!data; // If data exists, session is valid
+      // Explicitly check if data is not null before accessing length
+      return data !== null && data.length > 0; // If data exists and is not null, session is valid
     } catch (err) {
       handleError(err, 'An unexpected error occurred while validating session.');
       return false;
