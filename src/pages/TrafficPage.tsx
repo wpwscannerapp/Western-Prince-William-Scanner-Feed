@@ -55,6 +55,9 @@ const TrafficPage: React.FC = () => {
     return () => clearInterval(intervalId); // Cleanup on unmount
   }, [fetchTrafficEmbedUrl]);
 
+  // Log the mapEmbedUrl right before rendering the iframe
+  console.log('TrafficPage: mapEmbedUrl state:', mapEmbedUrl);
+
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-xl">
       <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
