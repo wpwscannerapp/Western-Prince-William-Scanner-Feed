@@ -15,9 +15,10 @@ serve(async (req: Request) => {
 
   try {
     const rawBody = await req.text();
-    console.log('Edge Function: Received raw request body:', rawBody); // Added log
+    console.log('Edge Function: Received raw request body:', rawBody);
     
     const { location } = JSON.parse(rawBody);
+    console.log('Edge Function: Parsed location:', location); // Added log for parsed location
 
     if (!location) {
       console.error('Edge Function: Missing location parameter in parsed body.');
@@ -44,7 +45,8 @@ serve(async (req: Request) => {
     
     const geocodingResponse = await fetch(geocodingUrl);
     const geocodingData = await geocodingResponse.json();
-    console.log('Edge Function: Geocoding Response Status:', geocodingResponse.status);
+    console.log('Edge Function: Geocoding Response HTTP Status:', geocodingResponse.status); // More specific log
+    console.log('Edge Function: Geocoding Data Status:', geocodingData.status); // Log Google's status
     console.log('Edge Function: Geocoding Data:', JSON.stringify(geocodingData, null, 2));
 
     if (!geocodingResponse.ok || geocodingData.status !== 'OK' || geocodingData.results.length === 0) {
