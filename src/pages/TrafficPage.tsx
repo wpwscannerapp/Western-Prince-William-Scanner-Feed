@@ -109,7 +109,7 @@ const TrafficPage: React.FC = () => {
                 style={{ border: 0 }}
                 loading="lazy"
                 allowFullScreen
-                referrerPolicy="no-referrer-when-downgrade"
+                referrerPolicy="no-referrer" // Changed from "no-referrer-when-downgrade"
                 src={mapEmbedUrl}
                 title="Google Maps Traffic"
               ></iframe>

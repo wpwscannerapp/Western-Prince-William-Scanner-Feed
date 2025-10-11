@@ -33,6 +33,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Bypass service worker for chrome-extension requests
+  if (event.request.url.startsWith('chrome-extension://')) {
+    // console.log('Service Worker: Bypassing cache for chrome-extension request:', event.request.url);
+    return; // Do not respond to these requests
+  }
+
   // For navigation requests (e.g., loading an HTML page), try network first, then cache fallback
   if (event.request.mode === 'navigate') {
     // console.log('Service Worker: Handling navigation request:', event.request.url);
