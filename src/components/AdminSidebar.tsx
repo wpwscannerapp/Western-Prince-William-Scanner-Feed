@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Newspaper, Settings, BellRing, Menu } from 'lucide-react';
+import { LayoutDashboard, Newspaper, Settings, BellRing, Menu, Phone } from 'lucide-react'; // Added Phone icon
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
@@ -17,6 +17,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, onTabChange }) =
     { name: 'Analytics', icon: LayoutDashboard, tab: 'analytics' },
     { name: 'Settings', icon: Settings, tab: 'settings' },
     { name: 'Notifications', icon: BellRing, tab: 'notifications' },
+    { name: 'Contact', icon: Phone, tab: 'contact' }, // New nav item
   ];
 
   const handleTabClick = (tab: string) => {

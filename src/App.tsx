@@ -21,6 +21,7 @@ import TrafficPage from '@/pages/TrafficPage';
 import ProfilePage from '@/pages/ProfilePage';
 import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
+import ContactUsPage from '@/pages/ContactUsPage'; // New import
 import React from 'react'; // Keep React import as useState/useCallback are removed
 
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ const App = () => {
                     <Route path="home/incidents" element={<IncidentsPage />} />
                     <Route path="home/weather" element={<WeatherPage />} />
                     <Route path="home/traffic" element={<TrafficPage />} />
+                    <Route path="home/contact-us" element={<ContactUsPage />} /> {/* New route */}
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="admin" element={<AdminPage />} />
                     <Route path="posts/:postId" element={<PostDetailPage />} />

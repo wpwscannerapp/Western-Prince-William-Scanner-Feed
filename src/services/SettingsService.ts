@@ -13,6 +13,12 @@ export interface AppSettings {
   updated_at: string;
 }
 
+export interface ContactSettings {
+  id: string;
+  phone_numbers: string[];
+  updated_at: string;
+}
+
 export const SettingsService = {
   async getSettings(): Promise<AppSettings | null> {
     try {
@@ -133,5 +139,66 @@ export const SettingsService = {
       handleError(err, 'An unexpected error occurred while fetching settings from history.');
       return null;
     }
-  }
+  },
+
+  // --- Contact Settings Functions ---
+  async getContactSettings(): Promise<ContactSettings | null> {
+    try {
+      const { data, error } = await supabase
+        .from('contact_settings')
+        .select('*')
+        .limit(1)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') { // No rows found, return default structure
+          return {
+            id: 'default', // Placeholder ID
+            phone_numbers: [],
+            updated_at: new Date().toISOString(),
+          };
+        }
+        handleError(error, `Failed to fetch contact settings.`);
+        return null;
+      }
+      return data as ContactSettings;
+    } catch (err) {
+      handleError(err, `An unexpected error occurred while fetching contact settings.`);
+      return null;
+    }
+  },
+
+  async updateContactSettings(phoneNumbers: string[]): Promise<boolean> {
+    try {
+      const { data: existingSettings } = await supabase
+        .from('contact_settings')
+        .select('id')
+        .limit(1)
+        .single();
+
+      let upsertData: Partial<ContactSettings> = { // Explicitly type as Partial<ContactSettings>
+        phone_numbers: phoneNumbers,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (existingSettings) {
+        upsertData.id = existingSettings.id; // Assign directly
+      }
+      // If no existingSettings, upsertData will not have an 'id', and Supabase will generate one.
+      // The `delete (upsertData as any).id;` line is no longer needed.
+
+      const { error } = await supabase
+        .from('contact_settings')
+        .upsert(upsertData, { onConflict: 'id' });
+
+      if (error) {
+        handleError(error, `Failed to update contact settings.`);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      handleError(err, `An unexpected error occurred while updating contact settings.`);
+      return false;
+    }
+  },
 };

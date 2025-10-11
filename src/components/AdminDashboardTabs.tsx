@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import PostForm from '@/components/PostForm';
 import AdminPostTable from '@/components/AdminPostTable';
 import AnalyticsCard from '@/components/AnalyticsCard';
-import AppSettingsForm from '@/components/AppSettingsForm'; // Updated import
+import AppSettingsForm from '@/components/AppSettingsForm';
 import AdminNotificationSender from '@/components/AdminNotificationSender';
+import ContactSettingsForm from '@/components/ContactSettingsForm'; // New import
 import { PostService } from '@/services/PostService';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -109,6 +110,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
         <TabsTrigger value="analytics" aria-label="Analytics tab">Analytics</TabsTrigger>
         <TabsTrigger value="settings" aria-label="Settings tab">Settings</TabsTrigger>
         <TabsTrigger value="notifications" aria-label="Notifications tab">Notifications</TabsTrigger>
+        <TabsTrigger value="contact" aria-label="Contact tab">Contact</TabsTrigger> {/* New tab trigger */}
       </TabsList>
       <TabsContent value="posts" className="tw-space-y-8">
         <Card>
@@ -195,8 +197,8 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
                   </div>
                   <div>
                     <div className="tw-flex tw-justify-between tw-mb-1">
-                      <span className="tw-text-sm tw-font-medium">Shares</span>
-                      <span className="tw-text-sm tw-font-medium">320</span>
+                      <span className="tw-sm tw-font-medium">Shares</span>
+                      <span className="tw-sm tw-font-medium">320</span>
                     </div>
                     <div className="tw-w-full tw-bg-secondary tw-rounded-full tw-h-2">
                       <div className="tw-bg-primary tw-h-2 tw-rounded-full" style={{ width: '25%' }}></div>
@@ -221,6 +223,9 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
             <AdminNotificationSender />
           </CardContent>
         </Card>
+      </TabsContent>
+      <TabsContent value="contact" className="tw-space-y-8"> {/* New tab content */}
+        <ContactSettingsForm />
       </TabsContent>
     </Tabs>
   );

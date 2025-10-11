@@ -29,6 +29,14 @@ const HomePage: React.FC = () => {
           to="/home/traffic" 
           icon="/Logo.png" 
         />
+
+        {/* Contact Us Tile */}
+        <Tile
+          title="Contact Us"
+          description="Get in touch with us."
+          to="/home/contact-us"
+          icon="/Logo.png"
+        />
       </div>
     </div>
   );
