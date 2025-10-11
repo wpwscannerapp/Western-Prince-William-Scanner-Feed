@@ -14,11 +14,10 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Log the raw request body for debugging
     const rawBody = await req.text();
     console.log('Edge Function: Received raw request body:', rawBody);
 
-    const { location } = JSON.parse(rawBody); // Parse the raw body to get location
+    const { location } = JSON.parse(rawBody);
 
     if (!location) {
       console.error('Edge Function: Missing location parameter in parsed body.');
@@ -41,11 +40,15 @@ serve(async (req: Request) => {
 
     // Step 1: Geocode the location to get latitude and longitude
     const geocodingUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${googleMapsApiKey}`;
+    console.log('Edge Function: Geocoding URL:', geocodingUrl); // Log the geocoding URL
+    
     const geocodingResponse = await fetch(geocodingUrl);
     const geocodingData = await geocodingResponse.json();
+    console.log('Edge Function: Geocoding Response Status:', geocodingResponse.status); // Log response status
+    console.log('Edge Function: Geocoding Data:', JSON.stringify(geocodingData, null, 2)); // Log full geocoding data
 
     if (!geocodingResponse.ok || geocodingData.status !== 'OK' || geocodingData.results.length === 0) {
-      console.error('Geocoding failed:', geocodingData);
+      console.error('Geocoding failed or returned no results:', geocodingData);
       return new Response(JSON.stringify({ error: 'Could not find coordinates for the specified location. Please try a more specific address or city.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -56,6 +59,7 @@ serve(async (req: Request) => {
 
     // Step 2: Construct the Google Maps Embed API URL with 'traffic' mode.
     const embedUrl = `https://www.google.com/maps/embed/v1/traffic?key=${googleMapsApiKey}&center=${lat},${lng}&zoom=12`;
+    console.log('Edge Function: Generated Embed URL:', embedUrl); // Log the final embed URL
 
     return new Response(JSON.stringify({ embedUrl }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
