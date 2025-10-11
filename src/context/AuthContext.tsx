@@ -84,8 +84,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (createdSession) {
       console.log('AuthContext: Session created successfully.');
     } else {
-      console.error('AuthContext: Failed to create session.');
-      handleError(new Error('Failed to create session record.'), 'Failed to create session record.');
+      console.error('AuthContext: Failed to create session (error handled by SessionService).');
+      // The error message is already displayed by SessionService.handleError
+      // No need to call handleError again here with a generic message.
     }
   }, [handleError]);
 
@@ -118,15 +119,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     console.log('AuthContext: Performing initial session check and setting up listener.');
 
-    const getInitialSessionAndSetupListener = async () => {
+    let authSubscription: { unsubscribe: () => void } | null = null;
+
+    const setupAuth = async () => {
       try {
-        // 1. Get initial session
+        // 1. Get initial session immediately
         const { data: { session: initialSession }, error: initialError } = await supabase.auth.getSession();
+        
         if (isMountedRef.current) {
           setSession(initialSession);
           setUser(initialSession?.user || null);
           setError(initialError);
-          setLoading(false); // Set loading to false after initial check
+          setLoading(false); // Crucially, set loading to false here after initial check
           console.log(`AuthContext: Initial getSession finished. Loading set to false. User: ${initialSession?.user ? 'present' : 'null'}`);
 
           if (initialSession) {
@@ -140,39 +144,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           handleError(err, 'Failed to retrieve initial session.');
           setLoading(false); // Ensure loading is false even on error
         }
-      }
+      } finally {
+        // 2. Set up the real-time auth state change listener AFTER initial session is handled
+        // This listener will handle subsequent changes without affecting the initial loading state
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (_event: AuthChangeEvent, currentSession: Session | null) => {
+            console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
+            if (isMountedRef.current) {
+              setSession(currentSession);
+              setUser(currentSession?.user || null);
+              setError(null); // Clear error on any new auth state change
+              // Loading should already be false from initial setup, no need to set it here
+              console.log(`AuthContext: Auth state changed. User: ${currentSession?.user ? 'present' : 'null'}`);
 
-      // 2. Set up the real-time auth state change listener
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (_event: AuthChangeEvent, currentSession: Session | null) => {
-          console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
-          if (isMountedRef.current) {
-            setSession(currentSession);
-            setUser(currentSession?.user || null);
-            setError(null); // Clear error on any new auth state change
-            // Do NOT set loading here, it was already set to false after initial getSession
-            console.log(`AuthContext: Auth state changed. User: ${currentSession?.user ? 'present' : 'null'}`);
-
-            if (currentSession) {
-              await handleSessionCreation(currentSession);
-            } else {
-              await handleSessionDeletion(undefined);
+              if (currentSession) {
+                await handleSessionCreation(currentSession);
+              } else {
+                await handleSessionDeletion(undefined);
+              }
             }
           }
-        }
-      );
-
-      return () => {
-        console.log('AuthContext: Cleanup function for auth state listener.');
-        if (subscription) {
-          console.log('AuthContext: Unsubscribing from auth state changes');
-          subscription.unsubscribe();
-        }
-      };
+        );
+        authSubscription = subscription;
+      }
     };
 
-    getInitialSessionAndSetupListener();
+    setupAuth();
 
+    return () => {
+      console.log('AuthContext: Cleanup function for auth state listener.');
+      if (authSubscription) {
+        console.log('AuthContext: Unsubscribing from auth state changes');
+        authSubscription.unsubscribe();
+      }
+    };
   }, [handleSessionCreation, handleSessionDeletion, handleError]); // Dependencies for callbacks
 
   const signUp = async (email: string, password: string) => {
