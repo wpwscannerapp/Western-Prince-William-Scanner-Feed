@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Post, Comment, PostService } from '@/services/PostService';
+import { Post, PostService } from '@/services/PostService'; // Only PostService for post data
+import { Comment, CommentService } from '@/services/CommentService'; // New import for CommentService and Comment interface
 import PostCard from '@/components/PostCard';
 import { Loader2, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -37,11 +38,10 @@ const PostDetailPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const fetchedPost = await PostService.fetchSinglePost(postId);
+      const fetchedPost = await PostService.fetchSinglePost(postId); // Using PostService
       if (fetchedPost) {
         setPost(fetchedPost);
-        // Fetch previous post after the current post is loaded
-        const fetchedPreviousPost = await PostService.fetchPreviousPost(fetchedPost.timestamp);
+        const fetchedPreviousPost = await PostService.fetchPreviousPost(fetchedPost.timestamp); // Using PostService
         setPreviousPost(fetchedPreviousPost);
       } else {
         setError(handleError(null, 'Failed to load post or post not found.'));
@@ -57,7 +57,7 @@ const PostDetailPage: React.FC = () => {
     if (!postId) return;
     setLoadingComments(true);
     try {
-      const fetchedComments = await PostService.fetchComments(postId);
+      const fetchedComments = await CommentService.fetchComments(postId); // Using CommentService
       setComments(fetchedComments);
     } catch (err) {
       setError(handleError(err, 'Failed to load comments. Please try again.'));
@@ -68,13 +68,12 @@ const PostDetailPage: React.FC = () => {
 
   useEffect(() => {
     fetchSinglePost();
-    fetchCommentsForPost(); // Fetch comments when the page loads
+    fetchCommentsForPost();
 
-    // Set up real-time subscription for comments
     const commentsChannel = supabase
       .channel(`public:comments:post_id=eq.${postId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: `post_id=eq.${postId}` }, () => {
-        fetchCommentsForPost(); // Re-fetch comments on any change
+        fetchCommentsForPost();
       })
       .subscribe();
 
@@ -100,12 +99,11 @@ const PostDetailPage: React.FC = () => {
     setIsCommenting(true);
     try {
       toast.loading('Adding comment...', { id: 'add-comment' });
-      const newComment = await PostService.addComment(postId, user.id, newCommentContent);
+      const newComment = await CommentService.addComment(postId, user.id, newCommentContent); // Using CommentService
       
       if (newComment) {
         toast.success('Comment added!', { id: 'add-comment' });
         setNewCommentContent('');
-        // Comments will be re-fetched by the real-time subscription
       } else {
         handleError(null, 'Failed to add comment.', { id: 'add-comment' });
       }
@@ -172,7 +170,7 @@ const PostDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-3xl"> {/* Removed tw-pt-24 as Layout handles it */}
+    <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-3xl">
       <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
         Back to Home Page
       </Button>
@@ -181,7 +179,6 @@ const PostDetailPage: React.FC = () => {
         <PostCard post={post} /> 
       </div>
 
-      {/* Comments Section */}
       <div className="tw-mt-8 tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-md">
         <h2 className="tw-text-2xl tw-font-semibold tw-mb-4 tw-text-foreground tw-flex tw-items-center tw-gap-2">
           <MessageCircle className="tw-h-6 tw-w-6" /> Comments ({comments.length})
@@ -224,7 +221,6 @@ const PostDetailPage: React.FC = () => {
         )}
       </div>
 
-      {/* Previous Post Section */}
       {previousPost && (
         <div className="tw-mt-8">
           <h2 className="tw-text-2xl tw-font-semibold tw-mb-4 tw-text-foreground">Previous Post</h2>

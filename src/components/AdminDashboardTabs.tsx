@@ -6,8 +6,8 @@ import AdminPostTable from '@/components/AdminPostTable';
 import AnalyticsCard from '@/components/AnalyticsCard';
 import AppSettingsForm from '@/components/AppSettingsForm';
 import AdminNotificationSender from '@/components/AdminNotificationSender';
-import ContactSettingsForm from '@/components/ContactSettingsForm'; // New import
-import { PostService } from '@/services/PostService';
+import ContactSettingsForm from '@/components/ContactSettingsForm';
+import { PostService } from '@/services/PostService'; // Updated import
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { handleError } from '@/utils/errorHandler';
 
 interface AdminDashboardTabsProps {
-  activeTab: string; // Prop to receive active tab from parent
+  activeTab: string;
 }
 
 interface SubscriptionData {
@@ -24,12 +24,11 @@ interface SubscriptionData {
   count: number;
 }
 
-const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) => { // Receive activeTab as prop
+const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) => {
   const { user } = useAuth();
   const [postFormLoading, setPostFormLoading] = React.useState(false);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData[]>([]);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
-  // Removed internal activeTab state, now controlled by parent
 
   const refreshPostTable = useCallback(() => {
     // This function will be passed to AdminPostTable to trigger its internal refresh
@@ -45,7 +44,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
     setPostFormLoading(true);
     try {
       toast.loading('Creating post...', { id: 'create-post' });
-      const newPost = await PostService.createPost(text, imageFile, user.id);
+      const newPost = await PostService.createPost(text, imageFile, user.id); // Using PostService
       
       if (newPost) {
         toast.success('Post created successfully!', { id: 'create-post' });
@@ -104,13 +103,13 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
   };
 
   return (
-    <Tabs value={activeTab} className="tw-w-full"> {/* Use value prop for controlled tabs */}
-      <TabsList className="tw-grid tw-w-full tw-grid-cols-4 tw-mb-6 tw-hidden"> {/* Hide TabsList as navigation is via sidebar */}
+    <Tabs value={activeTab} className="tw-w-full">
+      <TabsList className="tw-grid tw-w-full tw-grid-cols-4 tw-mb-6 tw-hidden">
         <TabsTrigger value="posts" aria-label="Posts tab">Posts</TabsTrigger>
         <TabsTrigger value="analytics" aria-label="Analytics tab">Analytics</TabsTrigger>
         <TabsTrigger value="settings" aria-label="Settings tab">Settings</TabsTrigger>
         <TabsTrigger value="notifications" aria-label="Notifications tab">Notifications</TabsTrigger>
-        <TabsTrigger value="contact" aria-label="Contact tab">Contact</TabsTrigger> {/* New tab trigger */}
+        <TabsTrigger value="contact" aria-label="Contact tab">Contact</TabsTrigger>
       </TabsList>
       <TabsContent value="posts" className="tw-space-y-8">
         <Card>
@@ -224,7 +223,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
           </CardContent>
         </Card>
       </TabsContent>
-      <TabsContent value="contact" className="tw-space-y-8"> {/* New tab content */}
+      <TabsContent value="contact" className="tw-space-y-8">
         <ContactSettingsForm />
       </TabsContent>
     </Tabs>

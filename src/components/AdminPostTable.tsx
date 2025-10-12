@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Post, PostService } from '@/services/PostService';
+import { Post, PostService } from '@/services/PostService'; // Updated import
 import { formatPostTimestamp } from '@/lib/utils';
 import { Edit, Trash2, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -34,7 +34,7 @@ const AdminPostTable: React.FC<AdminPostTableProps> = ({ onPostUpdated }) => {
     setLoading(true);
     setError(null);
     try {
-      const fetchedPosts = await PostService.fetchPosts(0);
+      const fetchedPosts = await PostService.fetchPosts(0); // Using PostService
       setPosts(fetchedPosts);
     } catch (err) {
       console.error('Error fetching posts:', err);
@@ -52,7 +52,7 @@ const AdminPostTable: React.FC<AdminPostTableProps> = ({ onPostUpdated }) => {
     if (window.confirm('Are you sure you want to delete this post?')) {
       try {
         toast.loading('Deleting post...', { id: 'delete-post' });
-        const success = await PostService.deletePost(postId, imageUrl);
+        const success = await PostService.deletePost(postId, imageUrl); // Using PostService
         if (success) {
           toast.success('Post deleted successfully!', { id: 'delete-post' });
           fetchPosts();
@@ -78,7 +78,7 @@ const AdminPostTable: React.FC<AdminPostTableProps> = ({ onPostUpdated }) => {
     setIsSubmitting(true);
     try {
       toast.loading('Updating post...', { id: 'update-post' });
-      const updatedPost = await PostService.updatePost(editingPost.id, text, imageFile, currentImageUrl);
+      const updatedPost = await PostService.updatePost(editingPost.id, text, imageFile, currentImageUrl); // Using PostService
       
       if (updatedPost) {
         toast.success('Post updated successfully!', { id: 'update-post' });

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import PostCard from '@/components/PostCard';
 import SubscribeOverlay from '@/components/SubscribeOverlay';
 import PostForm from '@/components/PostForm';
-import { Post, PostService } from '@/services/PostService';
+import { Post, PostService } from '@/services/PostService'; // Updated import
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, ArrowUp, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,7 +13,7 @@ import { useIsSubscribed } from '@/hooks/useIsSubscribed';
 import { handleError } from '@/utils/errorHandler';
 import { POLL_INTERVAL } from '@/config';
 import SkeletonLoader from '@/components/SkeletonLoader';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
 
 const IncidentsPage: React.FC = () => {
   const { user } = useAuth();
@@ -27,7 +27,7 @@ const IncidentsPage: React.FC = () => {
   const [postFormLoading, setPostFormLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const observer = useRef<IntersectionObserver | null>(null);
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
 
   const lastPostRef = useCallback(
     (node: HTMLDivElement) => {
@@ -51,7 +51,7 @@ const IncidentsPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const initialPosts = await PostService.fetchPosts(0);
+        const initialPosts = await PostService.fetchPosts(0); // Using PostService
         setPosts(initialPosts);
         setHasMore(initialPosts.length === PostService.POSTS_PER_PAGE);
       } catch (err) {
@@ -70,7 +70,7 @@ const IncidentsPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const newPosts = await PostService.fetchPosts(page);
+        const newPosts = await PostService.fetchPosts(page); // Using PostService
         if (newPosts.length === 0) {
           setHasMore(false);
         } else {
@@ -92,7 +92,7 @@ const IncidentsPage: React.FC = () => {
     if (posts.length === 0) return;
     try {
       const latestTimestamp = posts[0].timestamp;
-      const newFetchedPosts = await PostService.fetchNewPosts(latestTimestamp);
+      const newFetchedPosts = await PostService.fetchNewPosts(latestTimestamp); // Using PostService
       if (newFetchedPosts.length > 0) {
         setPosts(prevPosts => {
           const uniqueNewPosts = newFetchedPosts.filter(
@@ -152,7 +152,7 @@ const IncidentsPage: React.FC = () => {
     setPostFormLoading(true);
     try {
       toast.loading('Creating post...', { id: 'create-post' });
-      const newPost = await PostService.createPost(text, imageFile, user.id);
+      const newPost = await PostService.createPost(text, imageFile, user.id); // Using PostService
       
       if (newPost) {
         toast.success('Post created successfully!', { id: 'create-post' });

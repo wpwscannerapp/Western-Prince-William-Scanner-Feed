@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Heart, MessageCircle, Loader2 } from 'lucide-react';
-import { Post, PostService } from '@/services/PostService';
+import { Post } from '@/services/PostService'; // Only Post interface and PostService for post data
+import { LikeService } from '@/services/LikeService'; // New import
+import { CommentService } from '@/services/CommentService'; // New import
 import PostHeader from './PostHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
 
 interface PostCardProps {
   post: Post;
@@ -16,25 +18,25 @@ interface PostCardProps {
 const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
   const { user } = useAuth();
   const isAdminPost = !!post.admin_id;
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
 
   const [likesCount, setLikesCount] = useState(0);
   const [hasLiked, setHasLiked] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
-  const [commentsCount, setCommentsCount] = useState(0); // New state for comments count
+  const [commentsCount, setCommentsCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const fetchLikesAndCommentsCount = async () => {
     try {
       const [likes, likedStatus, comments] = await Promise.all([
-        PostService.fetchLikesCount(post.id),
-        user ? PostService.hasUserLiked(post.id, user.id) : Promise.resolve(false),
-        PostService.fetchComments(post.id), // Fetch comments to get count
+        LikeService.fetchLikesCount(post.id), // Using LikeService
+        user ? LikeService.hasUserLiked(post.id, user.id) : Promise.resolve(false), // Using LikeService
+        CommentService.fetchComments(post.id), // Using CommentService
       ]);
 
       setLikesCount(likes);
       setHasLiked(likedStatus);
-      setCommentsCount(comments.length); // Set comments count
+      setCommentsCount(comments.length);
     } catch (err) {
       setError(handleError(err, 'Failed to load post data. Please try again.'));
     }
@@ -46,10 +48,9 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
     const likesChannel = supabase
       .channel(`public:likes:post_id=eq.${post.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'likes', filter: `post_id=eq.${post.id}` }, () => {
-        // When a real-time update comes, re-fetch to ensure consistency
-        PostService.fetchLikesCount(post.id).then(setLikesCount);
+        LikeService.fetchLikesCount(post.id).then(setLikesCount); // Using LikeService
         if (user) {
-          PostService.hasUserLiked(post.id, user.id).then(setHasLiked);
+          LikeService.hasUserLiked(post.id, user.id).then(setHasLiked); // Using LikeService
         }
       })
       .subscribe();
@@ -57,7 +58,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
     const commentsChannel = supabase
       .channel(`public:comments:post_id=eq.${post.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: `post_id=eq.${post.id}` }, () => {
-        PostService.fetchComments(post.id).then(fetchedComments => setCommentsCount(fetchedComments.length));
+        CommentService.fetchComments(post.id).then(fetchedComments => setCommentsCount(fetchedComments.length)); // Using CommentService
       })
       .subscribe();
 
@@ -68,14 +69,13 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
   }, [post.id, user]);
 
   const handleLikeToggle = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent navigating to post detail when liking
+    e.stopPropagation();
     if (!user) {
       handleError(null, 'You must be logged in to like a post.');
       return;
     }
     setIsLiking(true);
 
-    // Optimistic UI update
     const previousHasLiked = hasLiked;
     const previousLikesCount = likesCount;
     setHasLiked(!previousHasLiked);
@@ -84,19 +84,17 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
     try {
       let success: boolean;
       if (previousHasLiked) {
-        success = await PostService.removeLike(post.id, user.id);
+        success = await LikeService.removeLike(post.id, user.id); // Using LikeService
       } else {
-        success = await PostService.addLike(post.id, user.id);
+        success = await LikeService.addLike(post.id, user.id); // Using LikeService
       }
 
       if (!success) {
-        // Revert UI if API call fails
         setHasLiked(previousHasLiked);
         setLikesCount(previousLikesCount);
         handleError(null, `Failed to ${previousHasLiked ? 'unlike' : 'like'} post.`);
       }
     } catch (err) {
-      // Revert UI on unexpected error
       setHasLiked(previousHasLiked);
       setLikesCount(previousLikesCount);
       handleError(err, 'An error occurred while liking the post.');
@@ -134,7 +132,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
             src={post.image_url}
             alt="Post image"
             className="tw-w-full tw-max-h-80 tw-object-cover tw-rounded-md tw-mb-4 tw-border tw-border-border"
-            loading="lazy" // Lazy-load images
+            loading="lazy"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.style.display = 'none';
@@ -158,7 +156,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({ post }) => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={handlePostClick} // Clicking comment button also navigates to detail page
+            onClick={handlePostClick}
             className="tw-text-muted-foreground hover:tw-text-primary tw-button"
           >
             <MessageCircle className="tw-h-4 tw-w-4 tw-mr-1" /> {commentsCount} Comment{commentsCount !== 1 ? 's' : ''}

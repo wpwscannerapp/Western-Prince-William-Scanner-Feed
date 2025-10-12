@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Edit, Trash2, Save, X } from 'lucide-react';
-import { Comment, PostService } from '@/services/PostService';
+import { Comment, CommentService } from '@/services/CommentService'; // Updated import
 import { useAuth } from '@/hooks/useAuth';
 import { formatPostTimestamp } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -30,7 +30,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
     setIsLoading(true);
     try {
       toast.loading('Updating comment...', { id: 'update-comment' });
-      const updatedComment = await PostService.updateComment(comment.id, editedContent);
+      const updatedComment = await CommentService.updateComment(comment.id, editedContent); // Using CommentService
       
       if (updatedComment) {
         toast.success('Comment updated!', { id: 'update-comment' });
@@ -52,7 +52,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
       setIsLoading(true);
       try {
         toast.loading('Deleting comment...', { id: 'delete-comment' });
-        const success = await PostService.deleteComment(comment.id);
+        const success = await CommentService.deleteComment(comment.id); // Using CommentService
         
         if (success) {
           toast.success('Comment deleted!', { id: 'delete-comment' });
@@ -75,7 +75,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
     setError(null);
   };
 
-  const displayName = comment.username || 'Anonymous'; // Prioritize username, fallback to Anonymous
+  const displayName = comment.username || 'Anonymous';
   const displayAvatar = comment.avatar_url || undefined;
   const avatarFallback = displayName.charAt(0).toUpperCase();
 
