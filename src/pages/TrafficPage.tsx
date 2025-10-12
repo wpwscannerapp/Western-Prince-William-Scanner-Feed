@@ -50,6 +50,9 @@ const TrafficPage: React.FC = () => {
         }
       );
 
+      console.log('TrafficPage: Raw response data from Edge Function:', data); // Added log
+      console.log('TrafficPage: Error from Edge Function invoke:', edgeFunctionError); // Added log
+
       if (edgeFunctionError) {
         throw edgeFunctionError as SupabaseError;
       }
@@ -59,9 +62,11 @@ const TrafficPage: React.FC = () => {
         if (data.embedUrl.includes('maps.google.com')) {
           setMapEmbedUrl(data.embedUrl);
         } else {
+          console.error('TrafficPage: Embed URL does not contain "maps.google.com":', data.embedUrl); // Added log
           throw new Error('Invalid map embed URL received.');
         }
       } else {
+        console.error('TrafficPage: No valid map embed URL or embedUrl is not a string:', data); // Added log
         throw new Error('No valid map embed URL received.');
       }
     } catch (err: unknown) {
