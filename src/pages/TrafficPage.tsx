@@ -165,7 +165,6 @@ const TrafficPage: React.FC = () => {
                 loading="lazy"
                 allowFullScreen
                 referrerPolicy="no-referrer"
-                sandbox="allow-scripts"
                 src={mapEmbedUrl}
                 title={`Traffic map for ${location || 'current location'}`}
               ></iframe>
