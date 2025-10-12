@@ -9,6 +9,7 @@ export const validateEnv = () => { // Added export keyword
     'VITE_STRIPE_MONTHLY_PRICE_ID', // Added this as it's used in SubscriptionPage
     'VITE_APP_URL', // Added this as it's used in useAuth
     'VITE_MAX_CONCURRENT_SESSIONS', // Added for concurrent login limit
+    'VITE_AUTH_INITIALIZATION_TIMEOUT', // New: Timeout for auth loading
   ];
   
   requiredEnvVars.forEach(varName => {
@@ -28,18 +29,21 @@ export const validateEnv = () => { // Added export keyword
   const POLL_INTERVAL = parseInt(import.meta.env.VITE_POLL_INTERVAL as string, 10);
   const SUPABASE_API_TIMEOUT = parseInt(import.meta.env.VITE_SUPABASE_API_TIMEOUT as string, 10);
   const MAX_CONCURRENT_SESSIONS = parseInt(import.meta.env.VITE_MAX_CONCURRENT_SESSIONS as string, 10);
+  const AUTH_INITIALIZATION_TIMEOUT = parseInt(import.meta.env.VITE_AUTH_INITIALIZATION_TIMEOUT as string, 10); // New
 
   // Provide defaults if parsing fails, but after the initial check
   const finalSplashDuration = isNaN(SPLASH_DURATION) ? 3000 : SPLASH_DURATION;
   const finalPollInterval = isNaN(POLL_INTERVAL) ? 30000 : POLL_INTERVAL;
   const finalSupabaseApiTimeout = isNaN(SUPABASE_API_TIMEOUT) ? 10000 : SUPABASE_API_TIMEOUT;
   const finalMaxConcurrentSessions = isNaN(MAX_CONCURRENT_SESSIONS) ? 3 : MAX_CONCURRENT_SESSIONS;
+  const finalAuthInitializationTimeout = isNaN(AUTH_INITIALIZATION_TIMEOUT) ? 5000 : AUTH_INITIALIZATION_TIMEOUT; // Default to 5 seconds
 
   console.log('Loaded Env Vars:', {
     VITE_SPLASH_DURATION: finalSplashDuration,
     VITE_POLL_INTERVAL: finalPollInterval,
     VITE_SUPABASE_API_TIMEOUT: finalSupabaseApiTimeout,
     VITE_MAX_CONCURRENT_SESSIONS: finalMaxConcurrentSessions,
+    VITE_AUTH_INITIALIZATION_TIMEOUT: finalAuthInitializationTimeout, // New
     VITE_GOOGLE_MAPS_API_KEY: GOOGLE_MAPS_API_KEY ? 'Set' : 'Missing', // This will now always say 'Set' if it passes the check
   });
 
@@ -48,8 +52,9 @@ export const validateEnv = () => { // Added export keyword
     POLL_INTERVAL: finalPollInterval, 
     SUPABASE_API_TIMEOUT: finalSupabaseApiTimeout, 
     MAX_CONCURRENT_SESSIONS: finalMaxConcurrentSessions, 
+    AUTH_INITIALIZATION_TIMEOUT: finalAuthInitializationTimeout, // New
     GOOGLE_MAPS_API_KEY 
   };
 };
 
-export const { SPLASH_DURATION, POLL_INTERVAL, SUPABASE_API_TIMEOUT, MAX_CONCURRENT_SESSIONS, GOOGLE_MAPS_API_KEY } = validateEnv();
+export const { SPLASH_DURATION, POLL_INTERVAL, SUPABASE_API_TIMEOUT, MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT, GOOGLE_MAPS_API_KEY } = validateEnv();

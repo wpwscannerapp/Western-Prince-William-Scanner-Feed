@@ -3,7 +3,7 @@ import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SessionService } from '@/services/SessionService';
-import { MAX_CONCURRENT_SESSIONS } from '@/config';
+import { MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT } from '@/config'; // Import AUTH_INITIALIZATION_TIMEOUT
 import { ProfileService } from '@/services/ProfileService';
 import { handleError as globalHandleError } from '@/utils/errorHandler';
 
@@ -110,29 +110,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Effect for initial session check and setting up auth state listener
   useEffect(() => {
-    // This effect runs twice in Strict Mode, but initialSessionCheckCompleted ref ensures logic runs once per "mount"
     if (initialSessionCheckCompleted.current) {
       console.log('AuthContext: Skipping initial session check on Strict Mode remount.');
       return;
     }
-    initialSessionCheckCompleted.current = true; // Mark as checked for this instance
+    initialSessionCheckCompleted.current = true;
 
     console.log('AuthContext: Performing initial session check and setting up listener.');
 
     let authSubscription: { unsubscribe: () => void } | null = null;
 
     const setupAuth = async () => {
+      const timeoutPromise = new Promise<null>((resolve) =>
+        setTimeout(() => {
+          console.warn(`AuthContext: Initial authentication check timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms.`);
+          resolve(null); // Resolve with null to indicate timeout
+        }, AUTH_INITIALIZATION_TIMEOUT)
+      );
+
       try {
-        // 1. Get initial session immediately
-        console.log('AuthContext: Calling supabase.auth.getSession()...');
-        const { data: { session: initialSession }, error: initialError } = await supabase.auth.getSession();
-        console.log('AuthContext: supabase.auth.getSession() returned:', { initialSession: initialSession ? 'present' : 'null', initialError });
+        // Use Promise.race to handle timeout for initial session retrieval
+        const initialAuthResult = await Promise.race([
+          supabase.auth.getSession(),
+          timeoutPromise.then(() => ({ data: { session: null }, error: null })) // Return a structure matching getSession
+        ]);
+
+        const initialSession = initialAuthResult.data?.session || null;
+        const initialError = initialAuthResult.error;
+
+        console.log('AuthContext: supabase.auth.getSession() (or timeout) returned:', { initialSession: initialSession ? 'present' : 'null', initialError });
         
         if (isMountedRef.current) {
           setSession(initialSession);
           setUser(initialSession?.user || null);
           setError(initialError);
-          setLoading(false); // Crucially, set loading to false here after initial check
+          setLoading(false);
           console.log(`AuthContext: Initial getSession finished. Loading set to false. User: ${initialSession?.user ? 'present' : 'null'}`);
 
           if (initialSession) {
@@ -144,19 +156,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (err: any) {
         if (isMountedRef.current) {
           handleError(err, 'Failed to retrieve initial session.');
-          setLoading(false); // Ensure loading is false even on error
+          setLoading(false);
         }
       } finally {
-        // 2. Set up the real-time auth state change listener AFTER initial session is handled
-        // This listener will handle subsequent changes without affecting the initial loading state
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (_event: AuthChangeEvent, currentSession: Session | null) => {
             console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
             if (isMountedRef.current) {
               setSession(currentSession);
               setUser(currentSession?.user || null);
-              setError(null); // Clear error on any new auth state change
-              // Loading should already be false from initial setup, no need to set it here
+              setError(null);
               console.log(`AuthContext: Auth state changed. User: ${currentSession?.user ? 'present' : 'null'}`);
 
               if (currentSession) {
@@ -180,7 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authSubscription.unsubscribe();
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion, handleError]); // Dependencies for callbacks
+  }, [handleSessionCreation, handleSessionDeletion, handleError]);
 
   const signUp = async (email: string, password: string) => {
     setError(null);
@@ -214,7 +223,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           toast.success('Logged out successfully!');
           setSession(null);
           setUser(null);
-          setLoading(false); // Ensure loading is false on local logout
+          setLoading(false);
           await handleSessionDeletion(user?.id);
           return { success: true };
         }
@@ -224,7 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.success('Logged out successfully!');
       setSession(null);
       setUser(null);
-      setLoading(false); // Ensure loading is false on successful logout
+      setLoading(false);
       await handleSessionDeletion(user?.id);
       return { success: true };
     } catch (e: any) {
