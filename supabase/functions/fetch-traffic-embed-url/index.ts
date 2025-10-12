@@ -98,8 +98,10 @@ serve(async (req: Request) => {
 
     const { lat, lng } = geocodingData.results[0].geometry.location;
 
-    // Step 2: Construct the Google Maps Embed API URL with 'traffic' mode.
-    const embedUrl = `https://www.google.com/maps/embed/v1/traffic?key=${googleMapsApiKey}&center=${lat},${lng}&zoom=12`;
+    // Step 2: Construct the Google Maps Embed API URL with 'view' mode.
+    // Note: The 'traffic' mode is not directly supported by the Embed API.
+    // Using 'view' mode to display a map centered on the location.
+    const embedUrl = `https://www.google.com/maps/embed/v1/view?key=${googleMapsApiKey}&center=${lat},${lng}&zoom=12`;
     console.log('Edge Function: Generated Embed URL (with key):', embedUrl);
 
     return new Response(JSON.stringify({ embedUrl }), {
