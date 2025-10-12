@@ -19,6 +19,7 @@ export const validateEnv = () => { // Added export keyword
 
   // Special handling for GOOGLE_MAPS_API_KEY as it's critical for TrafficPage
   const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
+  console.log('DEBUG: VITE_GOOGLE_MAPS_API_KEY read from env:', GOOGLE_MAPS_API_KEY ? 'Set' : 'Missing/Empty'); // Added debug log
   if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY.trim() === '') {
     throw new Error('Environment variable VITE_GOOGLE_MAPS_API_KEY is missing or empty. It is required for the Traffic page.');
   }
