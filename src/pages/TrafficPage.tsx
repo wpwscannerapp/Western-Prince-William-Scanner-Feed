@@ -55,7 +55,6 @@ const TrafficPage: React.FC = () => {
       }
 
       if (data?.embedUrl && typeof data.embedUrl === 'string') {
-        // Directly set the URL, trusting the Edge Function's validation
         setMapEmbedUrl(data.embedUrl);
       } else {
         throw new Error('No valid map embed URL received.');
@@ -166,7 +165,7 @@ const TrafficPage: React.FC = () => {
                 loading="lazy"
                 allowFullScreen
                 referrerPolicy="no-referrer"
-                sandbox="allow-scripts allow-same-origin"
+                sandbox="allow-scripts" {/* Removed allow-same-origin */}
                 src={mapEmbedUrl}
                 title={`Traffic map for ${location || 'current location'}`}
               ></iframe>
