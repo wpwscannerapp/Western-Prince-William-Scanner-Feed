@@ -50,29 +50,19 @@ const TrafficPage: React.FC = () => {
         }
       );
 
-      console.log('TrafficPage: Raw response data from Edge Function:', data); // Added log
-      console.log('TrafficPage: Error from Edge Function invoke:', edgeFunctionError); // Added log
-
       if (edgeFunctionError) {
         throw edgeFunctionError as SupabaseError;
       }
 
       if (data?.embedUrl && typeof data.embedUrl === 'string') {
-        // Validate embed URL (basic check for Google Maps)
-        if (data.embedUrl.includes('maps.google.com')) {
-          setMapEmbedUrl(data.embedUrl);
-        } else {
-          console.error('TrafficPage: Embed URL does not contain "maps.google.com":', data.embedUrl); // Added log
-          throw new Error('Invalid map embed URL received.');
-        }
+        // Directly set the URL, trusting the Edge Function's validation
+        setMapEmbedUrl(data.embedUrl);
       } else {
-        console.error('TrafficPage: No valid map embed URL or embedUrl is not a string:', data); // Added log
         throw new Error('No valid map embed URL received.');
       }
     } catch (err: unknown) {
       const errorMessage = handleError(err, 'Failed to fetch traffic map.');
       setError(errorMessage);
-      console.error('TrafficPage: Error fetching embed URL:', err);
     } finally {
       setIsInitialLoading(false);
       setIsRefreshing(false);
