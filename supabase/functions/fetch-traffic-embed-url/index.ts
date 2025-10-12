@@ -17,8 +17,18 @@ serve(async (req: Request) => {
     const rawBody = await req.text();
     console.log('Edge Function: Received raw request body:', rawBody);
     
-    const { location } = JSON.parse(rawBody);
-    console.log('Edge Function: Parsed location:', location);
+    let location: string;
+    try {
+      const parsedBody = JSON.parse(rawBody);
+      location = parsedBody.location;
+      console.log('Edge Function: Parsed location:', location);
+    } catch (parseError) {
+      console.error('Edge Function: Failed to parse request body:', parseError);
+      return new Response(JSON.stringify({ error: 'Invalid request body format.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     if (!location) {
       console.error('Edge Function: Missing location parameter in parsed body.');
@@ -30,6 +40,7 @@ serve(async (req: Request) => {
 
     // @ts-ignore
     const googleMapsApiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
+    console.log('Edge Function: GOOGLE_MAPS_API_KEY status:', googleMapsApiKey ? 'Set' : 'Not Set');
 
     if (!googleMapsApiKey) {
       console.error('GOOGLE_MAPS_API_KEY is not set in Supabase secrets.');
@@ -43,11 +54,21 @@ serve(async (req: Request) => {
     const geocodingUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${googleMapsApiKey}`;
     console.log('Edge Function: Geocoding URL:', geocodingUrl);
     
-    const geocodingResponse = await fetch(geocodingUrl);
-    const geocodingData = await geocodingResponse.json();
-    console.log('Edge Function: Geocoding Response HTTP Status:', geocodingResponse.status);
-    console.log('Edge Function: Geocoding Data Status:', geocodingData.status);
-    console.log('Edge Function: Geocoding Data:', JSON.stringify(geocodingData, null, 2)); // Log full geocoding data
+    let geocodingResponse: Response;
+    let geocodingData: any;
+    try {
+      geocodingResponse = await fetch(geocodingUrl);
+      geocodingData = await geocodingResponse.json();
+      console.log('Edge Function: Geocoding Response HTTP Status:', geocodingResponse.status);
+      console.log('Edge Function: Geocoding Data Status:', geocodingData.status);
+      console.log('Edge Function: Geocoding Data:', JSON.stringify(geocodingData, null, 2)); // Log full geocoding data
+    } catch (fetchError) {
+      console.error('Edge Function: Error during geocoding API call or parsing response:', fetchError);
+      return new Response(JSON.stringify({ error: 'Failed to connect to Google Geocoding API or parse its response.' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Explicitly check for Google API error messages
     if (geocodingData.status === 'REQUEST_DENIED' || geocodingData.error_message) {
@@ -76,7 +97,7 @@ serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
-    console.error('Error in fetch-traffic-embed-url Edge Function:', error);
+    console.error('Error in fetch-traffic-embed-url Edge Function (top-level catch):', error);
     return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
