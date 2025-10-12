@@ -18,13 +18,6 @@ export const validateEnv = () => { // Added export keyword
     }
   });
 
-  // Special handling for GOOGLE_MAPS_API_KEY as it's critical for TrafficPage
-  const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
-  console.log('DEBUG: VITE_GOOGLE_MAPS_API_KEY read from env:', GOOGLE_MAPS_API_KEY ? 'Set' : 'Missing/Empty'); // Added debug log
-  if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY.trim() === '') {
-    throw new Error('Environment variable VITE_GOOGLE_MAPS_API_KEY is missing or empty. It is required for the Traffic page.');
-  }
-
   const SPLASH_DURATION = parseInt(import.meta.env.VITE_SPLASH_DURATION as string, 10);
   const POLL_INTERVAL = parseInt(import.meta.env.VITE_POLL_INTERVAL as string, 10);
   const SUPABASE_API_TIMEOUT = parseInt(import.meta.env.VITE_SUPABASE_API_TIMEOUT as string, 10);
@@ -44,7 +37,6 @@ export const validateEnv = () => { // Added export keyword
     VITE_SUPABASE_API_TIMEOUT: finalSupabaseApiTimeout,
     VITE_MAX_CONCURRENT_SESSIONS: finalMaxConcurrentSessions,
     VITE_AUTH_INITIALIZATION_TIMEOUT: finalAuthInitializationTimeout, // New
-    VITE_GOOGLE_MAPS_API_KEY: GOOGLE_MAPS_API_KEY ? 'Set' : 'Missing', // This will now always say 'Set' if it passes the check
   });
 
   return { 
@@ -53,8 +45,7 @@ export const validateEnv = () => { // Added export keyword
     SUPABASE_API_TIMEOUT: finalSupabaseApiTimeout, 
     MAX_CONCURRENT_SESSIONS: finalMaxConcurrentSessions, 
     AUTH_INITIALIZATION_TIMEOUT: finalAuthInitializationTimeout, // New
-    GOOGLE_MAPS_API_KEY 
   };
 };
 
-export const { SPLASH_DURATION, POLL_INTERVAL, SUPABASE_API_TIMEOUT, MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT, GOOGLE_MAPS_API_KEY } = validateEnv();
+export const { SPLASH_DURATION, POLL_INTERVAL, SUPABASE_API_TIMEOUT, MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT } = validateEnv();
