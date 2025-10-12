@@ -1,15 +1,13 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, User, Shield, LogIn, LogOut, CreditCard } from 'lucide-react';
+import { Home, User, LogIn, LogOut, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
-import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Button } from '@/components/ui/button';
 import NotificationBell from './NotificationBell';
-import MobileNav from './MobileNav'; // Import MobileNav
+import MobileNav from './MobileNav';
 
 const TopNavBar = () => {
   const { user, loading, signOut } = useAuth();
-  const { isAdmin } = useIsAdmin();
   const location = useLocation();
 
   const handleSignOut = async () => {
@@ -48,20 +46,7 @@ const TopNavBar = () => {
                   {item.name}
                 </NavLink>
               ))}
-              {isAdmin && (
-                <NavLink
-                  to="/admin"
-                  className={({ isActive }) =>
-                    cn(
-                        "tw-flex tw-items-center tw-text-sm tw-font-medium tw-text-muted-foreground tw-transition-colors hover:tw-text-primary",
-                        isActive && "tw-text-primary"
-                    )
-                  }
-                >
-                  <Shield className="tw-h-5 tw-w-5 tw-mr-1" />
-                  Admin
-                </NavLink>
-              )}
+              {/* Removed Admin NavLink from TopNavBar */}
               <NotificationBell aria-label="Toggle notifications" />
               <Button variant="ghost" size="sm" onClick={handleSignOut} className="tw-text-muted-foreground hover:tw-text-primary">
                 <LogOut className="tw-h-5 tw-w-5 tw-mr-1" />
