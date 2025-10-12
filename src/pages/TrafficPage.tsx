@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { toast } from 'sonner';
-import { debounce } from 'lodash';
 
 const TRAFFIC_REFRESH_INTERVAL = 60000; // Refresh every 60 seconds
 
@@ -23,18 +22,13 @@ interface SupabaseError {
 
 const TrafficPage: React.FC = () => {
   const navigate = useNavigate();
-  const [location, setLocation] = useState<string>(''); // No hardcoded default
+  // Initialize location with a default value
+  const [location, setLocation] = useState<string>('Gainesville, VA'); 
   const [mapEmbedUrl, setMapEmbedUrl] = useState<string | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isTabActive, setIsTabActive] = useState(true);
-
-  // Debounce location input changes
-  const debouncedSetLocation = useMemo(
-    () => debounce((value: string) => setLocation(value.trim()), 300),
-    []
-  );
 
   const fetchTrafficEmbedUrl = useCallback(async () => {
     if (!location.trim()) {
@@ -78,7 +72,7 @@ const TrafficPage: React.FC = () => {
       setIsInitialLoading(false);
       setIsRefreshing(false);
     }
-  }, [location, isRefreshing]); // Added isRefreshing to dependencies
+  }, [location, isRefreshing]);
 
   // Handle tab visibility for pausing refresh
   useEffect(() => {
@@ -92,7 +86,8 @@ const TrafficPage: React.FC = () => {
 
   // Initial fetch and interval-based refresh
   useEffect(() => {
-    // Only fetch initially if location is set (e.g., from a previous session or user input)
+    // Always fetch initially if location is set (which it now is by default)
+    // and no map is loaded yet, and not already loading.
     if (location.trim() && !mapEmbedUrl && !isInitialLoading) {
       fetchTrafficEmbedUrl();
     }
@@ -130,8 +125,8 @@ const TrafficPage: React.FC = () => {
           <div className="tw-flex tw-gap-2 tw-mb-6">
             <Input
               placeholder="Enter city, zip code, or address (e.g., Gainesville, VA)"
-              defaultValue={location} // Use defaultValue for debounced input
-              onChange={(e) => debouncedSetLocation(e.target.value)}
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && fetchTrafficEmbedUrl()}
               disabled={isInitialLoading}
               className="tw-flex-1 tw-input"
