@@ -47,7 +47,7 @@ serve(async (req: Request) => {
     const geocodingData = await geocodingResponse.json();
     console.log('Edge Function: Geocoding Response HTTP Status:', geocodingResponse.status);
     console.log('Edge Function: Geocoding Data Status:', geocodingData.status);
-    console.log('Edge Function: Geocoding Data:', JSON.stringify(geocodingData, null, 2));
+    console.log('Edge Function: Geocoding Data:', JSON.stringify(geocodingData, null, 2)); // Log full geocoding data
 
     // Explicitly check for Google API error messages
     if (geocodingData.status === 'REQUEST_DENIED' || geocodingData.error_message) {
@@ -70,7 +70,7 @@ serve(async (req: Request) => {
 
     // Step 2: Construct the Google Maps Embed API URL with 'traffic' mode.
     const embedUrl = `https://www.google.com/maps/embed/v1/traffic?key=${googleMapsApiKey}&center=${lat},${lng}&zoom=12`;
-    console.log('Edge Function: Generated Embed URL:', embedUrl);
+    console.log('Edge Function: Generated Embed URL:', embedUrl); // Log the generated URL
 
     return new Response(JSON.stringify({ embedUrl }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
