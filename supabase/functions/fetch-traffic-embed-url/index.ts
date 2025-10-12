@@ -3,7 +3,7 @@
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.223.0/http/server.ts";
 
-console.log('Edge Function: Function started processing request.'); // ADD THIS LINE
+console.log('Edge Function: Function started processing request.');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -54,7 +54,7 @@ serve(async (req: Request) => {
 
     // Step 1: Geocode the location to get latitude and longitude
     const geocodingUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${googleMapsApiKey}`;
-    console.log('Edge Function: Geocoding URL (with key):', geocodingUrl); // Added (with key) for clarity
+    console.log('Edge Function: Geocoding URL (with key):', geocodingUrl);
     
     let geocodingResponse: Response;
     let geocodingData: any;
@@ -63,7 +63,7 @@ serve(async (req: Request) => {
       geocodingData = await geocodingResponse.json();
       console.log('Edge Function: Geocoding Response HTTP Status:', geocodingResponse.status);
       console.log('Edge Function: Geocoding Data Status:', geocodingData.status);
-      console.log('Edge Function: Geocoding Data:', JSON.stringify(geocodingData, null, 2)); // Log full geocoding data
+      console.log('Edge Function: Geocoding Data:', JSON.stringify(geocodingData, null, 2));
     } catch (fetchError) {
       console.error('Edge Function: Error during geocoding API call or parsing response:', fetchError);
       return new Response(JSON.stringify({ error: 'Failed to connect to Google Geocoding API or parse its response.' }), {
@@ -75,15 +75,22 @@ serve(async (req: Request) => {
     // Explicitly check for Google API error messages
     if (geocodingData.status === 'REQUEST_DENIED' || geocodingData.error_message) {
       console.error('Google Geocoding API denied request:', geocodingData.error_message || 'Unknown denial reason');
-      return new Response(JSON.stringify({ error: geocodingData.error_message || 'Google Maps API request denied. Please check your API key and permissions.' }), {
-        status: 400, // Still a client-side issue (bad key/permissions)
+      return new Response(JSON.stringify({ 
+        error: geocodingData.error_message || 'Google Maps API request denied. Please check your API key and permissions.',
+        googleApiStatus: geocodingData.status,
+        googleApiErrorMessage: geocodingData.error_message
+      }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     if (!geocodingResponse.ok || geocodingData.results.length === 0) {
       console.error('Geocoding failed or returned no results:', geocodingData);
-      return new Response(JSON.stringify({ error: 'Could not find coordinates for the specified location. Please try a more specific address or city.' }), {
+      return new Response(JSON.stringify({ 
+        error: 'Could not find coordinates for the specified location. Please try a more specific address or city.',
+        geocodingData: geocodingData // Include the full geocoding data for debugging
+      }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -93,14 +100,14 @@ serve(async (req: Request) => {
 
     // Step 2: Construct the Google Maps Embed API URL with 'traffic' mode.
     const embedUrl = `https://www.google.com/maps/embed/v1/traffic?key=${googleMapsApiKey}&center=${lat},${lng}&zoom=12`;
-    console.log('Edge Function: Generated Embed URL (with key):', embedUrl); // Added (with key) for clarity
+    console.log('Edge Function: Generated Embed URL (with key):', embedUrl);
 
     return new Response(JSON.stringify({ embedUrl }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
     console.error('Error in fetch-traffic-embed-url Edge Function (top-level catch):', error);
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
+    return new Response(JSON.stringify({ error: 'Failed to process traffic request', details: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
