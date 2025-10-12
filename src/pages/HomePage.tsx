@@ -5,7 +5,7 @@ const HomePage: React.FC = () => {
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-6xl">
       
-      <div className="tw-grid tw-grid-cols-3 tw-gap-6"> {/* Changed to 3 columns for all screen sizes */}
+      <div className="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-6"> {/* Changed to responsive grid */}
         {/* Incidents Tile */}
         <Tile 
           title="Incidents" 
