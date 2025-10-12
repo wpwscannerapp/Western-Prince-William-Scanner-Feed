@@ -52,7 +52,7 @@ serve(async (req: Request) => {
 
     // Step 1: Geocode the location to get latitude and longitude
     const geocodingUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${googleMapsApiKey}`;
-    console.log('Edge Function: Geocoding URL:', geocodingUrl);
+    console.log('Edge Function: Geocoding URL (with key):', geocodingUrl); // Added (with key) for clarity
     
     let geocodingResponse: Response;
     let geocodingData: any;
@@ -91,7 +91,7 @@ serve(async (req: Request) => {
 
     // Step 2: Construct the Google Maps Embed API URL with 'traffic' mode.
     const embedUrl = `https://www.google.com/maps/embed/v1/traffic?key=${googleMapsApiKey}&center=${lat},${lng}&zoom=12`;
-    console.log('Edge Function: Generated Embed URL:', embedUrl); // Log the generated URL
+    console.log('Edge Function: Generated Embed URL (with key):', embedUrl); // Added (with key) for clarity
 
     return new Response(JSON.stringify({ embedUrl }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
