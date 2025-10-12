@@ -16,12 +16,14 @@ Create a `.env` file in the root of your project with the following variables:
 - `VITE_APP_URL` (e.g., `http://localhost:8080` or your deployed URL)
 - `VITE_ADMIN_EMAIL` (e.g., `admin@example.com`)
 - `VITE_WEB_PUSH_PUBLIC_KEY` (for push notifications)
+- `VITE_TOMTOM_API_KEY` (for TomTom Traffic API)
 
 For Supabase Edge Functions and webhooks, you will also need to set these as secrets in your Supabase project dashboard:
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `WEB_PUSH_SECRET_KEY`
+- `TOMTOM_API_KEY` (This will be used by the Edge Function, set as a Supabase secret)
 
 ## Features Implemented
 
