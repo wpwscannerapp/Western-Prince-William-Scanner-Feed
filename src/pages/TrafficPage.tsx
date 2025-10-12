@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -7,56 +7,111 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { toast } from 'sonner';
+import { debounce } from 'lodash';
 
 const TRAFFIC_REFRESH_INTERVAL = 60000; // Refresh every 60 seconds
 
+interface TrafficEmbedResponse {
+  embedUrl: string;
+}
+
+// Define a type for the error response
+interface SupabaseError {
+  message: string;
+  code?: string;
+}
+
 const TrafficPage: React.FC = () => {
   const navigate = useNavigate();
-  const [location, setLocation] = useState<string>('Gainesville, VA'); // Default location
+  const [location, setLocation] = useState<string>(''); // No hardcoded default
   const [mapEmbedUrl, setMapEmbedUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isTabActive, setIsTabActive] = useState(true);
+
+  // Debounce location input changes
+  const debouncedSetLocation = useMemo(
+    () => debounce((value: string) => setLocation(value.trim()), 300),
+    []
+  );
 
   const fetchTrafficEmbedUrl = useCallback(async () => {
-    if (!location) {
-      toast.error('Please enter a location (city, zip code, or address).');
+    if (!location.trim()) {
+      toast.error('Please enter a valid location (city, zip code, or address).');
       return;
     }
 
-    setLoading(true);
+    // Only set initial loading if it's not a refresh
+    if (!isRefreshing) {
+      setIsInitialLoading(true);
+    }
     setError(null);
 
     try {
-      const { data, error: edgeFunctionError } = await supabase.functions.invoke('fetch-traffic-embed-url', {
-        body: { location },
-      });
+      const { data, error: edgeFunctionError } = await supabase.functions.invoke<TrafficEmbedResponse>(
+        'fetch-traffic-embed-url',
+        {
+          body: { location: location.trim() },
+        }
+      );
 
       if (edgeFunctionError) {
-        throw edgeFunctionError;
+        throw edgeFunctionError as SupabaseError;
       }
 
-      if (data && data.embedUrl) {
-        setMapEmbedUrl(data.embedUrl);
+      if (data?.embedUrl && typeof data.embedUrl === 'string') {
+        // Validate embed URL (basic check for Google Maps)
+        if (data.embedUrl.includes('maps.google.com')) {
+          setMapEmbedUrl(data.embedUrl);
+        } else {
+          throw new Error('Invalid map embed URL received.');
+        }
       } else {
-        setError('No map embed URL received.');
+        throw new Error('No valid map embed URL received.');
       }
-    } catch (err: any) {
-      setError(handleError(err, 'Failed to fetch traffic map.'));
+    } catch (err: unknown) {
+      const errorMessage = handleError(err, 'Failed to fetch traffic map.');
+      setError(errorMessage);
+      console.error('TrafficPage: Error fetching embed URL:', err);
     } finally {
-      setLoading(false);
+      setIsInitialLoading(false);
+      setIsRefreshing(false);
     }
-  }, [location]);
+  }, [location, isRefreshing]); // Added isRefreshing to dependencies
 
+  // Handle tab visibility for pausing refresh
   useEffect(() => {
-    fetchTrafficEmbedUrl(); // Initial fetch
+    const handleVisibilityChange = () => {
+      setIsTabActive(document.visibilityState === 'visible');
+    };
 
-    const intervalId = setInterval(fetchTrafficEmbedUrl, TRAFFIC_REFRESH_INTERVAL);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
-    return () => clearInterval(intervalId); // Cleanup on unmount
-  }, [fetchTrafficEmbedUrl]);
+  // Initial fetch and interval-based refresh
+  useEffect(() => {
+    // Only fetch initially if location is set (e.g., from a previous session or user input)
+    if (location.trim() && !mapEmbedUrl && !isInitialLoading) {
+      fetchTrafficEmbedUrl();
+    }
 
-  // Log the mapEmbedUrl right before rendering the iframe
-  console.log('TrafficPage: mapEmbedUrl state:', mapEmbedUrl);
+    let intervalId: NodeJS.Timeout;
+    if (isTabActive && mapEmbedUrl) {
+      intervalId = setInterval(fetchTrafficEmbedUrl, TRAFFIC_REFRESH_INTERVAL);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId); // Cleanup on unmount or dependency change
+    };
+  }, [fetchTrafficEmbedUrl, isTabActive, mapEmbedUrl, location, isInitialLoading]);
+
+  // Handle refresh button click
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchTrafficEmbedUrl();
+  };
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-xl">
@@ -75,59 +130,74 @@ const TrafficPage: React.FC = () => {
           <div className="tw-flex tw-gap-2 tw-mb-6">
             <Input
               placeholder="Enter city, zip code, or address (e.g., Gainesville, VA)"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              defaultValue={location} // Use defaultValue for debounced input
+              onChange={(e) => debouncedSetLocation(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && fetchTrafficEmbedUrl()}
-              disabled={loading}
+              disabled={isInitialLoading}
               className="tw-flex-1 tw-input"
+              aria-label="Enter location for traffic information"
             />
-            <Button onClick={fetchTrafficEmbedUrl} disabled={loading} className="tw-button">
-              {loading ? <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin" /> : <Search className="tw-h-4 tw-w-4" />}
+            <Button onClick={fetchTrafficEmbedUrl} disabled={isInitialLoading} className="tw-button">
+              {isInitialLoading ? (
+                <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin" />
+              ) : (
+                <Search className="tw-h-4 tw-w-4" />
+              )}
               <span className="tw-sr-only">Search Traffic</span>
             </Button>
           </div>
 
-          {loading && (
-            <div className="tw-flex tw-justify-center tw-items-center tw-py-8">
+          {isInitialLoading && (
+            <div
+              className="tw-flex tw-justify-center tw-items-center tw-py-8"
+              role="status"
+              aria-live="polite"
+            >
               <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
               <p className="tw-ml-2 tw-text-muted-foreground">Loading traffic map...</p>
             </div>
           )}
 
           {error && (
-            <div className="tw-text-destructive tw-text-center tw-py-4">
+            <div className="tw-text-destructive tw-text-center tw-py-4" role="alert" aria-live="assertive">
               <p>{error}</p>
-              <Button onClick={fetchTrafficEmbedUrl} variant="outline" className="tw-mt-2">Retry</Button>
+              <Button onClick={fetchTrafficEmbedUrl} variant="outline" className="tw-mt-2">
+                Retry
+              </Button>
             </div>
           )}
 
           {mapEmbedUrl && (
-            <div className="tw-relative tw-w-full tw-h-[400px] tw-rounded-md tw-overflow-hidden tw-border tw-border-border tw-shadow-md">
+            <div className="tw-relative tw-w-full tw-h-[400px] sm:tw-h-[500px] tw-rounded-md tw-overflow-hidden tw-border tw-border-border tw-shadow-md">
               <iframe
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
                 loading="lazy"
                 allowFullScreen
-                referrerPolicy="no-referrer" // Changed from "no-referrer-when-downgrade"
+                referrerPolicy="no-referrer"
+                sandbox="allow-scripts allow-same-origin"
                 src={mapEmbedUrl}
-                title="Google Maps Traffic"
+                title={`Traffic map for ${location || 'current location'}`}
               ></iframe>
               <div className="tw-absolute tw-bottom-2 tw-right-2">
                 <Button
                   variant="secondary"
                   size="icon"
-                  onClick={fetchTrafficEmbedUrl}
-                  disabled={loading}
+                  onClick={handleRefresh}
+                  disabled={isInitialLoading || isRefreshing}
                   className="tw-rounded-full tw-shadow-md"
                   aria-label="Refresh traffic map"
                 >
-                  <RefreshCw className={loading ? "tw-h-4 tw-w-4 tw-animate-spin" : "tw-h-4 tw-w-4"} />
+                  <RefreshCw
+                    className={isRefreshing ? 'tw-h-4 tw-w-4 tw-animate-spin' : 'tw-h-4 tw-w-4'}
+                  />
                 </Button>
               </div>
             </div>
           )}
-          {!loading && !error && !mapEmbedUrl && (
+
+          {!isInitialLoading && !error && !mapEmbedUrl && (
             <p className="tw-text-lg tw-text-muted-foreground">
               Enter a location above to view real-time traffic conditions.
             </p>
@@ -138,4 +208,4 @@ const TrafficPage: React.FC = () => {
   );
 };
 
-export default TrafficPage;
+export default React.memo(TrafficPage);
