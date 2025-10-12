@@ -32,12 +32,16 @@ const MobileNav: React.FC<MobileNavProps> = ({ onLinkClick }) => {
   ];
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+    <Sheet open={isOpen} onOpenChange={(open) => {
+      console.log('MobileNav: Sheet open state changed to', open);
+      setIsOpen(open);
+    }}>
       <SheetTrigger asChild>
         <Button
           variant="ghost"
           size="icon"
-          className="tw-md:tw-hidden tw-text-muted-foreground hover:tw-text-primary"
+          // Added a distinct background for debugging visibility
+          className="tw-md:tw-hidden tw-text-muted-foreground hover:tw-text-primary tw-bg-blue-500/20 hover:tw-bg-blue-500/30"
           aria-label="Open navigation menu"
         >
           <Menu className="tw-h-6 tw-w-6" />
