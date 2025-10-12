@@ -13,6 +13,7 @@ const Index: React.FC = () => {
     document.documentElement.style.setProperty('--splash-duration', `${splashDuration / 1000}s`);
 
     const timer = setTimeout(() => {
+      console.log('Index: Splash timer ended, setting splashActive to false.');
       setSplashActive(false);
     }, splashDuration);
 
@@ -20,6 +21,7 @@ const Index: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    console.log(`Index: Navigation check - splashActive: ${splashActive}, authLoading: ${authLoading}, user: ${user ? 'present' : 'null'}`);
     // Once splash is no longer active AND auth loading is complete, navigate
     if (!splashActive && !authLoading) {
       console.log('Index: Splash and Auth loading complete. Navigating...');

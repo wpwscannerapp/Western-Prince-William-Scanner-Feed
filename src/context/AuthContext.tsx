@@ -124,7 +124,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const setupAuth = async () => {
       try {
         // 1. Get initial session immediately
+        console.log('AuthContext: Calling supabase.auth.getSession()...');
         const { data: { session: initialSession }, error: initialError } = await supabase.auth.getSession();
+        console.log('AuthContext: supabase.auth.getSession() returned:', { initialSession: initialSession ? 'present' : 'null', initialError });
         
         if (isMountedRef.current) {
           setSession(initialSession);
