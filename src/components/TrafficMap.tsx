@@ -50,6 +50,8 @@ const TrafficMap: React.FC<TrafficMapProps> = ({
 
   useEffect(() => {
     const tomtomApiKey = import.meta.env.VITE_TOMTOM_API_KEY;
+    console.log('TrafficMap: VITE_TOMTOM_API_KEY value:', tomtomApiKey ? 'Present' : 'Missing');
+
     if (!tomtomApiKey) {
       handleError(null, 'TomTom API key is missing. Please set VITE_TOMTOM_API_KEY in your .env file.');
       setMapLoading(false);
@@ -68,11 +70,11 @@ const TrafficMap: React.FC<TrafficMapProps> = ({
       map.on('load', () => {
         setMapInstance(map);
         setMapLoading(false);
-        console.log('TomTom Map loaded successfully.');
+        console.log('TomTom Map loaded successfully.'); // This log should appear if map loads
       });
 
       map.on('error', (e) => {
-        console.error('TomTom Map error:', e);
+        console.error('TomTom Map error:', e); // This error should appear if map fails
         handleError(e, 'Failed to load TomTom map.');
         setMapLoading(false);
       });

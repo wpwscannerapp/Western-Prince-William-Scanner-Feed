@@ -49,6 +49,7 @@ const TrafficPage: React.FC = () => {
   const defaultCenterLng = -77.45;
 
   const fetchTrafficIncidents = useCallback(async () => {
+    console.log('TrafficPage: Starting fetchTrafficIncidents...');
     setLoading(true);
     setError(null);
     try {
@@ -61,20 +62,25 @@ const TrafficPage: React.FC = () => {
       });
 
       if (edgeFunctionError) {
+        console.error('TrafficPage: Edge Function error:', edgeFunctionError);
         handleError(edgeFunctionError, 'Failed to fetch traffic incidents from server.');
         setError(edgeFunctionError.message);
         return;
       }
 
       if (data && data.trafficIncidents && data.trafficIncidents.incidents) {
+        console.log('TrafficPage: Successfully fetched traffic incidents:', data.trafficIncidents.incidents.length);
         setIncidents(data.trafficIncidents.incidents);
       } else {
+        console.warn('TrafficPage: No traffic incident data found or malformed response.');
         setIncidents([]);
         setError('No traffic incident data found for this area.');
       }
     } catch (err) {
+      console.error('TrafficPage: Unexpected error during fetchTrafficIncidents:', err);
       setError(handleError(err, 'An unexpected error occurred while fetching traffic information.'));
     } finally {
+      console.log('TrafficPage: Finished fetchTrafficIncidents. Loading set to false.');
       setLoading(false);
     }
   }, []);
