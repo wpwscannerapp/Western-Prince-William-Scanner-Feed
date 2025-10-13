@@ -155,7 +155,7 @@ const TrafficPage: React.FC = () => {
                   <div className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-text-foreground">
                     <Clock className="tw-h-4 tw-w-4 tw-text-secondary" />
                     <span>
-                      Delay: {Math.round(incident.delay / 60)} min | Start: {format(new Date(incident.startTime), 'MMM dd, hh:mm a')}
+                      Delay: {Math.round(incident.delay / 60)} min | Start: <span className="tw-ml-1">{format(new Date(incident.startTime), 'MMM dd, hh:mm a')}</span>
                     </span>
                   </div>
                 </Card>
