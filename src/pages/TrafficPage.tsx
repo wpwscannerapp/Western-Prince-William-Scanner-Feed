@@ -6,6 +6,7 @@ import { Car, Info, MapPin, Clock, AlertTriangle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { format } from 'date-fns';
+import TrafficMap from '@/components/TrafficMap'; // Import the new map component
 
 interface TomTomIncident {
   id: string;
@@ -44,6 +45,8 @@ const TrafficPage: React.FC = () => {
   // Format: minLat,minLon,maxLat,maxLon
   const defaultBoundingBox = '38.60,-77.60,38.80,-77.20'; 
   const defaultZoom = 10; // Adjust zoom level as needed
+  const defaultCenterLat = 38.75; // Center for the map
+  const defaultCenterLng = -77.45;
 
   const fetchTrafficIncidents = useCallback(async () => {
     setLoading(true);
@@ -127,6 +130,9 @@ const TrafficPage: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="tw-p-6">
+          <TrafficMap incidents={incidents} centerLat={defaultCenterLat} centerLng={defaultCenterLng} zoom={defaultZoom} />
+          
+          <h2 className="tw-text-2xl tw-font-bold tw-text-foreground tw-mt-8 tw-mb-4 tw-text-left">Current Incidents</h2>
           {incidents.length > 0 ? (
             <div className="tw-space-y-6 tw-text-left">
               {incidents.map((incident) => (
