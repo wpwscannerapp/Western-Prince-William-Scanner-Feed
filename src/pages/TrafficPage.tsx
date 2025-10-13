@@ -74,7 +74,7 @@ const TrafficPage: React.FC = () => {
       } else {
         console.warn('TrafficPage: No traffic incident data found or malformed response.');
         setIncidents([]);
-        setError('No traffic incident data found for this area.');
+        // Do not set an error here, just indicate no incidents
       }
     } catch (err) {
       console.error('TrafficPage: Unexpected error during fetchTrafficIncidents:', err);
@@ -136,6 +136,7 @@ const TrafficPage: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="tw-p-6">
+          {/* Always render the TrafficMap */}
           <TrafficMap incidents={incidents} centerLat={defaultCenterLat} centerLng={defaultCenterLng} zoom={defaultZoom} />
           
           <h2 className="tw-text-2xl tw-font-bold tw-text-foreground tw-mt-8 tw-mb-4 tw-text-left">Current Incidents</h2>
