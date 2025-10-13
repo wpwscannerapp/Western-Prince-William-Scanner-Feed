@@ -3,9 +3,6 @@ import App from "./App.tsx";
 import "./globals.css";
 import { validateEnv } from './config.ts'; // Import the validation function
 
-// DEBUG: Log VITE_GOOGLE_MAPS_API_KEY directly from import.meta.env before validation
-console.log('Main.tsx Debug: VITE_GOOGLE_MAPS_API_KEY raw value:', import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
-
 // Validate environment variables on app startup
 try {
   validateEnv();
