@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-
+import * as tt from '@tomtom-international/web-sdk-maps';
+import '@tomtom-international/web-sdk-maps/dist/maps.css'; // Import TomTom map styles
+import { handleError } from '@/utils/errorHandler';
 
 interface TomTomIncident {
   id: string;
@@ -42,89 +44,85 @@ const TrafficMap: React.FC<TrafficMapProps> = ({
   zoom = 10,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [mapInstance, setMapInstance] = useState<tt.Map | null>(null);
   const [mapLoading, setMapLoading] = useState(true);
-  const markersRef = useRef<google.maps.Marker[]>([]);
+  const markersRef = useRef<tt.Marker[]>([]);
 
   useEffect(() => {
-    const initMap = () => {
-      if (mapRef.current && window.google) {
-        const googleMap = new window.google.maps.Map(mapRef.current, {
-          center: { lat: centerLat, lng: centerLng },
-          zoom: zoom,
-          mapId: 'WPW_TRAFFIC_MAP', // Use a map ID for cloud-based map styling
-          disableDefaultUI: true, // Disable default UI for a cleaner look
-          zoomControl: true,
-          streetViewControl: false,
-          fullscreenControl: false,
-        });
-        setMap(googleMap);
-        setMapLoading(false);
-      } else {
-        console.warn('Google Maps API not loaded or mapRef not available.');
-        // If API isn't loaded, try again after a short delay
-        if (!window.google) {
-          setTimeout(initMap, 500);
-        }
-      }
-    };
-
-    if (window.google && window.google.maps) {
-      initMap();
-    } else {
-      // The script tag in index.html should load the API globally
-      // We'll rely on that, but add a fallback check
-      const checkGoogleMaps = setInterval(() => {
-        if (window.google && window.google.maps) {
-          clearInterval(checkGoogleMaps);
-          initMap();
-        }
-      }, 100); // Check every 100ms
-      return () => clearInterval(checkGoogleMaps);
+    const tomtomApiKey = import.meta.env.VITE_TOMTOM_API_KEY;
+    if (!tomtomApiKey) {
+      handleError(null, 'TomTom API key is missing. Please set VITE_TOMTOM_API_KEY in your .env file.');
+      setMapLoading(false);
+      return;
     }
-  }, [centerLat, centerLng, zoom]);
+
+    if (mapRef.current && !mapInstance) {
+      const map = tt.map({
+        key: tomtomApiKey,
+        container: mapRef.current,
+        center: [centerLng, centerLat], // TomTom uses [lng, lat]
+        zoom: zoom,
+        style: 'tomtom://vector/1/basic-main', // Basic map style
+      });
+
+      map.on('load', () => {
+        setMapInstance(map);
+        setMapLoading(false);
+        console.log('TomTom Map loaded successfully.');
+      });
+
+      map.on('error', (e) => {
+        console.error('TomTom Map error:', e);
+        handleError(e, 'Failed to load TomTom map.');
+        setMapLoading(false);
+      });
+
+      return () => {
+        if (map) {
+          map.remove();
+          setMapInstance(null);
+        }
+      };
+    }
+  }, [centerLat, centerLng, zoom, mapInstance]);
 
   useEffect(() => {
-    if (!map) return;
+    if (!mapInstance) return;
 
     // Clear existing markers
-    markersRef.current.forEach(marker => marker.setMap(null));
+    markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
 
     incidents.forEach(incident => {
-      const position = { lat: incident.from.lat, lng: incident.from.lon };
-      const marker = new window.google.maps.Marker({
-        position,
-        map,
-        title: incident.description,
-        icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          fillColor: '#FF0000', // Red for incidents
-          fillOpacity: 0.8,
-          strokeWeight: 0,
-          scale: 8,
-        },
-      });
+      const markerElement = document.createElement('div');
+      markerElement.className = 'tw-w-4 tw-h-4 tw-rounded-full tw-bg-red-600 tw-border-2 tw-border-white tw-shadow-md';
+      markerElement.title = incident.description;
 
-      const infoWindow = new window.google.maps.InfoWindow({
-        content: `
-          <div class="tw-p-2">
-            <h4 class="tw-font-bold tw-text-base tw-mb-1">${incident.description}</h4>
-            <p class="tw-text-sm tw-text-gray-700">${incident.fullDescription}</p>
-            <p class="tw-text-xs tw-text-gray-500 tw-mt-1">Delay: ${Math.round(incident.delay / 60)} min</p>
-            <p class="tw-text-xs tw-text-gray-500">From: ${incident.from.value}</p>
-            <p class="tw-text-xs tw-text-gray-500">To: ${incident.to.value}</p>
-          </div>
-        `,
-      });
+      const marker = new tt.Marker({
+        element: markerElement,
+        anchor: 'bottom',
+      })
+        .setLngLat([incident.from.lon, incident.from.lat]) // TomTom uses [lng, lat]
+        .addTo(mapInstance);
 
-      marker.addListener('click', () => {
-        infoWindow.open(map, marker);
-      });
+      const popup = new tt.Popup({
+        offset: { bottom: [0, -20] },
+        closeButton: false,
+        closeOnClick: true,
+      }).setHTML(`
+        <div class="tw-p-2 tw-max-w-xs">
+          <h4 class="tw-font-bold tw-text-base tw-mb-1">${incident.description}</h4>
+          <p class="tw-text-sm tw-text-gray-700">${incident.fullDescription}</p>
+          <p class="tw-text-xs tw-text-gray-500 tw-mt-1">Delay: ${Math.round(incident.delay / 60)} min</p>
+          <p class="tw-text-xs tw-text-gray-500">From: ${incident.from.value}</p>
+          <p class="tw-text-xs tw-text-gray-500">To: ${incident.to.value}</p>
+        </div>
+      `);
 
+      marker.setPopup(popup);
       markersRef.current.push(marker);
     });
-  }, [map, incidents]);
+  }, [mapInstance, incidents]);
 
   return (
     <div className="tw-relative tw-w-full tw-h-[400px] tw-rounded-lg tw-overflow-hidden tw-shadow-md tw-border tw-border-border">
@@ -134,7 +132,7 @@ const TrafficMap: React.FC<TrafficMapProps> = ({
           <p className="tw-ml-2 tw-text-muted-foreground">Loading map...</p>
         </div>
       )}
-      <div ref={mapRef} className="tw-w-full tw-h-full" aria-label="Google Map displaying traffic incidents" />
+      <div ref={mapRef} className="tw-w-full tw-h-full" aria-label="TomTom Map displaying traffic incidents" />
     </div>
   );
 };

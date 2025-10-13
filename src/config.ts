@@ -11,7 +11,6 @@ export const validateEnv = () => { // Added export keyword
     'VITE_MAX_CONCURRENT_SESSIONS', // Added for concurrent login limit
     'VITE_AUTH_INITIALIZATION_TIMEOUT', // New: Timeout for auth loading
     'VITE_TOMTOM_API_KEY', // New: TomTom API Key
-    'VITE_GOOGLE_MAPS_API_KEY', // New: Google Maps API Key
   ];
   
   requiredEnvVars.forEach(varName => {
