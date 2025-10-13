@@ -38,6 +38,8 @@ export const validateEnv = () => { // Added export keyword
     VITE_SUPABASE_API_TIMEOUT: finalSupabaseApiTimeout,
     VITE_MAX_CONCURRENT_SESSIONS: finalMaxConcurrentSessions,
     VITE_AUTH_INITIALIZATION_TIMEOUT: finalAuthInitializationTimeout, // New
+    // Explicitly log the value used for AUTH_INITIALIZATION_TIMEOUT
+    AuthInitializationTimeoutUsed: finalAuthInitializationTimeout,
   });
 
   return { 

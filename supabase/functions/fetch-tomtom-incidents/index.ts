@@ -12,6 +12,8 @@ const corsHeaders = {
 const TOMTOM_API_TIMEOUT = 10000; // 10 seconds
 
 serve(async (req: Request) => {
+  console.log('Edge Function: fetch-tomtom-incidents received request.');
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -19,7 +21,10 @@ serve(async (req: Request) => {
   try {
     // @ts-ignore
     const tomtomApiKey = Deno.env.get('TOMTOM_API_KEY');
+    console.log('Edge Function: TOMTOM_API_KEY status:', tomtomApiKey ? 'Present' : 'Missing');
+
     if (!tomtomApiKey) {
+      console.error('Edge Function: TomTom API key not configured in environment secrets.');
       return new Response(JSON.stringify({ error: 'TomTom API key not configured.' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -27,8 +32,10 @@ serve(async (req: Request) => {
     }
 
     const { boundingBox, zoom, language } = await req.json();
+    console.log('Edge Function: Request body:', { boundingBox, zoom, language });
 
     if (!boundingBox || !zoom) {
+      console.error('Edge Function: Missing boundingBox or zoom parameters in request body.');
       return new Response(JSON.stringify({ error: 'Missing boundingBox or zoom parameters.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -36,6 +43,7 @@ serve(async (req: Request) => {
     }
 
     const tomtomApiUrl = `https://api.tomtom.com/traffic/services/5/incidentDetails?key=${tomtomApiKey}&bbox=${boundingBox}&zoom=${zoom}&language=${language || 'en-US'}`;
+    console.log('Edge Function: Calling TomTom API URL:', tomtomApiUrl);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TOMTOM_API_TIMEOUT);
@@ -49,7 +57,7 @@ serve(async (req: Request) => {
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('TomTom API error:', response.status, errorText);
+      console.error('Edge Function: TomTom API error response:', response.status, errorText);
       return new Response(JSON.stringify({ error: `Failed to fetch traffic data from TomTom: ${response.statusText}. Details: ${errorText.substring(0, 100)}` }), {
         status: response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -57,19 +65,20 @@ serve(async (req: Request) => {
     }
 
     const data = await response.json();
+    console.log('Edge Function: TomTom API successful response data (first 500 chars):', JSON.stringify(data).substring(0, 500));
 
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
     if (error.name === 'AbortError') {
-      console.error('TomTom API request timed out.');
+      console.error('Edge Function: TomTom API request timed out.');
       return new Response(JSON.stringify({ error: 'TomTom API request timed out.' }), {
         status: 504, // Gateway Timeout
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    console.error('Error in fetch-tomtom-incidents Edge Function:', error);
+    console.error('Edge Function: Error in fetch-tomtom-incidents:', error.message, error.stack);
     return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
