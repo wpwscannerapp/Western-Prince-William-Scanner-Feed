@@ -64,7 +64,7 @@ const TrafficMap: React.FC<TrafficMapProps> = ({
         container: mapRef.current,
         center: [centerLng, centerLat], // TomTom uses [lng, lat]
         zoom: zoom,
-        style: 'tomtom://vector/1/basic-main', // Basic map style
+        style: 'basic-main', // Changed from 'tomtom://vector/1/basic-main' to 'basic-main'
       });
 
       map.on('load', () => {
