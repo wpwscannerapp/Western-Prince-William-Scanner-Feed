@@ -64,7 +64,8 @@ const TrafficMap: React.FC<TrafficMapProps> = ({
         container: mapRef.current,
         center: [centerLng, centerLat], // TomTom uses [lng, lat]
         zoom: zoom,
-        style: 'basic-main', // Changed from 'tomtom://vector/1/basic-main' to 'basic-main'
+        // Use the full HTTPS URL for the map style, including the API key
+        style: `https://api.tomtom.com/map/1/style/20.0.0/basic-main.json?key=${tomtomApiKey}`,
       });
 
       map.on('load', () => {
