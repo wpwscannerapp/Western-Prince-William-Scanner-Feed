@@ -11,10 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, BellRing, MapPin, LocateFixed, CheckCircle2, XCircle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { NotificationService } from '@/services/NotificationService'; // Removed unused UserNotificationSettings
+import { NotificationService } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
-import { useIsAdmin } from '@/hooks/useIsAdmin'; // For admin alert sending
-import OneSignal from '@onesignal/web-sdk'; // Added missing OneSignal import
+// Removed unused useIsAdmin import
+import OneSignal from '@onesignal/web-sdk';
 
 const alertTypes = ['Fire', 'Police', 'Road Closure', 'Medical', 'Other'];
 const radiusOptions = [1, 5, 10, 25, 50]; // Miles
@@ -32,7 +32,6 @@ type NotificationSettingsFormValues = z.infer<typeof notificationSettingsSchema>
 
 const NotificationSettingsForm: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
-  const { loading: isAdminLoading } = useIsAdmin(); // Removed unused isAdmin
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
