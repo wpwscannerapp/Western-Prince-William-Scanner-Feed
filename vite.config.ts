@@ -16,11 +16,13 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Add alias for onesignal-web-sdk to handle potential internal inconsistencies
+      "@onesignal/web-sdk": "onesignal-web-sdk", 
     },
   },
   build: {
     rollupOptions: {
-      external: [], // Removed @onesignal/web-sdk from external
+      external: [],
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
@@ -40,6 +42,7 @@ export default defineConfig(() => ({
       '@radix-ui/react-accordion',
       '@radix-ui/react-alert-dialog',
       '@radix-ui/react-aspect-ratio',
+      '@radix-ui/react-avatar',
       '@radix-ui/react-checkbox',
       '@radix-ui/react-collapsible',
       '@radix-ui/react-context-menu',
@@ -61,7 +64,7 @@ export default defineConfig(() => ({
       '@radix-ui/react-toggle',
       '@radix-ui/react-toggle-group',
       '@radix-ui/react-tooltip',
-      'onesignal-web-sdk', // Added this line
+      'onesignal-web-sdk',
     ],
   },
 }));
