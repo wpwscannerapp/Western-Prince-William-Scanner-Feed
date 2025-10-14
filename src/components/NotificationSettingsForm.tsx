@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form'; // Corrected import path
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { NotificationService } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
-// Removed unused useIsAdmin import
-import OneSignal from 'onesignal-web-sdk/dist/OneSignalSDK.js'; // Direct import path
+import OneSignal from 'onesignal-web-sdk';
 
 const alertTypes = ['Fire', 'Police', 'Road Closure', 'Medical', 'Other'];
 const radiusOptions = [1, 5, 10, 25, 50]; // Miles
@@ -121,7 +120,7 @@ const NotificationSettingsForm: React.FC = () => {
   const handleToggleType = (type: string) => {
     const currentTypes = getValues('preferred_types');
     if (currentTypes.includes(type)) {
-      setValue('preferred_types', currentTypes.filter(t => t !== type));
+      setValue('preferred_types', currentTypes.filter((t: string) => t !== type)); // Added type annotation
     } else {
       setValue('preferred_types', [...currentTypes, type]);
     }

@@ -74,5 +74,8 @@ declare module 'react-beautiful-dnd' {
   export const Draggable: React.ComponentType<any>;
 }
 
-// Removed custom type declarations for OneSignal.
-// The 'onesignal-web-sdk' package should provide its own types.
+// Declare OneSignal module directly
+declare module 'onesignal-web-sdk' {
+  const OneSignal: any;
+  export default OneSignal;
+}

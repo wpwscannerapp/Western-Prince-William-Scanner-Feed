@@ -16,8 +16,7 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // Keep alias for @onesignal/web-sdk in case of internal references
-      "@onesignal/web-sdk": "onesignal-web-sdk", 
+      // Removed alias for @onesignal/web-sdk as it's no longer needed with direct import
     },
   },
   build: {
@@ -66,7 +65,6 @@ export default defineConfig(() => ({
       '@radix-ui/react-toggle',
       '@radix-ui/react-toggle-group',
       '@radix-ui/react-tooltip',
-      // Removed 'onesignal-web-sdk' from include
     ],
   },
 }));
