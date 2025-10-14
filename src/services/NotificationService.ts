@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
-import OneSignal from '@onesignal/web-sdk';
+import OneSignal from 'onesignal-web-sdk';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 
 export interface UserNotificationSettings {

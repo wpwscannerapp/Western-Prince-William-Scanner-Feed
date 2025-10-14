@@ -75,7 +75,7 @@ declare module 'react-beautiful-dnd' {
 }
 
 // Type declarations for OneSignal
-declare module '@onesignal/web-sdk' {
+declare module 'onesignal-web-sdk' {
   interface OneSignalUserPushSubscription {
     getFCMToken(): Promise<string | null>;
     getId(): Promise<string | null>;
