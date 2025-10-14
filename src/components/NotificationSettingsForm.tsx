@@ -14,7 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { NotificationService } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
 // Removed unused useIsAdmin import
-import OneSignal from 'onesignal-web-sdk';
+import OneSignal from 'onesignal-web-sdk/dist/OneSignalSDK.js'; // Direct import path
 
 const alertTypes = ['Fire', 'Police', 'Road Closure', 'Medical', 'Other'];
 const radiusOptions = [1, 5, 10, 25, 50]; // Miles
