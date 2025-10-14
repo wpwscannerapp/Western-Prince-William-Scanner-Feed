@@ -2,7 +2,7 @@ import React from 'react';
 import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin
 import { Loader2 } from 'lucide-react'; // Import Loader2 for loading state
-import { Archive, BellRing } from 'lucide-react'; // Import Archive and BellRing icons
+// Removed unused 'Archive' and 'BellRing' imports
 
 const HomePage: React.FC = () => {
   const { isAdmin, loading: isAdminLoading } = useIsAdmin(); // Use the useIsAdmin hook

@@ -8,12 +8,13 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, BellRing, MapPin, LocateFixed, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, BellRing, MapPin, LocateFixed, CheckCircle2, XCircle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { NotificationService, UserNotificationSettings } from '@/services/NotificationService';
+import { NotificationService } from '@/services/NotificationService'; // Removed unused UserNotificationSettings
 import { handleError } from '@/utils/errorHandler';
 import { useIsAdmin } from '@/hooks/useIsAdmin'; // For admin alert sending
+import OneSignal from '@onesignal/web-sdk'; // Added missing OneSignal import
 
 const alertTypes = ['Fire', 'Police', 'Road Closure', 'Medical', 'Other'];
 const radiusOptions = [1, 5, 10, 25, 50]; // Miles
@@ -31,7 +32,7 @@ type NotificationSettingsFormValues = z.infer<typeof notificationSettingsSchema>
 
 const NotificationSettingsForm: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
-  const { isAdmin } = useIsAdmin(); // To show admin alert sender
+  const { loading: isAdminLoading } = useIsAdmin(); // Removed unused isAdmin
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
@@ -192,7 +193,7 @@ const NotificationSettingsForm: React.FC = () => {
   return (
     <Card className="tw-bg-card tw-border-border tw-shadow-lg">
       <CardHeader>
-        <CardTitle className="tw-text-xl tw-font-bold tw-text-foreground tw-flex tw-items-center tw-gap-2">
+        <CardTitle className="tw-xl tw-font-bold tw-text-foreground tw-flex tw-items-center tw-gap-2">
           <BellRing className="tw-h-6 tw-w-6 tw-text-primary" /> Notification Settings
         </CardTitle>
         <CardDescription className="tw-text-muted-foreground">

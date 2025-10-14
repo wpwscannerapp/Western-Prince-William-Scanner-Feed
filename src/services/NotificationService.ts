@@ -37,7 +37,7 @@ export const NotificationService = {
       return;
     }
 
-    if (!OneSignal.is  PushNotificationsSupported()) {
+    if (!OneSignal.Notifications.isPushNotificationsSupported()) {
       console.warn('Push notifications are not supported by this browser.');
       return;
     }
@@ -58,7 +58,7 @@ export const NotificationService = {
       console.log('OneSignal external user ID set:', userId);
 
       // Add event listener for subscription changes
-      OneSignal.Notifications.addEventListener('subscriptionchange', async (isSubscribed) => {
+      OneSignal.Notifications.addEventListener('subscriptionchange', async (isSubscribed: boolean) => {
         console.log('OneSignal subscriptionchange event:', isSubscribed);
         if (isSubscribed) {
           const player = await OneSignal.User.PushSubscription.getFCMToken();

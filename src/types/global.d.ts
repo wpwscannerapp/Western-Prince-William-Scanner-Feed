@@ -73,3 +73,40 @@ declare module 'react-beautiful-dnd' {
   export const Droppable: React.ComponentType<any>;
   export const Draggable: React.ComponentType<any>;
 }
+
+// Type declarations for OneSignal
+declare module '@onesignal/web-sdk' {
+  interface OneSignalUserPushSubscription {
+    getFCMToken(): Promise<string | null>;
+    getId(): Promise<string | null>;
+  }
+
+  interface OneSignalUser {
+    PushSubscription: OneSignalUserPushSubscription;
+  }
+
+  interface OneSignalNotifications {
+    isPushNotificationsSupported(): boolean;
+    isPushEnabled(): Promise<boolean>;
+    requestPermission(): Promise<NotificationPermission>;
+    setSubscription(subscribe: boolean): Promise<void>;
+    permission: NotificationPermission;
+    addEventListener(event: 'subscriptionchange', callback: (isSubscribed: boolean) => void): void;
+    removeEventListener(event: 'subscriptionchange', callback: (isSubscribed: boolean) => void): void;
+  }
+
+  interface OneSignalSDK {
+    init(options: {
+      appId: string;
+      safari_web_id?: string;
+      allowLocalhostAsSecureOrigin?: boolean;
+      notifyButton?: { enable: boolean };
+    }): Promise<void>;
+    setExternalUserId(userId: string): void;
+    Notifications: OneSignalNotifications;
+    User: OneSignalUser;
+  }
+
+  const OneSignal: OneSignalSDK;
+  export default OneSignal;
+}
