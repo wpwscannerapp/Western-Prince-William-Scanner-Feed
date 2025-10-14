@@ -1,8 +1,8 @@
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom"; // Removed Navigate
-import Index from "./pages/Index"; // This is now the splash screen component
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/AuthPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
@@ -20,8 +20,9 @@ import TrafficPage from '@/pages/TrafficPage';
 import ProfilePage from '@/pages/ProfilePage';
 import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
-import ContactUsPage from '@/pages/ContactUsPage'; // New import
-import React from 'react'; // Keep React import as useState/useCallback are removed
+import ContactUsPage from '@/pages/ContactUsPage';
+import IncidentArchivePage from '@/pages/IncidentArchivePage'; // New import
+import React from 'react';
 
 const queryClient = new QueryClient();
 
@@ -57,7 +58,8 @@ const App = () => {
                     <Route path="home" element={<HomePage />} />
                     <Route path="home/incidents" element={<IncidentsPage />} />
                     <Route path="home/traffic" element={<TrafficPage />} />
-                    <Route path="home/contact-us" element={<ContactUsPage />} /> {/* New route */}
+                    <Route path="home/contact-us" element={<ContactUsPage />} />
+                    <Route path="home/archive" element={<IncidentArchivePage />} /> {/* New route */}
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="admin" element={<AdminPage />} />
                     <Route path="posts/:postId" element={<PostDetailPage />} />
