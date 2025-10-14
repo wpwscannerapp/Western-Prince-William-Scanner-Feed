@@ -73,7 +73,7 @@ const IncidentSearchForm: React.FC<IncidentSearchFormProps> = ({ onFilterChange,
       <div className="tw-relative">
         <Search className="tw-absolute tw-left-3 tw-top-1/2 tw-transform -tw-translate-y-1/2 tw-h-4 tw-w-4 tw-text-muted-foreground" />
         <Input
-          placeholder="Search incidents (e.g., 'fire in Woodbridge')"
+          placeholder="Search incidents (e.g., 'fire in Gainesville')"
           {...form.register('searchTerm')}
           className="tw-pl-10 tw-w-full tw-input"
         />
