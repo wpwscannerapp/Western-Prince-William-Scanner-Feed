@@ -16,12 +16,11 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // Removed alias for @onesignal/web-sdk as it's no longer needed with direct import
     },
   },
   build: {
     rollupOptions: {
-      external: [],
+      external: ['onesignal-web-sdk'], // Mark OneSignal as external
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
@@ -34,9 +33,9 @@ export default defineConfig(() => ({
     sourcemap: false,
   },
   optimizeDeps: {
-    // Exclude onesignal-web-sdk from optimization to prevent pre-bundling issues
-    exclude: ['onesignal-web-sdk'],
+    // Keep onesignal-web-sdk in include for dev server, but external for build
     include: [
+      'onesignal-web-sdk',
       '@radix-ui/react-tabs',
       '@radix-ui/react-avatar',
       '@radix-ui/react-switch',
@@ -63,8 +62,8 @@ export default defineConfig(() => ({
       '@radix-ui/react-slot',
       '@radix-ui/react-toast',
       '@radix-ui/react-toggle',
-      '@radix-ui/react-toggle-group',
-      '@radix-ui/react-tooltip',
+      '@radix-ui/react-toggle-group', '@radix-ui/react-tooltip',
     ],
+    exclude: [],
   },
 }));
