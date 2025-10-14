@@ -16,7 +16,7 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // Add alias for onesignal-web-sdk to handle potential internal inconsistencies
+      // Keep alias for @onesignal/web-sdk in case of internal references
       "@onesignal/web-sdk": "onesignal-web-sdk", 
     },
   },
@@ -35,6 +35,8 @@ export default defineConfig(() => ({
     sourcemap: false,
   },
   optimizeDeps: {
+    // Exclude onesignal-web-sdk from optimization to prevent pre-bundling issues
+    exclude: ['onesignal-web-sdk'],
     include: [
       '@radix-ui/react-tabs',
       '@radix-ui/react-avatar',
@@ -64,7 +66,7 @@ export default defineConfig(() => ({
       '@radix-ui/react-toggle',
       '@radix-ui/react-toggle-group',
       '@radix-ui/react-tooltip',
-      'onesignal-web-sdk',
+      // Removed 'onesignal-web-sdk' from include
     ],
   },
 }));
