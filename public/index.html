@@ -1,0 +1,34 @@
+<!doctype html>
+    <html lang="en" class="dark">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Western Prince William Scanner Feed</title>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/Logo.png" type="image/png" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+        <meta name="theme-color" content="#000000" />
+        <!-- OneSignal SDK -->
+        <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+        <script>
+          window.OneSignal = window.OneSignal || [];
+          OneSignal.push(function() {
+            OneSignal.init({
+              appId: import.meta.env.VITE_ONESIGNAL_APP_ID,
+              safari_web_id: import.meta.env.VITE_ONESIGNAL_SAFARI_WEB_ID, // Optional for Safari
+              allowLocalhostAsSecureOrigin: import.meta.env.DEV,
+              notifyButton: {
+                enable: false, // We'll manage our own UI
+              },
+            });
+            console.log('OneSignal initialized from index.html.');
+          });
+        </script>
+      </head>
+
+      <body>
+        <div id="root"></div>
+        <script type="module" src="src/main.tsx"></script>
+      </body>
+    </html>

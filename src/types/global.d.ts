@@ -74,8 +74,9 @@ declare module 'react-beautiful-dnd' {
   export const Draggable: React.ComponentType<any>;
 }
 
-// Declare OneSignal module directly
-declare module 'onesignal-web-sdk' {
-  const OneSignal: any;
-  export default OneSignal;
+// Declare window.OneSignal globally
+declare global {
+  interface Window {
+    OneSignal: any;
+  }
 }

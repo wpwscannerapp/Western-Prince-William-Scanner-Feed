@@ -1,7 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
-import OneSignal from 'onesignal-web-sdk'; // Updated import path
+// Removed direct import of OneSignal as it's now loaded globally via script tag
 import { SUPABASE_API_TIMEOUT } from '@/config';
+
+// Declare window.OneSignal to satisfy TypeScript
+declare const OneSignal: any;
 
 export interface UserNotificationSettings {
   user_id: string;
@@ -37,32 +40,29 @@ export const NotificationService = {
       return;
     }
 
-    if (!OneSignal.Notifications.isPushNotificationsSupported()) {
+    if (typeof window.OneSignal === 'undefined') {
+      console.error('OneSignal SDK not loaded. Ensure the script tag is in index.html.');
+      handleError(null, 'Push notifications SDK not loaded.');
+      return;
+    }
+
+    if (!window.OneSignal.Notifications.isPushNotificationsSupported()) {
       console.warn('Push notifications are not supported by this browser.');
       return;
     }
 
     try {
-      await OneSignal.init({
-        appId: import.meta.env.VITE_ONESIGNAL_APP_ID,
-        safari_web_id: import.meta.env.VITE_ONESIGNAL_SAFARI_WEB_ID, // Optional for Safari
-        allowLocalhostAsSecureOrigin: import.meta.env.DEV,
-        notifyButton: {
-          enable: false, // We'll manage our own UI
-        },
-      });
-      console.log('OneSignal initialized.');
-
-      // Set external user ID for Supabase user
-      OneSignal.setExternalUserId(userId);
+      // OneSignal.init is now handled in index.html
+      // We just need to ensure it's ready and then set the external user ID and listeners.
+      await window.OneSignal.User.addTag("user_id", userId); // Use addTag for external user ID
       console.log('OneSignal external user ID set:', userId);
 
       // Add event listener for subscription changes
-      OneSignal.Notifications.addEventListener('subscriptionchange', async (isSubscribed: boolean) => {
+      window.OneSignal.Notifications.addEventListener('subscriptionchange', async (isSubscribed: boolean) => {
         console.log('OneSignal subscriptionchange event:', isSubscribed);
         if (isSubscribed) {
-          const player = await OneSignal.User.PushSubscription.getFCMToken();
-          const playerId = await OneSignal.User.PushSubscription.getId();
+          const player = await window.OneSignal.User.PushSubscription.getFCMToken();
+          const playerId = await window.OneSignal.User.PushSubscription.getId();
           console.log('OneSignal subscribed. Player ID:', playerId, 'FCM Token:', player);
           if (playerId) {
             await NotificationService.updateUserNotificationSettings(userId, { onesignal_player_id: playerId, enabled: true });
@@ -74,15 +74,15 @@ export const NotificationService = {
       });
 
       // Request notification permission if not already granted
-      const permission = await OneSignal.Notifications.permission;
+      const permission = await window.OneSignal.Notifications.permission;
       if (permission === 'default') {
         console.log('OneSignal: Requesting notification permission...');
-        await OneSignal.Notifications.requestPermission();
+        await window.OneSignal.Notifications.requestPermission();
       }
 
       // Get current subscription status and player ID
-      const isPushEnabled = await OneSignal.Notifications.isPushEnabled();
-      const playerId = await OneSignal.User.PushSubscription.getId();
+      const isPushEnabled = await window.OneSignal.Notifications.isPushEnabled();
+      const playerId = await window.OneSignal.User.PushSubscription.getId();
       console.log('OneSignal: isPushEnabled:', isPushEnabled, 'Current Player ID:', playerId);
 
       // Update Supabase with current OneSignal status
