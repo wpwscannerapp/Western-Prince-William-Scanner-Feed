@@ -20,6 +20,7 @@ export default defineConfig(() => ({
   },
   build: {
     rollupOptions: {
+      external: ['@onesignal/web-sdk'], // Added @onesignal/web-sdk to external
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
