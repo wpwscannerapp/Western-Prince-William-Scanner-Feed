@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Service role can manage push_notifications" ON public.push_notifications;

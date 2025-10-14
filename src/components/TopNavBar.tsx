@@ -1,9 +1,9 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, User, LogIn, LogOut, CreditCard } from 'lucide-react';
+import { Home, User, LogIn, LogOut, CreditCard, BellRing } from 'lucide-react'; // Added BellRing for settings link
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import NotificationBell from './NotificationBell';
+// Removed NotificationBell import
 import MobileNav from './MobileNav';
 
 const TopNavBar = () => {
@@ -18,6 +18,7 @@ const TopNavBar = () => {
   const loggedInNavItems = [
     { name: 'Home Page', icon: Home, path: '/home' },
     { name: 'Profile', icon: User, path: '/profile' },
+    { name: 'Notifications', icon: BellRing, path: '/notifications' }, // New item for notification settings
   ];
 
   return (
@@ -46,8 +47,6 @@ const TopNavBar = () => {
                   {item.name}
                 </NavLink>
               ))}
-              {/* Removed Admin NavLink from TopNavBar */}
-              <NotificationBell aria-label="Toggle notifications" />
               <Button variant="ghost" size="sm" onClick={handleSignOut} className="tw-text-muted-foreground hover:tw-text-primary">
                 <LogOut className="tw-h-5 tw-w-5 tw-mr-1" />
                 Logout

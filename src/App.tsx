@@ -21,7 +21,8 @@ import ProfilePage from '@/pages/ProfilePage';
 import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
 import ContactUsPage from '@/pages/ContactUsPage';
-import IncidentArchivePage from '@/pages/IncidentArchivePage'; // New import
+import IncidentArchivePage from '@/pages/IncidentArchivePage';
+import NotificationSettingsPage from '@/pages/NotificationSettingsPage'; // New import
 import React from 'react';
 
 const queryClient = new QueryClient();
@@ -59,7 +60,8 @@ const App = () => {
                     <Route path="home/incidents" element={<IncidentsPage />} />
                     <Route path="home/traffic" element={<TrafficPage />} />
                     <Route path="home/contact-us" element={<ContactUsPage />} />
-                    <Route path="home/archive" element={<IncidentArchivePage />} /> {/* New route */}
+                    <Route path="home/archive" element={<IncidentArchivePage />} />
+                    <Route path="notifications" element={<NotificationSettingsPage />} /> {/* New route */}
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="admin" element={<AdminPage />} />
                     <Route path="posts/:postId" element={<PostDetailPage />} />

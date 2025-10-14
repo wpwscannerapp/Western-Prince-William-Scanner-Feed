@@ -5,12 +5,13 @@ export const validateEnv = () => { // Added export keyword
     'VITE_SUPABASE_API_TIMEOUT',
     'VITE_SUPABASE_URL',
     'VITE_SUPABASE_ANON_KEY',
-    'VITE_WEB_PUSH_PUBLIC_KEY',
+    // 'VITE_WEB_PUSH_PUBLIC_KEY', // Removed for OneSignal
     'VITE_STRIPE_MONTHLY_PRICE_ID', // Added this as it's used in SubscriptionPage
     'VITE_APP_URL', // Added this as it's used in useAuth
     'VITE_MAX_CONCURRENT_SESSIONS', // Added for concurrent login limit
     'VITE_AUTH_INITIALIZATION_TIMEOUT', // New: Timeout for auth loading
     'VITE_TOMTOM_API_KEY', // New: TomTom API Key
+    'VITE_ONESIGNAL_APP_ID', // New: OneSignal App ID
   ];
   
   requiredEnvVars.forEach(varName => {

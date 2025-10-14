@@ -2,7 +2,7 @@ import React from 'react';
 import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin
 import { Loader2 } from 'lucide-react'; // Import Loader2 for loading state
-// Removed unused 'Archive' import
+import { Archive, BellRing } from 'lucide-react'; // Import Archive and BellRing icons
 
 const HomePage: React.FC = () => {
   const { isAdmin, loading: isAdminLoading } = useIsAdmin(); // Use the useIsAdmin hook
@@ -49,6 +49,14 @@ const HomePage: React.FC = () => {
           description="Get in touch with us."
           to="/home/contact-us"
           icon="/Logo.png"
+        />
+
+        {/* Notification Settings Tile */}
+        <Tile
+          title="Notifications"
+          description="Manage your alert preferences."
+          to="/notifications"
+          icon="/Logo.png" // Consider a specific notification icon if available
         />
 
         {/* Admin Dashboard Tile (Conditional) */}
