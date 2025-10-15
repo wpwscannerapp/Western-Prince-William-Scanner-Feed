@@ -1,12 +1,19 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./globals.css";
-import { validateEnv } from './config.ts'; // Import the validation function
+import { validateEnv, SPLASH_DURATION, POLL_INTERVAL, SUPABASE_API_TIMEOUT, MAX_CONCURRENT_SESSIONS } from './config.ts'; // Import the validation function and constants
 
 // Validate environment variables on app startup
 try {
-  // Call validateEnv once at the entry point
   validateEnv();
+  if (import.meta.env.DEV) {
+    console.log('Loaded Env Vars:', {
+      VITE_SPLASH_DURATION: SPLASH_DURATION,
+      VITE_POLL_INTERVAL: POLL_INTERVAL,
+      VITE_SUPABASE_API_TIMEOUT: SUPABASE_API_TIMEOUT,
+      VITE_MAX_CONCURRENT_SESSIONS: MAX_CONCURRENT_SESSIONS,
+    });
+  }
 } catch (error) {
   console.error('Environment variable validation failed:', error);
   // Optionally, render an error message to the user or halt the app
