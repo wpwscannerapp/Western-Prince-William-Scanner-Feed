@@ -199,6 +199,9 @@ export const NotificationService = {
         .select()
         .single();
 
+      // Log after the upsert call to see if it completes
+      console.log('NotificationService: Supabase upsert operation completed.');
+
       if (error) {
         logSupabaseError('updateUserNotificationSettings', error);
         return null;
