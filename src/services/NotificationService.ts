@@ -56,15 +56,16 @@ export const NotificationService = {
         window.OneSignalDeferred = [];
       }
 
-      (window.OneSignalDeferred as OneSignalSDK).push(async () => {
+      window.OneSignalDeferred.push(async () => {
         console.log('NotificationService: OneSignalDeferred.push callback executed.');
-        if (!isOneSignalReady(window.OneSignalDeferred)) {
-          console.error('NotificationService: OneSignal SDK not loaded or not ready after push callback.');
+        // Now check window.OneSignal, which should be the actual SDK object
+        if (!isOneSignalReady(window.OneSignal)) {
+          console.error('NotificationService: OneSignal SDK not loaded or not ready after push callback (window.OneSignal is not ready).');
           handleError(null, 'Push notifications SDK not loaded or not ready.');
           return resolve(false);
         }
 
-        const osSdk: OneSignalSDK = window.OneSignalDeferred;
+        const osSdk: OneSignalSDK = window.OneSignal; // Use window.OneSignal here
 
         console.log('NotificationService: Initializing OneSignal SDK...');
         // Initialize OneSignal SDK here

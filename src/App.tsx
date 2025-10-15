@@ -51,8 +51,8 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
       } else if (!authLoading && !user) {
         console.log('App.tsx: User logged out, ensuring OneSignal is unsubscribed if active.');
         // Use the isOneSignalReady from NotificationService
-        if (isOneSignalReady(window.OneSignalDeferred)) {
-          const osSdk: OneSignalSDK = window.OneSignalDeferred; // Capture for type inference
+        if (isOneSignalReady(window.OneSignal)) { // Check window.OneSignal here
+          const osSdk: OneSignalSDK = window.OneSignal; // Capture for type inference
           await osSdk.Notifications.setSubscription(false);
         }
         setIsOneSignalInitialized(false); // Reset state on logout

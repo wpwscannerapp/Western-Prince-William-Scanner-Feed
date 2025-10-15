@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, BellRing, MapPin, LocateFixed, CheckCircle2, XCircle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { NotificationService } from '@/services/NotificationService';
+import { NotificationService, isOneSignalReady } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
 
 const alertTypes = ['Fire', 'Police', 'Road Closure', 'Medical', 'Other'];
@@ -83,11 +83,6 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
     }
   }, [user, reset]);
 
-  // Type guard to ensure OneSignal is the SDK object, not the initial array
-  const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
-    return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
-  };
-
   useEffect(() => {
     if (!authLoading && user) {
       fetchSettings();
@@ -99,13 +94,13 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
       handleError(null, 'You must be logged in to save settings.');
       return;
     }
-    if (!isOneSignalInitialized || !isOneSignalReady(window.OneSignalDeferred)) {
+    if (!isOneSignalInitialized || !isOneSignalReady(window.OneSignal)) { // Check window.OneSignal here
       handleError(null, 'OneSignal SDK not loaded or not ready. Cannot save notification settings.');
       return;
     }
 
     // Capture the type-guarded OneSignal instance here
-    const osSdk: OneSignalSDK = window.OneSignalDeferred;
+    const osSdk: OneSignalSDK = window.OneSignal;
 
     setIsSaving(true);
     toast.loading('Saving notification settings...', { id: 'save-settings' });
@@ -164,12 +159,11 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
   };
 
   const requestNotificationPermission = async () => {
-    if (!isOneSignalReady(window.OneSignalDeferred)) {
+    if (!isOneSignalReady(window.OneSignal)) { // Check window.OneSignal here
       handleError(null, 'OneSignal SDK not loaded or not ready. Cannot request permission.');
       return;
     }
-    // Capture the type-guarded OneSignal instance here
-    const osSdk: OneSignalSDK = window.OneSignalDeferred;
+    const osSdk: OneSignalSDK = window.OneSignal; // Use window.OneSignal here
 
     try {
       await osSdk.Notifications.requestPermission();
@@ -240,8 +234,8 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
                   await requestNotificationPermission();
                 } else if (!checked && notificationPermission === 'granted') {
                   // Ensure window.OneSignalDeferred is ready before calling setSubscription
-                  if (isOneSignalReady(window.OneSignalDeferred)) {
-                    await window.OneSignalDeferred.Notifications.setSubscription(false);
+                  if (isOneSignalReady(window.OneSignal)) {
+                    await window.OneSignal.Notifications.setSubscription(false);
                   }
                 }
               }}

@@ -75,13 +75,9 @@ declare module 'react-beautiful-dnd' {
 }
 
 // OneSignal SDK Global Declaration
-// This declares a global variable 'OneSignalDeferred' that might be an array initially
-// and then becomes the full SDK object.
-declare var OneSignalDeferred: OneSignalSDK | [];
-
+// This declares the actual OneSignal SDK object's methods
 interface OneSignalSDK {
   init(options: { appId: string; safari_web_id?: string; allowLocalhostAsSecureOrigin?: boolean; notifyButton?: { enable: boolean } }): Promise<void>;
-  push(callback: () => void): void;
   Notifications: {
     isPushNotificationsSupported(): boolean;
     addEventListener(event: 'subscriptionchange', callback: (isSubscribed: boolean) => void): void;
@@ -100,8 +96,17 @@ interface OneSignalSDK {
   // Add other OneSignal methods/properties as needed
 }
 
+// This is the array-like object that queues commands before the SDK is fully loaded
+interface OneSignalDeferredArray extends Array<(...args: any[]) => void> {
+  push(callback: () => void): void;
+}
+
+declare var OneSignalDeferred: OneSignalDeferredArray;
+declare var OneSignal: OneSignalSDK | undefined;
+
 declare global {
   interface Window {
-    OneSignalDeferred: OneSignalSDK | [];
+    OneSignalDeferred: OneSignalDeferredArray;
+    OneSignal: OneSignalSDK | undefined; // Add to window interface
   }
 }
