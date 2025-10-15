@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext.tsx';
 import { useAppSettings } from '@/hooks/useAppSettings';
-import { NotificationService } from '@/services/NotificationService';
 import TopNavBar from '@/components/TopNavBar';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
@@ -22,34 +21,11 @@ import NotFound from '@/pages/NotFound';
 import { Button } from '@/components/ui/button';
 import Index from '@/pages/Index'; // Import Index for the root route
 
-// Type guard to ensure OneSignal is the SDK object, not the initial array
-const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
-  return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
-};
-
 const MainContent: React.FC = () => {
-  const { user, loading: authLoading } = useAuth();
-  // Removed: const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false);
-
+  // The useAuth hook is still called, but its destructured values are no longer used directly in MainContent.
+  // The AuthProvider in App.tsx manages the global auth state.
+  useAuth(); 
   useAppSettings(); // Apply app settings here
-
-  // Removed: useEffect for OneSignal initialization as it's handled by AppSettingsProvider in App.tsx
-  // useEffect(() => {
-  //   const setupOneSignal = async () => {
-  //     if (!authLoading && user) {
-  //       console.log('MainContent: Attempting to initialize OneSignal for user:', user.id);
-  //       const success = await NotificationService.initOneSignal(user.id);
-  //       setIsOneSignalInitialized(success);
-  //     } else if (!authLoading && !user) {
-  //       console.log('MainContent: User logged out, ensuring OneSignal is unsubscribed if active.');
-  //       if (isOneSignalReady(window.OneSignal)) {
-  //         await window.OneSignal.Notifications.setSubscription(false);
-  //       }
-  //       setIsOneSignalInitialized(false); // Reset state on logout
-  //     }
-  //   };
-  //   setupOneSignal();
-  // }, [user, authLoading]);
 
   return (
     <>
@@ -73,7 +49,6 @@ const MainContent: React.FC = () => {
             <Route path="home/traffic" element={<TrafficPage />} />
             <Route path="home/contact-us" element={<ContactUsPage />} />
             <Route path="home/archive" element={<IncidentArchivePage />} />
-            {/* Removed isOneSignalInitialized prop as ProfilePage consumes it from context */}
             <Route path="profile" element={<ProfilePage />} />
             <Route path="admin" element={<AdminPage />} />
             <Route path="posts/:postId" element={<PostDetailPage />} />
