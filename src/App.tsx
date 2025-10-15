@@ -22,7 +22,7 @@ import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
 import ContactUsPage from '@/pages/ContactUsPage';
 import IncidentArchivePage from '@/pages/IncidentArchivePage';
-import React, { useEffect, useState } from 'react'; // Import useEffect and useState
+import React, { useEffect, useState, useRef } from 'react'; // Import useEffect, useState, useRef
 import { NotificationService, isOneSignalReady } from './services/NotificationService'; // Import NotificationService and isOneSignalReady
 
 const queryClient = new QueryClient();
@@ -31,34 +31,77 @@ const queryClient = new QueryClient();
 const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
   useAppSettings(); // This hook handles setting CSS variables
   const { user, loading: authLoading } = useAuth(); // Get user and auth loading state
-  const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false); // Re-introduced state
+  const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false);
+  const oneSignalInitAttemptedRef = useRef(false); // To prevent multiple init calls
+
+  const initializeOneSignalSDK = async (userId: string) => {
+    if (oneSignalInitAttemptedRef.current) {
+      console.log('App.tsx: OneSignal initialization already attempted, skipping.');
+      return;
+    }
+    oneSignalInitAttemptedRef.current = true;
+
+    console.log('App.tsx: Attempting to initialize OneSignal for user:', userId);
+    const timeoutPromise = new Promise<boolean>(resolve => setTimeout(() => {
+      console.warn('App.tsx: OneSignal initialization timed out.');
+      resolve(false);
+    }, 15000)); // 15 seconds timeout
+
+    const success = await Promise.race([
+      NotificationService.initOneSignal(userId),
+      timeoutPromise
+    ]);
+    setIsOneSignalInitialized(success);
+    if (!success) {
+      console.error('App.tsx: OneSignal initialization failed or timed out.');
+    }
+  };
 
   useEffect(() => {
-    const setupOneSignal = async () => {
-      if (!authLoading && user) {
-        console.log('App.tsx: Attempting to initialize OneSignal for user:', user.id);
-        // Add a timeout to the OneSignal initialization
-        const timeoutPromise = new Promise<boolean>(resolve => setTimeout(() => {
-          console.warn('App.tsx: OneSignal initialization timed out.');
-          resolve(false);
-        }, 15000)); // Increased to 15 seconds timeout
+    if (!authLoading && user) {
+      // First, check if OneSignal is already available globally
+      if (isOneSignalReady(window.OneSignal)) {
+        console.log('App.tsx: window.OneSignal SDK object is ALREADY available. Initializing directly.');
+        initializeOneSignalSDK(user.id);
+      } else {
+        console.log('App.tsx: window.OneSignal SDK object is NOT yet available. Setting up MutationObserver.');
+        // If not, set up a MutationObserver to detect when it becomes available
+        const observer = new MutationObserver((mutationsList, observerInstance) => {
+          for (const mutation of mutationsList) {
+            if (mutation.type === 'childList' || mutation.type === 'attributes') {
+              if (isOneSignalReady(window.OneSignal)) {
+                console.log('App.tsx: MutationObserver detected window.OneSignal SDK object. Initializing.');
+                initializeOneSignalSDK(user.id);
+                observerInstance.disconnect(); // Stop observing once found
+                return;
+              }
+            }
+          }
+        });
 
-        const success = await Promise.race([
-          NotificationService.initOneSignal(user.id),
-          timeoutPromise
-        ]);
-        setIsOneSignalInitialized(success);
-      } else if (!authLoading && !user) {
-        console.log('App.tsx: User logged out, ensuring OneSignal is unsubscribed if active.');
-        // Use the isOneSignalReady from NotificationService
-        if (isOneSignalReady(window.OneSignal)) { // Check window.OneSignal here
-          const osSdk: OneSignalSDK = window.OneSignal; // Capture for type inference
-          await osSdk.Notifications.setSubscription(false);
-        }
-        setIsOneSignalInitialized(false); // Reset state on logout
+        // Observe the entire document for changes
+        observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
+
+        // Also, try to initialize via the deferred queue as a primary method
+        initializeOneSignalSDK(user.id);
+
+        return () => {
+          observer.disconnect();
+        };
       }
-    };
-    setupOneSignal();
+    } else if (!authLoading && !user) {
+      console.log('App.tsx: User logged out, ensuring OneSignal is unsubscribed if active.');
+      if (isOneSignalReady(window.OneSignal)) {
+        const osSdk: OneSignalSDK = window.OneSignal;
+        osSdk.Notifications.setSubscription(false).then(() => {
+          console.log('App.tsx: OneSignal subscription set to false on logout.');
+        }).catch(err => {
+          console.error('App.tsx: Error setting OneSignal subscription to false on logout:', err);
+        });
+      }
+      setIsOneSignalInitialized(false); // Reset state on logout
+      oneSignalInitAttemptedRef.current = false; // Reset flag on logout
+    }
   }, [user, authLoading]); // Re-run when user or authLoading changes
 
   // Pass isOneSignalInitialized down through context or props if needed by children
