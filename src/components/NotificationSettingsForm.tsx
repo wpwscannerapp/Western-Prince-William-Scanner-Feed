@@ -14,8 +14,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { NotificationService } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
 
-// Removed: declare const OneSignal: any;
-
 const alertTypes = ['Fire', 'Police', 'Road Closure', 'Medical', 'Other'];
 const radiusOptions = [1, 5, 10, 25, 50]; // Miles
 

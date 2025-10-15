@@ -2,8 +2,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 
-// Removed: declare const OneSignal: any;
-
 export interface UserNotificationSettings {
   user_id: string;
   onesignal_player_id: string | null;
@@ -36,66 +34,71 @@ const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
 };
 
 export const NotificationService = {
-  async initOneSignal(userId: string) {
+  async initOneSignal(userId: string): Promise<boolean> { // Changed return type
     if (!import.meta.env.VITE_ONESIGNAL_APP_ID) {
       console.error('OneSignal App ID is not defined in environment variables.');
       handleError(null, 'OneSignal App ID is missing. Notifications will not work.');
-      return;
+      return false;
     }
 
-    // Check if window.OneSignal exists and is ready using the type guard
-    if (!isOneSignalReady(window.OneSignal)) {
-      console.error('OneSignal SDK not loaded or not ready. Ensure the script tag is in index.html and initialized.');
-      handleError(null, 'Push notifications SDK not loaded or not ready.');
-      return;
-    }
+    return new Promise<boolean>(resolve => {
+      // OneSignal.push ensures the SDK is ready before executing the callback
+      // Explicitly cast window.OneSignal to OneSignalSDK to resolve TypeScript error
+      (window.OneSignal as OneSignalSDK).push(async () => { 
+        if (!isOneSignalReady(window.OneSignal)) {
+          console.error('OneSignal SDK not loaded or not ready after push callback.');
+          handleError(null, 'Push notifications SDK not loaded or not ready.');
+          return resolve(false);
+        }
 
-    // Now TypeScript knows window.OneSignal is OneSignalSDK
-    const osSdk: OneSignalSDK = window.OneSignal;
+        const osSdk: OneSignalSDK = window.OneSignal;
 
-    if (!osSdk.Notifications.isPushNotificationsSupported()) {
-      console.warn('Push notifications are not supported by this browser.');
-      return;
-    }
+        if (!osSdk.Notifications.isPushNotificationsSupported()) {
+          console.warn('Push notifications are not supported by this browser.');
+          return resolve(false);
+        }
 
-    try {
-      await osSdk.User.addTag("user_id", userId);
-      console.log('OneSignal external user ID set:', userId);
+        try {
+          await osSdk.User.addTag("user_id", userId);
+          console.log('OneSignal external user ID set:', userId);
 
-      osSdk.Notifications.addEventListener('subscriptionchange', async (isSubscribed: boolean) => {
-        console.log('OneSignal subscriptionchange event:', isSubscribed);
-        if (isSubscribed) {
-          const player = await osSdk.User.PushSubscription.getFCMToken();
-          const playerId = await osSdk.User.PushSubscription.getId();
-          console.log('OneSignal subscribed. Player ID:', playerId, 'FCM Token:', player);
-          if (playerId) {
-            await NotificationService.updateUserNotificationSettings(userId, { onesignal_player_id: playerId, enabled: true });
+          osSdk.Notifications.addEventListener('subscriptionchange', async (isSubscribed: boolean) => {
+            console.log('OneSignal subscriptionchange event:', isSubscribed);
+            if (isSubscribed) {
+              const player = await osSdk.User.PushSubscription.getFCMToken();
+              const playerId = await osSdk.User.PushSubscription.getId();
+              console.log('OneSignal subscribed. Player ID:', playerId, 'FCM Token:', player);
+              if (playerId) {
+                await NotificationService.updateUserNotificationSettings(userId, { onesignal_player_id: playerId, enabled: true });
+              }
+            } else {
+              console.log('OneSignal unsubscribed.');
+              await NotificationService.updateUserNotificationSettings(userId, { onesignal_player_id: null, enabled: false });
+            }
+          });
+
+          const permission = await osSdk.Notifications.permission;
+          if (permission === 'default') {
+            console.log('OneSignal: Requesting notification permission...');
+            await osSdk.Notifications.requestPermission();
           }
-        } else {
-          console.log('OneSignal unsubscribed.');
-          await NotificationService.updateUserNotificationSettings(userId, { onesignal_player_id: null, enabled: false });
+
+          const isPushEnabled = await osSdk.Notifications.isPushEnabled();
+          const playerId = await osSdk.User.PushSubscription.getId();
+          console.log('OneSignal: isPushEnabled:', isPushEnabled, 'Current Player ID:', playerId);
+
+          await NotificationService.updateUserNotificationSettings(userId, {
+            onesignal_player_id: playerId,
+            enabled: isPushEnabled,
+          });
+          resolve(true); // Initialization successful
+        } catch (err: any) {
+          console.error('OneSignal initialization failed:', err);
+          handleError(err, 'Failed to initialize push notifications.');
+          resolve(false); // Initialization failed
         }
       });
-
-      const permission = await osSdk.Notifications.permission;
-      if (permission === 'default') {
-        console.log('OneSignal: Requesting notification permission...');
-        await osSdk.Notifications.requestPermission();
-      }
-
-      const isPushEnabled = await osSdk.Notifications.isPushEnabled();
-      const playerId = await osSdk.User.PushSubscription.getId();
-      console.log('OneSignal: isPushEnabled:', isPushEnabled, 'Current Player ID:', playerId);
-
-      await NotificationService.updateUserNotificationSettings(userId, {
-        onesignal_player_id: playerId,
-        enabled: isPushEnabled,
-      });
-
-    } catch (err: any) {
-      console.error('OneSignal initialization failed:', err);
-      handleError(err, 'Failed to initialize push notifications.');
-    }
+    });
   },
 
   async getUserNotificationSettings(userId: string): Promise<UserNotificationSettings | null> {
@@ -108,7 +111,6 @@ export const NotificationService = {
         .select('*')
         .eq('user_id', userId)
         .abortSignal(controller.signal)
-        // Removed .single() to avoid 406 errors if the Accept header is strict or no rows are found
         .limit(1); 
 
       if (error) {
