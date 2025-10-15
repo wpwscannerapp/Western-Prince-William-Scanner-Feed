@@ -43,7 +43,7 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
     const setupOneSignal = async () => {
       if (!authLoading && user) {
         console.log('App.tsx: Attempting to initialize OneSignal for user:', user.id);
-        const success = await NotificationService.initOneSignal(user.id);
+        await NotificationService.initOneSignal(user.id); // Removed 'const success ='
         // Removed: setIsOneSignalInitialized(success);
       } else if (!authLoading && !user) {
         console.log('App.tsx: User logged out, ensuring OneSignal is unsubscribed if active.');
