@@ -45,7 +45,7 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
     const timeoutPromise = new Promise<boolean>(resolve => setTimeout(() => {
       console.warn('App.tsx: Web Push initialization timed out.');
       resolve(false);
-    }, 15000)); // 15 seconds timeout
+    }, 30000)); // Increased to 30 seconds timeout to allow more time for service worker registration and subscription
 
     const success = await Promise.race([
       NotificationService.initWebPush(userId), // Call native Web Push init
