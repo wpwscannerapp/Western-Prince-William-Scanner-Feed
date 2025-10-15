@@ -44,6 +44,10 @@ export const NotificationService = {
       return false;
     }
 
+    if (!oneSignalSafariWebId) {
+      console.warn('OneSignal Safari Web ID (VITE_ONESIGNAL_SAFARI_WEB_ID) is not set. Safari push notifications will not be enabled.');
+    }
+
     // The window.OneSignal = window.OneSignal || []; is handled in public/index.html
     // This ensures it's an array before the SDK script loads.
     // All interactions with OneSignal SDK should be wrapped in OneSignal.push()
@@ -67,7 +71,7 @@ export const NotificationService = {
         // Initialize OneSignal SDK here
         await osSdk.init({
           appId: oneSignalAppId,
-          safari_web_id: oneSignalSafariWebId, // Pass Safari Web ID
+          safari_web_id: oneSignalSafariWebId, // Pass Safari Web ID (can be undefined/null)
           allowLocalhostAsSecureOrigin: import.meta.env.DEV,
           notifyButton: {
             enable: false, // We'll manage our own UI
