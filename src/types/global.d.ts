@@ -73,39 +73,3 @@ declare module 'react-beautiful-dnd' {
   export const Droppable: React.ComponentType<any>;
   export const Draggable: React.ComponentType<any>;
 }
-
-// OneSignal SDK Global Declaration
-interface OneSignalSDK {
-  init(options: { appId: string; safari_web_id?: string; allowLocalhostAsSecureOrigin?: boolean; notifyButton?: { enable: boolean } }): Promise<void>;
-  Notifications: {
-    isPushNotificationsSupported(): boolean;
-    addEventListener(event: 'subscriptionchange', callback: (isSubscribed: boolean) => void): void;
-    permission: NotificationPermission;
-    requestPermission(): Promise<void>;
-    isPushEnabled(): Promise<boolean>;
-    setSubscription(enabled: boolean): Promise<void>;
-  };
-  User: {
-    addTag(key: string, value: string): Promise<void>;
-    PushSubscription: {
-      getFCMToken(): Promise<string | null>;
-      getId(): Promise<string | null>;
-    };
-  };
-  // Add other OneSignal methods/properties as needed
-}
-
-// This is the array-like object that queues commands before the SDK is fully loaded
-interface OneSignalDeferredArray extends Array<(...args: any[]) => void> {
-  push(callback: () => void): void;
-}
-
-declare var OneSignalDeferred: OneSignalDeferredArray;
-declare var OneSignal: OneSignalSDK | undefined;
-
-declare global {
-  interface Window {
-    OneSignalDeferred: OneSignalDeferredArray;
-    OneSignal: OneSignalSDK | undefined; // Add to window interface
-  }
-}

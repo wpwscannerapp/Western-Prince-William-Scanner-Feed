@@ -2,9 +2,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 
+// Define the structure of a native PushSubscription object
+export interface PushSubscription {
+  endpoint: string;
+  expirationTime: number | null;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
 export interface UserNotificationSettings {
   user_id: string;
-  onesignal_player_id: string | null;
+  push_subscription: PushSubscription | null; // Changed from onesignal_player_id
   enabled: boolean;
   preferred_types: string[];
   radius_miles: number;
@@ -28,106 +38,106 @@ const logSupabaseError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
 };
 
-// Type guard to ensure OneSignal is the SDK object, not the initial array
-export const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
-  return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
-};
-
 export const NotificationService = {
-  async initOneSignal(userId: string): Promise<boolean> {
-    console.log('NotificationService: initOneSignal called.');
-    const oneSignalAppId = import.meta.env.VITE_ONESIGNAL_APP_ID;
-    const oneSignalSafariWebId = import.meta.env.VITE_ONESIGNAL_SAFARI_WEB_ID; // Get Safari Web ID
+  async initWebPush(userId: string): Promise<boolean> {
+    console.log('NotificationService: initWebPush called.');
+    const vapidPublicKey = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY;
 
-    if (!oneSignalAppId) {
-      console.error('NotificationService: OneSignal App ID is not defined in environment variables.');
-      handleError(null, 'OneSignal App ID is missing. Notifications will not work.');
+    if (!vapidPublicKey) {
+      console.error('NotificationService: VAPID Public Key is not defined in environment variables.');
+      handleError(null, 'VAPID Public Key is missing. Push notifications will not work.');
       return false;
     }
 
-    if (!oneSignalSafariWebId) {
-      console.warn('NotificationService: OneSignal Safari Web ID (VITE_ONESIGNAL_SAFARI_WEB_ID) is not set. Safari push notifications will not be enabled.');
+    if (!('serviceWorker' in navigator)) {
+      console.warn('NotificationService: Service Workers are not supported by this browser.');
+      handleError(null, 'Push notifications are not supported by your browser.');
+      return false;
     }
 
-    return new Promise<boolean>(resolve => {
-      console.log('NotificationService: Pushing callback to OneSignalDeferred array.');
-      // Ensure window.OneSignalDeferred is an array before pushing, as per OneSignal best practices
-      if (typeof window.OneSignalDeferred === 'undefined') {
-        window.OneSignalDeferred = [];
+    try {
+      console.log('NotificationService: Registering service worker...');
+      const registration = await navigator.serviceWorker.register('/service-worker.js');
+      console.log('NotificationService: Service Worker registered:', registration);
+
+      // Check for existing subscription
+      let subscription = await registration.pushManager.getSubscription();
+      let isPushEnabled = !!subscription;
+
+      if (!isPushEnabled) {
+        console.log('NotificationService: No existing push subscription found. Requesting permission...');
+        // Request permission and subscribe
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          console.log('NotificationService: Notification permission granted. Subscribing...');
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: NotificationService.urlBase64ToUint8Array(vapidPublicKey),
+          });
+          isPushEnabled = true;
+          console.log('NotificationService: New push subscription created:', subscription);
+        } else {
+          console.warn('NotificationService: Notification permission denied or dismissed.');
+          isPushEnabled = false;
+        }
+      } else {
+        console.log('NotificationService: Existing push subscription found:', subscription);
       }
 
-      window.OneSignalDeferred.push(async () => {
-        console.log('NotificationService: OneSignalDeferred.push callback HAS STARTED executing.');
+      // Update user settings in Supabase
+      if (subscription) {
+        await NotificationService.updateUserNotificationSettings(userId, {
+          push_subscription: subscription.toJSON() as PushSubscription,
+          enabled: isPushEnabled,
+        });
+      } else {
+        await NotificationService.updateUserNotificationSettings(userId, {
+          push_subscription: null,
+          enabled: false,
+        });
+      }
 
-        // At this point, OneSignal's SDK should have loaded and set window.OneSignal
-        if (!isOneSignalReady(window.OneSignal)) {
-          console.error('NotificationService: OneSignal SDK not loaded or not ready after deferred callback (window.OneSignal is not available).');
-          handleError(null, 'Push notifications SDK did not load within expected time.');
-          return resolve(false);
-        }
+      console.log('NotificationService: Web Push initialization successful.');
+      return true;
+    } catch (err: any) {
+      console.error('NotificationService: Web Push initialization failed:', err);
+      handleError(err, 'Failed to initialize push notifications.');
+      return false;
+    }
+  },
 
-        const osSdk: OneSignalSDK = window.OneSignal; // Use window.OneSignal here
+  async unsubscribeWebPush(userId: string): Promise<boolean> {
+    console.log('NotificationService: unsubscribeWebPush called.');
+    if (!('serviceWorker' in navigator)) {
+      console.warn('NotificationService: Service Workers are not supported by this browser.');
+      return false;
+    }
 
-        console.log('NotificationService: Initializing OneSignal SDK...');
-        try {
-          await osSdk.init({
-            appId: oneSignalAppId,
-            safari_web_id: oneSignalSafariWebId,
-            allowLocalhostAsSecureOrigin: import.meta.env.DEV,
-            notifyButton: {
-              enable: false,
-            },
-          });
-          console.log('NotificationService: OneSignal SDK initialized via NotificationService.');
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
 
-          if (!osSdk.Notifications.isPushNotificationsSupported()) {
-            console.warn('NotificationService: Push notifications are not supported by this browser.');
-            return resolve(false);
-          }
-
-          console.log('NotificationService: Adding user_id tag to OneSignal.');
-          await osSdk.User.addTag("user_id", userId);
-          console.log('NotificationService: OneSignal external user ID set:', userId);
-
-          osSdk.Notifications.addEventListener('subscriptionchange', async (isSubscribed: boolean) => {
-            console.log('NotificationService: OneSignal subscriptionchange event:', isSubscribed);
-            if (isSubscribed) {
-              const player = await osSdk.User.PushSubscription.getFCMToken();
-              const playerId = await osSdk.User.PushSubscription.getId();
-              console.log('NotificationService: OneSignal subscribed. Player ID:', playerId, 'FCM Token:', player);
-              if (playerId) {
-                await NotificationService.updateUserNotificationSettings(userId, { onesignal_player_id: playerId, enabled: true });
-              }
-            } else {
-              console.log('NotificationService: OneSignal unsubscribed.');
-              await NotificationService.updateUserNotificationSettings(userId, { onesignal_player_id: null, enabled: false });
-            }
-          });
-
-          const permission = await osSdk.Notifications.permission;
-          console.log('NotificationService: Current notification permission:', permission);
-          if (permission === 'default') {
-            console.log('NotificationService: Requesting notification permission...');
-            await osSdk.Notifications.requestPermission();
-          }
-
-          const isPushEnabled = await osSdk.Notifications.isPushEnabled();
-          const playerId = await osSdk.User.PushSubscription.getId();
-          console.log('NotificationService: isPushEnabled:', isPushEnabled, 'Current Player ID:', playerId);
-
-          await NotificationService.updateUserNotificationSettings(userId, {
-            onesignal_player_id: playerId,
-            enabled: isPushEnabled,
-          });
-          console.log('NotificationService: OneSignal initialization successful.');
-          resolve(true); // Initialization successful
-        } catch (err: any) {
-          console.error('NotificationService: OneSignal initialization failed:', err);
-          handleError(err, 'Failed to initialize push notifications.');
-          resolve(false); // Initialization failed
-        }
-      });
-    });
+      if (subscription) {
+        await subscription.unsubscribe();
+        console.log('NotificationService: Push subscription unsubscribed from browser.');
+        await NotificationService.updateUserNotificationSettings(userId, {
+          push_subscription: null,
+          enabled: false,
+        });
+        return true;
+      } else {
+        console.log('NotificationService: No active push subscription to unsubscribe.');
+        await NotificationService.updateUserNotificationSettings(userId, {
+          push_subscription: null,
+          enabled: false,
+        });
+        return true;
+      }
+    } catch (err: any) {
+      console.error('NotificationService: Failed to unsubscribe from push notifications:', err);
+      handleError(err, 'Failed to unsubscribe from push notifications.');
+      return false;
+    }
   },
 
   async getUserNotificationSettings(userId: string): Promise<UserNotificationSettings | null> {
@@ -225,5 +235,17 @@ export const NotificationService = {
     } finally {
       clearTimeout(timeoutId);
     }
+  },
+
+  // Utility function to convert VAPID public key to Uint8Array
+  urlBase64ToUint8Array(base64String: string): Uint8Array {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
   },
 };

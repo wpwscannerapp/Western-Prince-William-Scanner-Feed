@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, BellRing, MapPin, LocateFixed, CheckCircle2, XCircle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { NotificationService, isOneSignalReady } from '@/services/NotificationService';
+import { NotificationService } from '@/services/NotificationService'; // Removed isOneSignalReady
 import { handleError } from '@/utils/errorHandler';
 
 const alertTypes = ['Fire', 'Police', 'Road Closure', 'Medical', 'Other'];
@@ -29,10 +29,10 @@ const notificationSettingsSchema = z.object({
 type NotificationSettingsFormValues = z.infer<typeof notificationSettingsSchema>;
 
 interface NotificationSettingsFormProps {
-  isOneSignalInitialized: boolean; // Re-added prop
+  isWebPushInitialized: boolean; // Renamed prop
 }
 
-const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isOneSignalInitialized }) => {
+const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isWebPushInitialized }) => {
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -94,27 +94,35 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
       handleError(null, 'You must be logged in to save settings.');
       return;
     }
-    if (!isOneSignalInitialized || !isOneSignalReady(window.OneSignal)) { // Check window.OneSignal here
-      handleError(null, 'OneSignal SDK not loaded or not ready. Cannot save notification settings.');
+    if (!isWebPushInitialized) { // Check native Web Push initialization status
+      handleError(null, 'Web Push API not initialized. Cannot save notification settings.');
       return;
     }
-
-    // Capture the type-guarded OneSignal instance here
-    const osSdk: OneSignalSDK = window.OneSignal;
 
     setIsSaving(true);
     toast.loading('Saving notification settings...', { id: 'save-settings' });
     try {
-      const updatedSettings = await NotificationService.updateUserNotificationSettings(user.id, values);
+      let updatedSettings = null;
+      if (values.enabled) {
+        // If enabling, ensure subscription is active
+        const subscribed = await NotificationService.initWebPush(user.id); // This will subscribe if not already
+        if (subscribed) {
+          updatedSettings = await NotificationService.updateUserNotificationSettings(user.id, values);
+        } else {
+          throw new Error('Failed to subscribe to push notifications.');
+        }
+      } else {
+        // If disabling, unsubscribe
+        const unsubscribed = await NotificationService.unsubscribeWebPush(user.id);
+        if (unsubscribed) {
+          updatedSettings = await NotificationService.updateUserNotificationSettings(user.id, { ...values, push_subscription: null });
+        } else {
+          throw new Error('Failed to unsubscribe from push notifications.');
+        }
+      }
+
       if (updatedSettings) {
         toast.success('Settings saved successfully!', { id: 'save-settings' });
-        // Update OneSignal subscription status based on 'enabled'
-        if (values.enabled) {
-          await osSdk.Notifications.requestPermission(); // Ensure permission is granted
-          await osSdk.Notifications.setSubscription(true);
-        } else {
-          await osSdk.Notifications.setSubscription(false);
-        }
         setNotificationPermission(Notification.permission); // Update permission status
       } else {
         throw new Error('Failed to update settings in database.');
@@ -159,32 +167,31 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
   };
 
   const requestNotificationPermission = async () => {
-    if (!isOneSignalReady(window.OneSignal)) { // Check window.OneSignal here
-      handleError(null, 'OneSignal SDK not loaded or not ready. Cannot request permission.');
+    if (!('Notification' in window)) {
+      handleError(null, 'Notifications are not supported by your browser.');
       return;
     }
-    const osSdk: OneSignalSDK = window.OneSignal; // Use window.OneSignal here
 
     try {
-      await osSdk.Notifications.requestPermission();
-      setNotificationPermission(Notification.permission);
-      if (Notification.permission === 'granted') {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      if (permission === 'granted') {
         toast.success('Notification permission granted!');
         setValue('enabled', true); // Automatically enable if permission granted
-        await osSdk.Notifications.setSubscription(true);
+        await NotificationService.initWebPush(user!.id); // Re-initialize/subscribe
       } else {
         toast.info('Notification permission denied or dismissed.');
         setValue('enabled', false);
-        await osSdk.Notifications.setSubscription(false);
+        await NotificationService.unsubscribeWebPush(user!.id); // Unsubscribe if denied
       }
     } catch (err) {
       handleError(err, 'Failed to request notification permission.');
     }
   };
 
-  const isFormDisabled = isSaving || isLocating || !isOneSignalInitialized;
+  const isFormDisabled = isSaving || isLocating || !isWebPushInitialized;
 
-  if (authLoading || isLoading || !isOneSignalInitialized) { // Adjusted loading condition
+  if (authLoading || isLoading || !isWebPushInitialized) { // Adjusted loading condition
     return (
       <Card className="tw-bg-card tw-border-border tw-shadow-lg">
         <CardContent className="tw-py-8 tw-text-center">
@@ -217,10 +224,10 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="tw-space-y-6">
-          {!isOneSignalInitialized && (
+          {!isWebPushInitialized && (
             <div className="tw-bg-yellow-100 tw-border-l-4 tw-border-yellow-500 tw-text-yellow-700 tw-p-4 tw-mb-4" role="alert">
-              <p className="tw-font-bold">OneSignal Not Ready</p>
-              <p>Push notification features are temporarily unavailable. Please ensure your browser allows scripts and try again.</p>
+              <p className="tw-font-bold">Web Push Not Ready</p>
+              <p>Push notification features are temporarily unavailable. Please ensure your browser supports Service Workers and try again.</p>
             </div>
           )}
           <div className="tw-flex tw-items-center tw-justify-between">
@@ -233,10 +240,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
                 if (checked && notificationPermission !== 'granted') {
                   await requestNotificationPermission();
                 } else if (!checked && notificationPermission === 'granted') {
-                  // Ensure window.OneSignalDeferred is ready before calling setSubscription
-                  if (isOneSignalReady(window.OneSignal)) {
-                    await window.OneSignal.Notifications.setSubscription(false);
-                  }
+                  await NotificationService.unsubscribeWebPush(user.id);
                 }
               }}
               disabled={isFormDisabled || notificationPermission === 'denied'}

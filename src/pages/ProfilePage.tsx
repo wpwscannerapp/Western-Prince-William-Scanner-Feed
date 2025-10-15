@@ -12,7 +12,7 @@ import { useProfilePageContext } from '@/App'; // Import the context hook
 
 const ProfilePage: React.FC = () => {
   const { user } = useAuth();
-  const isOneSignalInitialized = useProfilePageContext(); // Consume from context
+  const isWebPushInitialized = useProfilePageContext(); // Consume from context, renamed variable
 
   const { isLoading: isProfileLoading, isError: isProfileError, error: profileError } = useQuery<Profile | null, Error>({
     queryKey: ['profile', user?.id],
@@ -57,7 +57,7 @@ const ProfilePage: React.FC = () => {
               <ProfileForm />
             </TabsContent>
             <TabsContent value="notification-settings" className="tw-mt-6">
-              <NotificationSettingsForm isOneSignalInitialized={isOneSignalInitialized} /> {/* Pass prop */}
+              <NotificationSettingsForm isWebPushInitialized={isWebPushInitialized} /> {/* Pass prop */}
             </TabsContent>
           </Tabs>
         </CardContent>

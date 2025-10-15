@@ -15,8 +15,7 @@ export const validateEnv = () => {
     'VITE_APP_URL',
     'VITE_MAX_CONCURRENT_SESSIONS',
     'VITE_TOMTOM_API_KEY',
-    'VITE_ONESIGNAL_APP_ID',
-    // 'VITE_ONESIGNAL_SAFARI_WEB_ID', // Made optional
+    'VITE_WEB_PUSH_PUBLIC_KEY', // New: VAPID Public Key
   ];
 
   requiredEnvVars.forEach(varName => {
