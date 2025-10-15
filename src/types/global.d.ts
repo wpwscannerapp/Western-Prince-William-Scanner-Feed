@@ -74,9 +74,5 @@ declare module 'react-beautiful-dnd' {
   export const Draggable: React.ComponentType<any>;
 }
 
-// Declare window.OneSignal globally
-declare global {
-  interface Window {
-    OneSignal: any;
-  }
-}
+// The global OneSignal declaration is now in src/types/onesignal.d.ts
+// No need to declare it here.
