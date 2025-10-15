@@ -14,6 +14,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { NotificationService } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
 
+// Removed: declare const OneSignal: any;
+
 const alertTypes = ['Fire', 'Police', 'Road Closure', 'Medical', 'Other'];
 const radiusOptions = [1, 5, 10, 25, 50]; // Miles
 
@@ -87,13 +89,8 @@ const NotificationSettingsForm: React.FC = () => {
   useEffect(() => {
     if (!authLoading && user) {
       fetchSettings();
-      // Initialize OneSignal when user is logged in
-      // Ensure OneSignal is loaded before calling initOneSignal
-      if (isOneSignalReady(window.OneSignal)) {
-        NotificationService.initOneSignal(user.id);
-      } else {
-        console.warn('OneSignal SDK not yet available in NotificationSettingsForm useEffect.');
-      }
+      // Removed: NotificationService.initOneSignal(user.id);
+      // This call is now handled in App.tsx to ensure OneSignal is fully ready.
     }
   }, [user, authLoading, fetchSettings]);
 

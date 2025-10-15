@@ -2,6 +2,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 
+// Removed: declare const OneSignal: any;
+
 export interface UserNotificationSettings {
   user_id: string;
   onesignal_player_id: string | null;
@@ -106,7 +108,8 @@ export const NotificationService = {
         .select('*')
         .eq('user_id', userId)
         .abortSignal(controller.signal)
-        .single();
+        // Removed .single() to avoid 406 errors if the Accept header is strict or no rows are found
+        .limit(1); 
 
       if (error) {
         if (error.code === 'PGRST116') { // No rows found
@@ -115,7 +118,8 @@ export const NotificationService = {
         logSupabaseError('getUserNotificationSettings', error);
         return null;
       }
-      return data as UserNotificationSettings;
+      // If data is an array, return the first element, otherwise null
+      return (data && data.length > 0) ? data[0] as UserNotificationSettings : null;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching notification settings timed out.');

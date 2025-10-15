@@ -11,7 +11,7 @@ import TermsOfServicePage from "./pages/TermsOfServicePage";
 import { useAppSettings } from "./hooks/useAppSettings";
 import TopNavBar from "./components/TopNavBar";
 import { Button } from "./components/ui/button";
-import { AuthProvider } from "@/context/AuthContext.tsx";
+import { AuthProvider, useAuth } from "@/context/AuthContext.tsx"; // Import useAuth
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from '@/components/Layout';
 import HomePage from '@/pages/HomePage';
@@ -22,14 +22,35 @@ import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
 import ContactUsPage from '@/pages/ContactUsPage';
 import IncidentArchivePage from '@/pages/IncidentArchivePage';
-import NotificationSettingsPage from '@/pages/NotificationSettingsPage'; // New import
-import React from 'react';
+import NotificationSettingsPage from '@/pages/NotificationSettingsPage';
+import React, { useEffect } from 'react'; // Import useEffect
+import { NotificationService } from './services/NotificationService'; // Import NotificationService
 
 const queryClient = new QueryClient();
+
+// Type guard to ensure OneSignal is the SDK object, not the initial array
+const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
+  return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
+};
 
 // Component to apply app settings and render children
 const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
   useAppSettings(); // This hook handles setting CSS variables
+  const { user, loading: authLoading } = useAuth(); // Get user and auth loading state
+
+  useEffect(() => {
+    // Initialize OneSignal only when user is authenticated and OneSignal SDK is ready
+    if (!authLoading && user && isOneSignalReady(window.OneSignal)) {
+      console.log('App.tsx: Initializing OneSignal for user:', user.id);
+      NotificationService.initOneSignal(user.id);
+    } else if (!authLoading && !user) {
+      console.log('App.tsx: User logged out, ensuring OneSignal is unsubscribed if active.');
+      if (isOneSignalReady(window.OneSignal)) {
+        window.OneSignal.Notifications.setSubscription(false);
+      }
+    }
+  }, [user, authLoading]); // Re-run when user or authLoading changes
+
   return <>{children}</>;
 };
 
@@ -61,7 +82,7 @@ const App = () => {
                     <Route path="home/traffic" element={<TrafficPage />} />
                     <Route path="home/contact-us" element={<ContactUsPage />} />
                     <Route path="home/archive" element={<IncidentArchivePage />} />
-                    <Route path="notifications" element={<NotificationSettingsPage />} /> {/* New route */}
+                    <Route path="notifications" element={<NotificationSettingsPage />} />
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="admin" element={<AdminPage />} />
                     <Route path="posts/:postId" element={<PostDetailPage />} />
