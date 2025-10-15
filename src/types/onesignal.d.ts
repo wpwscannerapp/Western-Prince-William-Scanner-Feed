@@ -1,6 +1,3 @@
-// Declare the global variable 'OneSignal' directly at the top level
-declare const OneSignal: OneSignalSDK;
-
 interface OneSignalSDK {
   init(options: { appId: string; safari_web_id?: string; allowLocalhostAsSecureOrigin?: boolean; notifyButton?: { enable: boolean } }): Promise<void>;
   push(callback: () => void): void;
@@ -23,8 +20,7 @@ interface OneSignalSDK {
 }
 
 declare global {
-  // Also extend the Window interface for window.OneSignal
   interface Window {
-    OneSignal: OneSignalSDK;
+    OneSignal: OneSignalSDK | []; // Changed to union type
   }
 }

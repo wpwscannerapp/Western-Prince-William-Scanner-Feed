@@ -13,10 +13,6 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { NotificationService } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
-// Removed direct import of OneSignal as it's now loaded globally via script tag
-
-// Declare window.OneSignal to satisfy TypeScript
-declare const OneSignal: any;
 
 const alertTypes = ['Fire', 'Police', 'Road Closure', 'Medical', 'Other'];
 const radiusOptions = [1, 5, 10, 25, 50]; // Miles
@@ -83,12 +79,16 @@ const NotificationSettingsForm: React.FC = () => {
     }
   }, [user, reset]);
 
+  // Type guard to ensure OneSignal is the SDK object, not the initial array
+  const isOneSignalReady = (os: typeof window.OneSignal): os is OneSignalSDK => {
+    return !Array.isArray(os) && 'Notifications' in os;
+  };
+
   useEffect(() => {
     if (!authLoading && user) {
       fetchSettings();
       // Initialize OneSignal when user is logged in
-      // Ensure OneSignal is loaded before calling initOneSignal
-      if (typeof window.OneSignal !== 'undefined') {
+      if (isOneSignalReady(window.OneSignal)) {
         NotificationService.initOneSignal(user.id);
       } else {
         console.warn('OneSignal SDK not yet available in NotificationSettingsForm useEffect.');
@@ -101,8 +101,8 @@ const NotificationSettingsForm: React.FC = () => {
       handleError(null, 'You must be logged in to save settings.');
       return;
     }
-    if (typeof window.OneSignal === 'undefined') {
-      handleError(null, 'OneSignal SDK not loaded. Cannot save notification settings.');
+    if (!isOneSignalReady(window.OneSignal)) {
+      handleError(null, 'OneSignal SDK not loaded or not ready. Cannot save notification settings.');
       return;
     }
 
@@ -163,8 +163,8 @@ const NotificationSettingsForm: React.FC = () => {
   };
 
   const requestNotificationPermission = async () => {
-    if (typeof window.OneSignal === 'undefined') {
-      handleError(null, 'OneSignal SDK not loaded. Cannot request permission.');
+    if (!isOneSignalReady(window.OneSignal)) {
+      handleError(null, 'OneSignal SDK not loaded or not ready. Cannot request permission.');
       return;
     }
     try {
