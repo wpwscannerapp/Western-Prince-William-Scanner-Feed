@@ -1,4 +1,4 @@
-interface OneSignal {
+interface OneSignalSDK {
   init(options: { appId: string; safari_web_id?: string; allowLocalhostAsSecureOrigin?: boolean; notifyButton?: { enable: boolean } }): Promise<void>;
   push(callback: () => void): void;
   Notifications: {
@@ -20,7 +20,11 @@ interface OneSignal {
 }
 
 declare global {
+  // Declare the global variable 'OneSignal' directly
+  const OneSignal: OneSignalSDK;
+
+  // Also extend the Window interface for window.OneSignal
   interface Window {
-    OneSignal: OneSignal | [];
+    OneSignal: OneSignalSDK;
   }
 }
