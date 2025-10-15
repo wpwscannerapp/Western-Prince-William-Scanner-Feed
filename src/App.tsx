@@ -22,16 +22,12 @@ import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
 import ContactUsPage from '@/pages/ContactUsPage';
 import IncidentArchivePage from '@/pages/IncidentArchivePage';
-// Removed: import NotificationSettingsPage from '@/pages/NotificationSettingsPage';
 import React, { useEffect, useState } from 'react'; // Import useEffect and useState
 import { NotificationService } from './services/NotificationService'; // Import NotificationService
 
 const queryClient = new QueryClient();
 
-// Type guard to ensure OneSignal is the SDK object, not the initial array
-const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
-  return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
-};
+// Removed: isOneSignalReady type guard, now defined in NotificationService.ts
 
 // Component to apply app settings and render children
 const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
@@ -47,7 +43,7 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
         const timeoutPromise = new Promise<boolean>(resolve => setTimeout(() => {
           console.warn('App.tsx: OneSignal initialization timed out.');
           resolve(false);
-        }, 10000)); // 10 seconds timeout
+        }, 15000)); // Increased to 15 seconds timeout
 
         const success = await Promise.race([
           NotificationService.initOneSignal(user.id),
@@ -56,7 +52,11 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
         setIsOneSignalInitialized(success);
       } else if (!authLoading && !user) {
         console.log('App.tsx: User logged out, ensuring OneSignal is unsubscribed if active.');
-        if (isOneSignalReady(window.OneSignal)) {
+        // Use the isOneSignalReady from NotificationService or define locally if needed
+        const isOneSignalReadyLocal = (os: unknown): os is OneSignalSDK => {
+          return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
+        };
+        if (isOneSignalReadyLocal(window.OneSignal)) {
           await window.OneSignal.Notifications.setSubscription(false);
         }
         setIsOneSignalInitialized(false); // Reset state on logout
