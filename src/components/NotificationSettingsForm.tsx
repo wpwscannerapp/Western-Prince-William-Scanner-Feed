@@ -87,10 +87,32 @@ const NotificationSettingsForm: React.FC = () => {
   useEffect(() => {
     if (!authLoading && user) {
       fetchSettings();
-      // Removed: NotificationService.initOneSignal(user.id);
-      // This call is now handled in App.tsx to ensure OneSignal is fully ready.
     }
   }, [user, authLoading, fetchSettings]);
+
+  const requestNotificationPermission = async () => {
+    if (!isOneSignalReady(window.OneSignal)) {
+      handleError(null, 'OneSignal SDK not loaded or not ready. Cannot request permission.');
+      return;
+    }
+    const osSdk: OneSignalSDK = window.OneSignal;
+
+    try {
+      await osSdk.Notifications.requestPermission();
+      setNotificationPermission(Notification.permission);
+      if (Notification.permission === 'granted') {
+        toast.success('Notification permission granted!');
+        setValue('enabled', true); // Automatically enable if permission granted
+        // OneSignal subscription will be set in onSubmit
+      } else {
+        toast.info('Notification permission denied or dismissed.');
+        setValue('enabled', false);
+        // OneSignal subscription will be set in onSubmit
+      }
+    } catch (err) {
+      handleError(err, 'Failed to request notification permission.');
+    }
+  };
 
   const onSubmit = async (values: NotificationSettingsFormValues) => {
     if (!user) {
@@ -102,23 +124,41 @@ const NotificationSettingsForm: React.FC = () => {
       return;
     }
 
-    // Capture the type-guarded OneSignal instance here
     const osSdk: OneSignalSDK = window.OneSignal;
 
     setIsSaving(true);
     toast.loading('Saving notification settings...', { id: 'save-settings' });
+
     try {
-      const updatedSettings = await NotificationService.updateUserNotificationSettings(user.id, values);
+      let finalEnabledState = values.enabled;
+      let playerIdToSave: string | null = null;
+
+      // If notifications are enabled in the form AND browser permission is still 'default',
+      // we need to request permission first.
+      if (values.enabled && notificationPermission === 'default') {
+        console.log('NotificationSettingsForm: Requesting permission on Save Settings.');
+        await requestNotificationPermission(); // This will update notificationPermission and form.enabled
+        finalEnabledState = getValues('enabled'); // Get the updated value from the form
+      }
+
+      // Now, update OneSignal subscription based on the final enabled state
+      await osSdk.Notifications.setSubscription(finalEnabledState);
+      console.log('NotificationSettingsForm: OneSignal subscription set to:', finalEnabledState);
+
+      if (finalEnabledState) {
+        playerIdToSave = await osSdk.User.PushSubscription.getId();
+      }
+
+      // Update settings in Supabase
+      const updatedSettings = await NotificationService.updateUserNotificationSettings(user.id, {
+        ...values,
+        enabled: finalEnabledState, // Use the potentially updated enabled state
+        onesignal_player_id: playerIdToSave, // Set player ID based on final enabled state
+      });
+
       if (updatedSettings) {
         toast.success('Settings saved successfully!', { id: 'save-settings' });
-        // Update OneSignal subscription status based on 'enabled'
-        if (values.enabled) {
-          await osSdk.Notifications.requestPermission(); // Ensure permission is granted
-          await osSdk.Notifications.setSubscription(true);
-        } else {
-          await osSdk.Notifications.setSubscription(false);
-        }
-        setNotificationPermission(Notification.permission); // Update permission status
+        fetchSettings(); // Re-fetch settings to ensure UI is fully consistent
       } else {
         throw new Error('Failed to update settings in database.');
       }
@@ -158,31 +198,6 @@ const NotificationSettingsForm: React.FC = () => {
       setValue('longitude', null);
     } finally {
       setIsLocating(false);
-    }
-  };
-
-  const requestNotificationPermission = async () => {
-    if (!isOneSignalReady(window.OneSignal)) {
-      handleError(null, 'OneSignal SDK not loaded or not ready. Cannot request permission.');
-      return;
-    }
-    // Capture the type-guarded OneSignal instance here
-    const osSdk: OneSignalSDK = window.OneSignal;
-
-    try {
-      await osSdk.Notifications.requestPermission();
-      setNotificationPermission(Notification.permission);
-      if (Notification.permission === 'granted') {
-        toast.success('Notification permission granted!');
-        setValue('enabled', true); // Automatically enable if permission granted
-        await osSdk.Notifications.setSubscription(true);
-      } else {
-        toast.info('Notification permission denied or dismissed.');
-        setValue('enabled', false);
-        await osSdk.Notifications.setSubscription(false);
-      }
-    } catch (err) {
-      handleError(err, 'Failed to request notification permission.');
     }
   };
 
@@ -226,14 +241,13 @@ const NotificationSettingsForm: React.FC = () => {
               checked={enabled}
               onCheckedChange={async (checked) => {
                 setValue('enabled', checked);
-                if (checked && notificationPermission !== 'granted') {
-                  await requestNotificationPermission();
-                } else if (!checked && notificationPermission === 'granted') {
-                  // Ensure window.OneSignal is ready before calling setSubscription
+                // If disabling and permission was granted, unsubscribe from OneSignal
+                if (!checked && notificationPermission === 'granted') {
                   if (isOneSignalReady(window.OneSignal)) {
                     await window.OneSignal.Notifications.setSubscription(false);
                   }
                 }
+                // Permission request now happens on Save Settings if needed
               }}
               disabled={isSaving || notificationPermission === 'denied'}
             />
