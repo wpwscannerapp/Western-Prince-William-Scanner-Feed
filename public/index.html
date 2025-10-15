@@ -9,22 +9,11 @@
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black" />
         <meta name="theme-color" content="#000000" />
-        <!-- OneSignal SDK -->
-        <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+        <!-- OneSignal SDK: Ensure window.OneSignal is an array before the SDK loads -->
         <script>
           window.OneSignal = window.OneSignal || [];
-          OneSignal.push(function() {
-            OneSignal.init({
-              appId: import.meta.env.VITE_ONESIGNAL_APP_ID,
-              safari_web_id: import.meta.env.VITE_ONESIGNAL_SAFARI_WEB_ID, // Optional for Safari
-              allowLocalhostAsSecureOrigin: import.meta.env.DEV,
-              notifyButton: {
-                enable: false, // We'll manage our own UI
-              },
-            });
-            console.log('OneSignal initialized from index.html.');
-          });
         </script>
+        <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
       </head>
 
       <body>

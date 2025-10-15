@@ -34,17 +34,18 @@ const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
 };
 
 export const NotificationService = {
-  async initOneSignal(userId: string): Promise<boolean> { // Changed return type
-    if (!import.meta.env.VITE_ONESIGNAL_APP_ID) {
+  async initOneSignal(userId: string): Promise<boolean> {
+    const oneSignalAppId = import.meta.env.VITE_ONESIGNAL_APP_ID;
+    const oneSignalSafariWebId = import.meta.env.VITE_ONESIGNAL_SAFARI_WEB_ID; // Get Safari Web ID
+
+    if (!oneSignalAppId) {
       console.error('OneSignal App ID is not defined in environment variables.');
       handleError(null, 'OneSignal App ID is missing. Notifications will not work.');
       return false;
     }
 
     return new Promise<boolean>(resolve => {
-      // OneSignal.push ensures the SDK is ready before executing the callback
-      // Explicitly cast window.OneSignal to OneSignalSDK to resolve TypeScript error
-      (window.OneSignal as OneSignalSDK).push(async () => { 
+      (window.OneSignal as OneSignalSDK).push(async () => {
         if (!isOneSignalReady(window.OneSignal)) {
           console.error('OneSignal SDK not loaded or not ready after push callback.');
           handleError(null, 'Push notifications SDK not loaded or not ready.');
@@ -52,6 +53,18 @@ export const NotificationService = {
         }
 
         const osSdk: OneSignalSDK = window.OneSignal;
+
+        // Initialize OneSignal SDK here
+        await osSdk.init({
+          appId: oneSignalAppId,
+          safari_web_id: oneSignalSafariWebId, // Pass Safari Web ID
+          allowLocalhostAsSecureOrigin: import.meta.env.DEV,
+          notifyButton: {
+            enable: false, // We'll manage our own UI
+          },
+        });
+        console.log('OneSignal SDK initialized via NotificationService.');
+
 
         if (!osSdk.Notifications.isPushNotificationsSupported()) {
           console.warn('Push notifications are not supported by this browser.');
