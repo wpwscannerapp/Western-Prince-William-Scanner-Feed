@@ -207,7 +207,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
 
   const isFormDisabled = isSaving || isLocating || !isOneSignalInitialized;
 
-  if (authLoading || isLoading || !isOneSignalInitialized) { // Added !isOneSignalInitialized to loading condition
+  if (authLoading || isLoading || !isOneSignalInitialized) { // Adjusted loading condition
     return (
       <Card className="tw-bg-card tw-border-border tw-shadow-lg">
         <CardContent className="tw-py-8 tw-text-center">

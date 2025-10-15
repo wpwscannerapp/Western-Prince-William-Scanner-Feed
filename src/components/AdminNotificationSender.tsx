@@ -9,8 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { NotificationService } from '@/services/NotificationService'; // Import NotificationService
 import { handleError } from '@/utils/errorHandler';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth to get user ID
 
 const notificationSchema = z.object({
   title: z.string().min(1, { message: 'Notification title is required.' }).max(100, { message: 'Title too long.' }),
@@ -21,6 +22,7 @@ const notificationSchema = z.object({
 type NotificationFormValues = z.infer<typeof notificationSchema>;
 
 const AdminNotificationSender: React.FC = () => {
+  const { user } = useAuth(); // Get the current user
   const form = useForm<NotificationFormValues>({
     resolver: zodResolver(notificationSchema),
     defaultValues: {
@@ -30,60 +32,33 @@ const AdminNotificationSender: React.FC = () => {
     },
   });
 
-  const [isLoading, setIsLoading] = useState(false); // Changed from React.useState
+  const [isLoading, setIsLoading] = useState(false);
 
   const onSubmit = async (values: NotificationFormValues) => {
+    if (!user) {
+      handleError(null, 'You must be logged in to send notifications.');
+      return;
+    }
+
     setIsLoading(true);
-    toast.loading('Queuing notifications...', { id: 'send-notification' });
+    toast.loading('Creating alert...', { id: 'send-notification' });
 
     try {
-      // Fetch all active push subscriptions
-      const { data: subscriptions, error: subError } = await supabase
-        .from('push_subscriptions') // Use the new table
-        .select('subscription');
-
-      if (subError) {
-        console.error('Error fetching subscriptions:', subError);
-        handleError(subError, 'Failed to fetch subscriptions.', { id: 'send-notification' });
-        return;
-      }
-
-      if (!subscriptions || subscriptions.length === 0) {
-        toast.info('No active subscriptions found to send notifications to.', { id: 'send-notification' });
-        return;
-      }
-
-      // Send a separate request to the Edge Function for each subscription
-      // The Edge Function will store these in the push_notifications table
-      const sendPromises = subscriptions.map(async (subRecord) => {
-        const { error } = await supabase.functions.invoke('send-push-notification', {
-          body: {
-            subscription: subRecord.subscription, // subscription is already a JSON object
-            title: values.title,
-            body: values.body,
-            url: values.url,
-          },
-        });
-
-        if (error) {
-          console.error('Error invoking send-push-notification for a subscription:', error);
-          // Don't throw here, allow other notifications to be queued
-          return { success: false, error: error.message };
-        }
-        return { success: true };
+      // Create an alert in the 'alerts' table.
+      // This will trigger the Supabase function which calls the Netlify function.
+      const newAlert = await NotificationService.createAlert({
+        title: values.title,
+        description: values.body,
+        type: 'Admin Broadcast', // Default type for admin-sent notifications
+        latitude: 0, // Default latitude, consider making this configurable or optional
+        longitude: 0, // Default longitude, consider making this configurable or optional
       });
 
-      const results = await Promise.all(sendPromises);
-      const failedCount = results.filter(r => !r.success).length;
-
-      if (failedCount === 0) {
-        toast.success('All notifications queued successfully!', { id: 'send-notification' });
+      if (newAlert) {
+        toast.success('Alert created and notifications queued!', { id: 'send-notification' });
         form.reset();
-      } else if (failedCount === subscriptions.length) {
-        toast.error('Failed to queue any notifications. Please check logs.', { id: 'send-notification' });
       } else {
-        toast.warning(`${subscriptions.length - failedCount} notifications queued, ${failedCount} failed.`, { id: 'send-notification' });
-        form.reset();
+        throw new Error('Failed to create alert in database.');
       }
 
     } catch (err: any) {
@@ -97,9 +72,9 @@ const AdminNotificationSender: React.FC = () => {
   return (
     <Card className="tw-bg-card tw-border-border tw-shadow-lg">
       <CardHeader>
-        <CardTitle className="tw-text-xl tw-font-bold tw-text-foreground">Send Push Notification</CardTitle>
+        <CardTitle className="tw-xl tw-font-bold tw-text-foreground">Send Push Notification</CardTitle>
         <CardDescription className="tw-text-muted-foreground">
-          Queue real-time updates to all subscribed users. A separate worker will process and send them.
+          Create an alert that will trigger real-time push notifications to all subscribed users.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -149,7 +124,7 @@ const AdminNotificationSender: React.FC = () => {
 
           <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isLoading}>
             {isLoading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
-            <Send className="tw-mr-2 tw-h-4 tw-w-4" /> Queue Notifications
+            <Send className="tw-mr-2 tw-h-4 tw-w-4" /> Create Alert & Queue Notifications
           </Button>
         </form>
       </CardContent>

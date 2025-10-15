@@ -46,8 +46,15 @@ export const NotificationService = {
 
     // The window.OneSignal = window.OneSignal || []; is handled in public/index.html
     // This ensures it's an array before the SDK script loads.
+    // All interactions with OneSignal SDK should be wrapped in OneSignal.push()
+    // to ensure the SDK is fully loaded and ready.
 
     return new Promise<boolean>(resolve => {
+      // Ensure window.OneSignal is an array before pushing, as per OneSignal best practices
+      if (typeof window.OneSignal === 'undefined') {
+        window.OneSignal = [];
+      }
+
       (window.OneSignal as OneSignalSDK).push(async () => {
         if (!isOneSignalReady(window.OneSignal)) {
           console.error('OneSignal SDK not loaded or not ready after push callback.');
