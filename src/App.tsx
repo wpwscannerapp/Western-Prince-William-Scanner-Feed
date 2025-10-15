@@ -63,8 +63,8 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
     } else if (!authLoading && !user) {
       console.log('App.tsx: User logged out, ensuring Web Push is unsubscribed if active.');
       // On logout, attempt to unsubscribe from push notifications
-      // Ensure userId is always a string, even if user is null/undefined
-      const userIdToUnsubscribe = user ? user.id : 'anonymous'; // Fixed TypeScript error here
+      // Use optional chaining to safely access user.id, providing 'anonymous' fallback
+      const userIdToUnsubscribe = user?.id || 'anonymous'; 
       NotificationService.unsubscribeWebPush(userIdToUnsubscribe).then(() => {
         console.log('App.tsx: Web Push subscription unsubscribed on logout.');
       }).catch((err: any) => { // Explicitly type err as any
