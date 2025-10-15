@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Lock, Loader2 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // Import Link
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { StripeClient } from '@/integrations/stripe/client';
@@ -77,21 +77,8 @@ const SubscriptionPage = () => {
         </CardHeader>
         <CardContent className="tw-space-y-6">
           {/* Plan Comparison */}
-          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4 tw-mb-6 tw-justify-center" role="grid" aria-label="Subscription Plan Comparison">
-            <Card className="tw-bg-muted/30 tw-border-border tw-shadow-sm" role="rowheader">
-              <CardHeader>
-                <CardTitle className="tw-text-xl">Free Plan</CardTitle>
-              </CardHeader>
-              <CardContent className="tw-text-left">
-                <ul className="tw-space-y-2 tw-text-foreground">
-                  <li className="tw-flex tw-items-center"><CheckCircle className="tw-h-4 tw-w-4 tw-text-muted-foreground tw-mr-2" /> Limited post access</li>
-                  <li className="tw-flex tw-items-center"><CheckCircle className="tw-h-4 tw-w-4 tw-text-muted-foreground tw-mr-2" /> Ads included</li>
-                  <li className="tw-flex tw-items-center tw-text-muted-foreground"><Lock className="tw-h-4 tw-w-4 tw-mr-2" /> No real-time notifications</li>
-                  <li className="tw-flex tw-items-center tw-text-muted-foreground"><Lock className="tw-h-4 tw-w-4 tw-mr-2" /> No exclusive posts</li>
-                </ul>
-              </CardContent>
-            </Card>
-            <Card className="tw-border-primary tw-border-2 tw-shadow-md" role="rowheader">
+          <div className="tw-grid tw-grid-cols-1 tw-gap-4 tw-mb-6 tw-justify-center" role="grid" aria-label="Subscription Plan Comparison">
+            <Card className="tw-border-primary tw-border-2 tw-shadow-md tw-max-w-md tw-mx-auto" role="rowheader">
               <CardHeader>
                 <CardTitle className="tw-text-xl tw-text-primary">Premium Plan</CardTitle>
               </CardHeader>
@@ -109,7 +96,7 @@ const SubscriptionPage = () => {
           <div className="tw-text-4xl tw-font-extrabold tw-text-foreground">
             ${import.meta.env.VITE_STRIPE_PRICE || '5.99'}<span className="tw-text-xl tw-font-medium tw-text-muted-foreground">/month</span>
           </div>
-          <p className="tw-text-lg tw-text-muted-foreground">
+          <p className="tw-lg tw-text-muted-foreground">
             Start your 7-day free trial today!
           </p>
 
