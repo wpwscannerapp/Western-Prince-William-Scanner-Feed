@@ -16,7 +16,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from '@/components/Layout';
 import HomePage from '@/pages/HomePage';
 import IncidentsPage from '@/pages/IncidentsPage';
-import TrafficPage from '@/pages/TrafficPage';
+// import TrafficPage from '@/pages/TrafficPage'; // Removed TrafficPage import
 import ProfilePage from '@/pages/ProfilePage';
 import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
@@ -64,7 +64,7 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('App.tsx: User logged out, ensuring Web Push is unsubscribed if active.');
       // On logout, attempt to unsubscribe from push notifications
       // Ensure userId is always a string, even if user is null/undefined
-      const userIdToUnsubscribe = user?.id || 'anonymous'; 
+      const userIdToUnsubscribe = user ? user.id : 'anonymous'; // Fixed TypeScript error here
       NotificationService.unsubscribeWebPush(userIdToUnsubscribe).then(() => {
         console.log('App.tsx: Web Push subscription unsubscribed on logout.');
       }).catch((err: any) => { // Explicitly type err as any
@@ -114,11 +114,11 @@ const App = () => {
                     {/* No index route here, as / is handled by Index.tsx */}
                     <Route path="home" element={<HomePage />} />
                     <Route path="home/incidents" element={<IncidentsPage />} />
-                    <Route path="home/traffic" element={<TrafficPage />} />
+                    {/* <Route path="home/traffic" element={<TrafficPage />} /> */} {/* Removed TrafficPage route */}
                     <Route path="home/contact-us" element={<ContactUsPage />} />
                     <Route path="home/archive" element={<IncidentArchivePage />} />
                     {/* Removed the standalone notifications route as it's part of ProfilePage */}
-                    {/* <Route path="notifications" element={<NotificationSettingsPage />} /> */}
+                    {/* <Route path="notifications" element={<NotificationSettingsPage />} */}
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="admin" element={<AdminPage />} />
                     <Route path="posts/:postId" element={<PostDetailPage />} />

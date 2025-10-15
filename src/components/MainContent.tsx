@@ -7,7 +7,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import HomePage from '@/pages/HomePage';
 import IncidentsPage from '@/pages/IncidentsPage';
-import TrafficPage from '@/pages/TrafficPage';
+// import TrafficPage from '@/pages/TrafficPage'; // Removed TrafficPage import
 import ProfilePage from '@/pages/ProfilePage';
 import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
@@ -46,7 +46,7 @@ const MainContent: React.FC = () => {
             {/* No index route here, as / is handled by Index.tsx */}
             <Route path="home" element={<HomePage />} />
             <Route path="home/incidents" element={<IncidentsPage />} />
-            <Route path="home/traffic" element={<TrafficPage />} />
+            {/* <Route path="home/traffic" element={<TrafficPage />} /> */} {/* Removed TrafficPage route */}
             <Route path="home/contact-us" element={<ContactUsPage />} />
             <Route path="home/archive" element={<IncidentArchivePage />} />
             <Route path="profile" element={<ProfilePage />} />

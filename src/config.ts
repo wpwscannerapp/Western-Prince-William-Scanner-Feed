@@ -14,8 +14,8 @@ export const validateEnv = () => {
     'VITE_STRIPE_MONTHLY_PRICE_ID',
     'VITE_APP_URL',
     'VITE_MAX_CONCURRENT_SESSIONS',
-    'VITE_TOMTOM_API_KEY',
-    'VITE_WEB_PUSH_PUBLIC_KEY', // New: VAPID Public Key
+    // 'VITE_TOMTOM_API_KEY', // Removed TomTom API key
+    'VITE_WEB_PUSH_PUBLIC_KEY', // VAPID Public Key
   ];
 
   requiredEnvVars.forEach(varName => {
