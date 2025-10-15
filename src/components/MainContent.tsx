@@ -72,8 +72,8 @@ const MainContent: React.FC = () => {
             <Route path="home/traffic" element={<TrafficPage />} />
             <Route path="home/contact-us" element={<ContactUsPage />} />
             <Route path="home/archive" element={<IncidentArchivePage />} />
-            {/* Pass isOneSignalInitialized directly to ProfilePage */}
-            <Route path="profile" element={<ProfilePage isOneSignalInitialized={isOneSignalInitialized} />} />
+            {/* Removed isOneSignalInitialized prop as ProfilePage consumes it from context */}
+            <Route path="profile" element={<ProfilePage />} />
             <Route path="admin" element={<AdminPage />} />
             <Route path="posts/:postId" element={<PostDetailPage />} />
           </Route>

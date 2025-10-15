@@ -1,11 +1,83 @@
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter } from "react-router-dom";
-import { AuthProvider } from "@/context/AuthContext.tsx";
-import MainContent from "./components/MainContent"; // Import the new MainContent component
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import AuthPage from "./pages/AuthPage";
+import SubscriptionPage from "./pages/SubscriptionPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import TermsOfServicePage from "./pages/TermsOfServicePage";
+import { useAppSettings } from "./hooks/useAppSettings";
+import TopNavBar from "./components/TopNavBar";
+import { Button } from "./components/ui/button";
+import { AuthProvider, useAuth } from "@/context/AuthContext.tsx"; // Import useAuth
+import ProtectedRoute from "./components/ProtectedRoute";
+import Layout from '@/components/Layout';
+import HomePage from '@/pages/HomePage';
+import IncidentsPage from '@/pages/IncidentsPage';
+import TrafficPage from '@/pages/TrafficPage';
+import ProfilePage from '@/pages/ProfilePage';
+import AdminPage from '@/pages/AdminPage';
+import PostDetailPage from '@/pages/PostDetailPage';
+import ContactUsPage from '@/pages/ContactUsPage';
+import IncidentArchivePage from '@/pages/IncidentArchivePage';
+// Removed: import NotificationSettingsPage from '@/pages/NotificationSettingsPage';
+import React, { useEffect, useState } from 'react'; // Import useEffect and useState
+import { NotificationService } from './services/NotificationService'; // Import NotificationService
 
 const queryClient = new QueryClient();
+
+// Type guard to ensure OneSignal is the SDK object, not the initial array
+const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
+  return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
+};
+
+// Component to apply app settings and render children
+const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
+  useAppSettings(); // This hook handles setting CSS variables
+  const { user, loading: authLoading } = useAuth(); // Get user and auth loading state
+  const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false); // Re-introduced state
+
+  useEffect(() => {
+    const setupOneSignal = async () => {
+      if (!authLoading && user) {
+        console.log('App.tsx: Attempting to initialize OneSignal for user:', user.id);
+        // Add a timeout to the OneSignal initialization
+        const timeoutPromise = new Promise<boolean>(resolve => setTimeout(() => {
+          console.warn('App.tsx: OneSignal initialization timed out.');
+          resolve(false);
+        }, 10000)); // 10 seconds timeout
+
+        const success = await Promise.race([
+          NotificationService.initOneSignal(user.id),
+          timeoutPromise
+        ]);
+        setIsOneSignalInitialized(success);
+      } else if (!authLoading && !user) {
+        console.log('App.tsx: User logged out, ensuring OneSignal is unsubscribed if active.');
+        if (isOneSignalReady(window.OneSignal)) {
+          await window.OneSignal.Notifications.setSubscription(false);
+        }
+        setIsOneSignalInitialized(false); // Reset state on logout
+      }
+    };
+    setupOneSignal();
+  }, [user, authLoading]); // Re-run when user or authLoading changes
+
+  // Pass isOneSignalInitialized down through context or props if needed by children
+  // For now, we'll pass it directly to ProfilePage
+  return (
+    <ProfilePageContext.Provider value={isOneSignalInitialized}>
+      {children}
+    </ProfilePageContext.Provider>
+  );
+};
+
+// Create a context for isOneSignalInitialized
+const ProfilePageContext = React.createContext<boolean>(false);
+export const useProfilePageContext = () => React.useContext(ProfilePageContext);
+
 
 const App = () => {
   return (
@@ -14,7 +86,49 @@ const App = () => {
         <Sonner />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
-            <MainContent /> {/* Render MainContent here */}
+            <AppSettingsProvider>
+              <TopNavBar />
+              <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
+                <Routes>
+                  {/* The root path will now be the splash screen */}
+                  <Route path="/" element={<Index />} /> 
+
+                  {/* Public routes that don't require authentication */}
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/subscribe" element={<SubscriptionPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+
+                  {/* Protected routes wrapped by ProtectedRoute */}
+                  <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                    {/* No index route here, as / is handled by Index.tsx */}
+                    <Route path="home" element={<HomePage />} />
+                    <Route path="home/incidents" element={<IncidentsPage />} />
+                    <Route path="home/traffic" element={<TrafficPage />} />
+                    <Route path="home/contact-us" element={<ContactUsPage />} />
+                    <Route path="home/archive" element={<IncidentArchivePage />} />
+                    {/* Removed the standalone notifications route as it's part of ProfilePage */}
+                    {/* <Route path="notifications" element={<NotificationSettingsPage />} /> */}
+                    <Route path="profile" element={<ProfilePage />} />
+                    <Route path="admin" element={<AdminPage />} />
+                    <Route path="posts/:postId" element={<PostDetailPage />} />
+                  </Route>
+
+                  {/* Catch-all for 404 - ensure it's after all other specific routes */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </div>
+
+              {/* Floating Feedback Button */}
+              <Button
+                variant="outline"
+                className="tw-fixed tw-bottom-4 tw-right-4 tw-rounded-full tw-shadow-lg tw-button tw-z-50"
+                onClick={() => window.open('mailto:support@example.com')}
+                aria-label="Send feedback"
+              >
+                Feedback
+              </Button>
+            </AppSettingsProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

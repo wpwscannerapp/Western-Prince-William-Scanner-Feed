@@ -29,13 +29,8 @@ const notificationSettingsSchema = z.object({
 type NotificationSettingsFormValues = z.infer<typeof notificationSettingsSchema>;
 
 interface NotificationSettingsFormProps {
-  isOneSignalInitialized: boolean; // New prop
+  isOneSignalInitialized: boolean; // Re-added prop
 }
-
-// Type guard to ensure OneSignal is the SDK object, not the initial array
-const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
-  return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
-};
 
 const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isOneSignalInitialized }) => {
   const { user, loading: authLoading } = useAuth();
@@ -88,81 +83,44 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
     }
   }, [user, reset]);
 
+  // Type guard to ensure OneSignal is the SDK object, not the initial array
+  const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
+    return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
+  };
+
   useEffect(() => {
     if (!authLoading && user) {
       fetchSettings();
     }
   }, [user, authLoading, fetchSettings]);
 
-  const requestNotificationPermission = async () => {
-    if (!isOneSignalReady(window.OneSignal)) {
-      handleError(null, 'OneSignal SDK not loaded or not ready. Cannot request permission.');
-      return;
-    }
-    const osSdk: OneSignalSDK = window.OneSignal;
-
-    try {
-      await osSdk.Notifications.requestPermission();
-      setNotificationPermission(Notification.permission);
-      if (Notification.permission === 'granted') {
-        toast.success('Notification permission granted!');
-        setValue('enabled', true); // Automatically enable if permission granted
-        // OneSignal subscription will be set in onSubmit
-      } else {
-        toast.info('Notification permission denied or dismissed.');
-        setValue('enabled', false);
-        // OneSignal subscription will be set in onSubmit
-      }
-    } catch (err) {
-      handleError(err, 'Failed to request notification permission.');
-    }
-  };
-
   const onSubmit = async (values: NotificationSettingsFormValues) => {
     if (!user) {
       handleError(null, 'You must be logged in to save settings.');
       return;
     }
-    if (!isOneSignalInitialized || !isOneSignalReady(window.OneSignal)) { // Explicitly check if OneSignal is ready
+    if (!isOneSignalInitialized || !isOneSignalReady(window.OneSignal)) {
       handleError(null, 'OneSignal SDK not loaded or not ready. Cannot save notification settings.');
       return;
     }
 
-    const osSdk: OneSignalSDK = window.OneSignal; // Now safe to assign after the type guard
+    // Capture the type-guarded OneSignal instance here
+    const osSdk: OneSignalSDK = window.OneSignal;
 
     setIsSaving(true);
     toast.loading('Saving notification settings...', { id: 'save-settings' });
-
     try {
-      let finalEnabledState = values.enabled;
-      let playerIdToSave: string | null = null;
-
-      // If notifications are enabled in the form AND browser permission is still 'default',
-      // we need to request permission first.
-      if (values.enabled && notificationPermission === 'default') {
-        console.log('NotificationSettingsForm: Requesting permission on Save Settings.');
-        await requestNotificationPermission(); // This will update notificationPermission and form.enabled
-        finalEnabledState = getValues('enabled'); // Get the updated value from the form
-      }
-
-      // Now, update OneSignal subscription based on the final enabled state
-      await osSdk.Notifications.setSubscription(finalEnabledState);
-      console.log('NotificationSettingsForm: OneSignal subscription set to:', finalEnabledState);
-
-      if (finalEnabledState) {
-        playerIdToSave = await osSdk.User.PushSubscription.getId();
-      }
-
-      // Update settings in Supabase
-      const updatedSettings = await NotificationService.updateUserNotificationSettings(user.id, {
-        ...values,
-        enabled: finalEnabledState, // Use the potentially updated enabled state
-        onesignal_player_id: playerIdToSave, // Set player ID based on final enabled state
-      });
-
+      const updatedSettings = await NotificationService.updateUserNotificationSettings(user.id, values);
       if (updatedSettings) {
         toast.success('Settings saved successfully!', { id: 'save-settings' });
-        fetchSettings(); // Re-fetch settings to ensure UI is fully consistent
+        // Update OneSignal subscription status based on 'enabled'
+        if (values.enabled) {
+          await osSdk.Notifications.requestPermission(); // Ensure permission is granted
+          await osSdk.Notifications.setSubscription(true);
+        } else {
+          await osSdk.Notifications.setSubscription(false);
+        }
+        setNotificationPermission(Notification.permission); // Update permission status
       } else {
         throw new Error('Failed to update settings in database.');
       }
@@ -202,6 +160,31 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
       setValue('longitude', null);
     } finally {
       setIsLocating(false);
+    }
+  };
+
+  const requestNotificationPermission = async () => {
+    if (!isOneSignalReady(window.OneSignal)) {
+      handleError(null, 'OneSignal SDK not loaded or not ready. Cannot request permission.');
+      return;
+    }
+    // Capture the type-guarded OneSignal instance here
+    const osSdk: OneSignalSDK = window.OneSignal;
+
+    try {
+      await osSdk.Notifications.requestPermission();
+      setNotificationPermission(Notification.permission);
+      if (Notification.permission === 'granted') {
+        toast.success('Notification permission granted!');
+        setValue('enabled', true); // Automatically enable if permission granted
+        await osSdk.Notifications.setSubscription(true);
+      } else {
+        toast.info('Notification permission denied or dismissed.');
+        setValue('enabled', false);
+        await osSdk.Notifications.setSubscription(false);
+      }
+    } catch (err) {
+      handleError(err, 'Failed to request notification permission.');
     }
   };
 
@@ -253,9 +236,13 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
               checked={enabled}
               onCheckedChange={async (checked) => {
                 setValue('enabled', checked);
-                // If disabling and permission was granted, unsubscribe from OneSignal
-                if (!checked && notificationPermission === 'granted' && isOneSignalReady(window.OneSignal)) {
-                  await window.OneSignal.Notifications.setSubscription(false);
+                if (checked && notificationPermission !== 'granted') {
+                  await requestNotificationPermission();
+                } else if (!checked && notificationPermission === 'granted') {
+                  // Ensure window.OneSignal is ready before calling setSubscription
+                  if (isOneSignalReady(window.OneSignal)) {
+                    await window.OneSignal.Notifications.setSubscription(false);
+                  }
                 }
               }}
               disabled={isFormDisabled || notificationPermission === 'denied'}
@@ -326,10 +313,10 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
                 id="manual_location_address"
                 placeholder="Enter address or zip code (e.g., 20155)"
                 {...form.register('manual_location_address')}
-                disabled={isFormDisabled || !enabled}
+                disabled={isFormDisabled || isLocating || !enabled}
                 className="tw-flex-1"
               />
-              <Button type="button" onClick={getCurrentLocation} disabled={isFormDisabled || !enabled}>
+              <Button type="button" onClick={getCurrentLocation} disabled={isFormDisabled || isLocating || !enabled}>
                 {isLocating ? <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" /> : <LocateFixed className="tw-mr-2 tw-h-4 tw-w-4" />}
                 Use Current Location
               </Button>

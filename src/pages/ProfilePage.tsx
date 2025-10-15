@@ -8,13 +8,11 @@ import { ProfileService, Profile } from '@/services/ProfileService';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'; // Import CardContent
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'; // Import Tabs components
+import { useProfilePageContext } from '@/App'; // Import the context hook
 
-interface ProfilePageProps {
-  isOneSignalInitialized?: boolean; // New prop
-}
-
-const ProfilePage: React.FC<ProfilePageProps> = ({ isOneSignalInitialized = false }) => {
+const ProfilePage: React.FC = () => {
   const { user } = useAuth();
+  const isOneSignalInitialized = useProfilePageContext(); // Consume from context
 
   const { isLoading: isProfileLoading, isError: isProfileError, error: profileError } = useQuery<Profile | null, Error>({
     queryKey: ['profile', user?.id],
@@ -59,7 +57,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isOneSignalInitialized = fals
               <ProfileForm />
             </TabsContent>
             <TabsContent value="notification-settings" className="tw-mt-6">
-              <NotificationSettingsForm isOneSignalInitialized={isOneSignalInitialized} />
+              <NotificationSettingsForm isOneSignalInitialized={isOneSignalInitialized} /> {/* Pass prop */}
             </TabsContent>
           </Tabs>
         </CardContent>
