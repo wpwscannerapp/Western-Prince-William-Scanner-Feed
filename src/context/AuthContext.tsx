@@ -3,7 +3,7 @@ import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SessionService } from '@/services/SessionService';
-import { MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT } from '@/config'; // Import AUTH_INITIALIZATION_TIMEOUT
+import { MAX_CONCURRENT_SESSIONS } from '@/config'; // Removed AUTH_INITIALIZATION_TIMEOUT as it's no longer needed for this logic
 import { ProfileService } from '@/services/ProfileService';
 import { handleError as globalHandleError } from '@/utils/errorHandler';
 
@@ -27,9 +27,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<AuthError | null>(null);
   const isMountedRef = useRef(true);
   const mountCountRef = useRef(0);
-
-  // Ref to ensure initial session check runs only once per component instance
-  const initialSessionCheckCompleted = useRef(false); // Renamed for clarity
 
   useEffect(() => {
     mountCountRef.current += 1;
@@ -108,88 +105,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AuthContext: Session(s) deleted and removed from localStorage.');
   }, [handleError]);
 
-  // Effect for initial session check and setting up auth state listener
+  // Effect for setting up auth state listener
   useEffect(() => {
-    if (initialSessionCheckCompleted.current) {
-      console.log('AuthContext: Skipping initial session check on Strict Mode remount.');
-      return;
-    }
-    initialSessionCheckCompleted.current = true;
+    console.log('AuthContext: Setting up onAuthStateChange listener.');
 
-    console.log('AuthContext: Performing initial session check and setting up listener.');
-
-    let authSubscription: { unsubscribe: () => void } | null = null;
-
-    const setupAuth = async () => {
-      const timeoutPromise = new Promise<null>((resolve) =>
-        setTimeout(() => {
-          console.warn(`AuthContext: Initial authentication check timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms.`);
-          resolve(null); // Resolve with null to indicate timeout
-        }, AUTH_INITIALIZATION_TIMEOUT)
-      );
-
-      try {
-        // Use Promise.race to handle timeout for initial session retrieval
-        const initialAuthResult = await Promise.race([
-          supabase.auth.getSession(),
-          timeoutPromise.then(() => ({ data: { session: null }, error: null })) // Return a structure matching getSession
-        ]);
-
-        const initialSession = initialAuthResult.data?.session || null;
-        const initialError = initialAuthResult.error;
-
-        console.log('AuthContext: supabase.auth.getSession() (or timeout) returned:', { initialSession: initialSession ? 'present' : 'null', initialError });
-        
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event: AuthChangeEvent, currentSession: Session | null) => {
+        console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
         if (isMountedRef.current) {
-          setSession(initialSession);
-          setUser(initialSession?.user || null);
-          setError(initialError);
-          setLoading(false);
-          console.log(`AuthContext: Initial getSession finished. Loading set to false. User: ${initialSession?.user ? 'present' : 'null'}`);
+          setSession(currentSession);
+          setUser(currentSession?.user || null);
+          setError(null); // Clear any previous errors on auth state change
+          setLoading(false); // Set loading to false once the initial session is processed
+          console.log(`AuthContext: Auth state changed. Loading set to false. User: ${currentSession?.user ? 'present' : 'null'}`);
 
-          if (initialSession) {
-            await handleSessionCreation(initialSession);
+          if (currentSession) {
+            await handleSessionCreation(currentSession);
           } else {
             await handleSessionDeletion(undefined);
           }
         }
-      } catch (err: any) {
-        if (isMountedRef.current) {
-          handleError(err, 'Failed to retrieve initial session.');
-          setLoading(false);
-        }
-      } finally {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (_event: AuthChangeEvent, currentSession: Session | null) => {
-            console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
-            if (isMountedRef.current) {
-              setSession(currentSession);
-              setUser(currentSession?.user || null);
-              setError(null);
-              console.log(`AuthContext: Auth state changed. User: ${currentSession?.user ? 'present' : 'null'}`);
-
-              if (currentSession) {
-                await handleSessionCreation(currentSession);
-              } else {
-                await handleSessionDeletion(undefined);
-              }
-            }
-          }
-        );
-        authSubscription = subscription;
       }
-    };
-
-    setupAuth();
+    );
 
     return () => {
-      console.log('AuthContext: Cleanup function for auth state listener.');
-      if (authSubscription) {
-        console.log('AuthContext: Unsubscribing from auth state changes');
-        authSubscription.unsubscribe();
-      }
+      console.log('AuthContext: Cleanup function for auth state listener. Unsubscribing.');
+      subscription.unsubscribe();
     };
-  }, [handleSessionCreation, handleSessionDeletion, handleError]);
+  }, [handleSessionCreation, handleSessionDeletion]); // Removed handleError from dependencies as it's stable
 
   const signUp = async (email: string, password: string) => {
     setError(null);
