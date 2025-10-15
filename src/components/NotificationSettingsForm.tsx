@@ -80,14 +80,15 @@ const NotificationSettingsForm: React.FC = () => {
   }, [user, reset]);
 
   // Type guard to ensure OneSignal is the SDK object, not the initial array
-  const isOneSignalReady = (os: typeof window.OneSignal): os is OneSignalSDK => {
-    return !Array.isArray(os) && 'Notifications' in os;
+  const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
+    return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
   };
 
   useEffect(() => {
     if (!authLoading && user) {
       fetchSettings();
       // Initialize OneSignal when user is logged in
+      // Ensure OneSignal is loaded before calling initOneSignal
       if (isOneSignalReady(window.OneSignal)) {
         NotificationService.initOneSignal(user.id);
       } else {
@@ -106,6 +107,9 @@ const NotificationSettingsForm: React.FC = () => {
       return;
     }
 
+    // Capture the type-guarded OneSignal instance here
+    const osSdk: OneSignalSDK = window.OneSignal;
+
     setIsSaving(true);
     toast.loading('Saving notification settings...', { id: 'save-settings' });
     try {
@@ -114,10 +118,10 @@ const NotificationSettingsForm: React.FC = () => {
         toast.success('Settings saved successfully!', { id: 'save-settings' });
         // Update OneSignal subscription status based on 'enabled'
         if (values.enabled) {
-          await window.OneSignal.Notifications.requestPermission(); // Ensure permission is granted
-          await window.OneSignal.Notifications.setSubscription(true);
+          await osSdk.Notifications.requestPermission(); // Ensure permission is granted
+          await osSdk.Notifications.setSubscription(true);
         } else {
-          await window.OneSignal.Notifications.setSubscription(false);
+          await osSdk.Notifications.setSubscription(false);
         }
         setNotificationPermission(Notification.permission); // Update permission status
       } else {
@@ -167,17 +171,20 @@ const NotificationSettingsForm: React.FC = () => {
       handleError(null, 'OneSignal SDK not loaded or not ready. Cannot request permission.');
       return;
     }
+    // Capture the type-guarded OneSignal instance here
+    const osSdk: OneSignalSDK = window.OneSignal;
+
     try {
-      await window.OneSignal.Notifications.requestPermission();
+      await osSdk.Notifications.requestPermission();
       setNotificationPermission(Notification.permission);
       if (Notification.permission === 'granted') {
         toast.success('Notification permission granted!');
         setValue('enabled', true); // Automatically enable if permission granted
-        await window.OneSignal.Notifications.setSubscription(true);
+        await osSdk.Notifications.setSubscription(true);
       } else {
         toast.info('Notification permission denied or dismissed.');
         setValue('enabled', false);
-        await window.OneSignal.Notifications.setSubscription(false);
+        await osSdk.Notifications.setSubscription(false);
       }
     } catch (err) {
       handleError(err, 'Failed to request notification permission.');
@@ -222,12 +229,15 @@ const NotificationSettingsForm: React.FC = () => {
             <Switch
               id="enabled"
               checked={enabled}
-              onCheckedChange={(checked) => {
+              onCheckedChange={async (checked) => {
                 setValue('enabled', checked);
                 if (checked && notificationPermission !== 'granted') {
-                  requestNotificationPermission();
+                  await requestNotificationPermission();
                 } else if (!checked && notificationPermission === 'granted') {
-                  window.OneSignal.Notifications.setSubscription(false);
+                  // Ensure window.OneSignal is ready before calling setSubscription
+                  if (isOneSignalReady(window.OneSignal)) {
+                    await window.OneSignal.Notifications.setSubscription(false);
+                  }
                 }
               }}
               disabled={isSaving || notificationPermission === 'denied'}

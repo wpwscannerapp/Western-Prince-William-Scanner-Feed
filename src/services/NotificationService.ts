@@ -29,8 +29,8 @@ const logSupabaseError = (functionName: string, error: any) => {
 };
 
 // Type guard to ensure OneSignal is the SDK object, not the initial array
-const isOneSignalReady = (os: typeof window.OneSignal): os is OneSignalSDK => {
-  return !Array.isArray(os) && 'Notifications' in os;
+const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
+  return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
 };
 
 export const NotificationService = {
@@ -41,27 +41,30 @@ export const NotificationService = {
       return;
     }
 
+    // Check if window.OneSignal exists and is ready using the type guard
     if (!isOneSignalReady(window.OneSignal)) {
       console.error('OneSignal SDK not loaded or not ready. Ensure the script tag is in index.html and initialized.');
       handleError(null, 'Push notifications SDK not loaded or not ready.');
       return;
     }
 
-    // Now TypeScript knows window.OneSignal is OneSignalSDK
-    if (!window.OneSignal.Notifications.isPushNotificationsSupported()) {
+    // Capture the type-guarded OneSignal instance here
+    const osSdk: OneSignalSDK = window.OneSignal;
+
+    if (!osSdk.Notifications.isPushNotificationsSupported()) {
       console.warn('Push notifications are not supported by this browser.');
       return;
     }
 
     try {
-      await window.OneSignal.User.addTag("user_id", userId);
+      await osSdk.User.addTag("user_id", userId);
       console.log('OneSignal external user ID set:', userId);
 
-      window.OneSignal.Notifications.addEventListener('subscriptionchange', async (isSubscribed: boolean) => {
+      osSdk.Notifications.addEventListener('subscriptionchange', async (isSubscribed: boolean) => {
         console.log('OneSignal subscriptionchange event:', isSubscribed);
         if (isSubscribed) {
-          const player = await window.OneSignal.User.PushSubscription.getFCMToken();
-          const playerId = await window.OneSignal.User.PushSubscription.getId();
+          const player = await osSdk.User.PushSubscription.getFCMToken();
+          const playerId = await osSdk.User.PushSubscription.getId();
           console.log('OneSignal subscribed. Player ID:', playerId, 'FCM Token:', player);
           if (playerId) {
             await NotificationService.updateUserNotificationSettings(userId, { onesignal_player_id: playerId, enabled: true });
@@ -72,14 +75,14 @@ export const NotificationService = {
         }
       });
 
-      const permission = await window.OneSignal.Notifications.permission;
+      const permission = await osSdk.Notifications.permission;
       if (permission === 'default') {
         console.log('OneSignal: Requesting notification permission...');
-        await window.OneSignal.Notifications.requestPermission();
+        await osSdk.Notifications.requestPermission();
       }
 
-      const isPushEnabled = await window.OneSignal.Notifications.isPushEnabled();
-      const playerId = await window.OneSignal.User.PushSubscription.getId();
+      const isPushEnabled = await osSdk.Notifications.isPushEnabled();
+      const playerId = await osSdk.User.PushSubscription.getId();
       console.log('OneSignal: isPushEnabled:', isPushEnabled, 'Current Player ID:', playerId);
 
       await NotificationService.updateUserNotificationSettings(userId, {
