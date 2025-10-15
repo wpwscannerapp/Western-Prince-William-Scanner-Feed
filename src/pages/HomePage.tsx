@@ -51,14 +51,6 @@ const HomePage: React.FC = () => {
           icon="/Logo.png"
         />
 
-        {/* Notification Settings Tile */}
-        <Tile
-          title="Notifications"
-          description="Manage your alert preferences."
-          to="/notifications"
-          icon="/Logo.png" // Consider a specific notification icon if available
-        />
-
         {/* Admin Dashboard Tile (Conditional) */}
         {isAdmin && (
           <Tile

@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, User, LogIn, LogOut, CreditCard, BellRing } from 'lucide-react'; // Added BellRing for settings link
+import { Home, User, LogIn, LogOut, CreditCard } from 'lucide-react'; // Removed BellRing
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,6 @@ const TopNavBar = () => {
   const loggedInNavItems = [
     { name: 'Home Page', icon: Home, path: '/home' },
     { name: 'Profile', icon: User, path: '/profile' },
-    { name: 'Notifications', icon: BellRing, path: '/notifications' }, // New item for notification settings
   ];
 
   return (

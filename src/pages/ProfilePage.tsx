@@ -1,11 +1,13 @@
 import ProfileForm from '@/components/ProfileForm';
+import NotificationSettingsForm from '@/components/NotificationSettingsForm'; // Import NotificationSettingsForm
 import { PROFILE_TITLE, PROFILE_DESCRIPTION } from '@/lib/constants';
 import { Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { ProfileService, Profile } from '@/services/ProfileService';
 import { handleError } from '@/utils/errorHandler';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'; // Import CardContent
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'; // Import Tabs components
 
 const ProfilePage = () => {
   const { user } = useAuth();
@@ -37,13 +39,26 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-2xl"> {/* Removed tw-pt-8 as Layout handles it */}
-      <Card className="tw-w-full tw-max-w-md tw-mx-auto tw-bg-card tw-shadow-lg">
-        <CardHeader>
-          <CardTitle className="tw-text-3xl tw-font-bold tw-text-center">{PROFILE_TITLE}</CardTitle>
-          <CardDescription className="tw-text-center tw-text-muted-foreground">{PROFILE_DESCRIPTION}</CardDescription>
+    <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-3xl"> {/* Increased max-w for tabs */}
+      <Card className="tw-w-full tw-mx-auto tw-bg-card tw-shadow-lg">
+        <CardHeader className="tw-text-center">
+          <CardTitle className="tw-text-3xl tw-font-bold">{PROFILE_TITLE}</CardTitle>
+          <CardDescription className="tw-text-muted-foreground">{PROFILE_DESCRIPTION}</CardDescription>
         </CardHeader>
-        <ProfileForm />
+        <CardContent className="tw-p-6"> {/* Added padding to CardContent */}
+          <Tabs defaultValue="profile-details" className="tw-w-full">
+            <TabsList className="tw-grid tw-w-full tw-grid-cols-2">
+              <TabsTrigger value="profile-details">Profile Details</TabsTrigger>
+              <TabsTrigger value="notification-settings">Notifications</TabsTrigger>
+            </TabsList>
+            <TabsContent value="profile-details" className="tw-mt-6">
+              <ProfileForm />
+            </TabsContent>
+            <TabsContent value="notification-settings" className="tw-mt-6">
+              <NotificationSettingsForm />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
       </Card>
     </div>
   );

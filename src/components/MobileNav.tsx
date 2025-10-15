@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, Home, User, Shield, LogIn, LogOut, CreditCard, BellRing } from 'lucide-react'; // Added BellRing for settings link
+import { Menu, Home, User, Shield, LogIn, LogOut, CreditCard } from 'lucide-react'; // Removed BellRing
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,7 +27,6 @@ const MobileNav: React.FC<MobileNavProps> = ({ onLinkClick }) => {
     { name: 'Home Page', icon: Home, path: '/home', requiresAuth: true },
     { name: 'Profile', icon: User, path: '/profile', requiresAuth: true },
     { name: 'Admin', icon: Shield, path: '/admin', requiresAuth: true, adminOnly: true },
-    { name: 'Notifications', icon: BellRing, path: '/notifications', requiresAuth: true }, // New item for notification settings
     { name: 'Subscribe', icon: CreditCard, path: '/subscribe', requiresAuth: false, showWhenLoggedOut: true },
     { name: 'Login', icon: LogIn, path: '/auth', requiresAuth: false, showWhenLoggedOut: true },
   ];

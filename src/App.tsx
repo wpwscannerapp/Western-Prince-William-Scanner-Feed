@@ -22,7 +22,6 @@ import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
 import ContactUsPage from '@/pages/ContactUsPage';
 import IncidentArchivePage from '@/pages/IncidentArchivePage';
-import NotificationSettingsPage from '@/pages/NotificationSettingsPage';
 import React, { useEffect } from 'react'; // Import useEffect
 import { NotificationService } from './services/NotificationService'; // Import NotificationService
 
@@ -87,7 +86,6 @@ const App = () => {
                     <Route path="home/traffic" element={<TrafficPage />} />
                     <Route path="home/contact-us" element={<ContactUsPage />} />
                     <Route path="home/archive" element={<IncidentArchivePage />} />
-                    <Route path="notifications" element={<NotificationSettingsPage />} />
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="admin" element={<AdminPage />} />
                     <Route path="posts/:postId" element={<PostDetailPage />} />
