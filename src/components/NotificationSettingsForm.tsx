@@ -32,6 +32,11 @@ interface NotificationSettingsFormProps {
   isOneSignalInitialized: boolean; // New prop
 }
 
+// Type guard to ensure OneSignal is the SDK object, not the initial array
+const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
+  return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
+};
+
 const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isOneSignalInitialized }) => {
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
@@ -83,11 +88,6 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
     }
   }, [user, reset]);
 
-  // Type guard to ensure OneSignal is the SDK object, not the initial array
-  const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
-    return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
-  };
-
   useEffect(() => {
     if (!authLoading && user) {
       fetchSettings();
@@ -123,12 +123,12 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
       handleError(null, 'You must be logged in to save settings.');
       return;
     }
-    if (!isOneSignalInitialized) { // Check if OneSignal is initialized
+    if (!isOneSignalInitialized || !isOneSignalReady(window.OneSignal)) { // Explicitly check if OneSignal is ready
       handleError(null, 'OneSignal SDK not loaded or not ready. Cannot save notification settings.');
       return;
     }
 
-    const osSdk: OneSignalSDK = window.OneSignal;
+    const osSdk: OneSignalSDK = window.OneSignal; // Now safe to assign after the type guard
 
     setIsSaving(true);
     toast.loading('Saving notification settings...', { id: 'save-settings' });

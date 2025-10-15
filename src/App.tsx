@@ -32,11 +32,15 @@ const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
   return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
 };
 
-// Component to apply app settings and render children
+// Component to apply app settings (no longer handles OneSignal state)
 const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
   useAppSettings(); // This hook handles setting CSS variables
+  return <>{children}</>;
+};
+
+const App = () => {
   const { user, loading: authLoading } = useAuth(); // Get user and auth loading state
-  const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false); // New state
+  const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false); // New state, moved here
 
   useEffect(() => {
     const setupOneSignal = async () => {
@@ -55,16 +59,6 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
     setupOneSignal();
   }, [user, authLoading]); // Re-run when user or authLoading changes
 
-  return <>{React.Children.map(children, child => {
-    if (React.isValidElement(child)) {
-      // Pass isOneSignalInitialized to components that need it, e.g., ProfilePage
-      return React.cloneElement(child, { isOneSignalInitialized } as any);
-    }
-    return child;
-  })}</>;
-};
-
-const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -92,7 +86,8 @@ const App = () => {
                     <Route path="home/traffic" element={<TrafficPage />} />
                     <Route path="home/contact-us" element={<ContactUsPage />} />
                     <Route path="home/archive" element={<IncidentArchivePage />} />
-                    <Route path="profile" element={<ProfilePage />} />
+                    {/* Pass isOneSignalInitialized directly to ProfilePage */}
+                    <Route path="profile" element={<ProfilePage isOneSignalInitialized={isOneSignalInitialized} />} />
                     <Route path="admin" element={<AdminPage />} />
                     <Route path="posts/:postId" element={<PostDetailPage />} />
                   </Route>
