@@ -29,26 +29,27 @@ const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
 
 const MainContent: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
-  const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false);
+  // Removed: const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false);
 
   useAppSettings(); // Apply app settings here
 
-  useEffect(() => {
-    const setupOneSignal = async () => {
-      if (!authLoading && user) {
-        console.log('MainContent: Attempting to initialize OneSignal for user:', user.id);
-        const success = await NotificationService.initOneSignal(user.id);
-        setIsOneSignalInitialized(success);
-      } else if (!authLoading && !user) {
-        console.log('MainContent: User logged out, ensuring OneSignal is unsubscribed if active.');
-        if (isOneSignalReady(window.OneSignal)) {
-          await window.OneSignal.Notifications.setSubscription(false);
-        }
-        setIsOneSignalInitialized(false); // Reset state on logout
-      }
-    };
-    setupOneSignal();
-  }, [user, authLoading]);
+  // Removed: useEffect for OneSignal initialization as it's handled by AppSettingsProvider in App.tsx
+  // useEffect(() => {
+  //   const setupOneSignal = async () => {
+  //     if (!authLoading && user) {
+  //       console.log('MainContent: Attempting to initialize OneSignal for user:', user.id);
+  //       const success = await NotificationService.initOneSignal(user.id);
+  //       setIsOneSignalInitialized(success);
+  //     } else if (!authLoading && !user) {
+  //       console.log('MainContent: User logged out, ensuring OneSignal is unsubscribed if active.');
+  //       if (isOneSignalReady(window.OneSignal)) {
+  //         await window.OneSignal.Notifications.setSubscription(false);
+  //       }
+  //       setIsOneSignalInitialized(false); // Reset state on logout
+  //     }
+  //   };
+  //   setupOneSignal();
+  // }, [user, authLoading]);
 
   return (
     <>
