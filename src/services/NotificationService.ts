@@ -28,7 +28,7 @@ const logSupabaseError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
 };
 
-// Type guard to ensure OneSignal is the SDK object, not the initial array
+// Original Type guard to ensure OneSignal is the SDK object, not the initial array
 export const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
   return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
 };
@@ -57,76 +57,90 @@ export const NotificationService = {
       }
 
       window.OneSignalDeferred.push(async () => {
-        console.log('NotificationService: OneSignalDeferred.push callback executed.');
-        // Now check window.OneSignal, which should be the actual SDK object
-        if (!isOneSignalReady(window.OneSignal)) {
-          console.error('NotificationService: OneSignal SDK not loaded or not ready after push callback (window.OneSignal is not ready).');
-          handleError(null, 'Push notifications SDK not loaded or not ready.');
-          return resolve(false);
-        }
+        console.log('NotificationService: OneSignalDeferred.push callback HAS STARTED executing.');
 
-        const osSdk: OneSignalSDK = window.OneSignal; // Use window.OneSignal here
+        // Polling mechanism to wait for window.OneSignal to become available
+        const MAX_POLL_ATTEMPTS = 20; // 20 attempts * 250ms = 5 seconds
+        const POLL_INTERVAL_MS = 250;
+        let attempts = 0;
 
-        console.log('NotificationService: Initializing OneSignal SDK...');
-        // Initialize OneSignal SDK here
-        await osSdk.init({
-          appId: oneSignalAppId,
-          safari_web_id: oneSignalSafariWebId, // Pass Safari Web ID (can be undefined/null)
-          allowLocalhostAsSecureOrigin: import.meta.env.DEV,
-          notifyButton: {
-            enable: false, // We'll manage our own UI
-          },
-        });
-        console.log('NotificationService: OneSignal SDK initialized via NotificationService.');
-
-
-        if (!osSdk.Notifications.isPushNotificationsSupported()) {
-          console.warn('NotificationService: Push notifications are not supported by this browser.');
-          return resolve(false);
-        }
-
-        try {
-          console.log('NotificationService: Adding user_id tag to OneSignal.');
-          await osSdk.User.addTag("user_id", userId);
-          console.log('NotificationService: OneSignal external user ID set:', userId);
-
-          osSdk.Notifications.addEventListener('subscriptionchange', async (isSubscribed: boolean) => {
-            console.log('NotificationService: OneSignal subscriptionchange event:', isSubscribed);
-            if (isSubscribed) {
-              const player = await osSdk.User.PushSubscription.getFCMToken();
-              const playerId = await osSdk.User.PushSubscription.getId();
-              console.log('NotificationService: OneSignal subscribed. Player ID:', playerId, 'FCM Token:', player);
-              if (playerId) {
-                await NotificationService.updateUserNotificationSettings(userId, { onesignal_player_id: playerId, enabled: true });
-              }
-            } else {
-              console.log('NotificationService: OneSignal unsubscribed.');
-              await NotificationService.updateUserNotificationSettings(userId, { onesignal_player_id: null, enabled: false });
-            }
-          });
-
-          const permission = await osSdk.Notifications.permission;
-          console.log('NotificationService: Current notification permission:', permission);
-          if (permission === 'default') {
-            console.log('NotificationService: Requesting notification permission...');
-            await osSdk.Notifications.requestPermission();
+        const waitForOneSignal = () => {
+          if (isOneSignalReady(window.OneSignal)) {
+            console.log('NotificationService: window.OneSignal IS ready after polling.');
+            proceedWithInitialization(window.OneSignal);
+          } else if (attempts < MAX_POLL_ATTEMPTS) {
+            attempts++;
+            console.log(`NotificationService: window.OneSignal NOT ready yet. Attempt ${attempts}/${MAX_POLL_ATTEMPTS}.`);
+            setTimeout(waitForOneSignal, POLL_INTERVAL_MS);
+          } else {
+            console.error('NotificationService: window.OneSignal did NOT become ready after multiple attempts.');
+            handleError(null, 'Push notifications SDK did not load within expected time.');
+            resolve(false);
           }
+        };
 
-          const isPushEnabled = await osSdk.Notifications.isPushEnabled();
-          const playerId = await osSdk.User.PushSubscription.getId();
-          console.log('NotificationService: isPushEnabled:', isPushEnabled, 'Current Player ID:', playerId);
+        const proceedWithInitialization = async (osSdk: OneSignalSDK) => {
+          console.log('NotificationService: Initializing OneSignal SDK...');
+          try {
+            await osSdk.init({
+              appId: oneSignalAppId,
+              safari_web_id: oneSignalSafariWebId,
+              allowLocalhostAsSecureOrigin: import.meta.env.DEV,
+              notifyButton: {
+                enable: false,
+              },
+            });
+            console.log('NotificationService: OneSignal SDK initialized via NotificationService.');
 
-          await NotificationService.updateUserNotificationSettings(userId, {
-            onesignal_player_id: playerId,
-            enabled: isPushEnabled,
-          });
-          console.log('NotificationService: OneSignal initialization successful.');
-          resolve(true); // Initialization successful
-        } catch (err: any) {
-          console.error('NotificationService: OneSignal initialization failed:', err);
-          handleError(err, 'Failed to initialize push notifications.');
-          resolve(false); // Initialization failed
-        }
+            if (!osSdk.Notifications.isPushNotificationsSupported()) {
+              console.warn('NotificationService: Push notifications are not supported by this browser.');
+              return resolve(false);
+            }
+
+            console.log('NotificationService: Adding user_id tag to OneSignal.');
+            await osSdk.User.addTag("user_id", userId);
+            console.log('NotificationService: OneSignal external user ID set:', userId);
+
+            osSdk.Notifications.addEventListener('subscriptionchange', async (isSubscribed: boolean) => {
+              console.log('NotificationService: OneSignal subscriptionchange event:', isSubscribed);
+              if (isSubscribed) {
+                const player = await osSdk.User.PushSubscription.getFCMToken();
+                const playerId = await osSdk.User.PushSubscription.getId();
+                console.log('NotificationService: OneSignal subscribed. Player ID:', playerId, 'FCM Token:', player);
+                if (playerId) {
+                  await NotificationService.updateUserNotificationSettings(userId, { onesignal_player_id: playerId, enabled: true });
+                }
+              } else {
+                console.log('NotificationService: OneSignal unsubscribed.');
+                await NotificationService.updateUserNotificationSettings(userId, { onesignal_player_id: null, enabled: false });
+              }
+            });
+
+            const permission = await osSdk.Notifications.permission;
+            console.log('NotificationService: Current notification permission:', permission);
+            if (permission === 'default') {
+              console.log('NotificationService: Requesting notification permission...');
+              await osSdk.Notifications.requestPermission();
+            }
+
+            const isPushEnabled = await osSdk.Notifications.isPushEnabled();
+            const playerId = await osSdk.User.PushSubscription.getId();
+            console.log('NotificationService: isPushEnabled:', isPushEnabled, 'Current Player ID:', playerId);
+
+            await NotificationService.updateUserNotificationSettings(userId, {
+              onesignal_player_id: playerId,
+              enabled: isPushEnabled,
+            });
+            console.log('NotificationService: OneSignal initialization successful.');
+            resolve(true); // Initialization successful
+          } catch (err: any) {
+            console.error('NotificationService: OneSignal initialization failed:', err);
+            handleError(err, 'Failed to initialize push notifications.');
+            resolve(false); // Initialization failed
+          }
+        };
+
+        waitForOneSignal(); // Start polling
       });
     });
   },
