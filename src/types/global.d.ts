@@ -75,7 +75,6 @@ declare module 'react-beautiful-dnd' {
 }
 
 // OneSignal SDK Global Declaration
-// This declares the actual OneSignal SDK object's methods
 interface OneSignalSDK {
   init(options: { appId: string; safari_web_id?: string; allowLocalhostAsSecureOrigin?: boolean; notifyButton?: { enable: boolean } }): Promise<void>;
   Notifications: {
