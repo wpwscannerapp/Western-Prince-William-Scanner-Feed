@@ -48,7 +48,7 @@ export const NotificationService = {
       return;
     }
 
-    // Capture the type-guarded OneSignal instance here
+    // Now TypeScript knows window.OneSignal is OneSignalSDK
     const osSdk: OneSignalSDK = window.OneSignal;
 
     if (!osSdk.Notifications.isPushNotificationsSupported()) {
