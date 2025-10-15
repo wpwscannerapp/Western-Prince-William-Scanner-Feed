@@ -44,12 +44,8 @@ export const NotificationService = {
       return false;
     }
 
-    // Ensure window.OneSignal is initialized as an array if it's not already
-    // This is a defensive check to prevent "Cannot read properties of undefined (reading 'push')"
-    if (typeof window.OneSignal === 'undefined') {
-      window.OneSignal = [];
-      console.log('NotificationService: Initialized window.OneSignal as an empty array.');
-    }
+    // The window.OneSignal = window.OneSignal || []; is handled in public/index.html
+    // This ensures it's an array before the SDK script loads.
 
     return new Promise<boolean>(resolve => {
       (window.OneSignal as OneSignalSDK).push(async () => {
