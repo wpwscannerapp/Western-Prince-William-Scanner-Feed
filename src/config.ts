@@ -29,12 +29,14 @@ export const validateEnv = () => {
   const finalSupabaseApiTimeout = isNaN(SUPABASE_API_TIMEOUT) ? 10000 : SUPABASE_API_TIMEOUT;
   const finalMaxConcurrentSessions = isNaN(MAX_CONCURRENT_SESSIONS) ? 3 : MAX_CONCURRENT_SESSIONS;
 
-  console.log('Loaded Env Vars:', {
-    VITE_SPLASH_DURATION: finalSplashDuration,
-    VITE_POLL_INTERVAL: finalPollInterval,
-    VITE_SUPABASE_API_TIMEOUT: finalSupabaseApiTimeout,
-    VITE_MAX_CONCURRENT_SESSIONS: finalMaxConcurrentSessions,
-  });
+  if (import.meta.env.DEV) {
+    console.log('Loaded Env Vars:', {
+      VITE_SPLASH_DURATION: finalSplashDuration,
+      VITE_POLL_INTERVAL: finalPollInterval,
+      VITE_SUPABASE_API_TIMEOUT: finalSupabaseApiTimeout,
+      VITE_MAX_CONCURRENT_SESSIONS: finalMaxConcurrentSessions,
+    });
+  }
 
   return {
     SPLASH_DURATION: finalSplashDuration,
@@ -44,4 +46,5 @@ export const validateEnv = () => {
   };
 };
 
+// Export constants directly after validation (will be imported by main.tsx)
 export const { SPLASH_DURATION, POLL_INTERVAL, SUPABASE_API_TIMEOUT, MAX_CONCURRENT_SESSIONS } = validateEnv();

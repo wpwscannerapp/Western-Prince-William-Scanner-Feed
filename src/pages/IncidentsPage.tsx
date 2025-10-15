@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import PostCard from '@/components/PostCard';
 import SubscribeOverlay from '@/components/SubscribeOverlay';
 import PostForm from '@/components/PostForm';
-import { Post, PostService } from '@/services/PostService'; // Updated import
+import { Post, PostService } from '@/services/PostService';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, ArrowUp, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useIsSubscribed } from '@/hooks/useIsSubscribed';
 import { handleError } from '@/utils/errorHandler';
-import { POLL_INTERVAL } from '@/config';
+// Removed: import { POLL_INTERVAL } from '@/config'; // Still imported for reference, but not used for polling
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { useNavigate } from 'react-router-dom';
 
@@ -51,7 +51,7 @@ const IncidentsPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const initialPosts = await PostService.fetchPosts(0); // Using PostService
+        const initialPosts = await PostService.fetchPosts(0);
         setPosts(initialPosts);
         setHasMore(initialPosts.length === PostService.POSTS_PER_PAGE);
       } catch (err) {
@@ -70,7 +70,7 @@ const IncidentsPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const newPosts = await PostService.fetchPosts(page); // Using PostService
+        const newPosts = await PostService.fetchPosts(page);
         if (newPosts.length === 0) {
           setHasMore(false);
         } else {
@@ -88,37 +88,9 @@ const IncidentsPage: React.FC = () => {
     }
   }, [page]);
 
-  const fetchNewPosts = useCallback(async () => {
-    if (posts.length === 0) return;
-    try {
-      const latestTimestamp = posts[0].timestamp;
-      const newFetchedPosts = await PostService.fetchNewPosts(latestTimestamp); // Using PostService
-      if (newFetchedPosts.length > 0) {
-        setPosts(prevPosts => {
-          const uniqueNewPosts = newFetchedPosts.filter(
-            newPost => !prevPosts.some(existingPost => existingPost.id === newPost.id)
-          );
-          if (uniqueNewPosts.length > 0) {
-            setNewPostsAvailable(true);
-            return [...uniqueNewPosts, ...prevPosts];
-          }
-          return prevPosts;
-        });
-      }
-    } catch (err) {
-      handleError(err, 'Failed to fetch new incidents.');
-    }
-  }, [posts]);
-
-  useEffect(() => {
-    const pollInterval = POLL_INTERVAL;
-    const interval = setInterval(() => {
-      if (isSubscribed || isAdmin) {
-        fetchNewPosts();
-      }
-    }, pollInterval);
-    return () => clearInterval(interval);
-  }, [fetchNewPosts, isSubscribed, isAdmin]);
+  // Removed the polling mechanism as real-time subscriptions are used
+  // const fetchNewPosts = useCallback(async () => { /* ... */ }, [posts]);
+  // useEffect(() => { /* ... */ }, [fetchNewPosts, isSubscribed, isAdmin]);
 
   useEffect(() => {
     const channel = supabase
@@ -152,7 +124,7 @@ const IncidentsPage: React.FC = () => {
     setPostFormLoading(true);
     try {
       toast.loading('Creating post...', { id: 'create-post' });
-      const newPost = await PostService.createPost(text, imageFile, user.id); // Using PostService
+      const newPost = await PostService.createPost(text, imageFile, user.id);
       
       if (newPost) {
         toast.success('Post created successfully!', { id: 'create-post' });

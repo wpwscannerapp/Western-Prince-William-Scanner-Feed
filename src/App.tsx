@@ -23,7 +23,7 @@ import PostDetailPage from '@/pages/PostDetailPage';
 import ContactUsPage from '@/pages/ContactUsPage';
 import IncidentArchivePage from '@/pages/IncidentArchivePage';
 import React, { useEffect, useState } from 'react'; // Import useEffect and useState
-import { NotificationService } from './services/NotificationService'; // Import NotificationService
+import { NotificationService, isOneSignalReady } from './services/NotificationService'; // Import NotificationService and isOneSignalReady
 
 const queryClient = new QueryClient();
 
@@ -50,12 +50,10 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
         setIsOneSignalInitialized(success);
       } else if (!authLoading && !user) {
         console.log('App.tsx: User logged out, ensuring OneSignal is unsubscribed if active.');
-        // Use the isOneSignalReady from NotificationService or define locally if needed
-        const isOneSignalReadyLocal = (os: unknown): os is OneSignalSDK => {
-          return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
-        };
-        if (isOneSignalReadyLocal(window.OneSignalDeferred)) {
-          await window.OneSignalDeferred.Notifications.setSubscription(false);
+        // Use the isOneSignalReady from NotificationService
+        if (isOneSignalReady(window.OneSignalDeferred)) {
+          const osSdk: OneSignalSDK = window.OneSignalDeferred; // Capture for type inference
+          await osSdk.Notifications.setSubscription(false);
         }
         setIsOneSignalInitialized(false); // Reset state on logout
       }

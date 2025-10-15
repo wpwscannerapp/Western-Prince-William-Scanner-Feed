@@ -5,7 +5,9 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Log the actual values for debugging
 console.log('Supabase Client Debug: VITE_SUPABASE_URL value:', supabaseUrl);
-console.log('Supabase Client Debug: VITE_SUPABASE_ANON_KEY value:', supabaseAnonKey);
+if (import.meta.env.DEV) { // Only log anon key in development
+  console.log('Supabase Client Debug: VITE_SUPABASE_ANON_KEY value:', supabaseAnonKey);
+}
 
 if (!supabaseUrl) {
   throw new Error('VITE_SUPABASE_URL is not defined in environment variables. Please check your .env file.');

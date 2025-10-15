@@ -5,6 +5,7 @@ import { validateEnv } from './config.ts'; // Import the validation function
 
 // Validate environment variables on app startup
 try {
+  // Call validateEnv once at the entry point
   validateEnv();
 } catch (error) {
   console.error('Environment variable validation failed:', error);
@@ -18,21 +19,5 @@ try {
   `;
   throw error; // Stop further execution if critical env vars are missing
 }
-
-
-// Service worker registration will be handled by OneSignal SDK
-// if (import.meta.env.PROD) {
-//   if ('serviceWorker' in navigator) {
-//     window.addEventListener('load', () => {
-//       navigator.serviceWorker.register('/service-worker.js')
-//         .then(registration => {
-//           console.log('SW registered: ', registration);
-//         })
-//         .catch(registrationError => {
-//           console.log('SW registration failed: ', registrationError);
-//         });
-//     });
-//   }
-// }
 
 createRoot(document.getElementById("root")!).render(<App />);

@@ -29,7 +29,7 @@ const logSupabaseError = (functionName: string, error: any) => {
 };
 
 // Type guard to ensure OneSignal is the SDK object, not the initial array
-const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
+export const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
   return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
 };
 
