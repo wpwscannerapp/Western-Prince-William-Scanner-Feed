@@ -9,9 +9,9 @@
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black" />
         <meta name="theme-color" content="#000000" />
-        <!-- OneSignal SDK: Ensure window.OneSignal is an array before the SDK loads -->
+        <!-- OneSignal SDK: Use window.OneSignalDeferred for robust loading -->
         <script>
-          window.OneSignal = window.OneSignal || [];
+          window.OneSignalDeferred = window.OneSignalDeferred || [];
         </script>
         <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
       </head>

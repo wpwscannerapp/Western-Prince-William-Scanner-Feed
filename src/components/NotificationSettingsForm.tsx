@@ -99,13 +99,13 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
       handleError(null, 'You must be logged in to save settings.');
       return;
     }
-    if (!isOneSignalInitialized || !isOneSignalReady(window.OneSignal)) {
+    if (!isOneSignalInitialized || !isOneSignalReady(window.OneSignalDeferred)) {
       handleError(null, 'OneSignal SDK not loaded or not ready. Cannot save notification settings.');
       return;
     }
 
     // Capture the type-guarded OneSignal instance here
-    const osSdk: OneSignalSDK = window.OneSignal;
+    const osSdk: OneSignalSDK = window.OneSignalDeferred;
 
     setIsSaving(true);
     toast.loading('Saving notification settings...', { id: 'save-settings' });
@@ -164,12 +164,12 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
   };
 
   const requestNotificationPermission = async () => {
-    if (!isOneSignalReady(window.OneSignal)) {
+    if (!isOneSignalReady(window.OneSignalDeferred)) {
       handleError(null, 'OneSignal SDK not loaded or not ready. Cannot request permission.');
       return;
     }
     // Capture the type-guarded OneSignal instance here
-    const osSdk: OneSignalSDK = window.OneSignal;
+    const osSdk: OneSignalSDK = window.OneSignalDeferred;
 
     try {
       await osSdk.Notifications.requestPermission();
@@ -239,9 +239,9 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isO
                 if (checked && notificationPermission !== 'granted') {
                   await requestNotificationPermission();
                 } else if (!checked && notificationPermission === 'granted') {
-                  // Ensure window.OneSignal is ready before calling setSubscription
-                  if (isOneSignalReady(window.OneSignal)) {
-                    await window.OneSignal.Notifications.setSubscription(false);
+                  // Ensure window.OneSignalDeferred is ready before calling setSubscription
+                  if (isOneSignalReady(window.OneSignalDeferred)) {
+                    await window.OneSignalDeferred.Notifications.setSubscription(false);
                   }
                 }
               }}

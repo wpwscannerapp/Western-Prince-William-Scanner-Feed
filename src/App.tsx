@@ -27,8 +27,6 @@ import { NotificationService } from './services/NotificationService'; // Import 
 
 const queryClient = new QueryClient();
 
-// Removed: isOneSignalReady type guard, now defined in NotificationService.ts
-
 // Component to apply app settings and render children
 const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
   useAppSettings(); // This hook handles setting CSS variables
@@ -56,8 +54,8 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
         const isOneSignalReadyLocal = (os: unknown): os is OneSignalSDK => {
           return typeof os === 'object' && os !== null && !Array.isArray(os) && 'Notifications' in os;
         };
-        if (isOneSignalReadyLocal(window.OneSignal)) {
-          await window.OneSignal.Notifications.setSubscription(false);
+        if (isOneSignalReadyLocal(window.OneSignalDeferred)) {
+          await window.OneSignalDeferred.Notifications.setSubscription(false);
         }
         setIsOneSignalInitialized(false); // Reset state on logout
       }
