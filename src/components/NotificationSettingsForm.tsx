@@ -28,7 +28,11 @@ const notificationSettingsSchema = z.object({
 
 type NotificationSettingsFormValues = z.infer<typeof notificationSettingsSchema>;
 
-const NotificationSettingsForm: React.FC = () => {
+interface NotificationSettingsFormProps {
+  isOneSignalInitialized: boolean; // New prop
+}
+
+const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isOneSignalInitialized }) => {
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -119,7 +123,7 @@ const NotificationSettingsForm: React.FC = () => {
       handleError(null, 'You must be logged in to save settings.');
       return;
     }
-    if (!isOneSignalReady(window.OneSignal)) {
+    if (!isOneSignalInitialized) { // Check if OneSignal is initialized
       handleError(null, 'OneSignal SDK not loaded or not ready. Cannot save notification settings.');
       return;
     }
@@ -201,6 +205,8 @@ const NotificationSettingsForm: React.FC = () => {
     }
   };
 
+  const isFormDisabled = isSaving || isLocating || !isOneSignalInitialized;
+
   if (authLoading || isLoading) {
     return (
       <Card className="tw-bg-card tw-border-border tw-shadow-lg">
@@ -234,6 +240,12 @@ const NotificationSettingsForm: React.FC = () => {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="tw-space-y-6">
+          {!isOneSignalInitialized && (
+            <div className="tw-bg-yellow-100 tw-border-l-4 tw-border-yellow-500 tw-text-yellow-700 tw-p-4 tw-mb-4" role="alert">
+              <p className="tw-font-bold">OneSignal Not Ready</p>
+              <p>Push notification features are temporarily unavailable. Please ensure your browser allows scripts and try again.</p>
+            </div>
+          )}
           <div className="tw-flex tw-items-center tw-justify-between">
             <Label htmlFor="enabled" className="tw-text-base">Enable Push Notifications</Label>
             <Switch
@@ -242,14 +254,11 @@ const NotificationSettingsForm: React.FC = () => {
               onCheckedChange={async (checked) => {
                 setValue('enabled', checked);
                 // If disabling and permission was granted, unsubscribe from OneSignal
-                if (!checked && notificationPermission === 'granted') {
-                  if (isOneSignalReady(window.OneSignal)) {
-                    await window.OneSignal.Notifications.setSubscription(false);
-                  }
+                if (!checked && notificationPermission === 'granted' && isOneSignalReady(window.OneSignal)) {
+                  await window.OneSignal.Notifications.setSubscription(false);
                 }
-                // Permission request now happens on Save Settings if needed
               }}
-              disabled={isSaving || notificationPermission === 'denied'}
+              disabled={isFormDisabled || notificationPermission === 'denied'}
             />
           </div>
           {notificationPermission === 'denied' && (
@@ -277,7 +286,7 @@ const NotificationSettingsForm: React.FC = () => {
                   type="button"
                   variant={preferredTypes.includes(type) ? 'default' : 'outline'}
                   onClick={() => handleToggleType(type)}
-                  disabled={isSaving || !enabled}
+                  disabled={isFormDisabled || !enabled}
                   className={preferredTypes.includes(type) ? 'tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground' : 'tw-text-muted-foreground hover:tw-text-primary'}
                 >
                   {type}
@@ -294,7 +303,7 @@ const NotificationSettingsForm: React.FC = () => {
             <Select
               value={watch('radius_miles').toString()}
               onValueChange={(value) => setValue('radius_miles', parseInt(value, 10))}
-              disabled={isSaving || !enabled}
+              disabled={isFormDisabled || !enabled}
             >
               <SelectTrigger id="radius_miles" className="tw-w-full">
                 <SelectValue placeholder="Select radius" />
@@ -317,10 +326,10 @@ const NotificationSettingsForm: React.FC = () => {
                 id="manual_location_address"
                 placeholder="Enter address or zip code (e.g., 20155)"
                 {...form.register('manual_location_address')}
-                disabled={isSaving || isLocating || !enabled}
+                disabled={isFormDisabled || !enabled}
                 className="tw-flex-1"
               />
-              <Button type="button" onClick={getCurrentLocation} disabled={isSaving || isLocating || !enabled}>
+              <Button type="button" onClick={getCurrentLocation} disabled={isFormDisabled || !enabled}>
                 {isLocating ? <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" /> : <LocateFixed className="tw-mr-2 tw-h-4 tw-w-4" />}
                 Use Current Location
               </Button>
@@ -335,7 +344,7 @@ const NotificationSettingsForm: React.FC = () => {
             )}
           </div>
 
-          <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isSaving || isLocating}>
+          <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isFormDisabled}>
             {isSaving && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
             Save Settings
           </Button>

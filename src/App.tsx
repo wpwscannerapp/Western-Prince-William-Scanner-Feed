@@ -22,7 +22,7 @@ import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
 import ContactUsPage from '@/pages/ContactUsPage';
 import IncidentArchivePage from '@/pages/IncidentArchivePage';
-import React, { useEffect } from 'react'; // Import useEffect
+import React, { useEffect, useState } from 'react'; // Import useEffect and useState
 import { NotificationService } from './services/NotificationService'; // Import NotificationService
 
 const queryClient = new QueryClient();
@@ -36,26 +36,32 @@ const isOneSignalReady = (os: unknown): os is OneSignalSDK => {
 const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
   useAppSettings(); // This hook handles setting CSS variables
   const { user, loading: authLoading } = useAuth(); // Get user and auth loading state
-  // Removed: const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false); // New state
+  const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false); // New state
 
   useEffect(() => {
     const setupOneSignal = async () => {
       if (!authLoading && user) {
         console.log('App.tsx: Attempting to initialize OneSignal for user:', user.id);
-        await NotificationService.initOneSignal(user.id); // Removed 'const success ='
-        // Removed: setIsOneSignalInitialized(success);
+        const success = await NotificationService.initOneSignal(user.id);
+        setIsOneSignalInitialized(success);
       } else if (!authLoading && !user) {
         console.log('App.tsx: User logged out, ensuring OneSignal is unsubscribed if active.');
         if (isOneSignalReady(window.OneSignal)) {
           await window.OneSignal.Notifications.setSubscription(false);
         }
-        // Removed: setIsOneSignalInitialized(false); // Reset state on logout
+        setIsOneSignalInitialized(false); // Reset state on logout
       }
     };
     setupOneSignal();
   }, [user, authLoading]); // Re-run when user or authLoading changes
 
-  return <>{children}</>;
+  return <>{React.Children.map(children, child => {
+    if (React.isValidElement(child)) {
+      // Pass isOneSignalInitialized to components that need it, e.g., ProfilePage
+      return React.cloneElement(child, { isOneSignalInitialized } as any);
+    }
+    return child;
+  })}</>;
 };
 
 const App = () => {

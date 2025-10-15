@@ -9,7 +9,11 @@ import { handleError } from '@/utils/errorHandler';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'; // Import CardContent
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'; // Import Tabs components
 
-const ProfilePage = () => {
+interface ProfilePageProps {
+  isOneSignalInitialized?: boolean; // New prop
+}
+
+const ProfilePage: React.FC<ProfilePageProps> = ({ isOneSignalInitialized = false }) => {
   const { user } = useAuth();
 
   const { isLoading: isProfileLoading, isError: isProfileError, error: profileError } = useQuery<Profile | null, Error>({
@@ -55,7 +59,7 @@ const ProfilePage = () => {
               <ProfileForm />
             </TabsContent>
             <TabsContent value="notification-settings" className="tw-mt-6">
-              <NotificationSettingsForm />
+              <NotificationSettingsForm isOneSignalInitialized={isOneSignalInitialized} />
             </TabsContent>
           </Tabs>
         </CardContent>
