@@ -16,6 +16,9 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Add aliases for react and react-dom to ensure a single instance
+      "react": path.resolve(__dirname, "./node_modules/react"),
+      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
   },
   css: { // Added CSS preprocessor options
@@ -64,6 +67,7 @@ export default defineConfig(() => ({
       '@radix-ui/react-separator',
       '@radix-ui/react-slider',
       '@radix-ui/react-slot',
+      '@radix-ui/react-switch',
       '@radix-ui/react-toast',
       '@radix-ui/react-toggle',
       '@radix-ui/react-toggle-group',
