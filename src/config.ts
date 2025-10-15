@@ -31,7 +31,7 @@ export const validateEnv = () => { // Added export keyword
   const finalPollInterval = isNaN(POLL_INTERVAL) ? 30000 : POLL_INTERVAL;
   const finalSupabaseApiTimeout = isNaN(SUPABASE_API_TIMEOUT) ? 10000 : SUPABASE_API_TIMEOUT;
   const finalMaxConcurrentSessions = isNaN(MAX_CONCURRENT_SESSIONS) ? 3 : MAX_CONCURRENT_SESSIONS;
-  const finalAuthInitializationTimeout = isNaN(AUTH_INITIALIZATION_TIMEOUT) ? 10000 : AUTH_INITIALIZATION_TIMEOUT; // Default to 10 seconds
+  const finalAuthInitializationTimeout = isNaN(AUTH_INITIALIZATION_TIMEOUT) ? 20000 : AUTH_INITIALIZATION_TIMEOUT; // Default to 20 seconds
 
   console.log('Loaded Env Vars:', {
     VITE_SPLASH_DURATION: finalSplashDuration,
