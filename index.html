@@ -12,11 +12,16 @@
         <!-- OneSignal SDK: Use window.OneSignalDeferred for robust loading -->
         <script>
           window.OneSignalDeferred = window.OneSignalDeferred || [];
-          console.log('index.html: OneSignalDeferred array initialized.'); // Added log
+          console.log('index.html: OneSignalDeferred array initialized.');
         </script>
-        <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+        <script 
+          src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" 
+          defer
+          onload="console.log('index.html: OneSignalSDK.page.js script LOADED successfully.');"
+          onerror="console.error('index.html: OneSignalSDK.page.js script FAILED to load.');"
+        ></script>
         <script>
-          console.log('index.html: OneSignalSDK.page.js script tag processed.'); // Added log
+          console.log('index.html: OneSignalSDK.page.js script tag processed.');
         </script>
       </head>
 
