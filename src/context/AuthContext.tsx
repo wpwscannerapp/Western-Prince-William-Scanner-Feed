@@ -107,17 +107,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Effect for setting up auth state listener
   useEffect(() => {
-    console.log('AuthContext: Setting up onAuthStateChange listener.');
+    console.log('AuthContext: useEffect for onAuthStateChange listener triggered.'); // Added log
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
-        console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
+        console.log(`AuthContext: onAuthStateChange callback fired. Event: ${_event}, Session: ${currentSession ? 'present' : 'null'}`); // Added log
         if (isMountedRef.current) {
           setSession(currentSession);
           setUser(currentSession?.user || null);
           setError(null); // Clear any previous errors on auth state change
+          console.log(`AuthContext: Setting loading to false. User: ${currentSession?.user ? 'present' : 'null'}`); // Added log
           setLoading(false); // Set loading to false once the initial session is processed
-          console.log(`AuthContext: Auth state changed. Loading set to false. User: ${currentSession?.user ? 'present' : 'null'}`);
 
           if (currentSession) {
             await handleSessionCreation(currentSession);
