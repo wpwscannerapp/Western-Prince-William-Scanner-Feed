@@ -1,7 +1,7 @@
 const CACHE_NAME = 'wpw-scanner-feed-cache-v10'; // Incremented cache version
 const urlsToCache = [
   '/',
-  '/index.html',
+  // Removed '/index.html' as '/' typically serves the main HTML in SPAs
   '/Logo.png',
   '/manifest.json',
   '/favicon.ico'
@@ -20,7 +20,7 @@ self.addEventListener('install', (event) => {
         self.skipWaiting(); // Activate new service worker immediately
       })
       .catch(error => {
-        console.error('Service Worker: Cache installation failed:', error);
+        console.error('Service Worker: Cache installation failed:', error); // More detailed error log
       })
   );
 });
