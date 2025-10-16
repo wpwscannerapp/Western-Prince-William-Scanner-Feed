@@ -21,5 +21,11 @@ if (!supabaseUrl.startsWith('http://') && !supabaseUrl.startsWith('https://')) {
   throw new Error('Invalid VITE_SUPABASE_URL: Must be a valid HTTP or HTTPS URL (e.g., "https://your-project-id.supabase.co").');
 }
 
+// Add a check for the Supabase anon key format
+if (!supabaseAnonKey.startsWith('eyJ')) {
+  console.error('Supabase Client Error: VITE_SUPABASE_ANON_KEY appears to be invalid. It should start with "eyJ". Please verify your key in the .env file.');
+  throw new Error('Invalid VITE_SUPABASE_ANON_KEY: Please verify your Supabase project API keys.');
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 console.log('Supabase Client Debug: Client created successfully.');
