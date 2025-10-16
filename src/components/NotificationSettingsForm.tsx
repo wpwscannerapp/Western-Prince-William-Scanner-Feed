@@ -63,16 +63,15 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
       if (settings) {
         reset(settings);
       } else {
-        // If no settings exist, initialize with defaults and try to get location
+        // If no settings exist, initialize with defaults
         reset({
-          enabled: true,
+          enabled: false, // Default to false if no settings, user must explicitly enable
           preferred_types: [],
           radius_miles: 5,
           manual_location_address: null,
           latitude: null,
           longitude: null,
         });
-        await getCurrentLocation(); // Try to get location on first load
       }
       // Check browser notification permission
       setNotificationPermission(Notification.permission);
@@ -95,7 +94,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
       return;
     }
     if (!isWebPushInitialized) {
-      handleError(null, 'Web Push API not initialized. Cannot save notification settings.');
+      handleError(null, 'Web Push API not ready. Please ensure your browser supports Service Workers and VAPID keys are configured.');
       return;
     }
 
@@ -112,7 +111,8 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
             throw new Error('Notification permission not granted. Cannot enable push notifications.');
           }
         }
-        const subscribed = await NotificationService.initWebPush(user.id); // This will subscribe if not already
+        // Now that permission is granted, attempt to subscribe
+        const subscribed = await NotificationService.subscribeUserToPush(user.id);
         if (subscribed) {
           updatedSettings = await NotificationService.updateUserNotificationSettings(user.id, values);
         } else {
@@ -184,12 +184,13 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
       setNotificationPermission(permission);
       if (permission === 'granted') {
         toast.success('Notification permission granted!');
-        setValue('enabled', true); // Automatically enable if permission granted
-        // No need to call initWebPush here, it will be called on form submit if enabled is true
+        // No need to call subscribeUserToPush here, it will be called on form submit if enabled is true
       } else {
         toast.info('Notification permission denied or dismissed.');
-        setValue('enabled', false);
-        await NotificationService.unsubscribeWebPush(user!.id); // Unsubscribe if denied
+        setValue('enabled', false); // Automatically disable if permission denied
+        if (user) {
+          await NotificationService.unsubscribeWebPush(user.id); // Unsubscribe if denied
+        }
       }
     } catch (err) {
       handleError(err, 'Failed to request notification permission.');
@@ -198,7 +199,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
 
   const isFormDisabled = isSaving || isLocating || !isWebPushInitialized;
 
-  if (authLoading || isLoading || !isWebPushInitialized) {
+  if (authLoading || isLoading) { // Removed !isWebPushInitialized from here
     return (
       <Card className="tw-bg-card tw-border-border tw-shadow-lg">
         <CardContent className="tw-py-8 tw-text-center">
@@ -247,7 +248,9 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
                 if (checked && notificationPermission !== 'granted') {
                   await requestNotificationPermission();
                 } else if (!checked && notificationPermission === 'granted') {
-                  await NotificationService.unsubscribeWebPush(user.id);
+                  if (user) { // Only unsubscribe if user is logged in
+                    await NotificationService.unsubscribeWebPush(user.id);
+                  }
                 }
               }}
               disabled={isFormDisabled || notificationPermission === 'denied'}

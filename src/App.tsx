@@ -35,39 +35,44 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const [isWebPushInitialized, setIsWebPushInitialized] = useState(false); // Renamed state
   const webPushInitAttemptedRef = useRef(false); // To prevent multiple init calls
 
-  const initializeWebPushSDK = async (userId: string) => { // Renamed function
+  const initializeWebPushSDK = async () => { // No userId parameter here, as ensureWebPushReady doesn't need it
     if (webPushInitAttemptedRef.current) {
       console.log('App.tsx: Web Push initialization already attempted, skipping.');
       return;
     }
     webPushInitAttemptedRef.current = true;
 
-    console.log('App.tsx: Attempting to initialize Web Push for user:', userId);
+    console.log('App.tsx: Attempting to ensure Web Push readiness.');
     const timeoutPromise = new Promise<boolean>(resolve => setTimeout(() => {
-      console.warn('App.tsx: Web Push initialization timed out.');
+      console.warn('App.tsx: Web Push readiness check timed out.');
       resolve(false);
     }, SUPABASE_API_TIMEOUT + 5000)); // Set timeout to be 5 seconds longer than SUPABASE_API_TIMEOUT
 
     const success = await Promise.race([
-      NotificationService.initWebPush(userId), // Call native Web Push init
+      NotificationService.ensureWebPushReady(), // Call the new function
       timeoutPromise
     ]);
     setIsWebPushInitialized(success);
     if (!success) {
-      console.error('App.tsx: Web Push initialization failed or timed out.');
+      console.error('App.tsx: Web Push readiness check failed or timed out.');
     }
   };
 
   useEffect(() => {
-    if (!authLoading && user) {
-      initializeWebPushSDK(user.id);
-    } else if (!authLoading && !user) {
+    // This useEffect now only checks if the *environment* is ready for push, not if the user is subscribed.
+    // It runs once when the component mounts.
+    initializeWebPushSDK();
+  }, []); // Empty dependency array to run once
+
+  useEffect(() => {
+    // This useEffect handles user-specific actions like unsubscribing on logout
+    if (!authLoading && !user) {
       // The AuthContext already handles unsubscribing from push notifications on logout.
       // No need to call NotificationService.unsubscribeWebPush here.
-      setIsWebPushInitialized(false); // Reset state on logout
-      webPushInitAttemptedRef.current = false; // Reset flag on logout
+      // setIsWebPushInitialized(false); // Keep the capability state, don't reset it here
+      // webPushInitAttemptedRef.current = false; // Keep the capability state, don't reset it here
     }
-  }, [user, authLoading]); // Re-run when user or authLoading changes
+  }, [user, authLoading]);
 
   // Pass isWebPushInitialized down through context or props if needed by children
   // For now, we'll pass it directly to ProfilePage

@@ -39,10 +39,11 @@ const logSupabaseError = (functionName: string, error: any) => {
 };
 
 export const NotificationService = {
-  async initWebPush(userId: string): Promise<boolean> {
-    console.log('NotificationService: initWebPush called for user:', userId);
+  // Renamed from initWebPush to reflect its purpose: check readiness, not subscribe
+  async ensureWebPushReady(): Promise<boolean> {
+    console.log('NotificationService: ensureWebPushReady called.');
     const vapidPublicKey = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY;
-    console.log('NotificationService: VAPID Public Key being used:', vapidPublicKey); // ADDED LOG
+    console.log('NotificationService: VAPID Public Key being used:', vapidPublicKey);
 
     if (!vapidPublicKey) {
       console.error('NotificationService: VAPID Public Key is not defined in environment variables.');
@@ -56,52 +57,63 @@ export const NotificationService = {
       return false;
     }
 
-    if (Notification.permission !== 'granted') {
-      console.log('NotificationService: Notification permission not granted. Skipping subscription attempt.');
-      return false; // Do not proceed if permission is not granted
-    }
-
     try {
       console.log('NotificationService: Registering service worker...');
       const registration = await navigator.serviceWorker.register('/service-worker.js');
       console.log('NotificationService: Service Worker registered:', registration);
+      console.log('NotificationService: Web Push environment is ready.');
+      return true; // Environment is ready, but not necessarily subscribed
+    } catch (err: any) {
+      console.error('NotificationService: Service Worker registration failed:', err);
+      handleError(err, 'Failed to register service worker for push notifications.');
+      return false;
+    }
+  },
 
-      // Check for existing subscription
+  async subscribeUserToPush(userId: string): Promise<boolean> {
+    console.log('NotificationService: subscribeUserToPush called for user:', userId);
+    const vapidPublicKey = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY;
+
+    if (!vapidPublicKey) {
+      console.error('NotificationService: VAPID Public Key is not defined.');
+      handleError(null, 'VAPID Public Key is missing. Cannot subscribe.');
+      return false;
+    }
+
+    if (Notification.permission !== 'granted') {
+      console.warn('NotificationService: Notification permission not granted. Cannot subscribe.');
+      handleError(null, 'Notification permission not granted. Please allow notifications to subscribe.');
+      return false;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
       let subscription = await registration.pushManager.getSubscription();
-      let isPushEnabled = !!subscription;
 
-      if (!isPushEnabled) {
-        console.log('NotificationService: No existing push subscription found. Subscribing...');
+      if (!subscription) {
+        console.log('NotificationService: No existing push subscription found. Creating new one...');
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: NotificationService.urlBase64ToUint8Array(vapidPublicKey),
         });
-        isPushEnabled = true;
         console.log('NotificationService: New push subscription created:', subscription);
       } else {
         console.log('NotificationService: Existing push subscription found:', subscription);
       }
 
-      // Update user settings in Supabase
-      console.log('NotificationService: Calling updateUserNotificationSettings...');
+      // Update user settings in Supabase with the subscription
       if (subscription) {
         await NotificationService.updateUserNotificationSettings(userId, {
           push_subscription: subscription.toJSON() as PushSubscription,
-          enabled: isPushEnabled,
+          enabled: true, // Ensure enabled is true if subscribed
         });
-      } else {
-        await NotificationService.updateUserNotificationSettings(userId, {
-          push_subscription: null,
-          enabled: false,
-        });
+        console.log('NotificationService: User notification settings updated with subscription.');
+        return true;
       }
-      console.log('NotificationService: updateUserNotificationSettings call completed.');
-
-      console.log('NotificationService: Web Push initialization successful.');
-      return true;
+      return false;
     } catch (err: any) {
-      console.error('NotificationService: Web Push initialization failed:', err);
-      handleError(err, 'Failed to initialize push notifications. Please ensure your VAPID keys are correct and try again.');
+      console.error('NotificationService: Failed to subscribe user to push notifications:', err);
+      handleError(err, 'Failed to subscribe to push notifications. Please ensure your VAPID keys are correct and try again.');
       return false;
     }
   },
