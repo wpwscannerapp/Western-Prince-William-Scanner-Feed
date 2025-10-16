@@ -208,6 +208,18 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
 
   const isFormDisabled = isSaving || isLocating || !isWebPushInitialized;
 
+  // --- DEBUG LOGS ---
+  useEffect(() => {
+    console.log('NotificationSettingsForm Debug:');
+    console.log('  isWebPushInitialized:', isWebPushInitialized);
+    console.log('  enabled (form state):', enabled);
+    console.log('  notificationPermission (browser):', notificationPermission);
+    console.log('  isSaving:', isSaving);
+    console.log('  isLocating:', isLocating);
+    console.log('  isFormDisabled (overall):', isFormDisabled);
+  }, [isWebPushInitialized, enabled, notificationPermission, isSaving, isLocating, isFormDisabled]);
+  // --- END DEBUG LOGS ---
+
   if (authLoading || isLoading) {
     return (
       <Card className="tw-bg-card tw-border-border tw-shadow-lg">
