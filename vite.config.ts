@@ -6,10 +6,10 @@ import path from "path";
 export default defineConfig(() => ({
   server: {
     host: "::",
-    port: 8080, // Required for Dyad live preview
+    // Removed port: 8080 as it's overridden by CLI and can be confusing
     strictPort: true,
     hmr: {
-      overlay: true, // Re-enabled for debugging
+      overlay: true,
     },
   },
   plugins: [dyadComponentTagger(), react()],
@@ -21,14 +21,12 @@ export default defineConfig(() => ({
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
   },
-  css: { // Added CSS preprocessor options
-    preprocessorOptions: {
-      scss: {},
-    },
+  css: { // Removed empty CSS preprocessor options
+    preprocessorOptions: {},
   },
   build: {
     rollupOptions: {
-      external: [], // Ensure OneSignal is NOT external here
+      external: [],
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
@@ -41,9 +39,7 @@ export default defineConfig(() => ({
     sourcemap: false,
   },
   optimizeDeps: {
-    // Exclude only @radix-ui/react-tooltip as it was causing specific hook errors
     exclude: ['@radix-ui/react-tooltip'],
-    // Explicitly include react and react-dom to ensure they are pre-bundled correctly
     include: [
       'react',
       'react-dom',
