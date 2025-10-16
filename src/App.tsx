@@ -16,7 +16,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from '@/components/Layout';
 import HomePage from '@/pages/HomePage';
 import IncidentsPage from '@/pages/IncidentsPage';
-// import TrafficPage from '@/pages/TrafficPage'; // Removed TrafficPage import
 import ProfilePage from '@/pages/ProfilePage';
 import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
@@ -35,7 +34,7 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const [isWebPushInitialized, setIsWebPushInitialized] = useState(false); // Renamed state
   const webPushInitAttemptedRef = useRef(false); // To prevent multiple init calls
 
-  const initializeWebPushSDK = async () => { // No userId parameter here, as ensureWebPushReady doesn't need it
+  const initializeWebPushSDK = async () => {
     if (webPushInitAttemptedRef.current) {
       console.log('App.tsx: Web Push initialization already attempted, skipping.');
       return;
@@ -113,11 +112,8 @@ const App = () => {
                     {/* No index route here, as / is handled by Index.tsx */}
                     <Route path="home" element={<HomePage />} />
                     <Route path="home/incidents" element={<IncidentsPage />} />
-                    {/* <Route path="home/traffic" element={<TrafficPage />} /> */} {/* Removed TrafficPage route */}
                     <Route path="home/contact-us" element={<ContactUsPage />} />
                     <Route path="home/archive" element={<IncidentArchivePage />} />
-                    {/* Removed the standalone notifications route as it's part of ProfilePage */}
-                    {/* <Route path="notifications" element={<NotificationSettingsPage />} */}
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="admin" element={<AdminPage />} />
                     <Route path="posts/:postId" element={<PostDetailPage />} />

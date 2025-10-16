@@ -39,7 +39,6 @@ const logSupabaseError = (functionName: string, error: any) => {
 };
 
 export const NotificationService = {
-  // Renamed from initWebPush to reflect its purpose: check readiness, not subscribe
   async ensureWebPushReady(): Promise<boolean> {
     console.log('NotificationService: ensureWebPushReady called.');
     const vapidPublicKey = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY;
@@ -70,20 +69,20 @@ export const NotificationService = {
     }
   },
 
-  async subscribeUserToPush(userId: string): Promise<boolean> {
+  async subscribeUserToPush(userId: string): Promise<PushSubscription | null> {
     console.log('NotificationService: subscribeUserToPush called for user:', userId);
     const vapidPublicKey = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY;
 
     if (!vapidPublicKey) {
       console.error('NotificationService: VAPID Public Key is not defined.');
       handleError(null, 'VAPID Public Key is missing. Cannot subscribe.');
-      return false;
+      return null;
     }
 
     if (Notification.permission !== 'granted') {
       console.warn('NotificationService: Notification permission not granted. Cannot subscribe.');
       handleError(null, 'Notification permission not granted. Please allow notifications to subscribe.');
-      return false;
+      return null;
     }
 
     try {
@@ -101,20 +100,12 @@ export const NotificationService = {
         console.log('NotificationService: Existing push subscription found:', subscription);
       }
 
-      // Update user settings in Supabase with the subscription
-      if (subscription) {
-        await NotificationService.updateUserNotificationSettings(userId, {
-          push_subscription: subscription.toJSON() as PushSubscription,
-          enabled: true, // Ensure enabled is true if subscribed
-        });
-        console.log('NotificationService: User notification settings updated with subscription.');
-        return true;
-      }
-      return false;
+      // Return the subscription object, the form will handle updating Supabase
+      return subscription.toJSON() as PushSubscription;
     } catch (err: any) {
       console.error('NotificationService: Failed to subscribe user to push notifications:', err);
       handleError(err, 'Failed to subscribe to push notifications. Please ensure your VAPID keys are correct and try again.');
-      return false;
+      return null;
     }
   },
 
@@ -132,21 +123,16 @@ export const NotificationService = {
       if (subscription) {
         await subscription.unsubscribe();
         console.log('NotificationService: Push subscription unsubscribed from browser.');
-        await NotificationService.updateUserNotificationSettings(userId, {
-          push_subscription: null,
-          enabled: false,
-        });
-        console.log('NotificationService: User notification settings updated after unsubscribe.');
-        return true;
       } else {
-        console.log('NotificationService: No active push subscription to unsubscribe.');
-        await NotificationService.updateUserNotificationSettings(userId, {
-          push_subscription: null,
-          enabled: false,
-        });
-        console.log('NotificationService: User notification settings updated (no active subscription).');
-        return true;
+        console.log('NotificationService: No active push subscription to unsubscribe in browser.');
       }
+      // Always update Supabase to nullify the subscription and disable, regardless if browser had one
+      await NotificationService.updateUserNotificationSettings(userId, {
+        push_subscription: null,
+        enabled: false,
+      });
+      console.log('NotificationService: User notification settings updated after unsubscribe.');
+      return true;
     } catch (err: any) {
       console.error('NotificationService: Failed to unsubscribe from push notifications:', err);
       handleError(err, 'Failed to unsubscribe from push notifications.');

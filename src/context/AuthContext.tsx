@@ -3,7 +3,7 @@ import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SessionService } from '@/services/SessionService';
-import { MAX_CONCURRENT_SESSIONS } from '@/config'; // Removed AUTH_INITIALIZATION_TIMEOUT as it's no longer needed for this logic
+import { MAX_CONCURRENT_SESSIONS } from '@/config';
 import { ProfileService } from '@/services/ProfileService';
 import { handleError as globalHandleError } from '@/utils/errorHandler';
 
@@ -122,7 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (currentSession) {
             await handleSessionCreation(currentSession);
           } else {
-            await handleSessionDeletion(undefined);
+            await handleSessionDeletion(user?.id); // Pass current user ID for full cleanup
           }
         }
       }
@@ -132,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthContext: Cleanup function for auth state listener. Unsubscribing.');
       subscription.unsubscribe();
     };
-  }, [handleSessionCreation, handleSessionDeletion]); // Removed handleError from dependencies as it's stable
+  }, [handleSessionCreation, handleSessionDeletion, user?.id]); // Added user?.id to dependencies
 
   const signUp = async (email: string, password: string) => {
     setError(null);
