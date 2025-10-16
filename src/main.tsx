@@ -3,6 +3,8 @@ import App from "./App.tsx";
 import "./globals.css";
 import { validateEnv, SPLASH_DURATION, POLL_INTERVAL, SUPABASE_API_TIMEOUT, MAX_CONCURRENT_SESSIONS } from './config.ts'; // Import the validation function and constants
 
+console.log('main.tsx: Application script started.'); // Added this log
+
 // Validate environment variables on app startup
 try {
   validateEnv();

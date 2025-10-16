@@ -6,7 +6,6 @@ import path from "path";
 export default defineConfig(() => ({
   server: {
     host: "::",
-    // Removed port: 8080 as it's overridden by CLI and can be confusing
     strictPort: true,
     hmr: {
       overlay: true,
@@ -21,7 +20,8 @@ export default defineConfig(() => ({
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
   },
-  css: { // Removed empty CSS preprocessor options
+  base: '/', // Explicitly set base path to root
+  css: {
     preprocessorOptions: {},
   },
   build: {
