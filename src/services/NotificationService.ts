@@ -42,6 +42,7 @@ export const NotificationService = {
   async initWebPush(userId: string): Promise<boolean> {
     console.log('NotificationService: initWebPush called for user:', userId);
     const vapidPublicKey = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY;
+    console.log('NotificationService: VAPID Public Key being used:', vapidPublicKey); // ADDED LOG
 
     if (!vapidPublicKey) {
       console.error('NotificationService: VAPID Public Key is not defined in environment variables.');
