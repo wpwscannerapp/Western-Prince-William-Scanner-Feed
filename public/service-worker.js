@@ -1,7 +1,6 @@
 const CACHE_NAME = 'wpw-scanner-feed-cache-v10'; // Incremented cache version
 const urlsToCache = [
   '/',
-  // Removed '/index.html' as '/' typically serves the main HTML in SPAs
   '/Logo.png',
   '/manifest.json',
   '/favicon.ico'
@@ -12,15 +11,24 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Service Worker: Cache opened, adding URLs to cache.');
-        return cache.addAll(urlsToCache);
+        console.log('Service Worker: Cache opened, attempting to add URLs individually.');
+        // Use Promise.all with individual cache.add to pinpoint failing URL
+        return Promise.all(
+          urlsToCache.map(url => {
+            console.log('Service Worker: Adding to cache:', url);
+            return cache.add(url).catch(error => {
+              console.error(`Service Worker: Failed to cache ${url}:`, error);
+              throw error; // Re-throw to ensure waitUntil fails if any add fails
+            });
+          })
+        );
       })
       .then(() => {
         console.log('Service Worker: All URLs added to cache. Skipping waiting.');
         self.skipWaiting(); // Activate new service worker immediately
       })
       .catch(error => {
-        console.error('Service Worker: Cache installation failed:', error); // More detailed error log
+        console.error('Service Worker: Cache installation failed overall:', error); // More detailed error log
       })
   );
 });
