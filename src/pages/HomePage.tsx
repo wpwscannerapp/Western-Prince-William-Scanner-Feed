@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'; // Import Loader2 for loading state
 // Removed unused 'Archive' and 'BellRing' imports
 
 const HomePage: React.FC = () => {
+  console.log('HomePage: Component rendering.'); // New log here
   const { isAdmin, loading: isAdminLoading } = useIsAdmin(); // Use the useIsAdmin hook
 
   if (isAdminLoading) {

@@ -30,6 +30,7 @@ export default defineConfig(() => ({
   },
   build: {
     rollupOptions: {
+      input: 'src/main.tsx', // Explicitly set the main TypeScript entry point
       external: [],
       output: {
         manualChunks: {
