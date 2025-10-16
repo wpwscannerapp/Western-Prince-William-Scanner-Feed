@@ -24,6 +24,7 @@ import ContactUsPage from '@/pages/ContactUsPage';
 import IncidentArchivePage from '@/pages/IncidentArchivePage';
 import React, { useEffect, useState, useRef } from 'react'; // Import useEffect, useState, useRef
 import { NotificationService } from './services/NotificationService'; // Import NotificationService
+import { SUPABASE_API_TIMEOUT } from './config'; // Import SUPABASE_API_TIMEOUT
 
 const queryClient = new QueryClient();
 
@@ -45,7 +46,7 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
     const timeoutPromise = new Promise<boolean>(resolve => setTimeout(() => {
       console.warn('App.tsx: Web Push initialization timed out.');
       resolve(false);
-    }, 30000)); // Increased to 30 seconds timeout to allow more time for service worker registration and subscription
+    }, SUPABASE_API_TIMEOUT + 5000)); // Set timeout to be 5 seconds longer than SUPABASE_API_TIMEOUT
 
     const success = await Promise.race([
       NotificationService.initWebPush(userId), // Call native Web Push init
