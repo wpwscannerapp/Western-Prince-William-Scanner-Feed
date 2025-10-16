@@ -62,15 +62,9 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
     if (!authLoading && user) {
       initializeWebPushSDK(user.id);
     } else if (!authLoading && !user) {
-      console.log('App.tsx: User logged out, ensuring Web Push is unsubscribed if active.');
-      // On logout, attempt to unsubscribe from push notifications
-      // Since user is null in this branch, userIdToUnsubscribe will always be 'anonymous'
-      const userIdToUnsubscribe = 'anonymous'; 
-      NotificationService.unsubscribeWebPush(userIdToUnsubscribe).then(() => {
-        console.log('App.tsx: Web Push subscription unsubscribed on logout.');
-      }).catch((err: any) => { // Explicitly type err as any
-        console.error('App.tsx: Error unsubscribing Web Push on logout:', err);
-      });
+      console.log('App.tsx: User logged out. Web Push initialization state reset.');
+      // The AuthContext already handles unsubscribing from push notifications on logout.
+      // No need to call NotificationService.unsubscribeWebPush here.
       setIsWebPushInitialized(false); // Reset state on logout
       webPushInitAttemptedRef.current = false; // Reset flag on logout
     }

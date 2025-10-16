@@ -187,21 +187,24 @@ export const NotificationService = {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
     console.log('NotificationService: Updating user notification settings for user:', userId, 'with updates:', updates);
-    console.log('NotificationService: Initiating Supabase upsert operation...'); // New log
+    console.log('NotificationService: Initiating Supabase upsert operation...');
 
     try {
+      const upsertPayload = { user_id: userId, ...updates, updated_at: new Date().toISOString() };
+      console.log('NotificationService: Upsert payload:', upsertPayload); // Log the actual payload
+
+      const startTime = Date.now(); // Start timer
       const { data, error } = await supabase
         .from('user_notification_settings')
         .upsert(
-          { user_id: userId, ...updates, updated_at: new Date().toISOString() },
+          upsertPayload,
           { onConflict: 'user_id' }
         )
         .abortSignal(controller.signal)
         .select()
         .single();
-
-      // Log after the upsert call to see if it completes
-      console.log('NotificationService: Supabase upsert operation completed.');
+      const endTime = Date.now(); // End timer
+      console.log(`NotificationService: Supabase upsert operation completed in ${endTime - startTime}ms.`); // Log duration
 
       if (error) {
         logSupabaseError('updateUserNotificationSettings', error);
