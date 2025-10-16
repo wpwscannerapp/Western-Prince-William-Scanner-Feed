@@ -16,7 +16,7 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // Add aliases for react and react-dom to ensure a single instance
+      // Aliases for react and react-dom to ensure a single instance
       "react": path.resolve(__dirname, "./node_modules/react"),
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
@@ -41,10 +41,12 @@ export default defineConfig(() => ({
     sourcemap: false,
   },
   optimizeDeps: {
-    // Exclude react and react-dom to prevent multiple React instances
-    // Also exclude @radix-ui/react-tooltip as it's causing the useRef error
-    exclude: ['react', 'react-dom', '@radix-ui/react-tooltip'],
+    // Exclude only @radix-ui/react-tooltip as it was causing specific hook errors
+    exclude: ['@radix-ui/react-tooltip'],
+    // Explicitly include react and react-dom to ensure they are pre-bundled correctly
     include: [
+      'react',
+      'react-dom',
       '@radix-ui/react-tabs',
       '@radix-ui/react-avatar',
       '@radix-ui/react-switch',
@@ -73,7 +75,6 @@ export default defineConfig(() => ({
       '@radix-ui/react-toast',
       '@radix-ui/react-toggle',
       '@radix-ui/react-toggle-group',
-      // Removed @radix-ui/react-tooltip from include as it's now in exclude
     ],
   },
 }));
