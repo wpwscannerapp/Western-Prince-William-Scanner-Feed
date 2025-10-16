@@ -44,7 +44,7 @@ export default defineConfig(() => ({
     sourcemap: false,
   },
   optimizeDeps: {
-    exclude: ['@radix-ui/react-tooltip'],
+    // Removed '@radix-ui/react-tooltip' from exclude
     include: [
       'react',
       'react-dom',
@@ -76,6 +76,8 @@ export default defineConfig(() => ({
       '@radix-ui/react-toast',
       '@radix-ui/react-toggle',
       '@radix-ui/react-toggle-group',
+      '@radix-ui/react-tooltip', // Explicitly include TooltipProvider
+      'react-beautiful-dnd', // Explicitly include react-beautiful-dnd
     ],
   },
 }));
