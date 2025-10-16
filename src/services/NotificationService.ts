@@ -187,6 +187,7 @@ export const NotificationService = {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
     console.log('NotificationService: Updating user notification settings for user:', userId, 'with updates:', updates);
+    console.log('NotificationService: Initiating Supabase upsert operation...'); // New log
 
     try {
       const { data, error } = await supabase

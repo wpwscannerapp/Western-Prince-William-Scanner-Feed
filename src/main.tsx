@@ -13,7 +13,8 @@ try {
       SUPABASE_API_TIMEOUT: SUPABASE_API_TIMEOUT,
       MAX_CONCURRENT_SESSIONS: MAX_CONCURRENT_SESSIONS,
     });
-    console.log('Raw VITE_SUPABASE_API_TIMEOUT from import.meta.env:', import.meta.env.VITE_SUPABASE_API_TIMEOUT);
+    // Explicitly log the raw environment variable as a string
+    console.log('Raw VITE_SUPABASE_API_TIMEOUT from import.meta.env:', String(import.meta.env.VITE_SUPABASE_API_TIMEOUT));
   }
 } catch (error) {
   console.error('Environment variable validation failed:', error);
