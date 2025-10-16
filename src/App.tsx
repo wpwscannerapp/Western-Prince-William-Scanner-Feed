@@ -36,6 +36,7 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const webPushInitAttemptedRef = useRef(false); // To prevent multiple init calls
 
   const initializeWebPushSDK = async () => { // No userId parameter here, as ensureWebPushReady doesn't need it
+    console.log('App.tsx: initializeWebPushSDK called. Attempted:', webPushInitAttemptedRef.current);
     if (webPushInitAttemptedRef.current) {
       console.log('App.tsx: Web Push initialization already attempted, skipping.');
       return;
@@ -43,13 +44,24 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
     webPushInitAttemptedRef.current = true;
 
     console.log('App.tsx: Attempting to ensure Web Push readiness.');
-    const success = await Promise.race([
-      NotificationService.ensureWebPushReady(),
-      new Promise<boolean>(resolve => setTimeout(() => {
-        console.warn('App.tsx: Web Push initialization timed out.');
+    let timeoutId: ReturnType<typeof setTimeout>; // Declare timeoutId
+
+    const timeoutPromise = new Promise<boolean>(resolve => {
+      timeoutId = setTimeout(() => {
+        console.warn('App.tsx: Web Push initialization timed out (from timeout promise).');
         resolve(false);
-      }, SUPABASE_API_TIMEOUT)), // Use the imported timeout constant
+      }, SUPABASE_API_TIMEOUT); // Use the imported timeout constant
+    });
+
+    const readinessPromise = NotificationService.ensureWebPushReady();
+
+    const success = await Promise.race([
+      readinessPromise,
+      timeoutPromise
     ]);
+    
+    clearTimeout(timeoutId!); // Clear the timeout if the race finishes
+    
     setIsWebPushInitialized(success);
     if (!success) {
       console.error('App.tsx: Web Push readiness check failed.');
@@ -61,6 +73,7 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     // This useEffect now only checks if the *environment* is ready for push, not if the user is subscribed.
     // It runs once when the component mounts.
+    console.log('App.tsx: useEffect for Web Push initialization triggered.');
     initializeWebPushSDK();
   }, []); // Empty dependency array to run once
 
