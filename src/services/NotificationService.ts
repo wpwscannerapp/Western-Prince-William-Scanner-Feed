@@ -55,6 +55,11 @@ export const NotificationService = {
       return false;
     }
 
+    if (Notification.permission !== 'granted') {
+      console.log('NotificationService: Notification permission not granted. Skipping subscription attempt.');
+      return false; // Do not proceed if permission is not granted
+    }
+
     try {
       console.log('NotificationService: Registering service worker...');
       const registration = await navigator.serviceWorker.register('/service-worker.js');
@@ -65,21 +70,13 @@ export const NotificationService = {
       let isPushEnabled = !!subscription;
 
       if (!isPushEnabled) {
-        console.log('NotificationService: No existing push subscription found. Requesting permission...');
-        // Request permission and subscribe
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          console.log('NotificationService: Notification permission granted. Subscribing...');
-          subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: NotificationService.urlBase64ToUint8Array(vapidPublicKey),
-          });
-          isPushEnabled = true;
-          console.log('NotificationService: New push subscription created:', subscription);
-        } else {
-          console.warn('NotificationService: Notification permission denied or dismissed.');
-          isPushEnabled = false;
-        }
+        console.log('NotificationService: No existing push subscription found. Subscribing...');
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: NotificationService.urlBase64ToUint8Array(vapidPublicKey),
+        });
+        isPushEnabled = true;
+        console.log('NotificationService: New push subscription created:', subscription);
       } else {
         console.log('NotificationService: Existing push subscription found:', subscription);
       }
@@ -103,7 +100,7 @@ export const NotificationService = {
       return true;
     } catch (err: any) {
       console.error('NotificationService: Web Push initialization failed:', err);
-      handleError(err, 'Failed to initialize push notifications.');
+      handleError(err, 'Failed to initialize push notifications. Please ensure your VAPID keys are correct and try again.');
       return false;
     }
   },

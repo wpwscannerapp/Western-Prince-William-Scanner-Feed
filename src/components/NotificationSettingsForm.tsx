@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, BellRing, MapPin, LocateFixed, CheckCircle2, XCircle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { NotificationService } from '@/services/NotificationService'; // Removed isOneSignalReady
+import { NotificationService } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
 
 const alertTypes = ['Fire', 'Police', 'Road Closure', 'Medical', 'Other'];
@@ -29,7 +29,7 @@ const notificationSettingsSchema = z.object({
 type NotificationSettingsFormValues = z.infer<typeof notificationSettingsSchema>;
 
 interface NotificationSettingsFormProps {
-  isWebPushInitialized: boolean; // Renamed prop
+  isWebPushInitialized: boolean;
 }
 
 const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isWebPushInitialized }) => {
@@ -94,7 +94,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
       handleError(null, 'You must be logged in to save settings.');
       return;
     }
-    if (!isWebPushInitialized) { // Check native Web Push initialization status
+    if (!isWebPushInitialized) {
       handleError(null, 'Web Push API not initialized. Cannot save notification settings.');
       return;
     }
@@ -104,12 +104,19 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
     try {
       let updatedSettings = null;
       if (values.enabled) {
-        // If enabling, ensure subscription is active
+        // If enabling, ensure permission is granted and then subscribe
+        if (notificationPermission !== 'granted') {
+          const permission = await Notification.requestPermission();
+          setNotificationPermission(permission);
+          if (permission !== 'granted') {
+            throw new Error('Notification permission not granted. Cannot enable push notifications.');
+          }
+        }
         const subscribed = await NotificationService.initWebPush(user.id); // This will subscribe if not already
         if (subscribed) {
           updatedSettings = await NotificationService.updateUserNotificationSettings(user.id, values);
         } else {
-          throw new Error('Failed to subscribe to push notifications.');
+          throw new Error('Failed to subscribe to push notifications. Please check VAPID keys.');
         }
       } else {
         // If disabling, unsubscribe
@@ -178,7 +185,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
       if (permission === 'granted') {
         toast.success('Notification permission granted!');
         setValue('enabled', true); // Automatically enable if permission granted
-        await NotificationService.initWebPush(user!.id); // Re-initialize/subscribe
+        // No need to call initWebPush here, it will be called on form submit if enabled is true
       } else {
         toast.info('Notification permission denied or dismissed.');
         setValue('enabled', false);
@@ -191,7 +198,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
 
   const isFormDisabled = isSaving || isLocating || !isWebPushInitialized;
 
-  if (authLoading || isLoading || !isWebPushInitialized) { // Adjusted loading condition
+  if (authLoading || isLoading || !isWebPushInitialized) {
     return (
       <Card className="tw-bg-card tw-border-border tw-shadow-lg">
         <CardContent className="tw-py-8 tw-text-center">
