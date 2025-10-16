@@ -3,7 +3,11 @@ import dyadComponentTagger from "@dyad-sh/react-vite-component-tagger";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
+console.log('vite.config.ts: Loading configuration.'); // New log to confirm config loading
+
 export default defineConfig(() => ({
+  root: '.', // Explicitly set project root
+  publicDir: 'public', // Explicitly set public directory
   server: {
     host: "::",
     strictPort: true,
