@@ -24,7 +24,7 @@ import ContactUsPage from '@/pages/ContactUsPage';
 import IncidentArchivePage from '@/pages/IncidentArchivePage';
 import React, { useEffect, useState, useRef } from 'react'; // Import useEffect, useState, useRef
 import { NotificationService } from './services/NotificationService'; // Import NotificationService
-// import { SUPABASE_API_TIMEOUT } from './config'; // Removed SUPABASE_API_TIMEOUT import as it's not used directly here anymore
+import { SUPABASE_API_TIMEOUT } from './config'; // Re-import SUPABASE_API_TIMEOUT
 
 const queryClient = new QueryClient();
 
@@ -43,8 +43,13 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
     webPushInitAttemptedRef.current = true;
 
     console.log('App.tsx: Attempting to ensure Web Push readiness.');
-    // Temporarily remove Promise.race to debug if ensureWebPushReady is truly resolving
-    const success = await NotificationService.ensureWebPushReady();
+    const success = await Promise.race([
+      NotificationService.ensureWebPushReady(),
+      new Promise<boolean>(resolve => setTimeout(() => {
+        console.warn('App.tsx: Web Push initialization timed out.');
+        resolve(false);
+      }, SUPABASE_API_TIMEOUT)), // Use the imported timeout constant
+    ]);
     setIsWebPushInitialized(success);
     if (!success) {
       console.error('App.tsx: Web Push readiness check failed.');

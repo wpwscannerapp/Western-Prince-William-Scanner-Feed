@@ -41,7 +41,9 @@ export default defineConfig(() => ({
     sourcemap: false,
   },
   optimizeDeps: {
-    // Remove onesignal-web-sdk from include as it's now loaded globally via script tag
+    // Exclude react and react-dom to prevent multiple React instances
+    // Also exclude @radix-ui/react-tooltip as it's causing the useRef error
+    exclude: ['react', 'react-dom', '@radix-ui/react-tooltip'],
     include: [
       '@radix-ui/react-tabs',
       '@radix-ui/react-avatar',
@@ -71,8 +73,7 @@ export default defineConfig(() => ({
       '@radix-ui/react-toast',
       '@radix-ui/react-toggle',
       '@radix-ui/react-toggle-group',
-      '@radix-ui/react-tooltip',
+      // Removed @radix-ui/react-tooltip from include as it's now in exclude
     ],
-    exclude: [],
   },
 }));
