@@ -1,7 +1,3 @@
-// This file will be populated by running:
-// npx supabase gen types typescript --project-id wvvxkwvliogulfqmkaqb --schema public > src/types/supabase.ts
-
-// Placeholder for now.
 export type Json =
   | string
   | number
@@ -254,7 +250,15 @@ export type Database = {
           text?: string
           timestamp?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "posts_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -342,7 +346,7 @@ export type Database = {
             foreignKeyName: "user_notification_settings_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
-            referencedRelation: "profiles"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -374,7 +378,7 @@ export type Database = {
             foreignKeyName: "user_sessions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -386,11 +390,11 @@ export type Database = {
     Functions: {
       handle_new_user: {
         Args: Record<PropertyKey, never>
-        Returns: string
+        Returns: unknown
       }
       notify_onesignal_on_new_alert: {
         Args: Record<PropertyKey, never>
-        Returns: string
+        Returns: unknown
       }
     }
     Enums: {
@@ -447,8 +451,8 @@ export type TablesInsert<
         Insert: infer I
       }
       ? I
+      : never
     : never
-  : never
 
 export type TablesUpdate<
   PublicTableNameOrOptions extends
@@ -468,8 +472,8 @@ export type TablesUpdate<
         Update: infer U
       }
       ? U
+      : never
     : never
-  : never
 
 export type Enums<
   PublicEnumNameOrOptions extends
