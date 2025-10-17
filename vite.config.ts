@@ -16,6 +16,8 @@ export default defineConfig({
     hmr: {
       clientPort: 32100, // Re-added to match previous state
       overlay: true, // Keep the error overlay for development
+      protocol: 'ws', // Explicitly set WebSocket protocol
+      host: 'localhost', // Explicitly set WebSocket host
     },
   },
   build: {
