@@ -5,9 +5,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Log the actual values for debugging
 console.log('Supabase Client Debug: VITE_SUPABASE_URL value:', supabaseUrl);
-if (import.meta.env.DEV) { // Only log anon key in development
-  console.log('Supabase Client Debug: VITE_SUPABASE_ANON_KEY value:', supabaseAnonKey);
-}
+console.log('Supabase Client Debug: VITE_SUPABASE_ANON_KEY value:', supabaseAnonKey); // Always log for debugging
 
 if (!supabaseUrl) {
   throw new Error('VITE_SUPABASE_URL is not defined in environment variables. Please check your .env file.');
@@ -29,3 +27,12 @@ if (!supabaseAnonKey.startsWith('eyJ')) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 console.log('Supabase Client Debug: Client created successfully.');
+
+// Explicitly test the Supabase connection
+supabase.auth.getSession().then(({ error }) => {
+  if (error) {
+    console.error('Supabase Client Debug: Initial session fetch failed:', error);
+  } else {
+    console.log('Supabase Client Debug: Initial session fetch successful.');
+  }
+});

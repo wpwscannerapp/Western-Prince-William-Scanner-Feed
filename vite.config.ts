@@ -12,8 +12,10 @@ export default defineConfig(() => ({
   server: {
     host: "::",
     strictPort: true,
+    port: 32100, // Explicitly set server port to 32100 to match Dyad proxy
     hmr: {
       overlay: true,
+      clientPort: 32100, // Ensure HMR client connects to the correct port
     },
   },
   plugins: [dyadComponentTagger(), react()],
@@ -45,7 +47,6 @@ export default defineConfig(() => ({
     sourcemap: false,
   },
   optimizeDeps: {
-    // Removed '@radix-ui/react-tooltip' from exclude
     include: [
       'react',
       'react-dom',
@@ -74,11 +75,15 @@ export default defineConfig(() => ({
       '@radix-ui/react-slider',
       '@radix-ui/react-slot',
       '@radix-ui/react-switch',
+      '@radix-ui/react-tabs',
       '@radix-ui/react-toast',
       '@radix-ui/react-toggle',
       '@radix-ui/react-toggle-group',
-      '@radix-ui/react-tooltip', // Explicitly include TooltipProvider
-      'react-beautiful-dnd', // Explicitly include react-beautiful-dnd
+      '@radix-ui/react-tooltip',
+      'react-beautiful-dnd',
+      'react-color', // Explicitly include react-color
+      '@tanstack/react-query', // Explicitly include react-query
+      'sonner', // Explicitly include sonner
     ],
   },
 }));
