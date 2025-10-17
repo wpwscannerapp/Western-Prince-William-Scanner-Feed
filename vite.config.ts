@@ -11,7 +11,7 @@ export default defineConfig({
   },
   server: {
     port: 32100, // Matches Dyad proxy
-    host: '0.0.0.0',  // Listen on all network interfaces for better compatibility
+    host: 'localhost',  // Listen only on localhost for simpler resolution
     strictPort: true, // Ensure Vite uses this exact port
     hmr: {
       overlay: true, // Keep the error overlay for development
