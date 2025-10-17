@@ -34,7 +34,7 @@ export default defineConfig(() => ({
   build: {
     rollupOptions: {
       input: 'src/main.tsx', // Explicitly set the main TypeScript entry point
-      external: [],
+      external: ['react', 'react-dom'], // Explicitly externalize react and react-dom
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
@@ -80,7 +80,7 @@ export default defineConfig(() => ({
       '@radix-ui/react-toggle',
       '@radix-ui/react-toggle-group',
       '@radix-ui/react-tooltip',
-      'react-beautiful-dnd',
+      // 'react-beautiful-dnd', // Removed as it's commented out in LayoutEditor
       'react-color', // Explicitly include react-color
       '@tanstack/react-query', // Explicitly include react-query
       'sonner', // Explicitly include sonner
