@@ -20,7 +20,7 @@ const logSupabaseError = (functionName: string, error: any) => {
 export const PostService = {
   POSTS_PER_PAGE,
 
-  async fetchPosts(page: number = 0): Promise<Post[]> {
+  async fetchPosts(offset: number = 0, limit: number = POSTS_PER_PAGE): Promise<Post[]> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -30,7 +30,7 @@ export const PostService = {
         .select('*')
         .abortSignal(controller.signal)
         .order('timestamp', { ascending: false })
-        .range(page * POSTS_PER_PAGE, (page + 1) * POSTS_PER_PAGE - 1);
+        .range(offset, offset + limit - 1); // Use offset and limit
 
       if (error) {
         logSupabaseError('fetchPosts', error);

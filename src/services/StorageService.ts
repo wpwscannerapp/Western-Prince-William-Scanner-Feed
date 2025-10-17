@@ -1,20 +1,98 @@
-import { supabase } from '@/integrations/supabase/client'; // Updated import path
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const POST_IMAGES_BUCKET = 'post_images'; // Name of your Supabase Storage bucket
+const MAX_IMAGE_SIZE_MB = 2; // Max file size in MB
+const MAX_IMAGE_DIMENSION = 1200; // Max width/height for resized images
+const JPEG_QUALITY = 0.8; // JPEG compression quality
 
 export const StorageService = {
+  async resizeAndCompressImage(file: File): Promise<File | null> {
+    return new Promise((resolve) => {
+      if (file.size / (1024 * 1024) > MAX_IMAGE_SIZE_MB) {
+        toast.error(`Image size exceeds ${MAX_IMAGE_SIZE_MB}MB. Please upload a smaller image.`);
+        resolve(null);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Calculate new dimensions to fit within MAX_IMAGE_DIMENSION
+          if (width > height) {
+            if (width > MAX_IMAGE_DIMENSION) {
+              height *= MAX_IMAGE_DIMENSION / width;
+              width = MAX_IMAGE_DIMENSION;
+            }
+          } else {
+            if (height > MAX_IMAGE_DIMENSION) {
+              width *= MAX_IMAGE_DIMENSION / height;
+              height = MAX_IMAGE_DIMENSION;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  const resizedFile = new File([blob], file.name, {
+                    type: 'image/jpeg', // Force JPEG for compression
+                    lastModified: Date.now(),
+                  });
+                  resolve(resizedFile);
+                } else {
+                  toast.error('Failed to compress image.');
+                  resolve(null);
+                }
+              },
+              'image/jpeg',
+              JPEG_QUALITY
+            );
+          } else {
+            toast.error('Failed to get canvas context.');
+            resolve(null);
+          }
+        };
+        img.onerror = (err) => {
+          console.error('Error loading image for resizing:', err);
+          toast.error('Failed to load image for processing.');
+          resolve(null);
+        };
+      };
+      reader.onerror = (err) => {
+        console.error('Error reading file for resizing:', err);
+        toast.error('Failed to read image file.');
+        resolve(null);
+      };
+    });
+  },
+
   async uploadImage(file: File): Promise<string | null> {
     if (!file) return null;
 
-    const fileExtension = file.name.split('.').pop();
+    const processedFile = await this.resizeAndCompressImage(file);
+    if (!processedFile) return null;
+
+    const fileExtension = processedFile.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExtension}`;
     const filePath = `${fileName}`;
 
     try {
       const { data: _data, error } = await supabase.storage
         .from(POST_IMAGES_BUCKET)
-        .upload(filePath, file, {
+        .upload(filePath, processedFile, {
           cacheControl: '3600',
           upsert: false,
         });

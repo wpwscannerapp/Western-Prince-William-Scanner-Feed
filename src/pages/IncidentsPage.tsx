@@ -11,96 +11,80 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useIsSubscribed } from '@/hooks/useIsSubscribed';
 import { handleError } from '@/utils/errorHandler';
-// Removed: import { POLL_INTERVAL } from '@/config'; // Still imported for reference, but not used for polling
-import SkeletonLoader from '@/components/SkeletonLoader';
+// Removed unused import: import SkeletonLoader from '@/components/SkeletonLoader';
 import { useNavigate } from 'react-router-dom';
+import { useInfiniteQuery, useQueryClient, InfiniteData } from '@tanstack/react-query'; // Import InfiniteData
 
 const IncidentsPage: React.FC = () => {
   const { user } = useAuth();
   const { isAdmin, loading: isAdminLoading } = useIsAdmin();
   const { isSubscribed, loading: isSubscribedLoading } = useIsSubscribed();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [page, setPage] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
   const [postFormLoading, setPostFormLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient(); // Initialize queryClient
   const observer = useRef<IntersectionObserver | null>(null);
   const navigate = useNavigate();
 
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+    error,
+    refetch, // Add refetch from useInfiniteQuery
+  } = useInfiniteQuery<Post[], Error>({
+    queryKey: ['posts'],
+    queryFn: async ({ pageParam = 0 }) => {
+      // Cast pageParam to number
+      const fetchedPosts = await PostService.fetchPosts(pageParam as number, PostService.POSTS_PER_PAGE);
+      return fetchedPosts;
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < PostService.POSTS_PER_PAGE) {
+        return undefined; // No more pages
+      }
+      return allPages.flat().length; // Offset for the next page
+    },
+    staleTime: 1000 * 60, // Cache for 1 minute
+    initialPageParam: 0,
+  });
+
+  const posts = data?.pages.flat() || [];
+
   const lastPostRef = useCallback(
     (node: HTMLDivElement) => {
-      if (loading || !hasMore) return;
+      if (isLoading || isFetchingNextPage || !hasNextPage) return;
       if (observer.current) observer.current.disconnect();
       observer.current = new IntersectionObserver(
         entries => {
-          if (entries[0].isIntersecting && hasMore) {
-            setTimeout(() => setPage(prev => prev + 1), 300);
+          if (entries[0].isIntersecting && hasNextPage) {
+            fetchNextPage();
           }
         },
         { threshold: 0.1 }
       );
       if (node) observer.current.observe(node);
     },
-    [loading, hasMore]
+    [isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]
   );
-
-  useEffect(() => {
-    const fetchInitialPosts = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const initialPosts = await PostService.fetchPosts(0);
-        setPosts(initialPosts);
-        setHasMore(initialPosts.length === PostService.POSTS_PER_PAGE);
-      } catch (err) {
-        setError(handleError(err, 'Failed to load incidents. Please try again.'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchInitialPosts();
-  }, []);
-
-  useEffect(() => {
-    const fetchMorePosts = async () => {
-      if (page === 0) return;
-      setLoading(true);
-      setError(null);
-      try {
-        const newPosts = await PostService.fetchPosts(page);
-        if (newPosts.length === 0) {
-          setHasMore(false);
-        } else {
-          setPosts(prevPosts => [...prevPosts, ...newPosts]);
-        }
-      } catch (err) {
-        setError(handleError(err, 'Failed to load more incidents. Please try again.'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (page > 0) {
-      fetchMorePosts();
-    }
-  }, [page]);
-
-  // Removed the polling mechanism as real-time subscriptions are used
-  // const fetchNewPosts = useCallback(async () => { /* ... */ }, [posts]);
-  // useEffect(() => { /* ... */ }, [fetchNewPosts, isSubscribed, isAdmin]);
 
   useEffect(() => {
     const channel = supabase
       .channel('public:posts')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, (payload) => {
         const newPost = payload.new as Post;
-        setPosts(prevPosts => {
-          if (prevPosts.some(p => p.id === newPost.id)) return prevPosts;
+        // Type oldData as InfiniteData<Post[]>
+        queryClient.setQueryData<InfiniteData<Post[]>>(['posts'], (oldData) => {
+          if (!oldData) return { pages: [[newPost]], pageParams: [0] };
+          const firstPage = oldData.pages[0];
+          if (firstPage.some((p: Post) => p.id === newPost.id)) return oldData; // Prevent duplicates
           setNewPostsAvailable(true);
-          return [newPost, ...prevPosts];
+          return {
+            ...oldData,
+            pages: [[newPost, ...firstPage], ...oldData.pages.slice(1)],
+          };
         });
       })
       .subscribe();
@@ -108,7 +92,7 @@ const IncidentsPage: React.FC = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [queryClient]);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -128,6 +112,7 @@ const IncidentsPage: React.FC = () => {
       
       if (newPost) {
         toast.success('Post created successfully!', { id: 'create-post' });
+        queryClient.invalidateQueries({ queryKey: ['posts'] }); // Invalidate to refetch and show new post
         return true;
       } else {
         handleError(null, 'Failed to create post.');
@@ -142,13 +127,10 @@ const IncidentsPage: React.FC = () => {
   };
 
   const handleRetry = () => {
-    setError(null);
-    setPage(0);
-    setPosts([]);
-    setHasMore(true);
+    refetch(); // Refetch all pages on retry
   };
 
-  if (isAdminLoading || isSubscribedLoading) {
+  if (isAdminLoading || isSubscribedLoading || isLoading) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
         <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
@@ -157,10 +139,10 @@ const IncidentsPage: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-12">
-        <p className="tw-text-destructive tw-mb-4">Error: {error}</p>
+        <p className="tw-text-destructive tw-mb-4">Error: {error?.message || 'An unexpected error occurred.'}</p>
         <Button onClick={handleRetry}>Retry</Button>
       </div>
     );
@@ -188,7 +170,7 @@ const IncidentsPage: React.FC = () => {
 
       <div className={`tw-space-y-6 ${!isSubscribed && !isAdmin ? 'tw-relative' : ''}`} aria-live="polite">
         <div className={!isSubscribed && !isAdmin ? 'tw-blur-sm tw-pointer-events-none' : ''}>
-          {posts.length === 0 && !loading && (
+          {posts.length === 0 && !isLoading && (
             <div className="tw-text-center tw-py-12 tw-col-span-full">
               <MessageCircle className="tw-h-12 tw-w-12 tw-text-muted-foreground tw-mx-auto tw-mb-4" aria-hidden="true" />
               <p className="tw-text-muted-foreground tw-mb-4 tw-text-lg">No incidents available yet. Check back soon!</p>
@@ -200,24 +182,20 @@ const IncidentsPage: React.FC = () => {
             </div>
           )}
           
-          {loading && posts.length === 0 && (
-            <SkeletonLoader count={3} className="tw-col-span-full" />
-          )}
-
           {posts.map((post, index) => (
             <div key={post.id} ref={index === posts.length - 1 ? lastPostRef : null} className="tw-transition tw-duration-300 hover:tw-shadow-lg">
               <PostCard post={post} />
             </div>
           ))}
           
-          {loading && posts.length > 0 && (
+          {isFetchingNextPage && (
             <div className="tw-flex tw-justify-center tw-items-center tw-py-8 tw-gap-2 tw-text-muted-foreground tw-col-span-full">
               <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
               <span>Loading more incidents...</span>
             </div>
           )}
           
-          {!hasMore && !loading && posts.length > 0 && (
+          {!hasNextPage && !isLoading && posts.length > 0 && (
             <p className="tw-text-center tw-text-muted-foreground tw-py-4 tw-col-span-full">You've reached the end of the feed.</p>
           )}
         </div>

@@ -49,6 +49,37 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
+    // --- Idempotency Check ---
+    const eventId = event.id;
+    const { data: existingEvent, error: fetchEventError } = await supabaseAdmin
+      .from('webhook_events')
+      .select('id')
+      .eq('event_id', eventId)
+      .single();
+
+    if (fetchEventError && fetchEventError.code !== 'PGRST116') { // PGRST116 means no rows found
+      console.error('Error checking for existing webhook event:', fetchEventError);
+      return new Response(JSON.stringify({ error: fetchEventError.message }), { status: 500 });
+    }
+
+    if (existingEvent) {
+      console.log(`Webhook event ${eventId} already processed. Skipping.`);
+      return new Response(JSON.stringify({ received: true, message: 'Event already processed' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Record the event before processing to prevent duplicates on retry
+    const { error: insertEventError } = await supabaseAdmin
+      .from('webhook_events')
+      .insert({ event_id: eventId, payload: event as any }); // Store the full event object
+
+    if (insertEventError) {
+      console.error('Error inserting webhook event for idempotency:', insertEventError);
+      return new Response(JSON.stringify({ error: insertEventError.message }), { status: 500 });
+    }
+    // --- End Idempotency Check ---
+
     switch (event.type) {
       case 'checkout.session.completed':
         const checkoutSession = event.data.object as Stripe.Checkout.Session;
