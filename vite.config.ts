@@ -16,7 +16,7 @@ export default defineConfig({
     hmr: {
       overlay: true, // Keep the error overlay for development
       port: 32100, // Explicitly set HMR port to match server port
-      host: '0.0.0.0', // Explicitly set HMR host to 0.0.0.0
+      host: 'localhost', // Explicitly set HMR host for client connection
     },
   },
   build: {
