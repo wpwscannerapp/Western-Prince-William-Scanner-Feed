@@ -8,6 +8,7 @@ console.log('vite.config.ts: Loading configuration.'); // New log to confirm con
 export default defineConfig(() => ({
   root: '.', // Explicitly set project root
   publicDir: 'public', // Explicitly set public directory
+  envDir: process.cwd(), // Explicitly set environment variable directory to current working directory
   server: {
     host: "::",
     strictPort: true,

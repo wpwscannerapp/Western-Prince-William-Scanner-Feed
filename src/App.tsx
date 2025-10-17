@@ -35,6 +35,9 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const [isWebPushInitialized, setIsWebPushInitialized] = useState(false); // Renamed state
   const webPushInitAttemptedRef = useRef(false); // To prevent multiple init calls
 
+  // Add this console log to check the env var directly in App.tsx
+  console.log('App.tsx: VITE_SUPABASE_ANON_KEY at runtime:', import.meta.env.VITE_SUPABASE_ANON_KEY);
+
   const initializeWebPushSDK = async () => { // No userId parameter here, as ensureWebPushReady doesn't need it
     console.log('App.tsx: initializeWebPushSDK called. Attempted:', webPushInitAttemptedRef.current);
     if (webPushInitAttemptedRef.current) {
