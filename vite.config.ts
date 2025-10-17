@@ -48,9 +48,8 @@ export default defineConfig(() => ({
     sourcemap: false,
   },
   optimizeDeps: {
+    // Removed 'react' and 'react-dom' from include to prevent potential conflicts
     include: [
-      'react',
-      'react-dom',
       '@radix-ui/react-tabs',
       '@radix-ui/react-avatar',
       '@radix-ui/react-switch',
