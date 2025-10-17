@@ -9,19 +9,11 @@
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black" />
         <meta name="theme-color" content="#000000" />
-        <!-- OneSignal SDK: Use window.OneSignalDeferred for robust loading -->
-        <script>
-          window.OneSignalDeferred = window.OneSignalDeferred || [];
-          console.log('index.html: OneSignalDeferred array initialized.'); // Added log
-        </script>
-        <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-        <script>
-          console.log('index.html: OneSignalSDK.page.js script tag processed.'); // Added log
-        </script>
+        <!-- OneSignal SDK: Removed to prevent conflicts with custom service worker -->
       </head>
 
       <body>
         <div id="root"></div>
-        <script type="module" src="/src/main.tsx"></script>
+        <!-- Vite will inject the correct script tag for the bundled app here during build -->
       </body>
     </html>
