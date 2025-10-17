@@ -3,7 +3,7 @@ import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SessionService } from '@/services/SessionService';
-import { MAX_CONCURRENT_SESSIONS } from '@/config';
+import { MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT } from '@/config'; // Import AUTH_INITIALIZATION_TIMEOUT
 import { ProfileService } from '@/services/ProfileService';
 import { handleError as globalHandleError } from '@/utils/errorHandler';
 
@@ -27,6 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<AuthError | null>(null);
   const isMountedRef = useRef(true);
   const mountCountRef = useRef(0);
+  const authTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref for the timeout
 
   useEffect(() => {
     mountCountRef.current += 1;
@@ -34,6 +35,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       isMountedRef.current = false;
       console.log(`AuthContext: Unmounting AuthProvider (mount count: ${mountCountRef.current})`);
+      if (authTimeoutRef.current) {
+        clearTimeout(authTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -111,10 +115,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('AuthContext: useEffect for onAuthStateChange listener triggered.');
 
+    // Set a timeout for initial authentication loading
+    authTimeoutRef.current = setTimeout(() => {
+      if (loading && isMountedRef.current) {
+        console.warn(`AuthContext: Authentication initialization timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms. Setting loading to false.`);
+        setLoading(false);
+        setError(new AuthError('Authentication initialization timed out. Please check your network connection or try again.'));
+      }
+    }, AUTH_INITIALIZATION_TIMEOUT);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
         console.log(`AuthContext: onAuthStateChange callback fired. Event: ${_event}, Session: ${currentSession ? 'present' : 'null'}`);
         
+        // Clear the timeout if the auth state changes
+        if (authTimeoutRef.current) {
+          clearTimeout(authTimeoutRef.current);
+          authTimeoutRef.current = null;
+        }
+
         // Capture the user ID before state updates if it's a SIGNED_OUT event
         const userIdBeforeSignOut = user?.id;
 
@@ -141,6 +160,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       console.log('AuthContext: Cleanup function for auth state listener. Unsubscribing.');
       subscription.unsubscribe();
+      if (authTimeoutRef.current) {
+        clearTimeout(authTimeoutRef.current);
+        authTimeoutRef.current = null;
+      }
     };
   }, [handleSessionCreation, handleSessionDeletion, user]); // Issue 5: Include user in dependencies
 

@@ -3,6 +3,7 @@ export const SPLASH_DURATION = parseInt(import.meta.env.VITE_SPLASH_DURATION as 
 export const POLL_INTERVAL = parseInt(import.meta.env.VITE_POLL_INTERVAL as string, 10) || 30000;
 export const SUPABASE_API_TIMEOUT = parseInt(import.meta.env.VITE_SUPABASE_API_TIMEOUT as string, 10) || 45000; // Increased to 45 seconds
 export const MAX_CONCURRENT_SESSIONS = parseInt(import.meta.env.VITE_MAX_CONCURRENT_SESSIONS as string, 10) || 3;
+export const AUTH_INITIALIZATION_TIMEOUT = parseInt(import.meta.env.VITE_AUTH_INITIALIZATION_TIMEOUT as string, 10) || 20000; // New: Timeout for auth initialization
 
 export const validateEnv = () => {
   const requiredEnvVars = [
@@ -14,8 +15,8 @@ export const validateEnv = () => {
     'VITE_STRIPE_MONTHLY_PRICE_ID',
     'VITE_APP_URL',
     'VITE_MAX_CONCURRENT_SESSIONS',
-    // 'VITE_TOMTOM_API_KEY', // Removed TomTom API key
     'VITE_WEB_PUSH_PUBLIC_KEY', // VAPID Public Key
+    'VITE_AUTH_INITIALIZATION_TIMEOUT', // New: Auth initialization timeout
   ];
 
   requiredEnvVars.forEach(varName => {
