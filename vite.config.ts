@@ -14,7 +14,7 @@ export default defineConfig({
     host: true,  // Allows external access
     strictPort: true, // Ensure Vite uses this exact port
     hmr: {
-      // clientPort: 32100, // Removed to let Vite infer automatically
+      clientPort: 32100, // Re-added to match previous state
       overlay: true, // Keep the error overlay for development
     },
   },
