@@ -23,6 +23,7 @@ export default defineConfig(() => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       // Aliases for react and react-dom to ensure a single instance
+      // These are already present, but we'll ensure they are strictly used.
       "react": path.resolve(__dirname, "./node_modules/react"),
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
@@ -49,6 +50,8 @@ export default defineConfig(() => ({
   },
   optimizeDeps: {
     // Removed 'react' and 'react-dom' from include to prevent potential conflicts
+    // Add 'react' and 'react-dom' to exclude to prevent Vite from pre-bundling them
+    exclude: ['react', 'react-dom'],
     include: [
       '@radix-ui/react-tabs',
       '@radix-ui/react-avatar',
