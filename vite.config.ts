@@ -22,9 +22,7 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // Explicitly alias react and react-dom to their ES Module entry points
-      "react": path.resolve(__dirname, "./node_modules/react/index.js"),
-      "react-dom": path.resolve(__dirname, "./node_modules/react-dom/index.js"),
+      // Removed explicit aliases for 'react' and 'react-dom' to allow default resolution
     },
   },
   base: '/', // Explicitly set base path to root
@@ -34,7 +32,6 @@ export default defineConfig(() => ({
   build: {
     rollupOptions: {
       input: 'src/main.tsx', // Explicitly set the main TypeScript entry point
-      // Removed 'react' and 'react-dom' from external to allow bundling
       output: {
         manualChunks: {
           vendor: ['react-router-dom'], 
@@ -47,7 +44,6 @@ export default defineConfig(() => ({
     sourcemap: false,
   },
   optimizeDeps: {
-    // Removed 'react' and 'react-dom' from exclude to allow pre-bundling
     include: [
       '@radix-ui/react-tabs',
       '@radix-ui/react-avatar',
