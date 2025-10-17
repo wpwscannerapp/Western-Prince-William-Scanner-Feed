@@ -22,10 +22,9 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // Aliases for react and react-dom to ensure a single instance
-      // These are already present, but we'll ensure they are strictly used.
-      "react": path.resolve(__dirname, "./node_modules/react"),
-      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
+      // Explicitly alias react and react-dom to their ES Module entry points
+      "react": path.resolve(__dirname, "./node_modules/react/index.js"),
+      "react-dom": path.resolve(__dirname, "./node_modules/react-dom/index.js"),
     },
   },
   base: '/', // Explicitly set base path to root
