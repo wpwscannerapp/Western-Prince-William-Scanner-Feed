@@ -18,7 +18,7 @@ export default defineConfig(() => ({
       clientPort: 32100, // Ensure HMR client connects to the correct port
     },
   },
-  plugins: [dyadComponentTagger(), react()],
+  plugins: [dyadComponentTagger(), react()], // Keep react plugin simple
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -45,6 +45,8 @@ export default defineConfig(() => ({
   },
   optimizeDeps: {
     include: [
+      // Removed 'react', 'react-dom', and 'react/jsx-dev-runtime' from explicit include
+      // to let the React plugin handle them automatically.
       '@radix-ui/react-tabs',
       '@radix-ui/react-avatar',
       '@radix-ui/react-switch',
