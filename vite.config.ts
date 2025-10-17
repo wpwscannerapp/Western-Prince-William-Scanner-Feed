@@ -1,85 +1,38 @@
 import { defineConfig } from "vite";
-import dyadComponentTagger from "@dyad-sh/react-vite-component-tagger";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react-swc"; // Using the SWC variant of the React plugin
 import path from "path";
 
-console.log('vite.config.ts: Loading configuration.'); // New log to confirm config loading
-
-export default defineConfig(() => ({
-  root: '.', // Explicitly set project root
-  publicDir: 'public', // Explicitly set public directory
-  envDir: process.cwd(), // Explicitly set environment variable directory to current working directory
+export default defineConfig({
+  root: '.',
+  publicDir: 'public',
+  envDir: process.cwd(),
   server: {
-    host: "::",
+    host: true, // Allow external access
     strictPort: true,
-    port: 32100, // Explicitly set server port to 32100 to match Dyad proxy
+    port: 32100, // Keep port 32100 to match Dyad proxy
     hmr: {
       overlay: true,
-      clientPort: 32100, // Ensure HMR client connects to the correct port
+      clientPort: 32100,
     },
   },
-  plugins: [dyadComponentTagger(), react()], // Keep react plugin simple
+  plugins: [react()], // Let the React plugin handle JSX runtime automatically
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // Removed explicit aliases for 'react' and 'react-dom' to allow default resolution
     },
   },
-  base: '/', // Explicitly set base path to root
-  css: {
-    preprocessorOptions: {},
-  },
+  base: '/',
   build: {
-    rollupOptions: {
-      input: 'src/main.tsx', // Explicitly set the main TypeScript entry point
-      output: {
-        manualChunks: {
-          vendor: ['react-router-dom'], 
-          supabase: ['@supabase/supabase-js'],
-          ui: ['@radix-ui/react-accordion', '@radix-ui/react-alert-dialog', '@radix-ui/react-aspect-ratio', '@radix-ui/react-avatar', '@radix-ui/react-checkbox', '@radix-ui/react-collapsible', '@radix-ui/react-context-menu', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-hover-card', '@radix-ui/react-label', '@radix-ui/react-menubar', '@radix-ui/react-navigation-menu', '@radix-ui/react-popover', '@radix-ui/react-progress', '@radix-ui/react-radio-group', '@radix-ui/react-scroll-area', '@radix-ui/react-select', '@radix-ui/react-separator', '@radix-ui/react-slider', '@radix-ui/react-slot', '@radix-ui/react-switch', '@radix-ui/react-tabs', '@radix-ui/react-toast', '@radix-ui/react-toggle', '@radix-ui/react-toggle-group', '@radix-ui/react-tooltip'],
-        },
-      },
-    },
-    minify: true,
-    sourcemap: false,
+    outDir: 'dist', // Explicitly set output directory
+    sourcemap: true, // Enable sourcemaps for debugging
+    // Removed rollupOptions for manualChunks to simplify configuration
+    // Vite will handle chunking by default, or it can be re-added if specific needs arise.
   },
   optimizeDeps: {
-    include: [
-      // Removed 'react', 'react-dom', and 'react/jsx-dev-runtime' from explicit include
-      // to let the React plugin handle them automatically.
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-avatar',
-      '@radix-ui/react-switch',
-      '@radix-ui/react-accordion',
-      '@radix-ui/react-alert-dialog',
-      '@radix-ui/react-aspect-ratio',
-      '@radix-ui/react-avatar',
-      '@radix-ui/react-checkbox',
-      '@radix-ui/react-collapsible',
-      '@radix-ui/react-context-menu',
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-hover-card',
-      '@radix-ui/react-label',
-      '@radix-ui/react-menubar',
-      '@radix-ui/react-navigation-menu',
-      '@radix-ui/react-popover',
-      '@radix-ui/react-progress',
-      '@radix-ui/react-radio-group',
-      '@radix-ui/react-scroll-area',
-      '@radix-ui/react-select',
-      '@radix-ui/react-separator',
-      '@radix-ui/react-slider',
-      '@radix-ui/react-slot',
-      '@radix-ui/react-switch',
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-toast',
-      '@radix-ui/react-toggle',
-      '@radix-ui/react-toggle-group',
-      '@radix-ui/react-tooltip',
-      'react-color', // Explicitly include react-color
-      '@tanstack/react-query', // Explicitly include react-query
-      'sonner', // Explicitly include sonner
-    ],
+    // Removed explicit includes for Radix UI components, react-color, react-query, sonner.
+    // Vite's dependency pre-bundling should handle these automatically.
+    // If issues arise, specific dependencies can be re-added to 'include'.
+    exclude: [], // Keep exclude empty unless specific conflicts are identified
   },
-}));
+  // Removed css.preprocessorOptions as it's not needed for this project
+});
