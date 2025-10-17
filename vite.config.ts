@@ -37,7 +37,8 @@ export default defineConfig(() => ({
       external: ['react', 'react-dom'], // Explicitly externalize react and react-dom
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
+          // Removed 'react' and 'react-dom' from here as they are externalized
+          vendor: ['react-router-dom'], 
           supabase: ['@supabase/supabase-js'],
           ui: ['@radix-ui/react-accordion', '@radix-ui/react-alert-dialog', '@radix-ui/react-aspect-ratio', '@radix-ui/react-avatar', '@radix-ui/react-checkbox', '@radix-ui/react-collapsible', '@radix-ui/react-context-menu', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-hover-card', '@radix-ui/react-label', '@radix-ui/react-menubar', '@radix-ui/react-navigation-menu', '@radix-ui/react-popover', '@radix-ui/react-progress', '@radix-ui/react-radio-group', '@radix-ui/react-scroll-area', '@radix-ui/react-select', '@radix-ui/react-separator', '@radix-ui/react-slider', '@radix-ui/react-slot', '@radix-ui/react-switch', '@radix-ui/react-tabs', '@radix-ui/react-toast', '@radix-ui/react-toggle', '@radix-ui/react-toggle-group', '@radix-ui/react-tooltip'],
         },
@@ -80,7 +81,6 @@ export default defineConfig(() => ({
       '@radix-ui/react-toggle',
       '@radix-ui/react-toggle-group',
       '@radix-ui/react-tooltip',
-      // 'react-beautiful-dnd', // Removed as it's commented out in LayoutEditor
       'react-color', // Explicitly include react-color
       '@tanstack/react-query', // Explicitly include react-query
       'sonner', // Explicitly include sonner
