@@ -14,8 +14,9 @@ export default defineConfig({
     host: '0.0.0.0',  // Listen on all network interfaces for better compatibility
     strictPort: true, // Ensure Vite uses this exact port
     hmr: {
-      // Removed clientPort, protocol, and host to let Vite infer automatically
       overlay: true, // Keep the error overlay for development
+      port: 32100, // Explicitly set HMR port to match server port
+      host: '0.0.0.0', // Explicitly set HMR host to 0.0.0.0
     },
   },
   build: {
