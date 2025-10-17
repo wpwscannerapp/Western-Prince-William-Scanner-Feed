@@ -11,13 +11,11 @@ export default defineConfig({
   },
   server: {
     port: 32100, // Matches Dyad proxy
-    host: true,  // Allows external access
+    host: '0.0.0.0',  // Listen on all network interfaces for better compatibility
     strictPort: true, // Ensure Vite uses this exact port
     hmr: {
-      clientPort: 32100, // Re-added to match previous state
+      // Removed clientPort, protocol, and host to let Vite infer automatically
       overlay: true, // Keep the error overlay for development
-      protocol: 'ws', // Explicitly set WebSocket protocol
-      host: 'localhost', // Explicitly set WebSocket host
     },
   },
   build: {
