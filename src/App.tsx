@@ -25,6 +25,7 @@ import IncidentArchivePage from '@/pages/IncidentArchivePage';
 import React, { useEffect, useState, useRef } from 'react'; // Import useEffect, useState, useRef
 import { NotificationService } from './services/NotificationService'; // Import NotificationService
 import { SUPABASE_API_TIMEOUT } from './config'; // Re-import SUPABASE_API_TIMEOUT
+import ErrorBoundary from './components/ErrorBoundary'; // Import the new ErrorBoundary
 
 const queryClient = new QueryClient();
 
@@ -106,58 +107,60 @@ export const useProfilePageContext = () => React.useContext(ProfilePageContext);
 
 const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Sonner />
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <AuthProvider>
-            <AppSettingsProvider>
-              <TopNavBar />
-              <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
-                <Routes>
-                  {/* The root path will now be the splash screen */}
-                  <Route path="/" element={<Index />} /> 
+    <ErrorBoundary> {/* Wrap the entire application with ErrorBoundary */}
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Sonner />
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <AuthProvider>
+              <AppSettingsProvider>
+                <TopNavBar />
+                <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
+                  <Routes>
+                    {/* The root path will now be the splash screen */}
+                    <Route path="/" element={<Index />} /> 
 
-                  {/* Public routes that don't require authentication */}
-                  <Route path="/auth" element={<AuthPage />} />
-                  <Route path="/subscribe" element={<SubscriptionPage />} />
-                  <Route path="/reset-password" element={<ResetPasswordPage />} />
-                  <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+                    {/* Public routes that don't require authentication */}
+                    <Route path="/auth" element={<AuthPage />} />
+                    <Route path="/subscribe" element={<SubscriptionPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
+                    <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
-                  {/* Protected routes wrapped by ProtectedRoute */}
-                  <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                    {/* No index route here, as / is handled by Index.tsx */}
-                    <Route path="home" element={<HomePage />} />
-                    <Route path="home/incidents" element={<IncidentsPage />} />
-                    {/* <Route path="home/traffic" element={<TrafficPage />} /> */} {/* Removed TrafficPage route */}
-                    <Route path="home/contact-us" element={<ContactUsPage />} />
-                    <Route path="home/archive" element={<IncidentArchivePage />} />
-                    {/* Removed the standalone notifications route as it's part of ProfilePage */}
-                    {/* <Route path="notifications" element={<NotificationSettingsPage />} */}
-                    <Route path="profile" element={<ProfilePage />} />
-                    <Route path="admin" element={<AdminPage />} />
-                    <Route path="posts/:postId" element={<PostDetailPage />} />
-                  </Route>
+                    {/* Protected routes wrapped by ProtectedRoute */}
+                    <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                      {/* No index route here, as / is handled by Index.tsx */}
+                      <Route path="home" element={<HomePage />} />
+                      <Route path="home/incidents" element={<IncidentsPage />} />
+                      {/* <Route path="home/traffic" element={<TrafficPage />} /> */} {/* Removed TrafficPage route */}
+                      <Route path="home/contact-us" element={<ContactUsPage />} />
+                      <Route path="home/archive" element={<IncidentArchivePage />} />
+                      {/* Removed the standalone notifications route as it's part of ProfilePage */}
+                      {/* <Route path="notifications" element={<NotificationSettingsPage />} */}
+                      <Route path="profile" element={<ProfilePage />} />
+                      <Route path="admin" element={<AdminPage />} />
+                      <Route path="posts/:postId" element={<PostDetailPage />} />
+                    </Route>
 
-                  {/* Catch-all for 404 - ensure it's after all other specific routes */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </div>
+                    {/* Catch-all for 404 - ensure it's after all other specific routes */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </div>
 
-              {/* Floating Feedback Button */}
-              <Button
-                variant="outline"
-                className="tw-fixed tw-bottom-4 tw-right-4 tw-rounded-full tw-shadow-lg tw-button tw-z-50"
-                onClick={() => window.open('mailto:support@example.com')}
-                aria-label="Send feedback"
-              >
-                Feedback
-              </Button>
-            </AppSettingsProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+                {/* Floating Feedback Button */}
+                <Button
+                  variant="outline"
+                  className="tw-fixed tw-bottom-4 tw-right-4 tw-rounded-full tw-shadow-lg tw-button tw-z-50"
+                  onClick={() => window.open('mailto:support@example.com')}
+                  aria-label="Send feedback"
+                >
+                  Feedback
+                </Button>
+              </AppSettingsProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 
