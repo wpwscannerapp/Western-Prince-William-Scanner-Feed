@@ -44,9 +44,10 @@ export const NotificationService = {
     const vapidPublicKey = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY;
     console.log('NotificationService: VAPID Public Key being used:', vapidPublicKey);
 
-    if (!vapidPublicKey) {
-      console.error('NotificationService: VAPID Public Key is not defined in environment variables.');
-      handleError(null, 'VAPID Public Key is missing. Push notifications will not work.');
+    // Issue 9: Add VAPID key validation
+    if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
+      console.error('NotificationService: Invalid or missing VAPID Public Key.');
+      handleError(null, 'Invalid VAPID Public Key configuration. Push notifications will not work.');
       return false;
     }
 
@@ -73,9 +74,10 @@ export const NotificationService = {
     console.log('NotificationService: subscribeUserToPush called for user:', userId);
     const vapidPublicKey = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY;
 
-    if (!vapidPublicKey) {
-      console.error('NotificationService: VAPID Public Key is not defined.');
-      handleError(null, 'VAPID Public Key is missing. Cannot subscribe.');
+    // VAPID key validation already done in ensureWebPushReady, but a quick check here too
+    if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
+      console.error('NotificationService: VAPID Public Key is not defined or invalid.');
+      handleError(null, 'VAPID Public Key is missing or invalid. Cannot subscribe.');
       return null;
     }
 
@@ -123,16 +125,22 @@ export const NotificationService = {
       if (subscription) {
         await subscription.unsubscribe();
         console.log('NotificationService: Push subscription unsubscribed from browser.');
+        // Issue 8: Only update DB if an actual unsubscription occurred
+        await NotificationService.updateUserNotificationSettings(userId, {
+          push_subscription: null,
+          enabled: false,
+        });
+        console.log('NotificationService: User notification settings updated after unsubscribe.');
+        return true;
       } else {
-        console.log('NotificationService: No active push subscription to unsubscribe in browser.');
+        console.log('NotificationService: No active push subscription to unsubscribe in browser. Ensuring DB is cleared.');
+        // Even if no browser subscription, ensure DB reflects disabled state
+        await NotificationService.updateUserNotificationSettings(userId, {
+          push_subscription: null,
+          enabled: false,
+        });
+        return true; // No action needed if no subscription, but DB is consistent
       }
-      // Always update Supabase to nullify the subscription and disable, regardless if browser had one
-      await NotificationService.updateUserNotificationSettings(userId, {
-        push_subscription: null,
-        enabled: false,
-      });
-      console.log('NotificationService: User notification settings updated after unsubscribe.');
-      return true;
     } catch (err: any) {
       console.error('NotificationService: Failed to unsubscribe from push notifications:', err);
       handleError(err, 'Failed to unsubscribe from push notifications.');

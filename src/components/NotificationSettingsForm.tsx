@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, BellRing, MapPin, LocateFixed, CheckCircle2, XCircle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { NotificationService, PushSubscription } from '@/services/NotificationService'; // Import PushSubscription
+import { NotificationService, PushSubscription } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
 
 const alertTypes = ['Fire', 'Police', 'Road Closure', 'Medical', 'Other'];
@@ -42,7 +42,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
   const form = useForm<NotificationSettingsFormValues>({
     resolver: zodResolver(notificationSettingsSchema),
     defaultValues: {
-      enabled: false, // Default to false if no settings, user must explicitly enable
+      // Removed 'enabled' from defaultValues here, it will be set by reset()
       preferred_types: [],
       radius_miles: 5,
       manual_location_address: null,
@@ -61,7 +61,14 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
     try {
       const settings = await NotificationService.getUserNotificationSettings(user.id);
       if (settings) {
-        reset(settings);
+        reset({
+          enabled: settings.enabled ?? false, // Use DB value or false
+          preferred_types: settings.preferred_types ?? [],
+          radius_miles: settings.radius_miles ?? 5,
+          manual_location_address: settings.manual_location_address ?? null,
+          latitude: settings.latitude ?? null,
+          longitude: settings.longitude ?? null,
+        });
       } else {
         // If no settings exist, initialize with defaults
         reset({
@@ -111,20 +118,20 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
           setNotificationPermission(permission);
           if (permission !== 'granted') {
             notificationsEnabledInDb = false; // Force disable in DB if permission not granted
-            throw new Error('Notification permission not granted. Cannot enable push notifications.');
+            throw new Error('permission_denied');
           }
         }
         // Now that permission is granted, attempt to subscribe or get existing subscription
         pushSubscription = await NotificationService.subscribeUserToPush(user.id);
         if (!pushSubscription) {
           notificationsEnabledInDb = false; // Force disable in DB if subscription failed
-          throw new Error('Failed to subscribe to push notifications. Please check VAPID keys.');
+          throw new Error('subscription_failed');
         }
       } else {
         // If disabling, unsubscribe from browser and clear DB subscription
         const unsubscribed = await NotificationService.unsubscribeWebPush(user.id);
         if (!unsubscribed) {
-          throw new Error('Failed to unsubscribe from push notifications.');
+          throw new Error('unsubscribe_failed');
         }
         pushSubscription = null; // Explicitly set to null for DB update
         notificationsEnabledInDb = false;
@@ -142,10 +149,20 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
         setNotificationPermission(Notification.permission); // Update permission status
         reset(updatedSettings); // Update form with fresh data from DB
       } else {
-        throw new Error('Failed to update settings in database.');
+        throw new Error('database_update_failed');
       }
-    } catch (err) {
-      handleError(err, 'Failed to save settings.');
+    } catch (err: any) {
+      const errorMessages: Record<string, string> = {
+        permission_denied: 'Notification permission was not granted. Please enable notifications in your browser settings.',
+        subscription_failed: 'Failed to subscribe to push notifications. Please check your browser settings and try again.',
+        unsubscribe_failed: 'Failed to unsubscribe from push notifications. Please try again.',
+        database_update_failed: 'Failed to save settings. Please try again later.',
+      };
+      handleError(err, errorMessages[err.message] || 'An unexpected error occurred while saving settings.', { id: 'save-settings' });
+      // If permission was denied, ensure the 'enabled' switch reflects this
+      if (err.message === 'permission_denied') {
+        setValue('enabled', false);
+      }
     } finally {
       setIsSaving(false);
     }
@@ -186,7 +203,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) {
       handleError(null, 'Notifications are not supported by your browser.');
-      return;
+      return 'denied'; // Return 'denied' if not supported
     }
 
     try {
@@ -196,19 +213,17 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
         toast.success('Notification permission granted!');
       } else {
         toast.info('Notification permission denied or dismissed.');
-        setValue('enabled', false); // Automatically disable if permission denied
-        if (user) {
-          await NotificationService.unsubscribeWebPush(user.id); // Unsubscribe if denied
-        }
       }
+      return permission;
     } catch (err) {
       handleError(err, 'Failed to request notification permission.');
+      return 'denied'; // Assume denied on error
     }
   };
 
   const isFormDisabled = isSaving || isLocating || !isWebPushInitialized;
 
-  if (authLoading || isLoading) {
+  if (authLoading || isLoading || !isWebPushInitialized) { // Issue 4: Include isWebPushInitialized in loading state
     return (
       <Card className="tw-bg-card tw-border-border tw-shadow-lg">
         <CardContent className="tw-py-8 tw-text-center">
@@ -254,10 +269,13 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
               checked={enabled}
               onCheckedChange={async (checked) => {
                 setValue('enabled', checked);
-                // If enabling and permission is not granted, request it.
-                // The actual subscription/unsubscription will happen on form submit.
+                // Issue 1: Inconsistent Permission Handling on Toggle
                 if (checked && notificationPermission === 'default') {
-                  await requestNotificationPermission();
+                  const permission = await requestNotificationPermission();
+                  if (permission !== 'granted') {
+                    setValue('enabled', false); // Sync form state with permission
+                    toast.error('Notifications disabled due to permission denial.');
+                  }
                 }
               }}
               disabled={isFormDisabled || notificationPermission === 'denied'}

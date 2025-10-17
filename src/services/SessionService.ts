@@ -38,11 +38,10 @@ export const SessionService = {
     }
   },
 
-  async deleteSession(sessionId: string): Promise<boolean> {
-    // Only attempt database deletion if a user is currently authenticated
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.warn('SessionService: No authenticated user, skipping database session deletion.');
+  async deleteSession(userId: string | undefined, sessionId: string): Promise<boolean> {
+    // Issue 6: deleteSession now explicitly takes userId
+    if (!userId) {
+      console.warn('SessionService: No user ID provided for session deletion, skipping database deletion.');
       return true; // Consider it successful for local purposes
     }
 
@@ -51,7 +50,7 @@ export const SessionService = {
         .from('user_sessions')
         .delete()
         .eq('session_id', sessionId)
-        .eq('user_id', user.id); // Ensure only the current user's session is deleted
+        .eq('user_id', userId); // Ensure only the current user's session is deleted
 
       if (error) {
         handleError(error, 'Failed to delete user session.');
