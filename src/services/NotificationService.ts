@@ -95,7 +95,7 @@ export const NotificationService = {
         console.log('NotificationService: No existing push subscription found. Creating new one...');
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: NotificationService.urlBase64ToUint8Array(vapidPublicKey),
+          applicationServerKey: NotificationService.urlBase64ToUint8Array(vapidPublicKey) as BufferSource, // Explicitly cast to BufferSource
         });
         console.log('NotificationService: New push subscription created:', subscription);
       } else {
