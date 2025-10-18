@@ -30,6 +30,12 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-6xl">
+      {/* Temporary Test Box */}
+      <div className="tw-w-32 tw-h-32 tw-bg-primary tw-mb-8 tw-rounded-lg tw-flex tw-items-center tw-justify-center tw-text-primary-foreground tw-font-bold">
+        Primary Color Test
+      </div>
+      {/* End Temporary Test Box */}
+
       <div className="tw-grid tw-grid-cols-2 sm:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-6">
         {/* Incidents Tile */}
         <Tile
