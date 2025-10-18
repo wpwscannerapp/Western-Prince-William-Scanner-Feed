@@ -8,6 +8,7 @@ if (!supabaseUrl || !supabaseAnonKey || !supabaseAnonKey.startsWith('eyJ')) {
   throw new Error('Supabase configuration error: VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is missing or invalid.');
 }
 
+// Only log full anon key in development
 if (import.meta.env.DEV) {
   console.log('Supabase Client Init: Using URL:', supabaseUrl);
   console.log('Supabase Client Init: Using Full Anon Key (DEV ONLY):', supabaseAnonKey);
@@ -19,19 +20,21 @@ if (import.meta.env.DEV) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Test on init
-supabase.auth.getSession().then(({ error }) => {
-  if (import.meta.env.DEV) {
-    console.log(error ? `Supabase Auth Init Failed: ${error.message}` : 'Supabase Auth Init Passed');
-  }
-});
+if (import.meta.env.DEV) {
+  supabase.auth.getSession().then(({ error }) => {
+    if (error) {
+      console.error(`Supabase Auth Init Failed: ${error.message}`);
+    } else {
+      console.log('Supabase Auth Init Passed');
+    }
+  });
 
-// Add a test for public database access
-supabase.from('app_settings').select('id').limit(1).then(({ error }) => {
-  if (import.meta.env.DEV) {
+  // Add a test for public database access
+  supabase.from('app_settings').select('id').limit(1).then(({ error }) => {
     if (error) {
       console.error(`Supabase DB Access Test Failed: ${error.message}`);
     } else {
       console.log('Supabase DB Access Test Passed (app_settings read successful).');
     }
-  }
-});
+  });
+}
