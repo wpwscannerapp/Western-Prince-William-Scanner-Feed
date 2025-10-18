@@ -3,14 +3,6 @@
   [headers.values]
     Content-Type = "application/javascript"
 [[headers]]
-  for = "*.jsx"
-  [headers.values]
-    Content-Type = "application/javascript"
-[[headers]]
-  for = "*.ts"
-  [headers.values]
-    Content-Type = "application/javascript"
-[[headers]]
-  for = "*.tsx"
+  for = "*.ts*"
   [headers.values]
     Content-Type = "application/javascript"
