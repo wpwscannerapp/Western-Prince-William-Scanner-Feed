@@ -47,7 +47,8 @@ export const ProfileService = {
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.error(`ProfileService: Fetch profile for user ID ${userId} aborted due to timeout.`);
-        handleError(new Error('Request timed out'), 'Fetching profile timed out.');
+        // Explicitly re-throw a generic error for consistency, which useIsAdmin will catch
+        throw new Error('Request timed out');
       } else {
         logSupabaseError('fetchProfile', err);
       }

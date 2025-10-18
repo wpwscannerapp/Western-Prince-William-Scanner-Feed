@@ -11,6 +11,7 @@ interface UseAdminResult {
 }
 
 export function useIsAdmin(): UseAdminResult {
+  console.log('useIsAdmin: Hook invoked.'); // Add this log
   const { user, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -88,10 +89,11 @@ export function useIsAdmin(): UseAdminResult {
         clearTimeout(timeoutRef.current); // Clear the timeout on unexpected error
         timeoutRef.current = null;
       }
-      // ProfileService.fetchProfile should handle its own errors and timeouts,
-      // but if an unexpected error bubbles up here, log it.
-      const errorMessage = `An unexpected error occurred during admin role check: ${err.message}`;
-      handleError(err, errorMessage);
+      // Catch the re-thrown error from ProfileService
+      const errorMessage = err.message === 'Request timed out' 
+        ? 'Profile fetch timed out. Please check your network or Supabase configuration.'
+        : `An unexpected error occurred during admin role check: ${err.message}`;
+      handleError(err, errorMessage); // Use global handleError for toast
       setError(errorMessage);
       setIsAdmin(false);
     } finally {
