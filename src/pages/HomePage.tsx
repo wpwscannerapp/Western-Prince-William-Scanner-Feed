@@ -8,6 +8,8 @@ const HomePage: React.FC = () => {
   console.log('HomePage: Component rendering.'); // New log here
   const { isAdmin, loading: isAdminLoading } = useIsAdmin(); // Use the useIsAdmin hook
 
+  console.log('HomePage: isAdminLoading state:', isAdminLoading); // Added log for isAdminLoading
+
   if (isAdminLoading) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
