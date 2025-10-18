@@ -51,7 +51,7 @@ export function useIsAdmin(): UseAdminResult {
       return;
     }
 
-    console.log('useIsAdmin: User found, fetching profile role for user ID:', user.id);
+    console.log('useIsAdmin: User found, fetching profile role for user ID: ', user.id);
     setProfileLoading(true);
     setError(null);
 
@@ -67,6 +67,8 @@ export function useIsAdmin(): UseAdminResult {
         setProfileLoading(false);
         setIsAdmin(false);
         setError('Role fetch timed out. Please check your network or Supabase configuration.');
+        // Log to confirm this specific timeout is hit
+        console.log('useIsAdmin: TIMEOUT TRIGGERED for fetchRole.');
       }
     }, SUPABASE_API_TIMEOUT);
 

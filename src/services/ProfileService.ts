@@ -20,19 +20,14 @@ const logSupabaseError = (functionName: string, error: any) => {
 export const ProfileService = {
   async fetchProfile(userId: string): Promise<Profile | null> {
     console.log(`ProfileService: Attempting to fetch profile for user ID: ${userId}`);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.warn(`ProfileService: Fetch profile for user ID ${userId} timed out after ${SUPABASE_API_TIMEOUT / 1000}s.`);
-      controller.abort();
-    }, SUPABASE_API_TIMEOUT);
-
+    // Removed AbortController and timeout from here, relying on useIsAdmin's timeout
     try {
+      console.log(`ProfileService: Executing Supabase query for user ID: ${userId}`);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .abortSignal(controller.signal)
-        .single();
+        .single(); // <--- This is the line that seems to be hanging
 
       if (error) {
         if (error.code === 'PGRST116') { // No rows found
@@ -45,16 +40,11 @@ export const ProfileService = {
       console.log(`ProfileService: Successfully fetched profile for user ID: ${userId}. Role: ${data.role}`);
       return data as Profile;
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.error(`ProfileService: Fetch profile for user ID ${userId} aborted due to timeout.`);
-        // Explicitly re-throw a generic error for consistency, which useIsAdmin will catch
-        throw new Error('Request timed out');
-      } else {
-        logSupabaseError('fetchProfile', err);
-      }
-      return null;
+      console.error(`ProfileService: Caught error during fetchProfile for user ID ${userId}:`, err);
+      logSupabaseError('fetchProfile', err);
+      // Re-throw to ensure useIsAdmin's catch block is hit
+      throw err;
     } finally {
-      clearTimeout(timeoutId);
       console.log(`ProfileService: Fetch profile for user ID ${userId} finished.`);
     }
   },
