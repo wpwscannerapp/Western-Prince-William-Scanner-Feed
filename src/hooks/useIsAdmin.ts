@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react'; // Import useRef
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
@@ -13,6 +13,7 @@ export function useIsAdmin(): UseAdminResult {
   const { user, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null); // Use useRef for timeout
 
   useEffect(() => {
     const checkAdminRole = async () => {
@@ -32,9 +33,18 @@ export function useIsAdmin(): UseAdminResult {
       console.log('useIsAdmin: User found, fetching profile role for user ID:', user.id);
       setProfileLoading(true);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
+      
+      // Clear any existing timeout before setting a new one
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      timeoutRef.current = setTimeout(() => {
+        console.warn('useIsAdmin: Supabase profile fetch timed out, aborting request.');
         controller.abort();
         handleError(new Error('Supabase profile fetch timed out.'), 'Fetching user role timed out.');
+        // Ensure loading state is false even on timeout
+        setProfileLoading(false); 
       }, SUPABASE_API_TIMEOUT);
 
       try {
@@ -43,7 +53,7 @@ export function useIsAdmin(): UseAdminResult {
           .from('profiles')
           .select('role')
           .eq('id', user.id)
-          .abortSignal(controller.signal) // Moved abortSignal here
+          .abortSignal(controller.signal)
           .single();
         console.log('useIsAdmin: Supabase profile fetch completed. Data:', profile, 'Error:', error);
 
@@ -67,13 +77,26 @@ export function useIsAdmin(): UseAdminResult {
         }
         setIsAdmin(false);
       } finally {
-        clearTimeout(timeoutId); // Clear the timeout
+        // Clear the timeout if the promise settled (either success or error)
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
         setProfileLoading(false);
-        console.log('useIsAdmin: checkAdminRole finished, profileLoading set to false.');
+        console.log('useIsAdmin: checkAdminRole finished, profileLoading set to false in finally block.');
       }
     };
 
     checkAdminRole();
+
+    // Cleanup function for useEffect
+    return () => {
+      console.log('useIsAdmin: useEffect cleanup running.');
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
   }, [user, authLoading]); // Dependencies for useEffect
 
   return { isAdmin, loading: profileLoading };
