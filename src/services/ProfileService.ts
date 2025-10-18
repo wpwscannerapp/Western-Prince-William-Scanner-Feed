@@ -20,18 +20,17 @@ const logSupabaseError = (functionName: string, error: any) => {
 export const ProfileService = {
   async fetchProfile(userId: string): Promise<Profile | null> {
     console.log(`ProfileService: Attempting to fetch profile for user ID: ${userId}`);
-    // Removed AbortController and timeout from here, relying on useIsAdmin's timeout
     try {
       console.log(`ProfileService: Executing Supabase query for user ID: ${userId}`);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single(); // <--- This is the line that seems to be hanging
+        .single();
 
       if (error) {
         if (error.code === 'PGRST116') { // No rows found
-          console.error(`ProfileService: No profile found for user ID: ${userId}. This user might not have a profile entry.`);
+          console.warn(`ProfileService: No profile found for user ID: ${userId}. This user might not have a profile entry.`);
           return null;
         }
         logSupabaseError('fetchProfile', error);
@@ -42,8 +41,7 @@ export const ProfileService = {
     } catch (err: any) {
       console.error(`ProfileService: Caught error during fetchProfile for user ID ${userId}:`, err);
       logSupabaseError('fetchProfile', err);
-      // Re-throw to ensure useIsAdmin's catch block is hit
-      throw err;
+      throw err; // Re-throw to ensure useIsAdmin's catch block is hit
     } finally {
       console.log(`ProfileService: Fetch profile for user ID ${userId} finished.`);
     }
@@ -86,6 +84,42 @@ export const ProfileService = {
     } finally {
       clearTimeout(timeoutId);
       console.log(`ProfileService: Update profile for user ID ${userId} finished.`);
+    }
+  },
+
+  async ensureProfileExists(userId: string): Promise<boolean> {
+    console.log(`ProfileService: Checking if profile exists for user ID: ${userId}`);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .limit(1);
+
+      if (error) {
+        logSupabaseError('ensureProfileExists - check', error);
+        return false;
+      }
+
+      if (data && data.length > 0) {
+        console.log(`ProfileService: Profile already exists for user ID: ${userId}.`);
+        return true;
+      } else {
+        console.log(`ProfileService: No profile found for user ID: ${userId}, creating a new one.`);
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({ id: userId, subscription_status: 'free', role: 'user' }); // Default values
+
+        if (insertError) {
+          logSupabaseError('ensureProfileExists - insert', insertError);
+          return false;
+        }
+        console.log(`ProfileService: Successfully created profile for user ID: ${userId}.`);
+        return true;
+      }
+    } catch (err: any) {
+      logSupabaseError('ensureProfileExists', err);
+      return false;
     }
   },
 };

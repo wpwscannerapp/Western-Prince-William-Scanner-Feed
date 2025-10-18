@@ -63,6 +63,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     console.log('AuthContext: User ID for session creation:', currentSession.user.id);
 
+    // Ensure profile exists before proceeding with session management
+    const profileEnsured = await ProfileService.ensureProfileExists(currentSession.user.id);
+    if (!profileEnsured) {
+      console.error('AuthContext: Failed to ensure profile exists for user. Aborting session creation.');
+      return;
+    }
 
     let currentSessionId = localStorage.getItem('wpw_session_id');
     if (!currentSessionId) {
@@ -94,8 +100,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       console.error('AuthContext: Failed to create session (error handled by SessionService).');
     }
-    console.log('AuthContext: handleSessionCreation finished.'); // Added this log
-  }, [userRef]); // Dependency changed from [handleError] to [userRef]
+    console.log('AuthContext: handleSessionCreation finished.');
+  }, [userRef]);
 
   const handleSessionDeletion = useCallback(async (userIdToDelete?: string) => {
     console.log('AuthContext: handleSessionDeletion called.');
@@ -113,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await SessionService.deleteAllSessionsForUser(userIdToDelete);
     }
     console.log('AuthContext: Session(s) deleted and removed from localStorage.');
-  }, []); // No dependencies needed if handleError is stable and userRef is not directly used here.
+  }, []);
 
   // Effect for setting up auth state listener
   useEffect(() => {
