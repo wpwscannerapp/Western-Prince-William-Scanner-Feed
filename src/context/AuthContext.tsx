@@ -63,12 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     console.log('AuthContext: User ID for session creation:', currentSession.user.id);
 
-    // Ensure profile exists before proceeding with session management
-    const profileEnsured = await ProfileService.ensureProfileExists(currentSession.user.id);
-    if (!profileEnsured) {
-      console.error('AuthContext: Failed to ensure profile exists for user. Aborting session creation.');
-      return;
-    }
+    // Removed: ensureProfileExists call from here. ProfileForm will handle it.
 
     let currentSessionId = localStorage.getItem('wpw_session_id');
     if (!currentSessionId) {

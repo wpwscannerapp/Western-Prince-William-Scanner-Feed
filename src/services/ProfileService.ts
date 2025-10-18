@@ -26,14 +26,14 @@ export const ProfileService = {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle(); // Changed from .single() to .maybeSingle()
 
       if (error) {
-        if (error.code === 'PGRST116') { // No rows found
-          console.warn(`ProfileService: No profile found for user ID: ${userId}. This user might not have a profile entry.`);
-          return null;
-        }
         logSupabaseError('fetchProfile', error);
+        return null;
+      }
+      if (!data) {
+        console.warn(`ProfileService: No profile found for user ID: ${userId} (using maybeSingle).`);
         return null;
       }
       console.log(`ProfileService: Successfully fetched profile for user ID: ${userId}. Role: ${data.role}`);

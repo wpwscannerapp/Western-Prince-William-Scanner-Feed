@@ -37,7 +37,12 @@ const ProfileForm: React.FC = () => {
 
   const { data: profile, isLoading: isProfileLoading, error: profileError } = useQuery<Profile | null, Error>({
     queryKey: ['profile', user?.id],
-    queryFn: () => user ? ProfileService.fetchProfile(user.id) : Promise.resolve(null),
+    queryFn: async () => {
+      if (!user) return null;
+      // Ensure profile exists before attempting to fetch it
+      await ProfileService.ensureProfileExists(user.id);
+      return ProfileService.fetchProfile(user.id);
+    },
     enabled: !!user,
   });
 
