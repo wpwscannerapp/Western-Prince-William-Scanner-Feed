@@ -6,24 +6,19 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'), // Using path.resolve for robustness
+      '@': path.resolve(__dirname, './src'),
     },
   },
   server: {
-    port: 32100, // Matches Dyad proxy
-    host: '0.0.0.0',  // Listen on all network interfaces
-    strictPort: true, // Ensure Vite uses this exact port
+    port: 32100, // Match Dyad proxy
+    host: true, // Listen on all network interfaces
     hmr: {
-      overlay: true, // Keep the error overlay for development
-      port: 32100, // Explicitly set HMR port to match server port
-      host: '0.0.0.0', // Explicitly set HMR host to listen on all interfaces
-      clientPort: 32100, // Ensure client connects to the correct port
-      protocol: 'ws', // Explicitly set protocol to WebSocket
-      path: '/ws', // Explicitly set WebSocket path
-      timeout: 30000, // Increase timeout for HMR connection
+      protocol: 'ws', // Explicit WebSocket
+      port: 32100,
+      clientPort: 32100, // Ensure client matches
     },
     watch: {
-      usePolling: true, // Explicitly enable polling for HMR to bypass WebSocket issues
+      usePolling: true, // Force polling to bypass WebSocket
     },
   },
   build: {

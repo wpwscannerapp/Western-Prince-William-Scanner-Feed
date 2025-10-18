@@ -1,3 +1,4 @@
+import React from 'react';
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./globals.css";
@@ -33,12 +34,16 @@ try {
   throw error; // Stop further execution if critical env vars are missing
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
 
 // Register the service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
+    navigator.serviceWorker.register('/service-worker.js') // Corrected path to match existing file
       .then((reg) => console.log('Service Worker registered:', reg.scope))
       .catch((err) => console.error('Service Worker registration failed:', err));
   });
