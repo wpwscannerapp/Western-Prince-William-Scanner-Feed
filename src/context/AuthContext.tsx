@@ -3,7 +3,7 @@ import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SessionService } from '@/services/SessionService';
-import { MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT } from '@/config'; // Import AUTH_INITIALIZATION_TIMEOUT
+import { MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT } from '@/config';
 import { ProfileService } from '@/services/ProfileService';
 import { handleError as globalHandleError } from '@/utils/errorHandler';
 
@@ -23,11 +23,11 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // Start as true
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AuthError | null>(null);
   const isMountedRef = useRef(true);
   const mountCountRef = useRef(0);
-  const authTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref for the timeout
+  const authTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     mountCountRef.current += 1;
@@ -40,6 +40,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
   }, []);
+
+  // Add this useEffect to log loading state changes
+  useEffect(() => {
+    console.log('AuthContext: Loading state changed to:', loading);
+  }, [loading]);
 
   const handleError = useCallback((err: any, defaultMessage: string) => {
     const authError = err instanceof AuthError ? err : new AuthError(err.message || defaultMessage, err.name);
@@ -86,8 +91,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthContext: Session created successfully.');
     } else {
       console.error('AuthContext: Failed to create session (error handled by SessionService).');
-      // The error message is already displayed by SessionService.handleError
-      // No need to call handleError again here with a generic message.
     }
   }, [handleError]);
 
@@ -97,25 +100,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (currentSessionId) {
       console.log('AuthContext: Deleting specific session ID:', currentSessionId);
-      // Pass userId to SessionService.deleteSession for RLS
       await SessionService.deleteSession(userId, currentSessionId);
       localStorage.removeItem('wpw_session_id');
     } else {
       console.log('AuthContext: No specific session ID found in localStorage to delete.');
     }
 
-    if (userId) { // This is for a full user logout, deleting all their sessions
+    if (userId) {
       console.log('AuthContext: Deleting all sessions for user:', userId);
       await SessionService.deleteAllSessionsForUser(userId);
     }
     console.log('AuthContext: Session(s) deleted and removed from localStorage.');
-  }, []); // Removed handleError from dependencies as it's not directly used here
+  }, []);
 
-  // Effect for setting up auth state listener
   useEffect(() => {
     console.log('AuthContext: useEffect for onAuthStateChange listener triggered.');
 
-    // Set a timeout for initial authentication loading
     authTimeoutRef.current = setTimeout(() => {
       if (loading && isMountedRef.current) {
         console.warn(`AuthContext: Authentication initialization timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms. Setting loading to false.`);
@@ -128,29 +128,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
         console.log(`AuthContext: onAuthStateChange callback fired. Event: ${_event}, Session: ${currentSession ? 'present' : 'null'}`);
         
-        // Clear the timeout if the auth state changes
         if (authTimeoutRef.current) {
           clearTimeout(authTimeoutRef.current);
           authTimeoutRef.current = null;
         }
 
-        // Capture the user ID before state updates if it's a SIGNED_OUT event
-        const userIdBeforeSignOut = user?.id;
+        // Safely get the user ID before a potential sign-out event
+        const { data: { user: currentUserBeforeSignOut } } = await supabase.auth.getUser();
+        const userIdBeforeSignOut = currentUserBeforeSignOut?.id;
 
         if (isMountedRef.current) {
           setSession(currentSession);
           setUser(currentSession?.user || null);
-          setError(null); // Clear any previous errors on auth state change
-          console.log(`AuthContext: Setting loading to false. User: ${currentSession?.user ? 'present' : 'null'}`);
-          setLoading(false); // Set loading to false once the initial session is processed
+          setError(null);
+          setLoading(false);
+          console.log(`AuthContext: setLoading(false) called. User: ${currentSession?.user ? 'present' : 'null'}`);
 
           if (currentSession) {
             await handleSessionCreation(currentSession);
           } else if (_event === 'SIGNED_OUT') {
-            // Issue 6: Pass the user ID that just signed out for cleanup
-            await handleSessionDeletion(userIdBeforeSignOut); // sessionId is not relevant for deleteAllSessionsForUser
+            await handleSessionDeletion(userIdBeforeSignOut);
           } else {
-            // For other null session events (e.g., INITIAL_SESSION with no user)
             await handleSessionDeletion(undefined);
           }
         }
@@ -165,7 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authTimeoutRef.current = null;
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion, user]); // Issue 5: Include user in dependencies
+  }, [handleSessionCreation, handleSessionDeletion]);
 
   const signUp = async (email: string, password: string) => {
     setError(null);
@@ -200,7 +198,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(null);
           setUser(null);
           setLoading(false);
-          // No need to call handleSessionDeletion here, onAuthStateChange will handle it
           return { success: true };
         }
         handleError(authError, authError.message);
@@ -210,7 +207,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(null);
       setUser(null);
       setLoading(false);
-      // No need to call handleSessionDeletion here, onAuthStateChange will handle it
       return { success: true };
     } catch (e: any) {
       handleError(e, e.message || 'An unexpected error occurred during logout.');
