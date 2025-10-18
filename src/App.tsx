@@ -31,7 +31,6 @@ const queryClient = new QueryClient();
 
 // Component to apply app settings and render children
 const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
-  console.log('App.tsx: AppSettingsProvider rendering');
   useAppSettings(); // This hook handles setting CSS variables
   const { user, loading: authLoading } = useAuth(); // Get user and auth loading state
   const [isWebPushInitialized, setIsWebPushInitialized] = useState(false); // Renamed state
@@ -68,7 +67,6 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    console.log('App.tsx: AppSettingsProvider useEffect for Web Push initialization triggered.');
     initializeWebPushSDK();
   }, []);
 

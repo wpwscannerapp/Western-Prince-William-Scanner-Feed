@@ -22,7 +22,6 @@ interface AuthState {
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  console.log('AuthContext.tsx: AuthProvider rendering');
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,9 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const handleSessionCreation = useCallback(async (currentSession: Session) => {
-    console.log('AuthContext.tsx: handleSessionCreation called.');
     if (!currentSession.user || !currentSession.expires_in) {
-      console.log('AuthContext.tsx: handleSessionCreation: Invalid session data, returning.');
       return;
     }
 
@@ -61,54 +58,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!currentSessionId) {
       currentSessionId = crypto.randomUUID();
       localStorage.setItem('wpw_session_id', currentSessionId);
-      console.log('AuthContext.tsx: Generated new session ID:', currentSessionId);
     }
 
-    console.log('AuthContext.tsx: Checking if session is valid...');
     const isValid = await SessionService.isValidSession(currentSession.user.id, currentSessionId);
     if (isValid) {
-      console.log('AuthContext.tsx: Session is already valid, skipping creation.');
       return;
     }
 
-    console.log('AuthContext.tsx: Fetching profile for admin check...');
     const profile = await ProfileService.fetchProfile(currentSession.user.id);
     const isCurrentUserAdmin = profile?.role === 'admin';
-    console.log('AuthContext.tsx: User is admin:', isCurrentUserAdmin);
 
     if (!isCurrentUserAdmin) {
-      console.log('AuthContext.tsx: Deleting oldest sessions for non-admin user.');
       await SessionService.deleteOldestSessions(currentSession.user.id, MAX_CONCURRENT_SESSIONS);
     }
 
-    console.log('AuthContext.tsx: Creating/updating session in DB.');
     await SessionService.createSession(currentSession, currentSessionId);
-    console.log('AuthContext.tsx: Session creation/update finished.');
   }, [handleError]);
 
   const handleSessionDeletion = useCallback(async (userId: string | undefined) => {
-    console.log('AuthContext.tsx: handleSessionDeletion called for user:', userId);
     const currentSessionId = localStorage.getItem('wpw_session_id');
 
     if (currentSessionId) {
-      console.log('AuthContext.tsx: Deleting specific session from DB:', currentSessionId);
       await SessionService.deleteSession(userId, currentSessionId);
       localStorage.removeItem('wpw_session_id');
-      console.log('AuthContext.tsx: Specific session deleted and local storage cleared.');
     }
 
     if (userId) {
-      console.log('AuthContext.tsx: Deleting all sessions for user:', userId);
       await SessionService.deleteAllSessionsForUser(userId);
-      console.log('AuthContext.tsx: All sessions for user deleted.');
     }
   }, []);
 
   // Effect for initial session fetch and setting up the listener
   useEffect(() => {
-    console.log('AuthContext.tsx: useEffect for initial session fetch and listener setup triggered.');
     const setupAuth = async () => {
-      console.log('AuthContext.tsx: setupAuth function started.');
       authTimeoutRef.current = setTimeout(() => {
         if (isMountedRef.current && loading) {
           console.warn('AuthContext.tsx: Authentication initialization timed out.');
@@ -119,9 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }, AUTH_INITIALIZATION_TIMEOUT);
 
       try {
-        console.log('AuthContext.tsx: Calling supabase.auth.getSession()...');
         const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
-        console.log('AuthContext.tsx: supabase.auth.getSession() returned.', { initialSession, sessionError });
         if (isMountedRef.current) {
           setSession(initialSession);
           setUser(initialSession?.user || null);
@@ -130,12 +110,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setAuthReady(true);
 
           if (initialSession) {
-            console.log('AuthContext.tsx: Calling handleSessionCreation for initial session.');
             await handleSessionCreation(initialSession);
           }
         }
       } catch (err: any) {
-        console.error('AuthContext.tsx: Error during initial session fetch:', err);
         if (isMountedRef.current) {
           setError(new AuthError(err.message || 'Failed to get initial session.'));
           setLoading(false);
@@ -147,17 +125,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           clearTimeout(authTimeoutRef.current);
           authTimeoutRef.current = null;
         }
-        console.log('AuthContext.tsx: setupAuth function finished.');
       }
     };
 
     setupAuth();
 
     // Set up the onAuthStateChange listener for subsequent events
-    console.log('AuthContext.tsx: Setting up onAuthStateChange listener.');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
-        console.log('AuthContext.tsx: onAuthStateChange callback fired. Event:', _event, 'Session:', currentSession ? 'present' : 'null');
         // Clear the initial timeout if it's still active, as a state change has occurred
         if (authTimeoutRef.current) {
           clearTimeout(authTimeoutRef.current);
@@ -166,45 +141,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         let userIdForDeletion: string | undefined;
         if (_event === 'SIGNED_OUT') {
-          console.log('AuthContext.tsx: SIGNED_OUT event, fetching user ID for deletion.');
           const { data: { user: signedOutUser } } = await supabase.auth.getUser();
           userIdForDeletion = signedOutUser?.id;
-          console.log('AuthContext.tsx: User ID for deletion:', userIdForDeletion);
         }
 
-        console.log('AuthContext.tsx: Updating AuthContext state...');
         if (isMountedRef.current) {
           setSession(currentSession);
           setUser(currentSession?.user || null);
           setError(null);
           setLoading(false);
           setAuthReady(true);
-          console.log('AuthContext.tsx: State updated. Current user:', currentSession?.user?.id);
 
           if (currentSession) {
-            console.log('AuthContext.tsx: Calling handleSessionCreation for onAuthStateChange event.');
             await handleSessionCreation(currentSession);
           } else if (_event === 'SIGNED_OUT') {
-            console.log('AuthContext.tsx: Calling handleSessionDeletion for SIGNED_OUT event.');
             await handleSessionDeletion(userIdForDeletion);
           } else {
-            console.log('AuthContext.tsx: Calling handleSessionDeletion for other unauthenticated event.');
             await handleSessionDeletion(undefined);
           }
         }
-        console.log('AuthContext.tsx: onAuthStateChange callback finished.');
       }
     );
 
     return () => {
-      console.log('AuthContext.tsx: Cleanup function for onAuthStateChange listener. Unsubscribing.');
       subscription.unsubscribe();
       if (authTimeoutRef.current) {
         clearTimeout(authTimeoutRef.current);
         authTimeoutRef.current = null;
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion, loading]); // 'loading' dependency is still here for setupAuth's timeout logic.
+  }, [handleSessionCreation, handleSessionDeletion]); // Removed 'loading' from dependencies
 
   const signUp = async (email: string, password: string) => {
     setError(null);
