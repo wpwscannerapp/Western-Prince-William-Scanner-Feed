@@ -12,7 +12,7 @@ interface AuthState {
   user: User | null;
   loading: boolean;
   error: AuthError | null;
-  authReady: boolean; // Added authReady property
+  authReady: boolean;
   signUp: (email: string, password: string) => Promise<{ data?: any; error?: AuthError }>;
   signIn: (email: string, password: string) => Promise<{ data?: any; error?: AuthError }>;
   signOut: () => Promise<{ success: boolean; error?: AuthError }>;
@@ -26,9 +26,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true); // Start as true
   const [error, setError] = useState<AuthError | null>(null);
-  const [authReady, setAuthReady] = useState(false); // New state for auth readiness
+  const [authReady, setAuthReady] = useState(false);
   const isMountedRef = useRef(true);
   const mountCountRef = useRef(0);
+  const userRef = useRef<User | null>(null); // Ref to hold the latest user object
+
+  // Keep userRef updated with the latest user state
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     mountCountRef.current += 1;
@@ -123,10 +129,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (currentSession) {
             await handleSessionCreation(currentSession);
           } else {
-            // When signing out, use the user ID from the *event* if available,
-            // otherwise fall back to the current `user` state.
-            const userIdFromEvent = _event === 'SIGNED_OUT' ? user?.id : undefined;
-            await handleSessionDeletion(userIdFromEvent); 
+            // When signing out, currentSession is null. Use userRef to get the ID of the user who just signed out.
+            await handleSessionDeletion(userRef.current?.id); 
           }
         }
       }
@@ -136,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthContext: Cleanup function for auth state listener. Unsubscribing.');
       subscription.unsubscribe();
     };
-  }, [handleSessionCreation, handleSessionDeletion, user?.id]); // Keep user?.id for now, will refine further if needed
+  }, [handleSessionCreation, handleSessionDeletion]); // Removed user?.id from dependencies
 
   const signUp = async (email: string, password: string) => {
     setError(null);
@@ -171,8 +175,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(null);
           setUser(null);
           setLoading(false);
-          setAuthReady(true); // Auth state has been determined
-          await handleSessionDeletion(user?.id);
+          setAuthReady(true);
+          await handleSessionDeletion(userRef.current?.id); // Use userRef for deletion
           return { success: true };
         }
         handleError(authError, authError.message);
@@ -182,8 +186,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(null);
       setUser(null);
       setLoading(false);
-      setAuthReady(true); // Auth state has been determined
-      await handleSessionDeletion(user?.id);
+      setAuthReady(true);
+      await handleSessionDeletion(userRef.current?.id); // Use userRef for deletion
       return { success: true };
     } catch (e: any) {
       handleError(e, e.message || 'An unexpected error occurred during logout.');
@@ -209,7 +213,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     loading,
     error,
-    authReady, // Expose authReady in the context value
+    authReady,
     signUp,
     signIn,
     signOut,
