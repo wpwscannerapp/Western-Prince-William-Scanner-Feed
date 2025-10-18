@@ -56,6 +56,8 @@
     --app-secondary-color-hex: #4CAF50; /* Default secondary color in hex */
     --app-secondary-color-darker-hex: #3d8b41; /* Default darker secondary color in hex */
     --app-font-family: Inter, sans-serif; /* Default font family */
+
+    --dyad-debug-css-loaded: 'true'; /* Debug variable to confirm CSS loading */
   }
 
   .dark {
