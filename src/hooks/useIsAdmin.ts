@@ -29,9 +29,11 @@ export function useIsAdmin(): UseAdminResult {
   useEffect(() => {
     const fetchRole = async () => {
       console.log('useIsAdmin: fetchRole started.');
+      
+      // Only proceed if authLoading is false (meaning auth state has been determined)
       if (authLoading) {
-        console.log('useIsAdmin: authLoading is true, setting profileLoading to false and returning.');
-        setProfileLoading(false);
+        console.log('useIsAdmin: authLoading is true, waiting for auth to complete.');
+        setProfileLoading(true); // Keep loading true while auth is still loading
         return;
       }
 

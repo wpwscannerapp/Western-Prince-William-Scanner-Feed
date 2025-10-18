@@ -12,6 +12,7 @@ interface AuthState {
   user: User | null;
   loading: boolean;
   error: AuthError | null;
+  authReady: boolean; // Added authReady property
   signUp: (email: string, password: string) => Promise<{ data?: any; error?: AuthError }>;
   signIn: (email: string, password: string) => Promise<{ data?: any; error?: AuthError }>;
   signOut: () => Promise<{ success: boolean; error?: AuthError }>;
@@ -25,6 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true); // Start as true
   const [error, setError] = useState<AuthError | null>(null);
+  const [authReady, setAuthReady] = useState(false); // New state for auth readiness
   const isMountedRef = useRef(true);
   const mountCountRef = useRef(0);
 
@@ -82,8 +84,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthContext: Session created successfully.');
     } else {
       console.error('AuthContext: Failed to create session (error handled by SessionService).');
-      // The error message is already displayed by SessionService.handleError
-      // No need to call handleError again here with a generic message.
     }
   }, [handleError]);
 
@@ -92,7 +92,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentSessionId = localStorage.getItem('wpw_session_id');
     if (currentSessionId) {
       console.log('AuthContext: Deleting specific session ID:', currentSessionId);
-      // Corrected call: Pass userIdToDelete as the first argument
       await SessionService.deleteSession(userIdToDelete, currentSessionId);
       localStorage.removeItem('wpw_session_id');
     } else {
@@ -118,14 +117,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(currentSession?.user || null);
           setError(null); // Clear any previous errors on auth state change
           setLoading(false); // Set loading to false once the initial session is processed
+          setAuthReady(true); // Auth state has been determined
           console.log(`AuthContext: Auth state changed. Loading set to false. User: ${currentSession?.user ? 'present' : 'null'}`);
 
           if (currentSession) {
             await handleSessionCreation(currentSession);
           } else {
-            // When signing out, the user object in the session might be null,
-            // so we use the current `user` state from the context for deletion.
-            await handleSessionDeletion(user?.id); 
+            // When signing out, use the user ID from the *event* if available,
+            // otherwise fall back to the current `user` state.
+            const userIdFromEvent = _event === 'SIGNED_OUT' ? user?.id : undefined;
+            await handleSessionDeletion(userIdFromEvent); 
           }
         }
       }
@@ -135,7 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthContext: Cleanup function for auth state listener. Unsubscribing.');
       subscription.unsubscribe();
     };
-  }, [handleSessionCreation, handleSessionDeletion, user?.id]); // Added user?.id to dependencies
+  }, [handleSessionCreation, handleSessionDeletion, user?.id]); // Keep user?.id for now, will refine further if needed
 
   const signUp = async (email: string, password: string) => {
     setError(null);
@@ -170,6 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(null);
           setUser(null);
           setLoading(false);
+          setAuthReady(true); // Auth state has been determined
           await handleSessionDeletion(user?.id);
           return { success: true };
         }
@@ -180,6 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(null);
       setUser(null);
       setLoading(false);
+      setAuthReady(true); // Auth state has been determined
       await handleSessionDeletion(user?.id);
       return { success: true };
     } catch (e: any) {
@@ -206,6 +209,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     loading,
     error,
+    authReady, // Expose authReady in the context value
     signUp,
     signIn,
     signOut,
