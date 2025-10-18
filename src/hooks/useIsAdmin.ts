@@ -28,12 +28,14 @@ export function useIsAdmin(): UseAdminResult {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
+      console.log('useIsAdmin: Component unmounted, cleanup performed.');
     };
   }, []);
 
   // This useCallback memoizes the fetchRole function to prevent unnecessary re-creations
   const fetchRole = useCallback(async () => {
     console.log('useIsAdmin: fetchRole started inside useCallback.');
+    console.log('useIsAdmin: Current authLoading:', authLoading, 'Current user:', user ? user.id : 'null');
 
     if (authLoading) {
       console.log('useIsAdmin: authLoading is true, waiting for auth to complete inside useCallback.');
@@ -53,6 +55,11 @@ export function useIsAdmin(): UseAdminResult {
     setProfileLoading(true);
     setError(null);
 
+    // Clear any existing timeout before setting a new one
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
     // Set a timeout for the overall role fetching process
     timeoutRef.current = setTimeout(() => {
       if (isMountedRef.current) {
@@ -67,7 +74,10 @@ export function useIsAdmin(): UseAdminResult {
       console.log('useIsAdmin: Calling ProfileService.fetchProfile...');
       const profile = await ProfileService.fetchProfile(user.id);
 
-      if (!isMountedRef.current) return; // Check if component is still mounted after async operation
+      if (!isMountedRef.current) {
+        console.log('useIsAdmin: Component unmounted during ProfileService.fetchProfile, skipping state updates.');
+        return; // Check if component is still mounted after async operation
+      }
 
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current); // Clear the timeout if the query completes successfully
@@ -83,7 +93,10 @@ export function useIsAdmin(): UseAdminResult {
         console.log('useIsAdmin: No profile data found or error occurred in ProfileService.fetchProfile, isAdmin set to false.');
       }
     } catch (err: any) {
-      if (!isMountedRef.current) return; // Check if component is still mounted after async operation
+      if (!isMountedRef.current) {
+        console.log('useIsAdmin: Component unmounted during error handling, skipping state updates.');
+        return; // Check if component is still mounted after async operation
+      }
 
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current); // Clear the timeout on unexpected error
@@ -96,6 +109,7 @@ export function useIsAdmin(): UseAdminResult {
       handleError(err, errorMessage); // Use global handleError for toast
       setError(errorMessage);
       setIsAdmin(false);
+      console.error('useIsAdmin: Error caught in fetchRole:', err);
     } finally {
       if (isMountedRef.current) { // Ensure final state update only if mounted
         setProfileLoading(false);
@@ -107,6 +121,7 @@ export function useIsAdmin(): UseAdminResult {
 
   // This useEffect triggers fetchRole whenever user or authLoading changes
   useEffect(() => {
+    console.log('useIsAdmin: useEffect triggered for fetchRole. authLoading:', authLoading, 'user:', user ? user.id : 'null');
     fetchRole();
     // No specific cleanup needed here as the outer useEffect handles overall cleanup
     // and fetchRole itself manages its internal timeout.

@@ -61,6 +61,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthContext: No user or expires_in in session, skipping session creation.');
       return;
     }
+    console.log('AuthContext: User ID for session creation:', currentSession.user.id);
+
 
     let currentSessionId = localStorage.getItem('wpw_session_id');
     if (!currentSessionId) {
@@ -126,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setError(null); // Clear any previous errors on auth state change
           setLoading(false); // Set loading to false once the initial session is processed
           setAuthReady(true); // Auth state has been determined
-          console.log(`AuthContext: Auth state changed. Loading set to false. User: ${currentSession?.user ? 'present' : 'null'}`);
+          console.log(`AuthContext: Auth state changed. Loading set to false. AuthReady set to true. User: ${currentSession?.user ? 'present' : 'null'}`);
 
           if (currentSession) {
             await handleSessionCreation(currentSession);
