@@ -32,8 +32,8 @@ export const ProfileService = {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle() // Use maybeSingle to return null if no row is found
-        .abortSignal(controller.signal); // Add abortSignal to the query
+        .abortSignal(controller.signal) // Moved abortSignal here
+        .maybeSingle(); // Use maybeSingle to return null if no row is found
 
       if (error) {
         if (error.code === 'PGRST116') { // No rows found
@@ -80,7 +80,7 @@ export const ProfileService = {
         .from('profiles')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', userId)
-        .abortSignal(controller.signal)
+        .abortSignal(controller.signal) // Moved abortSignal here
         .select()
         .single();
 
@@ -118,7 +118,7 @@ export const ProfileService = {
         .select('id')
         .eq('id', userId)
         .limit(1)
-        .abortSignal(controller.signal);
+        .abortSignal(controller.signal); // Moved abortSignal here
 
       if (error) {
         logSupabaseError('ensureProfileExists - check', error);
@@ -133,7 +133,7 @@ export const ProfileService = {
         const { error: insertError } = await supabase
           .from('profiles')
           .insert({ id: userId, subscription_status: 'free', role: 'user' }) // Default values
-          .abortSignal(controller.signal);
+          .abortSignal(controller.signal); // Moved abortSignal here
 
         if (insertError) {
           logSupabaseError('ensureProfileExists - insert', insertError);
