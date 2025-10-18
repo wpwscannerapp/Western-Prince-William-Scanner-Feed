@@ -41,7 +41,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Add this useEffect to log loading state changes
   useEffect(() => {
     console.log('AuthContext: Loading state changed to:', loading);
   }, [loading]);
@@ -113,35 +112,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AuthContext: Session(s) deleted and removed from localStorage.');
   }, []);
 
+  // Effect for initial session check
   useEffect(() => {
-    console.log('AuthContext: useEffect for onAuthStateChange listener triggered.');
+    console.log('AuthContext: Initial session check useEffect triggered.');
+    const checkInitialSession = async () => {
+      try {
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+        if (isMountedRef.current) {
+          setSession(initialSession);
+          setUser(initialSession?.user || null);
+          setError(sessionError);
+          setLoading(false); // Set loading to false after initial check
+          console.log(`AuthContext: Initial session check complete. User: ${initialSession?.user ? 'present' : 'null'}, Loading: false`);
 
+          if (initialSession) {
+            await handleSessionCreation(initialSession);
+          }
+        }
+      } catch (err: any) {
+        if (isMountedRef.current) {
+          setError(new AuthError(err.message || 'Failed to get initial session.'));
+          setLoading(false);
+        }
+        globalHandleError(err, 'An unexpected error occurred during initial session check.');
+      }
+    };
+
+    // Set a timeout for the initial session check
     authTimeoutRef.current = setTimeout(() => {
       if (loading && isMountedRef.current) {
-        console.warn(`AuthContext: Authentication initialization timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms. Setting loading to false.`);
+        console.warn(`AuthContext: Initial authentication check timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms. Setting loading to false.`);
         setLoading(false);
         setError(new AuthError('Authentication initialization timed out. Please check your network connection or try again.'));
       }
     }, AUTH_INITIALIZATION_TIMEOUT);
 
+    checkInitialSession();
+
+    return () => {
+      if (authTimeoutRef.current) {
+        clearTimeout(authTimeoutRef.current);
+        authTimeoutRef.current = null;
+      }
+    };
+  }, []); // Empty dependency array to run only once on mount
+
+  // Effect for listening to auth state changes (subsequent events)
+  useEffect(() => {
+    console.log('AuthContext: onAuthStateChange listener useEffect triggered.');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
         console.log(`AuthContext: onAuthStateChange callback fired. Event: ${_event}, Session: ${currentSession ? 'present' : 'null'}`);
         
+        // Clear the initial timeout if it's still active, as a state change has occurred
         if (authTimeoutRef.current) {
           clearTimeout(authTimeoutRef.current);
           authTimeoutRef.current = null;
         }
 
-        // Safely get the user ID before a potential sign-out event
-        const { data: { user: currentUserBeforeSignOut } } = await supabase.auth.getUser();
-        const userIdBeforeSignOut = currentUserBeforeSignOut?.id;
+        const userIdBeforeSignOut = (await supabase.auth.getUser()).data.user?.id;
 
         if (isMountedRef.current) {
           setSession(currentSession);
           setUser(currentSession?.user || null);
-          setError(null);
-          
+          setError(null); // Clear any previous errors on state change
+
           if (currentSession) {
             await handleSessionCreation(currentSession);
           } else if (_event === 'SIGNED_OUT') {
@@ -149,10 +184,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             await handleSessionDeletion(undefined);
           }
-          
-          // Set loading to false AFTER all session handling is complete
-          setLoading(false);
-          console.log(`AuthContext: setLoading(false) called. User: ${currentSession?.user ? 'present' : 'null'}`);
+          // Do NOT set loading here, as it's managed by the initial session check useEffect
         }
       }
     );
@@ -160,12 +192,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       console.log('AuthContext: Cleanup function for auth state listener. Unsubscribing.');
       subscription.unsubscribe();
-      if (authTimeoutRef.current) {
-        clearTimeout(authTimeoutRef.current);
-        authTimeoutRef.current = null;
-      }
     };
-  }, [handleSessionCreation, handleSessionDeletion]);
+  }, [handleSessionCreation, handleSessionDeletion]); // Dependencies for subsequent changes
 
   const signUp = async (email: string, password: string) => {
     setError(null);
@@ -199,7 +227,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           toast.success('Logged out successfully!');
           setSession(null);
           setUser(null);
-          setLoading(false);
+          // setLoading(false); // No longer setting loading here
           return { success: true };
         }
         handleError(authError, authError.message);
@@ -208,7 +236,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.success('Logged out successfully!');
       setSession(null);
       setUser(null);
-      setLoading(false);
+      // setLoading(false); // No longer setting loading here
       return { success: true };
     } catch (e: any) {
       handleError(e, e.message || 'An unexpected error occurred during logout.');
