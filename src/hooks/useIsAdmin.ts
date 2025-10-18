@@ -1,8 +1,8 @@
-import { useEffect, useState, useRef } from 'react'; // Import useRef
+import { useEffect, useState } from 'react'; // Removed useRef as it's no longer needed for timeout
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
-import { SUPABASE_API_TIMEOUT } from '@/config'; // Import SUPABASE_API_TIMEOUT
+// Removed SUPABASE_API_TIMEOUT import as it's no longer used directly here
 
 interface UseAdminResult {
   isAdmin: boolean;
@@ -13,7 +13,7 @@ export function useIsAdmin(): UseAdminResult {
   const { user, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null); // Use useRef for timeout
+  // Removed timeoutRef as it's no longer needed
 
   useEffect(() => {
     const checkAdminRole = async () => {
@@ -32,29 +32,14 @@ export function useIsAdmin(): UseAdminResult {
 
       console.log('useIsAdmin: User found, fetching profile role for user ID:', user.id);
       setProfileLoading(true);
-      const controller = new AbortController();
       
-      // Clear any existing timeout before setting a new one
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      timeoutRef.current = setTimeout(() => {
-        console.warn('useIsAdmin: Supabase profile fetch timed out, aborting request.');
-        controller.abort();
-        handleError(new Error('Supabase profile fetch timed out.'), 'Fetching user role timed out.');
-        // Ensure loading state is false even on timeout
-        setProfileLoading(false); 
-      }, SUPABASE_API_TIMEOUT);
-
       try {
         console.log('useIsAdmin: Calling Supabase to fetch profile role...');
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', user.id)
-          .abortSignal(controller.signal)
-          .single();
+          .single(); // Removed .abortSignal(controller.signal)
         console.log('useIsAdmin: Supabase profile fetch completed. Data:', profile, 'Error:', error);
 
         if (error) {
@@ -69,19 +54,10 @@ export function useIsAdmin(): UseAdminResult {
           console.log('useIsAdmin: No profile data found, isAdmin set to false.');
         }
       } catch (err: any) {
-        if (err.name === 'AbortError') {
-          console.error('useIsAdmin: Supabase profile fetch aborted due to timeout.');
-          // handleError already called by the timeout callback
-        } else {
-          handleError(err, 'An unexpected error occurred during admin role check.');
-        }
+        // If an error occurs here, it's likely a network error or a deeper Supabase client issue
+        handleError(err, 'An unexpected error occurred during admin role check.');
         setIsAdmin(false);
       } finally {
-        // Clear the timeout if the promise settled (either success or error)
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
-        }
         setProfileLoading(false);
         console.log('useIsAdmin: checkAdminRole finished, profileLoading set to false in finally block.');
       }
@@ -89,13 +65,9 @@ export function useIsAdmin(): UseAdminResult {
 
     checkAdminRole();
 
-    // Cleanup function for useEffect
+    // No specific cleanup needed for AbortController or setTimeout anymore
     return () => {
       console.log('useIsAdmin: useEffect cleanup running.');
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
     };
   }, [user, authLoading]); // Dependencies for useEffect
 
