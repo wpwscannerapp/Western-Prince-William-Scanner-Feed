@@ -9,7 +9,7 @@ try {
 } catch (error) {
   console.error('Environment variable validation failed:', error);
   document.getElementById("root")!.innerHTML = `
-    <div style="min-height: 100vh; display: flex; flex-flex-direction: column; align-items: center; justify-content: center; background-color: #1a202c; color: #e2e8f0; padding: 1rem; text-align: center;">
+    <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #1a202c; color: #e2e8f0; padding: 1rem; text-align: center;">
       <h1 style="font-size: 2rem; font-weight: bold; margin-bottom: 1rem;">Application Error</h1>
       <p style="font-size: 1.1rem;">${(error as Error).message}</p>
       <p style="font-size: 0.9rem; margin-top: 1rem;">Please check your browser console for more details.</p>
@@ -18,10 +18,23 @@ try {
   throw error;
 }
 
-createRoot(document.getElementById("root")!).render(
-  // Removed React.StrictMode for development to prevent double-mounting issues
-  <App />
-);
+try {
+  createRoot(document.getElementById("root")!).render(
+    // Removed React.StrictMode for development to prevent double-mounting issues
+    <App />
+  );
+} catch (error) {
+  console.error('main.tsx: App render error:', error);
+  document.getElementById("root")!.innerHTML = `
+    <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #1a202c; color: #e2e8f0; padding: 1rem; text-align: center;">
+      <h1 style="font-size: 2rem; font-weight: bold; margin-bottom: 1rem;">Application Error</h1>
+      <p style="font-size: 1.1rem;">${(error as Error).message}</p>
+      <p style="font-size: 0.9rem; margin-top: 1rem;">Please check your browser console for more details.</p>
+    </div>
+  `;
+  throw error;
+}
+
 
 // Register the service worker immediately
 if ('serviceWorker' in navigator) {

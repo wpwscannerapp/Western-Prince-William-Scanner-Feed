@@ -10,7 +10,7 @@ import { handleError as globalHandleError } from '@/utils/errorHandler';
 interface AuthState {
   session: Session | null;
   user: User | null;
-  loading: boolean;
+  loading: boolean; // Represents authLoading
   error: AuthError | null;
   authReady: boolean;
   signUp: (email: string, password: string) => Promise<{ data?: any; error?: AuthError }>;
@@ -24,7 +24,7 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Represents authLoading
   const [error, setError] = useState<AuthError | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const isMountedRef = useRef(true);
@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (isMountedRef.current && loading) {
           console.warn('AuthContext.tsx: Authentication initialization timed out.');
           setLoading(false);
-          setAuthReady(true);
+          setAuthReady(true); // Force authReady to true on timeout
           setError(new AuthError('Authentication initialization timed out. Please check your network connection or try again.'));
         }
       }, AUTH_INITIALIZATION_TIMEOUT);
@@ -107,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(initialSession?.user || null);
           setError(sessionError);
           setLoading(false);
-          setAuthReady(true);
+          setAuthReady(true); // Set authReady to true after initial session fetch
 
           if (initialSession) {
             await handleSessionCreation(initialSession);
@@ -117,7 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (isMountedRef.current) {
           setError(new AuthError(err.message || 'Failed to get initial session.'));
           setLoading(false);
-          setAuthReady(true);
+          setAuthReady(true); // Set authReady to true even on error
         }
         globalHandleError(err, 'An unexpected error occurred during initial session check.');
       } finally {
@@ -141,6 +141,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         let userIdForDeletion: string | undefined;
         if (_event === 'SIGNED_OUT') {
+          // When signing out, the user object in the session might be null,
+          // so we try to get the user from auth.getUser() before it's fully cleared.
           const { data: { user: signedOutUser } } = await supabase.auth.getUser();
           userIdForDeletion = signedOutUser?.id;
         }
@@ -150,13 +152,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(currentSession?.user || null);
           setError(null);
           setLoading(false);
-          setAuthReady(true);
+          setAuthReady(true); // Set authReady to true on any auth state change
 
           if (currentSession) {
             await handleSessionCreation(currentSession);
           } else if (_event === 'SIGNED_OUT') {
             await handleSessionDeletion(userIdForDeletion);
           } else {
+            // If session is null and not a SIGNED_OUT event, it might be an initial null session
+            // or other unauthenticated state. Ensure old session data is cleared.
             await handleSessionDeletion(undefined);
           }
         }
@@ -170,7 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authTimeoutRef.current = null;
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion]); // Removed 'loading' from dependencies
+  }, [handleSessionCreation, handleSessionDeletion, loading]); // Added 'loading' to dependencies
 
   const signUp = async (email: string, password: string) => {
     setError(null);

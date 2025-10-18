@@ -1,36 +1,51 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
-import { useAuth } from '@/context/AuthContext'; // Import useAuth
-import { SPLASH_DURATION } from '@/config'; // Import from config.ts
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { SPLASH_DURATION } from '@/config';
 
 const Index: React.FC = () => {
-  const { user, loading: authLoading, authReady } = useAuth(); // Use auth loading and authReady states
+  const { user, loading: authLoading, authReady } = useAuth();
   const [splashActive, setSplashActive] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const splashDuration = SPLASH_DURATION;
-    document.documentElement.style.setProperty('--splash-duration', `${splashDuration / 1000}s`);
-
-    const timer = setTimeout(() => {
+    const splashDuration = SPLASH_DURATION || 3000; // Default if undefined or 0
+    if (splashDuration > 0) {
+      document.documentElement.style.setProperty('--splash-duration', `${splashDuration / 1000}s`);
+      const timer = setTimeout(() => {
+        console.log('Index: Splash timer ended, setting splashActive to false.');
+        setSplashActive(false);
+      }, splashDuration);
+      return () => clearTimeout(timer);
+    } else {
+      // If splash duration is 0 or less, skip splash
       setSplashActive(false);
-    }, splashDuration);
-
-    return () => clearTimeout(timer);
+    }
   }, []);
 
   useEffect(() => {
+    console.log('Index: Navigation check -', { splashActive, authReady, authLoading, user });
     if (!splashActive && authReady) {
       if (user) {
+        console.log('Index: Navigating to /home (user authenticated).');
         navigate('/home', { replace: true });
       } else {
+        console.log('Index: Navigating to /auth (no user).');
         navigate('/auth', { replace: true });
       }
+    } else if (!splashActive && !authReady) {
+      // Fallback: Force navigation after a short delay if authReady is still delayed
+      const fallbackTimer = setTimeout(() => {
+        console.log('Index: Fallback navigation to /auth (authReady delayed).');
+        navigate('/auth', { replace: true });
+      }, 2000); // 2-second delay for fallback navigation
+      return () => clearTimeout(fallbackTimer);
     }
   }, [splashActive, authReady, user, navigate]);
 
-  // Show splash if splash is active OR auth is still loading
-  if (splashActive || authLoading) { 
+  // Render splash only if splashActive is true
+  if (splashActive) {
+    console.log('Index: Showing splash screen.');
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-primary/20 tw-to-background tw-animate-fade-in" aria-label="Loading application">
         <div className="tw-flex tw-flex-col tw-items-center tw-gap-4">
@@ -39,6 +54,17 @@ const Index: React.FC = () => {
             <div className="tw-h-full tw-bg-primary tw-animate-progress" />
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // If splash is not active but auth is not ready, show a generic loader
+  if (!authReady) {
+    console.log('Index: Splash ended, but authReady is false, showing generic loader.');
+    return (
+      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
+        <div className="tw-animate-spin tw-h-8 tw-w-8 tw-text-primary" />
+        <p className="tw-ml-2">Loading authentication...</p>
       </div>
     );
   }
