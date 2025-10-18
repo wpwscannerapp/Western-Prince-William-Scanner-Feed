@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from 'sonner'; // Corrected import syntax
 import { SessionService } from '@/services/SessionService';
 import { MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT } from '@/config';
 import { ProfileService } from '@/services/ProfileService';
@@ -28,6 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isMountedRef = useRef(true);
   const mountCountRef = useRef(0);
   const authTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initialLoadHandledRef = useRef(false); // New ref to track if initial load is done
 
   useEffect(() => {
     mountCountRef.current += 1;
@@ -112,54 +113,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AuthContext: Session(s) deleted and removed from localStorage.');
   }, []);
 
-  // Effect for initial session check
+  // Combined effect for initial session check and subsequent auth state changes
   useEffect(() => {
-    console.log('AuthContext: Initial session check useEffect triggered.');
-    const checkInitialSession = async () => {
-      try {
-        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
-        if (isMountedRef.current) {
-          setSession(initialSession);
-          setUser(initialSession?.user || null);
-          setError(sessionError);
-          setLoading(false); // Set loading to false after initial check
-          console.log(`AuthContext: Initial session check complete. User: ${initialSession?.user ? 'present' : 'null'}, Loading: false`);
+    console.log('AuthContext: Combined onAuthStateChange listener useEffect triggered.');
 
-          if (initialSession) {
-            await handleSessionCreation(initialSession);
-          }
-        }
-      } catch (err: any) {
-        if (isMountedRef.current) {
-          setError(new AuthError(err.message || 'Failed to get initial session.'));
+    // Set a timeout for the *very first* authentication check
+    if (!initialLoadHandledRef.current) {
+      authTimeoutRef.current = setTimeout(() => {
+        if (loading && isMountedRef.current) {
+          console.warn(`AuthContext: Initial authentication check timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms. Setting loading to false.`);
           setLoading(false);
+          setError(new AuthError('Authentication initialization timed out. Please check your network connection or try again.'));
         }
-        globalHandleError(err, 'An unexpected error occurred during initial session check.');
-      }
-    };
+      }, AUTH_INITIALIZATION_TIMEOUT);
+    }
 
-    // Set a timeout for the initial session check
-    authTimeoutRef.current = setTimeout(() => {
-      if (loading && isMountedRef.current) {
-        console.warn(`AuthContext: Initial authentication check timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms. Setting loading to false.`);
-        setLoading(false);
-        setError(new AuthError('Authentication initialization timed out. Please check your network connection or try again.'));
-      }
-    }, AUTH_INITIALIZATION_TIMEOUT);
-
-    checkInitialSession();
-
-    return () => {
-      if (authTimeoutRef.current) {
-        clearTimeout(authTimeoutRef.current);
-        authTimeoutRef.current = null;
-      }
-    };
-  }, []); // Empty dependency array to run only once on mount
-
-  // Effect for listening to auth state changes (subsequent events)
-  useEffect(() => {
-    console.log('AuthContext: onAuthStateChange listener useEffect triggered.');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
         console.log(`AuthContext: onAuthStateChange callback fired. Event: ${_event}, Session: ${currentSession ? 'present' : 'null'}`);
@@ -184,7 +152,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             await handleSessionDeletion(undefined);
           }
-          // Do NOT set loading here, as it's managed by the initial session check useEffect
+          
+          // Only set loading to false once the initial session has been processed
+          if (!initialLoadHandledRef.current) {
+            setLoading(false);
+            initialLoadHandledRef.current = true;
+            console.log(`AuthContext: setLoading(false) called for initial load. User: ${currentSession?.user ? 'present' : 'null'}`);
+          }
         }
       }
     );
@@ -192,8 +166,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       console.log('AuthContext: Cleanup function for auth state listener. Unsubscribing.');
       subscription.unsubscribe();
+      if (authTimeoutRef.current) {
+        clearTimeout(authTimeoutRef.current);
+        authTimeoutRef.current = null;
+      }
     };
-  }, [handleSessionCreation, handleSessionDeletion]); // Dependencies for subsequent changes
+  }, [handleSessionCreation, handleSessionDeletion, loading]); // Added `loading` to dependencies to ensure timeout logic is correct
 
   const signUp = async (email: string, password: string) => {
     setError(null);
@@ -227,7 +205,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           toast.success('Logged out successfully!');
           setSession(null);
           setUser(null);
-          // setLoading(false); // No longer setting loading here
+          setLoading(false);
           return { success: true };
         }
         handleError(authError, authError.message);
@@ -236,7 +214,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.success('Logged out successfully!');
       setSession(null);
       setUser(null);
-      // setLoading(false); // No longer setting loading here
+      setLoading(false);
       return { success: true };
     } catch (e: any) {
       handleError(e, e.message || 'An unexpected error occurred during logout.');
