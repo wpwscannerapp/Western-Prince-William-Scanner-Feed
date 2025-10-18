@@ -81,6 +81,9 @@ export function useIsAdmin(): UseAdminResult {
         if (supabaseError) {
           if (supabaseError.name === 'AbortError') {
             console.log('useIsAdmin: Supabase query aborted due to timeout.');
+          } else if (supabaseError.code === 'PGRST116') { // No rows found
+            console.log('useIsAdmin: No profile found for user, isAdmin set to false.');
+            setIsAdmin(false);
           } else {
             const errorMessage = `Failed to fetch user role for admin check: ${supabaseError.message}`;
             handleError(supabaseError, errorMessage);
@@ -92,8 +95,8 @@ export function useIsAdmin(): UseAdminResult {
           setIsAdmin(profile.role === 'admin'); // Correctly checking the 'role' value
           console.log('useIsAdmin: Profile found. Role:', profile.role, 'isAdmin:', profile.role === 'admin');
         } else {
-          setIsAdmin(false); // No profile found or role not 'admin'
-          console.log('useIsAdmin: No profile data found, isAdmin set to false.');
+          setIsAdmin(false); // No profile found or role not 'admin' (should be covered by PGRST116)
+          console.log('useIsAdmin: No profile data found (unexpected path), isAdmin set to false.');
         }
       } catch (err: any) {
         if (!isMountedRef.current) return; // Check after catch
