@@ -9,7 +9,12 @@ if (!supabaseUrl || !supabaseAnonKey || !supabaseAnonKey.startsWith('eyJ')) {
 }
 
 console.log('Supabase Client Init: Using URL:', supabaseUrl);
-console.log('Supabase Client Init: Using Anon Key (first 10 chars):', supabaseAnonKey.substring(0, 10) + '...');
+if (import.meta.env.DEV) { // Log full key only in development for debugging
+  console.log('Supabase Client Init: Using Full Anon Key (DEV ONLY):', supabaseAnonKey);
+} else {
+  console.log('Supabase Client Init: Using Anon Key (first 10 chars):', supabaseAnonKey.substring(0, 10) + '...');
+}
+
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
