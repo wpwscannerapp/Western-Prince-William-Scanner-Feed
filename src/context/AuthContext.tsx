@@ -45,14 +45,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const handleError = useCallback((err: any, defaultMessage: string) => {
+  // Make handleError a stable function, not a useCallback
+  const handleError = (err: any, defaultMessage: string) => {
     const authError = err instanceof AuthError ? err : new AuthError(err.message || defaultMessage, err.name);
     if (isMountedRef.current) {
       setError(authError);
     }
     globalHandleError(authError, defaultMessage);
     return authError;
-  }, []);
+  };
 
   const handleSessionCreation = useCallback(async (currentSession: Session) => {
     console.log('AuthContext: handleSessionCreation called with session:', currentSession ? 'present' : 'null');
@@ -91,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       console.error('AuthContext: Failed to create session (error handled by SessionService).');
     }
-  }, [handleError]);
+  }, [userRef]); // Dependency changed from [handleError] to [userRef]
 
   const handleSessionDeletion = useCallback(async (userIdToDelete?: string) => {
     console.log('AuthContext: handleSessionDeletion called.');
@@ -109,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await SessionService.deleteAllSessionsForUser(userIdToDelete);
     }
     console.log('AuthContext: Session(s) deleted and removed from localStorage.');
-  }, [handleError]);
+  }, []); // No dependencies needed if handleError is stable and userRef is not directly used here.
 
   // Effect for setting up auth state listener
   useEffect(() => {
@@ -140,7 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthContext: Cleanup function for auth state listener. Unsubscribing.');
       subscription.unsubscribe();
     };
-  }, [handleSessionCreation, handleSessionDeletion]); // Removed user?.id from dependencies
+  }, [handleSessionCreation, handleSessionDeletion]);
 
   const signUp = async (email: string, password: string) => {
     setError(null);
