@@ -43,8 +43,11 @@ createRoot(document.getElementById("root")!).render(
 // Register the service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    console.log('main.tsx: Attempting to register service worker...'); // Added log
     navigator.serviceWorker.register('/service-worker.js') // Corrected path to match existing file
-      .then((reg) => console.log('Service Worker registered:', reg.scope))
-      .catch((err) => console.error('Service Worker registration failed:', err));
+      .then((reg) => console.log('main.tsx: Service Worker registered:', reg.scope)) // Added log
+      .catch((err) => console.error('main.tsx: Service Worker registration failed:', err)); // Added log
   });
+} else {
+  console.warn('main.tsx: Service Workers are not supported by this browser.'); // Added log
 }
