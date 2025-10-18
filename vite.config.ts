@@ -22,9 +22,7 @@ export default defineConfig({
       path: '/ws', // Explicitly set WebSocket path
       timeout: 30000, // Increase timeout for HMR connection
     },
-    watch: {
-      usePolling: true, // Explicitly enable polling for HMR
-    },
+    // Removed: watch: { usePolling: true }, // Reverting this change
   },
   build: {
     outDir: 'dist',

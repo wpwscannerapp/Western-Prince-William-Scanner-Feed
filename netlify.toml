@@ -2,9 +2,10 @@
   command = "npm run build"
   publish = "dist"
 
-[dev]
-  command = "npm run dev" # Command to start your Vite dev server
-  port = 8888             # Port Netlify CLI will run on
-  targetPort = 32100      # Port your Vite dev server runs on
-  publish = "dist"        # Directory to serve static assets from
-  framework = "#vite"     # Explicitly tell Netlify CLI it's a Vite project
+# Removed: [dev] section, reverting to Netlify CLI's default behavior
+# [dev]
+#   command = "npm run dev"
+#   port = 8888
+#   targetPort = 32100
+#   publish = "dist"
+#   framework = "#vite"
