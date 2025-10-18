@@ -6,6 +6,7 @@ import { SPLASH_DURATION } from '@/config'; // Import from config.ts
 const Index: React.FC = () => {
   const { user, loading: authLoading } = useAuth(); // Use auth loading state
   const [splashActive, setSplashActive] = useState(true);
+  const [authReady, setAuthReady] = useState(false); // New state to track when auth is truly ready
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,11 +21,19 @@ const Index: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // New useEffect to track when auth is truly ready
   useEffect(() => {
-    console.log(`Index: Navigation check - splashActive: ${splashActive}, authLoading: ${authLoading}, user: ${user ? 'present' : 'null'}`);
-    // Once splash is no longer active AND auth loading is complete, navigate
-    if (!splashActive && !authLoading) {
-      console.log('Index: Splash and Auth loading complete. Navigating...');
+    if (!authLoading) {
+      console.log('Index: Auth loading is false, setting authReady to true.');
+      setAuthReady(true);
+    }
+  }, [authLoading]); // Depend on authLoading
+
+  useEffect(() => {
+    console.log(`Index: Navigation check - splashActive: ${splashActive}, authReady: ${authReady}, user: ${user ? 'present' : 'null'}`);
+    // Only navigate if splash is inactive AND auth is ready
+    if (!splashActive && authReady) {
+      console.log('Index: Splash inactive and Auth ready. Navigating...');
       if (user) {
         console.log('Index: User authenticated, navigating to /home.');
         navigate('/home', { replace: true });
@@ -33,10 +42,9 @@ const Index: React.FC = () => {
         navigate('/auth', { replace: true });
       }
     }
-  }, [splashActive, authLoading, user, navigate]);
+  }, [splashActive, authReady, user, navigate]); // Depend on authReady instead of authLoading
 
-
-  // Show splash if splash is active or auth is still loading
+  // Show splash if splash is active OR auth is still loading
   if (splashActive || authLoading) { 
     console.log('Index: Still showing loading screen (splashActive or authLoading is true).');
     return (
