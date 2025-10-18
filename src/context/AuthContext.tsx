@@ -91,9 +91,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Effect for initial session fetch and setting up the listener
   useEffect(() => {
+    console.log('AuthContext.tsx: useEffect for initial session fetch and listener setup triggered.');
     const setupAuth = async () => {
+      console.log('AuthContext.tsx: setupAuth function started.');
       authTimeoutRef.current = setTimeout(() => {
         if (isMountedRef.current && loading) {
+          console.warn('AuthContext.tsx: Authentication initialization timed out.');
           setLoading(false);
           setAuthReady(true);
           setError(new AuthError('Authentication initialization timed out. Please check your network connection or try again.'));
@@ -101,7 +104,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }, AUTH_INITIALIZATION_TIMEOUT);
 
       try {
+        console.log('AuthContext.tsx: Calling supabase.auth.getSession()...');
         const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+        console.log('AuthContext.tsx: supabase.auth.getSession() returned.', { initialSession, sessionError });
         if (isMountedRef.current) {
           setSession(initialSession);
           setUser(initialSession?.user || null);
@@ -114,6 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       } catch (err: any) {
+        console.error('AuthContext.tsx: Error during initial session fetch:', err);
         if (isMountedRef.current) {
           setError(new AuthError(err.message || 'Failed to get initial session.'));
           setLoading(false);
@@ -125,14 +131,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           clearTimeout(authTimeoutRef.current);
           authTimeoutRef.current = null;
         }
+        console.log('AuthContext.tsx: setupAuth function finished.');
       }
     };
 
     setupAuth();
 
     // Set up the onAuthStateChange listener for subsequent events
+    console.log('AuthContext.tsx: Setting up onAuthStateChange listener.');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
+        console.log('AuthContext.tsx: onAuthStateChange callback fired. Event:', _event, 'Session:', currentSession ? 'present' : 'null');
         // Clear the initial timeout if it's still active, as a state change has occurred
         if (authTimeoutRef.current) {
           clearTimeout(authTimeoutRef.current);
@@ -160,13 +169,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     return () => {
+      console.log('AuthContext.tsx: Cleanup function for onAuthStateChange listener. Unsubscribing.');
       subscription.unsubscribe();
       if (authTimeoutRef.current) {
         clearTimeout(authTimeoutRef.current);
         authTimeoutRef.current = null;
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion]); // Removed 'loading' from dependencies
+  }, [handleSessionCreation, handleSessionDeletion]);
 
   const signUp = async (email: string, password: string) => {
     setError(null);
@@ -228,7 +238,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: authError };
     }
     toast.success('Password reset email sent. Check your inbox!');
-    return { success: true };
+    return { success: true }; // Corrected return to match AuthState interface
   };
 
   const value = {
