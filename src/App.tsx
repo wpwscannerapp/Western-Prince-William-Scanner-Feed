@@ -20,7 +20,7 @@ import IncidentsPage from '@/pages/IncidentsPage';
 import ProfilePage from '@/pages/ProfilePage';
 import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
-import ContactUsPage from '@/pages/ContactUsPage';
+import ContactUsPage from '@/pages/ContactUsPage'; // Correctly imported
 import IncidentArchivePage from '@/pages/IncidentArchivePage';
 import React, { useEffect, useState, useRef } from 'react'; // Import useEffect, useState, useRef
 import { NotificationService } from './services/NotificationService'; // Import NotificationService
@@ -37,14 +37,14 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const webPushInitAttemptedRef = useRef(false); // To prevent multiple init calls
 
   const initializeWebPushSDK = async () => { // No userId parameter here, as ensureWebPushReady doesn't need it
-    console.log('App.tsx: initializeWebPushSDK called. Attempted:', webPushInitAttemptedRef.current);
+    // console.log('App.tsx: initializeWebPushSDK called. Attempted:', webPushInitAttemptedRef.current); // Removed debug log
     if (webPushInitAttemptedRef.current) {
-      console.log('App.tsx: Web Push initialization already attempted, skipping.');
+      // console.log('App.tsx: Web Push initialization already attempted, skipping.'); // Removed debug log
       return;
     }
     webPushInitAttemptedRef.current = true;
 
-    console.log('App.tsx: Attempting to ensure Web Push readiness.');
+    // console.log('App.tsx: Attempting to ensure Web Push readiness.'); // Removed debug log
     let timeoutId: ReturnType<typeof setTimeout>; // Declare timeoutId
 
     const timeoutPromise = new Promise<boolean>(resolve => {
@@ -67,14 +67,11 @@ const AppSettingsProvider = ({ children }: { children: React.ReactNode }) => {
     if (!success) {
       console.error('App.tsx: Web Push readiness check failed.');
     } else {
-      console.log('App.tsx: Web Push readiness check succeeded.');
+      // console.log('App.tsx: Web Push readiness check succeeded.'); // Removed debug log
     }
   };
 
   useEffect(() => {
-    // This useEffect now only checks if the *environment* is ready for push, not if the user is subscribed.
-    // It runs once when the component mounts.
-    console.log('App.tsx: useEffect for Web Push initialization triggered.');
     initializeWebPushSDK();
   }, []); // Empty dependency array to run once
 
@@ -129,7 +126,7 @@ const App = () => {
                       <Route path="home" element={<HomePage />} />
                       <Route path="home/incidents" element={<IncidentsPage />} />
                       {/* <Route path="home/traffic" element={<TrafficPage />} /> */} {/* Removed TrafficPage route */}
-                      <Route path="home/contact-us" element={<ContactUsPage />} />
+                      <Route path="home/contact-us" element={<ContactUsPage />} /> {/* Corrected component name */}
                       <Route path="home/archive" element={<IncidentArchivePage />} />
                       {/* Removed the standalone notifications route as it's part of ProfilePage */}
                       {/* <Route path="notifications" element={<NotificationSettingsPage />} */}

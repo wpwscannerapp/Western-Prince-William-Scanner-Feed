@@ -25,8 +25,5 @@ export const validateEnv = () => {
     }
   });
 
-  // Add a specific log for the public key here
-  if (import.meta.env.DEV) {
-    console.log('config.ts Debug: VITE_WEB_PUSH_PUBLIC_KEY value:', import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY);
-  }
+  // Removed: if (import.meta.env.DEV) { console.log('config.ts Debug: VITE_WEB_PUSH_PUBLIC_KEY value:', import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY); }
 };
