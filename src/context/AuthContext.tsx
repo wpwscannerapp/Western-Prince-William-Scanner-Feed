@@ -141,9 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(currentSession);
           setUser(currentSession?.user || null);
           setError(null);
-          setLoading(false);
-          console.log(`AuthContext: setLoading(false) called. User: ${currentSession?.user ? 'present' : 'null'}`);
-
+          
           if (currentSession) {
             await handleSessionCreation(currentSession);
           } else if (_event === 'SIGNED_OUT') {
@@ -151,6 +149,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             await handleSessionDeletion(undefined);
           }
+          
+          // Set loading to false AFTER all session handling is complete
+          setLoading(false);
+          console.log(`AuthContext: setLoading(false) called. User: ${currentSession?.user ? 'present' : 'null'}`);
         }
       }
     );
