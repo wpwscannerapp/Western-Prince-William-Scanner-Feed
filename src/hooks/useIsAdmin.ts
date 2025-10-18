@@ -1,19 +1,19 @@
-import { useEffect, useState } from 'react'; // Removed useRef as it's no longer needed for timeout
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
-// Removed SUPABASE_API_TIMEOUT import as it's no longer used directly here
 
 interface UseAdminResult {
   isAdmin: boolean;
   loading: boolean;
+  error: string | null;
 }
 
 export function useIsAdmin(): UseAdminResult {
   const { user, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
-  // Removed timeoutRef as it's no longer needed
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAdminRole = async () => {
@@ -27,23 +27,27 @@ export function useIsAdmin(): UseAdminResult {
         console.log('useIsAdmin: No user found, setting isAdmin to false and profileLoading to false.');
         setIsAdmin(false);
         setProfileLoading(false);
+        setError(null); // Clear any previous error
         return;
       }
 
       console.log('useIsAdmin: User found, fetching profile role for user ID:', user.id);
       setProfileLoading(true);
+      setError(null); // Clear error before new attempt
       
       try {
         console.log('useIsAdmin: Calling Supabase to fetch profile role...');
-        const { data: profile, error } = await supabase
+        const { data: profile, error: supabaseError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', user.id)
-          .single(); // Removed .abortSignal(controller.signal)
-        console.log('useIsAdmin: Supabase profile fetch completed. Data:', profile, 'Error:', error);
+          .single();
+        console.log('useIsAdmin: Supabase profile fetch completed. Data:', profile, 'Error:', supabaseError);
 
-        if (error) {
-          handleError(error, 'Failed to fetch user role for admin check.');
+        if (supabaseError) {
+          const errorMessage = `Failed to fetch user role for admin check: ${supabaseError.message}`;
+          handleError(supabaseError, errorMessage);
+          setError(errorMessage);
           setIsAdmin(false);
           console.log('useIsAdmin: Error fetching profile, isAdmin set to false.');
         } else if (profile) {
@@ -54,8 +58,9 @@ export function useIsAdmin(): UseAdminResult {
           console.log('useIsAdmin: No profile data found, isAdmin set to false.');
         }
       } catch (err: any) {
-        // If an error occurs here, it's likely a network error or a deeper Supabase client issue
-        handleError(err, 'An unexpected error occurred during admin role check.');
+        const errorMessage = `An unexpected error occurred during admin role check: ${err.message}`;
+        handleError(err, errorMessage);
+        setError(errorMessage);
         setIsAdmin(false);
       } finally {
         setProfileLoading(false);
@@ -65,11 +70,10 @@ export function useIsAdmin(): UseAdminResult {
 
     checkAdminRole();
 
-    // No specific cleanup needed for AbortController or setTimeout anymore
     return () => {
       console.log('useIsAdmin: useEffect cleanup running.');
     };
-  }, [user, authLoading]); // Dependencies for useEffect
+  }, [user, authLoading]);
 
-  return { isAdmin, loading: profileLoading };
+  return { isAdmin, loading: profileLoading, error };
 }
