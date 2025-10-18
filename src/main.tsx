@@ -1,5 +1,4 @@
 console.log('TOP OF MAIN.TSX - TEST LOG'); // Added this as the very first line
-import React from 'react';
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./globals.css";
@@ -33,9 +32,8 @@ try {
 }
 
 createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+  // Removed React.StrictMode for development to prevent double-mounting issues
+  <App />
 );
 
 // Register the service worker immediately

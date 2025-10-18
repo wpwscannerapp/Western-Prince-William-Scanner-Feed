@@ -4,9 +4,8 @@ import { useAuth } from '@/context/AuthContext'; // Import useAuth
 import { SPLASH_DURATION } from '@/config'; // Import from config.ts
 
 const Index: React.FC = () => {
-  const { user, loading: authLoading } = useAuth(); // Use auth loading state
+  const { user, loading: authLoading, authReady } = useAuth(); // Use auth loading and authReady states
   const [splashActive, setSplashActive] = useState(true);
-  const [authReady, setAuthReady] = useState(false); // New state to track when auth is truly ready
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,14 +20,6 @@ const Index: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // New useEffect to track when auth is truly ready
-  useEffect(() => {
-    if (!authLoading) {
-      console.log('Index: Auth loading is false, setting authReady to true.');
-      setAuthReady(true);
-    }
-  }, [authLoading]); // Depend on authLoading
-
   useEffect(() => {
     console.log(`Index: Navigation check - splashActive: ${splashActive}, authReady: ${authReady}, user: ${user ? 'present' : 'null'}`);
     // Only navigate if splash is inactive AND auth is ready
@@ -42,7 +33,7 @@ const Index: React.FC = () => {
         navigate('/auth', { replace: true });
       }
     }
-  }, [splashActive, authReady, user, navigate]); // Depend on authReady instead of authLoading
+  }, [splashActive, authReady, user, navigate]); // Depend on authReady
 
   // Show splash if splash is active OR auth is still loading
   if (splashActive || authLoading) { 

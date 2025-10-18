@@ -12,6 +12,7 @@ interface AuthState {
   user: User | null;
   loading: boolean;
   error: AuthError | null;
+  authReady: boolean; // Added authReady to AuthState
   signUp: (email: string, password: string) => Promise<{ data?: any; error?: AuthError }>;
   signIn: (email: string, password: string) => Promise<{ data?: any; error?: AuthError }>;
   signOut: () => Promise<{ success: boolean; error?: AuthError }>;
@@ -25,6 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true); // Starts true, becomes false after initial check
   const [error, setError] = useState<AuthError | null>(null);
+  const [authReady, setAuthReady] = useState(false); // New state to indicate auth is fully initialized
   const isMountedRef = useRef(true);
   const mountCountRef = useRef(0);
   const authTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -119,9 +121,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const setupAuth = async () => {
       // Set a timeout for the initial authentication check
       authTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current) { // Removed `loading` from this condition
-          console.warn(`AuthContext: Initial authentication check timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms. Setting loading to false.`);
+        if (isMountedRef.current && loading) { // Check `loading` state to ensure it's still pending
+          console.warn(`AuthContext: Initial authentication check timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms. Forcing loading to false and authReady to true.`);
           setLoading(false);
+          setAuthReady(true); // Force authReady to true on timeout
           setError(new AuthError('Authentication initialization timed out. Please check your network connection or try again.'));
         }
       }, AUTH_INITIALIZATION_TIMEOUT);
@@ -133,7 +136,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(initialSession?.user || null);
           setError(sessionError); // Set initial error if any
           setLoading(false); // Crucially, set loading to false here after initial check
-          console.log(`AuthContext: Initial session check complete. User: ${initialSession?.user ? 'present' : 'null'}, Loading: false`);
+          setAuthReady(true); // Set authReady to true after initial check
+          console.log(`AuthContext: Initial session check complete. User: ${initialSession?.user ? 'present' : 'null'}, Loading: false, AuthReady: true`);
 
           if (initialSession) {
             await handleSessionCreation(initialSession);
@@ -143,6 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (isMountedRef.current) {
           setError(new AuthError(err.message || 'Failed to get initial session.'));
           setLoading(false);
+          setAuthReady(true); // Set authReady to true even on error
         }
         globalHandleError(err, 'An unexpected error occurred during initial session check.');
       } finally {
@@ -172,6 +177,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(currentSession);
           setUser(currentSession?.user || null);
           setError(null); // Clear any previous errors on state change
+          setLoading(false); // Explicitly set loading to false on any auth state change
+          setAuthReady(true); // Explicitly set authReady to true on any auth state change
 
           if (currentSession) {
             await handleSessionCreation(currentSession);
@@ -180,7 +187,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             await handleSessionDeletion(undefined);
           }
-          // IMPORTANT: Do NOT set loading to false here. It's handled by the initial setupAuth call.
         }
       }
     );
@@ -193,7 +199,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authTimeoutRef.current = null;
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion]); // Removed `loading` from dependencies
+  }, [handleSessionCreation, handleSessionDeletion, loading]); // Keep `loading` in dependencies for the timeout check condition
 
   const signUp = async (email: string, password: string) => {
     setError(null);
@@ -228,6 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(null);
           setUser(null);
           setLoading(false); // Set loading to false on explicit sign out
+          setAuthReady(true); // Set authReady to true on explicit sign out
           return { success: true };
         }
         handleError(authError, authError.message);
@@ -237,6 +244,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(null);
       setUser(null);
       setLoading(false); // Set loading to false on explicit sign out
+      setAuthReady(true); // Set authReady to true on explicit sign out
       return { success: true };
     } catch (e: any) {
       handleError(e, e.message || 'An unexpected error occurred during logout.');
@@ -262,6 +270,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     loading,
     error,
+    authReady, // Include authReady in the context value
     signUp,
     signIn,
     signOut,
