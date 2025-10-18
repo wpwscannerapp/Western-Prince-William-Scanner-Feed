@@ -119,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const setupAuth = async () => {
       // Set a timeout for the initial authentication check
       authTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current && loading) { // Check `loading` state to ensure it's still pending
+        if (isMountedRef.current) { // Removed `loading` from this condition
           console.warn(`AuthContext: Initial authentication check timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms. Setting loading to false.`);
           setLoading(false);
           setError(new AuthError('Authentication initialization timed out. Please check your network connection or try again.'));
@@ -193,7 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authTimeoutRef.current = null;
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion, loading]); // Added `loading` to dependencies for timeout check
+  }, [handleSessionCreation, handleSessionDeletion]); // Removed `loading` from dependencies
 
   const signUp = async (email: string, password: string) => {
     setError(null);
