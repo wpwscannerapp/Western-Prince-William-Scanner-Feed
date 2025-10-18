@@ -30,6 +30,7 @@ Create a `.env` file in the root of your project with the following variables:
 -   `VITE_POLL_INTERVAL` (e.g., `30000` for 30 seconds)
 -   `VITE_SUPABASE_API_TIMEOUT` (e.g., `45000` for 45 seconds)
 -   `VITE_MAX_CONCURRENT_SESSIONS` (e.g., `3`)
+-   `VITE_AUTH_INITIALIZATION_TIMEOUT` (e.g., `20000` for 20 seconds)
 
 For Supabase Edge Functions and webhooks, you will also need to set these as secrets in your Supabase project dashboard:
 -   `STRIPE_SECRET_KEY`
@@ -95,3 +96,29 @@ This project uses:
 -   React Query for data fetching
 -   Zod for form validation
 -   React Hook Form for form handling
+
+## Troubleshooting
+
+### React Hook Order Errors
+If you encounter errors like "Rendered more hooks than during the previous render," it typically means React's Rules of Hooks are being violated.
+-   **Ensure Hooks are Unconditional:** All `useState`, `useEffect`, `useCallback`, `useMemo`, and custom hooks must be called at the top level of your React function components, before any conditional returns or loops.
+-   **Check Conditional Rendering:** If a component conditionally renders other components that use hooks, ensure the parent component's hooks are still called consistently.
+
+### "Loading User Permissions" Hang
+If the application appears to hang on "Loading user permissions" or similar states for an extended period:
+-   **Check Supabase Profile:** Ensure the authenticated user has an entry in the `public.profiles` table in your Supabase database. New users should have a profile created automatically, but manual intervention might be needed for existing users or if the `handle_new_user` trigger failed.
+-   **Review RLS Policies:** Verify that the Row Level Security (RLS) policies on your `public.profiles` table allow authenticated users to `SELECT` their own profile data.
+-   **Network Issues:** Check your browser's network tab for failed Supabase requests or timeouts.
+-   **Environment Variables:** Confirm that `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are correctly set in your `.env` file.
+
+### Authentication Issues in Production
+If authentication works locally but fails in a deployed production environment:
+-   **Supabase Redirect URLs:** Go to your Supabase project settings (`Authentication` -> `URL Configuration`) and add your production application URL (e.g., `https://your-app.com/*`) to the "Site URL" and "Redirect URLs" lists.
+-   **Environment Variables:** Double-check that all `VITE_` environment variables (especially `VITE_APP_URL`) are correctly configured in your Netlify (or other hosting provider) environment settings.
+-   **Browser Restrictions:** Some browsers might have stricter cookie or local storage policies in production. Ensure `persistSession: true` (which is the default for `@supabase/supabase-js`) is implicitly active.
+
+### Blank Page on Load
+If the app shows a blank page, especially in production:
+-   **Console Errors:** Open your browser's developer console and look for JavaScript errors.
+-   **Environment Variable Validation:** The app performs environment variable validation on startup. If any `VITE_` variables are missing, it will display an error message on the page. Check your `.env` file and deployment environment variables.
+-   **Service Worker:** Ensure your `service-worker.js` is correctly registered and not causing issues. Clear site data in browser dev tools if necessary.

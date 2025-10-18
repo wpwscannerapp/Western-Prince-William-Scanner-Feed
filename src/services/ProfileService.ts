@@ -32,7 +32,7 @@ export const ProfileService = {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .abortSignal(controller.signal) // Moved abortSignal here
+        .abortSignal(controller.signal)
         .maybeSingle(); // Use maybeSingle to return null if no row is found
 
       if (error) {
@@ -41,7 +41,7 @@ export const ProfileService = {
           return null;
         }
         logSupabaseError('fetchProfile', error);
-        return null;
+        throw error; // Re-throw to be caught by useIsAdmin
       }
       if (!data) {
         console.warn(`ProfileService: No profile data returned for user ID: ${userId} (maybeSingle returned null).`);

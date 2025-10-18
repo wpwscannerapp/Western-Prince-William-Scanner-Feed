@@ -1,8 +1,19 @@
+# Basic Netlify configuration for a Single Page Application (SPA)
+
+# Redirect all requests to index.html for SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Optional: Set custom headers for security or caching
 [[headers]]
-  for = "*.js"
+  for = "/*"
   [headers.values]
-    Content-Type = "application/javascript"
-[[headers]]
-  for = "*.ts*"
-  [headers.values]
-    Content-Type = "application/javascript"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "frame-ancestors 'self';"
+    # Cache control for static assets (adjust as needed)
+    Cache-Control = "public, max-age=31536000, immutable"

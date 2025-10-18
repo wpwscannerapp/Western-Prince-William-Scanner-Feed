@@ -1,21 +1,21 @@
 import React, { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, Home, User, Shield, LogIn, LogOut, CreditCard } from 'lucide-react'; // Removed BellRing
+import { Menu, Home, User, Shield, LogIn, LogOut, CreditCard } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-// Removed NotificationBell import
 
 interface MobileNavProps {
   onLinkClick?: () => void;
 }
 
 const MobileNav: React.FC<MobileNavProps> = ({ onLinkClick }) => {
+  // All hooks called unconditionally at top
   const [isOpen, setIsOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin } = useIsAdmin(); // Call useIsAdmin unconditionally
   const location = useLocation();
 
   const handleSignOut = async () => {
@@ -40,8 +40,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ onLinkClick }) => {
         <Button
           variant="ghost"
           size="icon"
-          // Added a distinct background for debugging visibility
-          className="tw-md:tw-hidden tw-text-muted-foreground hover:tw-text-primary tw-bg-blue-500/20 hover:tw-bg-blue-500/30"
+          className="tw-md:tw-hidden tw-text-muted-foreground hover:tw-text-primary"
           aria-label="Open navigation menu"
         >
           <Menu className="tw-h-6 tw-w-6" />
@@ -55,7 +54,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ onLinkClick }) => {
           {!loading && user ? (
             <>
               {navItems.filter(item => item.requiresAuth).map((item) => (
-                (item.adminOnly && !isAdmin) ? null : (
+                (item.adminOnly && !isAdmin) ? null : ( // Conditional rendering based on isAdmin
                   <NavLink
                     key={item.name}
                     to={item.path}

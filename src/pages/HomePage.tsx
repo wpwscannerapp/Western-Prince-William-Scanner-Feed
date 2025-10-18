@@ -5,18 +5,10 @@ import { Loader2, AlertCircle } from 'lucide-react';
 
 const HomePage: React.FC = () => {
   console.log('HomePage: Component rendering.');
+  // Call useIsAdmin unconditionally at the top
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
 
   console.log('HomePage: isAdminLoading state:', isAdminLoading);
-
-  if (isAdminLoading) {
-    return (
-      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
-        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
-        <p className="tw-ml-2">Loading user permissions...</p>
-      </div>
-    );
-  }
 
   if (isAdminError) {
     return (
@@ -24,6 +16,15 @@ const HomePage: React.FC = () => {
         <AlertCircle className="tw-h-12 tw-w-12 tw-text-destructive tw-mb-4" />
         <h1 className="tw-text-2xl tw-font-bold tw-text-destructive tw-mb-4">Error Loading Permissions</h1>
         <p className="tw-text-muted-foreground">{isAdminError}</p>
+      </div>
+    );
+  }
+
+  if (isAdminLoading) {
+    return (
+      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
+        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+        <p className="tw-ml-2">Loading user permissions...</p>
       </div>
     );
   }
@@ -56,7 +57,7 @@ const HomePage: React.FC = () => {
         />
 
         {/* Admin Dashboard Tile (Conditional) */}
-        {isAdmin && (
+        {isAdmin && ( // Conditional rendering after isAdmin is determined
           <Tile
             title="Admin Dashboard"
             description="Manage posts, settings, and users."

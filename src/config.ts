@@ -24,6 +24,4 @@ export const validateEnv = () => {
       throw new Error(`Environment variable ${varName} is missing. Please set it in your .env file.`);
     }
   });
-
-  // Removed: if (import.meta.env.DEV) { console.log('config.ts Debug: VITE_WEB_PUSH_PUBLIC_KEY value:', import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY); }
 };
