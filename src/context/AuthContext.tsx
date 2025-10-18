@@ -92,6 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       console.error('AuthContext: Failed to create session (error handled by SessionService).');
     }
+    console.log('AuthContext: handleSessionCreation finished.'); // Added this log
   }, [userRef]); // Dependency changed from [handleError] to [userRef]
 
   const handleSessionDeletion = useCallback(async (userIdToDelete?: string) => {

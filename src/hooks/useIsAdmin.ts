@@ -100,6 +100,7 @@ export function useIsAdmin(): UseAdminResult {
       if (isMountedRef.current) { // Ensure final state update only if mounted
         setProfileLoading(false);
         console.log('useIsAdmin: fetchRole finished, profileLoading set to false in finally block.');
+        console.log('useIsAdmin: Final state - isAdmin:', isAdmin, 'loading:', false, 'error:', error);
       }
     }
   }, [user, authLoading, handleError]); // Dependencies for useCallback
