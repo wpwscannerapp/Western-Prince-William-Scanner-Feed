@@ -36,7 +36,7 @@ export const ProfileService = {
 
       if (error) {
         if (error.code === 'PGRST116') { // No rows found
-          console.log(`ProfileService: No profile found for user ID: ${userId} (PGRST116).`);
+          console.error(`ProfileService: No profile found for user ID: ${userId}. This user might not have a profile entry.`);
           return null;
         }
         logSupabaseError('fetchProfile', error);
