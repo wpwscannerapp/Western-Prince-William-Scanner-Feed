@@ -8,19 +8,16 @@ if (!supabaseUrl || !supabaseAnonKey || !supabaseAnonKey.startsWith('eyJ')) {
   throw new Error('Supabase configuration error: VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is missing or invalid.');
 }
 
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true, // Explicitly set to true for clarity and to ensure session persistence
+  },
+});
+
 // Only log full anon key in development
 if (import.meta.env.DEV) {
   console.log('Supabase Client Init: Using URL:', supabaseUrl);
-  console.log('Supabase Client Init: Using Full Anon Key (DEV ONLY):', supabaseAnonKey);
-} else {
   console.log('Supabase Client Init: Using Anon Key (first 10 chars):', supabaseAnonKey.substring(0, 10) + '...');
-}
-
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Test on init
-if (import.meta.env.DEV) {
   supabase.auth.getSession().then(({ error }) => {
     if (error) {
       console.error(`Supabase Auth Init Failed: ${error.message}`);

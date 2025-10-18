@@ -8,7 +8,7 @@ const HomePage: React.FC = () => {
   // Call useIsAdmin unconditionally at the top
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
 
-  console.log('HomePage: isAdminLoading state:', isAdminLoading);
+  console.log('HomePage: isAdminLoading state:', isAdminLoading, 'error:', isAdminError);
 
   if (isAdminError) {
     return (
