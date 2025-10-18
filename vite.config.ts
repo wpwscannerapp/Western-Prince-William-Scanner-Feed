@@ -19,9 +19,11 @@ export default defineConfig({
       // Explicitly set HMR host to the hostname of VITE_APP_URL
       // This ensures the client connects to the public-facing address
       host: new URL(process.env.VITE_APP_URL || 'http://localhost:32100').hostname,
+      timeout: 30000, // Added HMR timeout
     },
     watch: {
       usePolling: true, // Force polling to bypass WebSocket file watching issues
+      interval: 1000, // Added polling interval
     },
   },
   build: {

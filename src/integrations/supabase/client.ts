@@ -12,5 +12,5 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Test on init
 supabase.auth.getSession().then(({ error }) => {
-  if (error) console.error('Supabase init failed:', error);
+  console.log(error ? `Supabase init failed: ${error.message}` : 'Supabase init passed');
 });
