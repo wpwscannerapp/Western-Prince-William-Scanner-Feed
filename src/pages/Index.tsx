@@ -13,7 +13,6 @@ const Index: React.FC = () => {
     document.documentElement.style.setProperty('--splash-duration', `${splashDuration / 1000}s`);
 
     const timer = setTimeout(() => {
-      console.log('Index: Splash timer ended, setting splashActive to false.');
       setSplashActive(false);
     }, splashDuration);
 
@@ -21,23 +20,18 @@ const Index: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    console.log(`Index: Navigation check - splashActive: ${splashActive}, authReady: ${authReady}, user: ${user ? 'present' : 'null'}`);
     // Only navigate if splash is inactive AND auth is ready
     if (!splashActive && authReady) {
-      console.log('Index: Splash inactive and Auth ready. Navigating...');
       if (user) {
-        console.log('Index: User authenticated, navigating to /home.');
         navigate('/home', { replace: true });
       } else {
-        console.log('Index: User not authenticated, navigating to /auth.');
         navigate('/auth', { replace: true });
       }
     }
-  }, [splashActive, authReady, user, navigate]); // Depend on authReady
+  }, [splashActive, authReady, user, navigate]);
 
   // Show splash if splash is active OR auth is still loading
   if (splashActive || authLoading) { 
-    console.log('Index: Still showing loading screen (splashActive or authLoading is true).');
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-primary/20 tw-to-background tw-animate-fade-in" aria-label="Loading application">
         <div className="tw-flex tw-flex-col tw-items-center tw-gap-4">

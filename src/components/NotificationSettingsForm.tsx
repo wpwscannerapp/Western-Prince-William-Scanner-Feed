@@ -122,7 +122,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
           }
         }
         // Now that permission is granted, attempt to subscribe or get existing subscription
-        pushSubscription = await NotificationService.subscribeUserToPush(user.id);
+        pushSubscription = await NotificationService.subscribeUserToPush();
         if (!pushSubscription) {
           notificationsEnabledInDb = false; // Force disable in DB if subscription failed
           throw new Error('subscription_failed');

@@ -40,49 +40,38 @@ const logSupabaseError = (functionName: string, error: any) => {
 
 export const NotificationService = {
   async ensureWebPushReady(): Promise<boolean> {
-    console.log('NotificationService: ensureWebPushReady called.');
     const vapidPublicKey = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY;
-    console.log('NotificationService: VAPID Public Key being used:', vapidPublicKey);
 
     // Issue 9: Add VAPID key validation
     if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
-      console.error('NotificationService: Invalid or missing VAPID Public Key.');
       handleError(null, 'Invalid VAPID Public Key configuration. Push notifications will not work.');
       return false;
     }
 
     if (!('serviceWorker' in navigator)) {
-      console.warn('NotificationService: Service Workers are not supported by this browser.');
       handleError(null, 'Push notifications are not supported by your browser.');
       return false;
     }
 
     try {
-      console.log('NotificationService: Registering service worker...');
-      const registration = await navigator.serviceWorker.register('/service-worker.js');
-      console.log('NotificationService: Service Worker registered:', registration);
-      console.log('NotificationService: Web Push environment is ready.');
+      await navigator.serviceWorker.register('/service-worker.js');
       return true; // Environment is ready, but not necessarily subscribed
     } catch (err: any) {
-      console.error('NotificationService: Service Worker registration failed:', err);
       handleError(err, 'Failed to register service worker for push notifications.');
       return false;
     }
   },
 
-  async subscribeUserToPush(userId: string): Promise<PushSubscription | null> {
-    console.log('NotificationService: subscribeUserToPush called for user:', userId);
+  async subscribeUserToPush(): Promise<PushSubscription | null> {
     const vapidPublicKey = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY;
 
     // VAPID key validation already done in ensureWebPushReady, but a quick check here too
     if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
-      console.error('NotificationService: VAPID Public Key is not defined or invalid.');
       handleError(null, 'VAPID Public Key is missing or invalid. Cannot subscribe.');
       return null;
     }
 
     if (Notification.permission !== 'granted') {
-      console.warn('NotificationService: Notification permission not granted. Cannot subscribe.');
       handleError(null, 'Notification permission not granted. Please allow notifications to subscribe.');
       return null;
     }
@@ -92,29 +81,22 @@ export const NotificationService = {
       let subscription = await registration.pushManager.getSubscription();
 
       if (!subscription) {
-        console.log('NotificationService: No existing push subscription found. Creating new one...');
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: NotificationService.urlBase64ToUint8Array(vapidPublicKey) as BufferSource, // Explicitly cast to BufferSource
         });
-        console.log('NotificationService: New push subscription created:', subscription);
-      } else {
-        console.log('NotificationService: Existing push subscription found:', subscription);
       }
 
       // Return the subscription object, the form will handle updating Supabase
       return subscription.toJSON() as PushSubscription;
     } catch (err: any) {
-      console.error('NotificationService: Failed to subscribe user to push notifications:', err);
       handleError(err, 'Failed to subscribe to push notifications. Please ensure your VAPID keys are correct and try again.');
       return null;
     }
   },
 
   async unsubscribeWebPush(userId: string): Promise<boolean> {
-    console.log('NotificationService: unsubscribeWebPush called for user:', userId);
     if (!('serviceWorker' in navigator)) {
-      console.warn('NotificationService: Service Workers are not supported by this browser.');
       return false;
     }
 
@@ -124,16 +106,13 @@ export const NotificationService = {
 
       if (subscription) {
         await subscription.unsubscribe();
-        console.log('NotificationService: Push subscription unsubscribed from browser.');
         // Issue 8: Only update DB if an actual unsubscription occurred
         await NotificationService.updateUserNotificationSettings(userId, {
           push_subscription: null,
           enabled: false,
         });
-        console.log('NotificationService: User notification settings updated after unsubscribe.');
         return true;
       } else {
-        console.log('NotificationService: No active push subscription to unsubscribe in browser. Ensuring DB is cleared.');
         // Even if no browser subscription, ensure DB reflects disabled state
         await NotificationService.updateUserNotificationSettings(userId, {
           push_subscription: null,
@@ -142,7 +121,6 @@ export const NotificationService = {
         return true; // No action needed if no subscription, but DB is consistent
       }
     } catch (err: any) {
-      console.error('NotificationService: Failed to unsubscribe from push notifications:', err);
       handleError(err, 'Failed to unsubscribe from push notifications.');
       return false;
     }
@@ -151,7 +129,6 @@ export const NotificationService = {
   async getUserNotificationSettings(userId: string): Promise<UserNotificationSettings | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
-    console.log('NotificationService: Fetching user notification settings for user:', userId);
 
     try {
       const { data, error } = await supabase
@@ -163,13 +140,11 @@ export const NotificationService = {
 
       if (error) {
         if (error.code === 'PGRST116') { // No rows found
-          console.log('NotificationService: No existing notification settings found for user:', userId);
           return null;
         }
         logSupabaseError('getUserNotificationSettings', error);
         return null;
       }
-      console.log('NotificationService: Successfully fetched user notification settings.');
       // If data is an array, return the first element, otherwise null
       return (data && data.length > 0) ? data[0] as UserNotificationSettings : null;
     } catch (err: any) {
@@ -190,14 +165,10 @@ export const NotificationService = {
   ): Promise<UserNotificationSettings | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
-    console.log('NotificationService: Updating user notification settings for user:', userId, 'with updates:', updates);
-    console.log('NotificationService: Initiating Supabase upsert operation...');
 
     try {
       const upsertPayload = { user_id: userId, ...updates, updated_at: new Date().toISOString() };
-      console.log('NotificationService: Upsert payload:', upsertPayload); // Log the actual payload
 
-      const startTime = Date.now(); // Start timer
       const { data, error } = await supabase
         .from('user_notification_settings')
         .upsert(
@@ -207,14 +178,11 @@ export const NotificationService = {
         .abortSignal(controller.signal)
         .select()
         .single();
-      const endTime = Date.now(); // End timer
-      console.log(`NotificationService: Supabase upsert operation completed in ${endTime - startTime}ms.`); // Log duration
 
       if (error) {
         logSupabaseError('updateUserNotificationSettings', error);
         return null;
       }
-      console.log('NotificationService: Successfully updated user notification settings.');
       return data as UserNotificationSettings;
     } catch (err: any) {
       if (err.name === 'AbortError') {
