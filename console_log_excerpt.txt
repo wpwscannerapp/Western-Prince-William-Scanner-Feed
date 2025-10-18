@@ -1,0 +1,1 @@
+client.ts:8 Uncaught Error: Supabase configuration error: VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is missing or invalid.
