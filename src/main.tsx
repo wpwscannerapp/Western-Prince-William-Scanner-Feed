@@ -1,3 +1,4 @@
+console.log('TOP OF MAIN.TSX - TEST LOG'); // Added this as the very first line
 import React from 'react';
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
@@ -38,9 +39,9 @@ createRoot(document.getElementById("root")!).render(
 );
 
 // Register the service worker immediately
-console.log('main.tsx: Checking for service worker support...'); // New log
+console.log('main.tsx: Checking for service worker support...');
 if ('serviceWorker' in navigator) {
-  console.log('main.tsx: Service Workers are supported. Attempting to register...'); // New log
+  console.log('main.tsx: Service Workers are supported. Attempting to register...');
   navigator.serviceWorker.register('/service-worker.js')
     .then((reg) => console.log('main.tsx: Service Worker registered:', reg.scope))
     .catch((err) => console.error('main.tsx: Service Worker registration failed:', err));
