@@ -105,7 +105,7 @@ export const ProfileService = {
   },
 
   async ensureProfileExists(userId: string): Promise<boolean> {
-    console.log(`ProfileService: Checking if profile exists for user ID: ${userId}`);
+    console.log(`ProfileService: Ensuring profile exists for user ID: ${userId} using upsert.`);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       console.warn(`ProfileService: ensureProfileExists for user ID ${userId} timed out after ${SUPABASE_API_TIMEOUT / 1000}s.`);
@@ -113,35 +113,20 @@ export const ProfileService = {
     }, SUPABASE_API_TIMEOUT);
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('profiles')
-        .select('id')
-        .eq('id', userId)
-        .limit(1)
-        .abortSignal(controller.signal); // Moved abortSignal here
+        .upsert(
+          { id: userId, subscription_status: 'free', role: 'user' }, // Default values
+          { onConflict: 'id' } // If a profile with this ID exists, do nothing (or update if other fields were provided)
+        )
+        .abortSignal(controller.signal); // Add abortSignal to the upsert
 
       if (error) {
-        logSupabaseError('ensureProfileExists - check', error);
+        logSupabaseError('ensureProfileExists - upsert', error);
         return false;
       }
-
-      if (data && data.length > 0) {
-        console.log(`ProfileService: Profile already exists for user ID: ${userId}.`);
-        return true;
-      } else {
-        console.log(`ProfileService: No profile found for user ID: ${userId}, creating a new one.`);
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert({ id: userId, subscription_status: 'free', role: 'user' }) // Default values
-          .abortSignal(controller.signal); // Moved abortSignal here
-
-        if (insertError) {
-          logSupabaseError('ensureProfileExists - insert', insertError);
-          return false;
-        }
-        console.log(`ProfileService: Successfully created profile for user ID: ${userId}.`);
-        return true;
-      }
+      console.log(`ProfileService: Profile ensured (created or already existed) for user ID: ${userId}.`);
+      return true;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.error(`ProfileService: ensureProfileExists for user ID ${userId} aborted due to timeout.`);
