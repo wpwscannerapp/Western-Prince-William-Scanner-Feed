@@ -30,7 +30,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [authReady, setAuthReady] = useState(false);
   const isMountedRef = useRef(true);
   const userRef = useRef<User | null>(null); // To hold the user ID for cleanup after logout
-  const authSubscriptionRef = useRef<any>(null); // Ref to hold the Supabase auth subscription object
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -131,39 +130,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [queryClient]);
 
   useEffect(() => {
-    // Only set up the listener once
-    if (!authSubscriptionRef.current) {
-      console.log('AuthContext: Setting up onAuthStateChange listener for the first time.');
+    console.log('AuthContext: Setting up onAuthStateChange listener.');
 
-      authSubscriptionRef.current = supabase.auth.onAuthStateChange(
-        async (_event: AuthChangeEvent, currentSession: Session | null) => {
-          console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
-          if (isMountedRef.current) {
-            setSession(currentSession);
-            setUser(currentSession?.user || null);
-            setError(null); // Clear any previous errors on auth state change
-            setLoading(false);
-            setAuthReady(true); // Auth is ready once we've processed the first session event
-            console.log(`AuthContext: Auth state changed. Loading set to false. AuthReady set to true. User: ${currentSession?.user ? 'present' : 'null'}`);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event: AuthChangeEvent, currentSession: Session | null) => {
+        console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
+        if (isMountedRef.current) {
+          setSession(currentSession);
+          setUser(currentSession?.user || null);
+          setError(null); // Clear any previous errors on auth state change
+          setLoading(false);
+          setAuthReady(true); // Auth is ready once we've processed the first session event
+          console.log(`AuthContext: Auth state changed. Loading set to false. AuthReady set to true. User: ${currentSession?.user ? 'present' : 'null'}`);
 
-            if (currentSession) {
-              await handleSessionCreation(currentSession);
-            } else {
-              // Pass the user ID that was *just* logged out, if available from userRef
-              await handleSessionDeletion(userRef.current?.id);
-            }
+          if (currentSession) {
+            await handleSessionCreation(currentSession);
+          } else {
+            // Pass the user ID that was *just* logged out, if available from userRef
+            await handleSessionDeletion(userRef.current?.id);
           }
         }
-      ).data.subscription;
-    }
-
-    // Cleanup function: unsubscribe when the component truly unmounts
-    return () => {
-      if (authSubscriptionRef.current) {
-        console.log('AuthContext: Cleaning up onAuthStateChange listener on unmount.');
-        authSubscriptionRef.current.unsubscribe();
-        authSubscriptionRef.current = null;
       }
+    );
+
+    // Cleanup function: unsubscribe when the component unmounts or the effect re-runs
+    return () => {
+      console.log('AuthContext: Cleaning up onAuthStateChange listener.');
+      subscription.unsubscribe();
     };
   }, [handleSessionCreation, handleSessionDeletion]); // Dependencies for handleSessionCreation/Deletion
 
