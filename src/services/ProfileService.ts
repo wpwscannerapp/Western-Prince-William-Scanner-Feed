@@ -105,7 +105,7 @@ export const ProfileService = {
   },
 
   async ensureProfileExists(userId: string): Promise<boolean> {
-    console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Starting upsert process.`);
+    console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Starting check/upsert process.`);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       console.warn(`ProfileService: ensureProfileExists for user ID ${userId} timed out after ${SUPABASE_API_TIMEOUT / 1000}s.`);
@@ -113,17 +113,37 @@ export const ProfileService = {
     }, SUPABASE_API_TIMEOUT);
 
     try {
-      console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Executing upsert query.`);
-      const { error } = await supabase
+      // First, check if the profile already exists
+      console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Checking for existing profile.`);
+      const { data: existingProfile, error: selectError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .abortSignal(controller.signal)
+        .maybeSingle();
+
+      if (selectError && selectError.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
+        logSupabaseError('ensureProfileExists - select', selectError);
+        return false;
+      }
+
+      if (existingProfile) {
+        console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Profile already exists. Skipping upsert.`);
+        return true;
+      }
+
+      // If no profile exists, proceed with upsert to create it
+      console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - No profile found, executing upsert to create.`);
+      const { error: upsertError } = await supabase
         .from('profiles')
         .upsert(
           { id: userId, subscription_status: 'free', role: 'user' }, // Default values
-          { onConflict: 'id' } // If a profile with this ID exists, do nothing (or update if other fields were provided)
+          { onConflict: 'id' }
         )
-        .abortSignal(controller.signal); // Add abortSignal to the upsert
+        .abortSignal(controller.signal);
 
-      if (error) {
-        logSupabaseError('ensureProfileExists - upsert', error);
+      if (upsertError) {
+        logSupabaseError('ensureProfileExists - upsert', upsertError);
         return false;
       }
       console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Upsert query completed successfully.`);
@@ -133,7 +153,7 @@ export const ProfileService = {
         console.error(`ProfileService: ensureProfileExists for user ID ${userId} aborted due to timeout.`);
         handleError(new Error('Request timed out'), 'Ensuring profile existence timed out.');
       } else {
-        console.error(`ProfileService: Caught error during ensureProfileExists for user ID ${userId}:`, err);
+        console.error(`ProfileService: Caught unexpected error during ensureProfileExists for user ID ${userId}:`, err);
         logSupabaseError('ensureProfileExists', err);
       }
       return false;
