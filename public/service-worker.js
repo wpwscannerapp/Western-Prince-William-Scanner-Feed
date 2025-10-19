@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wpw-scanner-feed-v1'; // Increment this version number when you make changes to cached assets
+const CACHE_NAME = 'wpw-scanner-feed-v2'; // Increment this version number when you make changes to cached assets
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
