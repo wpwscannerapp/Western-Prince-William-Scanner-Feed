@@ -64,9 +64,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AuthContext: User ID for session creation:', currentSession.user.id);
 
     // Ensure profile exists before proceeding with session management
-    const profileEnsured = await ProfileService.ensureProfileExists(currentSession.user.id);
-    if (!profileEnsured) {
-      console.error('AuthContext: Failed to ensure profile exists for user. Aborting session creation.');
+    try {
+      const profileEnsured = await ProfileService.ensureProfileExists(currentSession.user.id);
+      if (!profileEnsured) {
+        console.error('AuthContext: Failed to ensure profile exists for user. Aborting session creation.');
+        return;
+      }
+    } catch (err) {
+      console.error('AuthContext: Error during ensureProfileExists:', (err as Error).message);
+      handleError(err, 'Failed to ensure user profile exists.');
       return;
     }
 
@@ -85,23 +91,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    const profile = await ProfileService.fetchProfile(currentSession.user.id);
-    const isCurrentUserAdmin = profile?.role === 'admin';
-    console.log('AuthContext: User role:', profile?.role);
+    try {
+      const profile = await ProfileService.fetchProfile(currentSession.user.id);
+      const isCurrentUserAdmin = profile?.role === 'admin';
+      console.log('AuthContext: User role:', profile?.role);
 
-    if (!isCurrentUserAdmin) {
-      console.log('AuthContext: User is not admin, checking concurrent sessions.');
-      await SessionService.deleteOldestSessions(currentSession.user.id, MAX_CONCURRENT_SESSIONS);
-    }
+      if (!isCurrentUserAdmin) {
+        console.log('AuthContext: User is not admin, checking concurrent sessions.');
+        await SessionService.deleteOldestSessions(currentSession.user.id, MAX_CONCURRENT_SESSIONS);
+      }
 
-    const createdSession = await SessionService.createSession(currentSession, currentSessionId);
-    if (createdSession) {
-      console.log('AuthContext: Session created successfully.');
-    } else {
-      console.error('AuthContext: Failed to create session (error handled by SessionService).');
+      const createdSession = await SessionService.createSession(currentSession, currentSessionId);
+      if (createdSession) {
+        console.log('AuthContext: Session created successfully.');
+      } else {
+        console.error('AuthContext: Failed to create session (error handled by SessionService).');
+      }
+    } catch (err) {
+      console.error('AuthContext: Error during session management:', (err as Error).message);
+      handleError(err, 'Failed to manage user session.');
     }
     console.log('AuthContext: handleSessionCreation finished.');
-  }, [userRef]);
+  }, []);
 
   const handleSessionDeletion = useCallback(async (userIdToDelete?: string) => {
     console.log('AuthContext: handleSessionDeletion called.');
@@ -124,6 +135,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Effect for setting up auth state listener
   useEffect(() => {
     console.log('AuthContext: Setting up onAuthStateChange listener.');
+
+    // Initial session check
+    supabase.auth.getSession().then(async ({ data: { session: initialSession }, error: initialError }) => {
+      console.log('AuthContext: Initial session fetch completed.', { session: !!initialSession, user: initialSession?.user ?? null, error: initialError?.message });
+      if (isMountedRef.current) {
+        setSession(initialSession);
+        setUser(initialSession?.user || null);
+        setError(initialError);
+        setLoading(false);
+        setAuthReady(true);
+        console.log(`AuthContext: Initial state set. Loading: false, AuthReady: true. User: ${initialSession?.user ? 'present' : 'null'}`);
+
+        if (initialSession) {
+          await handleSessionCreation(initialSession);
+        } else {
+          await handleSessionDeletion(userRef.current?.id); // Use userRef for deletion if no initial session
+        }
+      }
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
