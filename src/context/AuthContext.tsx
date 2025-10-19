@@ -29,26 +29,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<AuthError | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const isMountedRef = useRef(true);
-  const userRef = useRef<User | null>(null);
-  const authListenerRef = useRef<any>(null); // Ref to hold the Supabase auth subscription
+  const userRef = useRef<User | null>(null); // To hold the user ID for cleanup after logout
   const queryClient = useQueryClient();
-
-  useEffect(() => {
-    userRef.current = user;
-  }, [user]);
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      // Ensure the listener is unsubscribed only once when the component truly unmounts
-      if (authListenerRef.current) {
-        authListenerRef.current.unsubscribe();
-        authListenerRef.current = null;
-        console.log('AuthContext: Cleanup function for auth state listener. Unsubscribed.');
-      }
     };
   }, []);
+
+  useEffect(() => {
+    userRef.current = user; // Keep userRef updated with the latest user object
+  }, [user]);
 
   const handleError = (err: any, defaultMessage: string) => {
     const authError = err instanceof AuthError ? err : new AuthError(err.message || defaultMessage, err.name);
@@ -137,56 +130,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [queryClient]);
 
   useEffect(() => {
-    // Only set up the listener once
-    if (!authListenerRef.current) {
-      console.log('AuthContext: Setting up onAuthStateChange listener for the first time.');
+    console.log('AuthContext: Setting up onAuthStateChange listener.');
 
-      // Initial session check
-      supabase.auth.getSession().then(async ({ data: { session: initialSession }, error: initialError }) => {
-        console.log('AuthContext: Initial session fetch completed.', { session: !!initialSession, user: initialSession?.user ?? null, error: initialError?.message });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event: AuthChangeEvent, currentSession: Session | null) => {
+        console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
         if (isMountedRef.current) {
-          setSession(initialSession);
-          setUser(initialSession?.user || null);
-          setError(initialError);
+          setSession(currentSession);
+          setUser(currentSession?.user || null);
+          setError(null); // Clear any previous errors on auth state change
           setLoading(false);
-          setAuthReady(true);
-          console.log(`AuthContext: Initial state set. Loading: false, AuthReady: true. User: ${initialSession?.user ? 'present' : 'null'}`);
+          setAuthReady(true); // Auth is ready once we've processed the first session event
+          console.log(`AuthContext: Auth state changed. Loading set to false. AuthReady set to true. User: ${currentSession?.user ? 'present' : 'null'}`);
 
-          if (initialSession) {
-            await handleSessionCreation(initialSession);
+          if (currentSession) {
+            await handleSessionCreation(currentSession);
           } else {
+            // Pass the user ID that was *just* logged out, if available from userRef
             await handleSessionDeletion(userRef.current?.id);
           }
         }
-      });
+      }
+    );
 
-      authListenerRef.current = supabase.auth.onAuthStateChange(
-        async (_event: AuthChangeEvent, currentSession: Session | null) => {
-          console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
-          if (isMountedRef.current) {
-            setSession(currentSession);
-            setUser(currentSession?.user || null);
-            setError(null);
-            setLoading(false);
-            setAuthReady(true);
-            console.log(`AuthContext: Auth state changed. Loading set to false. AuthReady set to true. User: ${currentSession?.user ? 'present' : 'null'}`);
-
-            if (currentSession) {
-              await handleSessionCreation(currentSession);
-            } else {
-              await handleSessionDeletion(userRef.current?.id);
-            }
-          }
-        }
-      ).data.subscription;
-    }
-
-    // The cleanup function for this useEffect will now only run once when the component truly unmounts
-    // and will unsubscribe the listener via the ref.
+    // Cleanup function: unsubscribe when the component unmounts or the effect re-runs
     return () => {
-      // No need to unsubscribe here, as it's handled in the outer useEffect's cleanup
+      console.log('AuthContext: Cleaning up onAuthStateChange listener.');
+      subscription.unsubscribe();
     };
-  }, [handleSessionCreation, handleSessionDeletion]);
+  }, [handleSessionCreation, handleSessionDeletion]); // Dependencies for handleSessionCreation/Deletion
 
   const signUp = async (email: string, password: string) => {
     setError(null);
