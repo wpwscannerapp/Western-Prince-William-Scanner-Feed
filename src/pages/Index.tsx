@@ -25,7 +25,16 @@ const Index: React.FC = () => {
 
   useEffect(() => {
     console.log('Index: Navigation check -', { splashActive, authReady, authLoading, user });
-    if (!splashActive && authReady) {
+
+    // Only proceed with navigation once auth is ready
+    if (authReady) {
+      // If splash is still active, wait for it to finish
+      if (splashActive) {
+        console.log('Index: Auth ready, but splash still active. Waiting for splash to end.');
+        return;
+      }
+
+      // Splash is not active AND auth is ready, now navigate
       if (user) {
         console.log('Index: Navigating to /home (user authenticated).');
         navigate('/home', { replace: true });
@@ -33,13 +42,9 @@ const Index: React.FC = () => {
         console.log('Index: Navigating to /auth (no user).');
         navigate('/auth', { replace: true });
       }
-    } else if (!splashActive && !authReady) {
-      // Fallback: Force navigation after a short delay if authReady is still delayed
-      const fallbackTimer = setTimeout(() => {
-        console.log('Index: Fallback navigation to /auth (authReady delayed).');
-        navigate('/auth', { replace: true });
-      }, 2000); // 2-second delay for fallback navigation
-      return () => clearTimeout(fallbackTimer);
+    } else {
+      // Auth is not ready, keep showing loading state (either splash or generic loader)
+      console.log('Index: Auth not ready. Waiting for AuthProvider to initialize.');
     }
   }, [splashActive, authReady, user, navigate]);
 
