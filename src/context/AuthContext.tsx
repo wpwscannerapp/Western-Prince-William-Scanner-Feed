@@ -6,7 +6,7 @@ import { SessionService } from '@/services/SessionService';
 import { MAX_CONCURRENT_SESSIONS } from '@/config';
 import { ProfileService } from '@/services/ProfileService';
 import { handleError as globalHandleError } from '@/utils/errorHandler';
-import { useQueryClient } from '@tanstack/react-query'; // Import useQueryClient
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AuthState {
   session: Session | null;
@@ -25,29 +25,31 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // Start as true
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AuthError | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const isMountedRef = useRef(true);
-  const mountCountRef = useRef(0);
-  const userRef = useRef<User | null>(null); // Ref to hold the latest user object
-  const queryClient = useQueryClient(); // Initialize queryClient
+  const userRef = useRef<User | null>(null);
+  const authListenerRef = useRef<any>(null); // Ref to hold the Supabase auth subscription
+  const queryClient = useQueryClient();
 
-  // Keep userRef updated with the latest user state
   useEffect(() => {
     userRef.current = user;
   }, [user]);
 
   useEffect(() => {
-    mountCountRef.current += 1;
-    console.log(`AuthContext: Mounting AuthProvider (mount count: ${mountCountRef.current})`);
+    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      console.log(`AuthContext: Unmounting AuthProvider (mount count: ${mountCountRef.current})`);
+      // Ensure the listener is unsubscribed only once when the component truly unmounts
+      if (authListenerRef.current) {
+        authListenerRef.current.unsubscribe();
+        authListenerRef.current = null;
+        console.log('AuthContext: Cleanup function for auth state listener. Unsubscribed.');
+      }
     };
   }, []);
 
-  // Make handleError a stable function, not a useCallback
   const handleError = (err: any, defaultMessage: string) => {
     const authError = err instanceof AuthError ? err : new AuthError(err.message || defaultMessage, err.name);
     if (isMountedRef.current) {
@@ -65,7 +67,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     console.log('AuthContext: User ID for session creation:', currentSession.user.id);
 
-    // Ensure profile exists before proceeding with session management
     try {
       const profileEnsured = await ProfileService.ensureProfileExists(currentSession.user.id);
       if (!profileEnsured) {
@@ -114,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       handleError(err, 'Failed to manage user session.');
     }
     console.log('AuthContext: handleSessionCreation finished.');
-  }, []);
+  }, [queryClient]);
 
   const handleSessionDeletion = useCallback(async (userIdToDelete?: string) => {
     console.log('AuthContext: handleSessionDeletion called.');
@@ -122,7 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentSessionId) {
       console.log('AuthContext: Deleting specific session ID:', currentSessionId);
       await SessionService.deleteSession(userIdToDelete, currentSessionId);
-      localStorage.removeItem('wpw_session_id'); // Ensure this is always cleared
+      localStorage.removeItem('wpw_session_id');
     } else {
       console.log('AuthContext: No specific session ID found in localStorage to delete.');
     }
@@ -131,58 +132,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthContext: Deleting all sessions for user:', userIdToDelete);
       await SessionService.deleteAllSessionsForUser(userIdToDelete);
     }
-    // Invalidate all profile-related queries for the user who just logged out
     queryClient.invalidateQueries({ queryKey: ['profile', userIdToDelete] });
     console.log('AuthContext: Session(s) deleted and removed from localStorage. Profile cache invalidated.');
-  }, [queryClient]); // Add queryClient to dependencies
+  }, [queryClient]);
 
-  // Effect for setting up auth state listener
   useEffect(() => {
-    console.log('AuthContext: Setting up onAuthStateChange listener.');
+    // Only set up the listener once
+    if (!authListenerRef.current) {
+      console.log('AuthContext: Setting up onAuthStateChange listener for the first time.');
 
-    // Initial session check
-    supabase.auth.getSession().then(async ({ data: { session: initialSession }, error: initialError }) => {
-      console.log('AuthContext: Initial session fetch completed.', { session: !!initialSession, user: initialSession?.user ?? null, error: initialError?.message });
-      if (isMountedRef.current) {
-        setSession(initialSession);
-        setUser(initialSession?.user || null);
-        setError(initialError);
-        setLoading(false);
-        setAuthReady(true);
-        console.log(`AuthContext: Initial state set. Loading: false, AuthReady: true. User: ${initialSession?.user ? 'present' : 'null'}`);
-
-        if (initialSession) {
-          await handleSessionCreation(initialSession);
-        } else {
-          await handleSessionDeletion(userRef.current?.id); // Use userRef for deletion if no initial session
-        }
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event: AuthChangeEvent, currentSession: Session | null) => {
-        console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
+      // Initial session check
+      supabase.auth.getSession().then(async ({ data: { session: initialSession }, error: initialError }) => {
+        console.log('AuthContext: Initial session fetch completed.', { session: !!initialSession, user: initialSession?.user ?? null, error: initialError?.message });
         if (isMountedRef.current) {
-          setSession(currentSession);
-          setUser(currentSession?.user || null);
-          setError(null); // Clear any previous errors on auth state change
-          setLoading(false); // Set loading to false once the initial session is processed
-          setAuthReady(true); // Auth state has been determined
-          console.log(`AuthContext: Auth state changed. Loading set to false. AuthReady set to true. User: ${currentSession?.user ? 'present' : 'null'}`);
+          setSession(initialSession);
+          setUser(initialSession?.user || null);
+          setError(initialError);
+          setLoading(false);
+          setAuthReady(true);
+          console.log(`AuthContext: Initial state set. Loading: false, AuthReady: true. User: ${initialSession?.user ? 'present' : 'null'}`);
 
-          if (currentSession) {
-            await handleSessionCreation(currentSession);
+          if (initialSession) {
+            await handleSessionCreation(initialSession);
           } else {
-            // When signing out, currentSession is null. Use userRef to get the ID of the user who just signed out.
-            await handleSessionDeletion(userRef.current?.id); 
+            await handleSessionDeletion(userRef.current?.id);
           }
         }
-      }
-    );
+      });
 
+      authListenerRef.current = supabase.auth.onAuthStateChange(
+        async (_event: AuthChangeEvent, currentSession: Session | null) => {
+          console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
+          if (isMountedRef.current) {
+            setSession(currentSession);
+            setUser(currentSession?.user || null);
+            setError(null);
+            setLoading(false);
+            setAuthReady(true);
+            console.log(`AuthContext: Auth state changed. Loading set to false. AuthReady set to true. User: ${currentSession?.user ? 'present' : 'null'}`);
+
+            if (currentSession) {
+              await handleSessionCreation(currentSession);
+            } else {
+              await handleSessionDeletion(userRef.current?.id);
+            }
+          }
+        }
+      ).data.subscription;
+    }
+
+    // The cleanup function for this useEffect will now only run once when the component truly unmounts
+    // and will unsubscribe the listener via the ref.
     return () => {
-      console.log('AuthContext: Cleanup function for auth state listener. Unsubscribing.');
-      subscription.unsubscribe();
+      // No need to unsubscribe here, as it's handled in the outer useEffect's cleanup
     };
   }, [handleSessionCreation, handleSessionDeletion]);
 
@@ -220,8 +222,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(null);
           setLoading(false);
           setAuthReady(true);
-          await handleSessionDeletion(userRef.current?.id); // Use userRef for deletion
-          queryClient.invalidateQueries({ queryKey: ['profile'] }); // Invalidate profile cache on logout
+          await handleSessionDeletion(userRef.current?.id);
+          queryClient.invalidateQueries({ queryKey: ['profile'] });
           return { success: true };
         }
         handleError(authError, authError.message);
@@ -232,8 +234,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setLoading(false);
       setAuthReady(true);
-      await handleSessionDeletion(userRef.current?.id); // Use userRef for deletion
-      queryClient.invalidateQueries({ queryKey: ['profile'] }); // Invalidate profile cache on logout
+      await handleSessionDeletion(userRef.current?.id);
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
       return { success: true };
     } catch (e: any) {
       handleError(e, e.message || 'An unexpected error occurred during logout.');
