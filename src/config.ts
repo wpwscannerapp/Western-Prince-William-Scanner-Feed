@@ -5,6 +5,8 @@ export const SUPABASE_API_TIMEOUT = parseInt(import.meta.env.VITE_SUPABASE_API_T
 export const MAX_CONCURRENT_SESSIONS = parseInt(import.meta.env.VITE_MAX_CONCURRENT_SESSIONS as string, 10) || 3;
 export const AUTH_INITIALIZATION_TIMEOUT = parseInt(import.meta.env.VITE_AUTH_INITIALIZATION_TIMEOUT as string, 10) || 20000; // New: Timeout for auth initialization
 
+console.log('Config: SUPABASE_API_TIMEOUT resolved to:', SUPABASE_API_TIMEOUT, 'ms'); // Add this log
+
 export const validateEnv = () => {
   const requiredEnvVars = [
     'VITE_SPLASH_DURATION',
