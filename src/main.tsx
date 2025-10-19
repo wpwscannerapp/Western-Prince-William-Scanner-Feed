@@ -1,6 +1,7 @@
 // Register the service worker immediately
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/service-worker.js')
+  // Add a cache-busting query parameter to force the browser to fetch the new service worker
+  navigator.serviceWorker.register('/service-worker.js?v=3') 
     .then((reg) => console.log('main.tsx: Service Worker registered:', reg.scope))
     .catch((err) => console.error('main.tsx: Service Worker registration failed:', err));
 } else {
