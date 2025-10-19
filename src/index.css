@@ -1,0 +1,164 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 208 92% 54%; /* Updated HSL for #2196F3 */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 123 51% 50%; /* Updated HSL for #4CAF50 */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 210 40% 96.1%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --app-primary-color-hex: #2196F3; /* Default primary color in hex */
+    --app-primary-color-darker-hex: #1a7ad9; /* Default darker primary color in hex */
+    --app-primary-color-rgb: 33, 150, 243; /* Default primary color in RGB */
+    --app-secondary-color-hex: #4CAF50; /* Default secondary color in hex */
+    --app-secondary-color-darker-hex: #3d8b41; /* Default darker secondary color in hex */
+    --app-font-family: Inter, sans-serif; /* Default font family */
+  }
+
+  .dark {
+    --background: 220 15% 8%;
+    --foreground: 210 40% 98%;
+
+    --card: 220 15% 12%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 220 15% 12%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217.2 91.2% 59.8%; /* Fallback HSL for primary */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 10% 30%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 220 15% 18%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 48 96% 60%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 15% 20%;
+    --input: 220 15% 25%;
+    --ring: 217.2 91.2% 59.8%;
+
+    --sidebar-background: 220 15% 10%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217.2 91.2% 59.8%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 220 15% 18%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 220 15% 20%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --app-primary-color-hex: #2196F3; /* Default primary color in hex */
+    --app-primary-color-darker-hex: #1a7ad9; /* Default darker primary color in hex */
+    --app-primary-color-rgb: 33, 150, 243; /* Default primary color in RGB */
+    --app-secondary-color-hex: #4CAF50; /* Default secondary color in hex */
+    --app-secondary-color-darker-hex: #3d8b41; /* Default darker secondary color in hex */
+    --app-font-family: Inter, sans-serif; /* Default font family */
+  }
+}
+
+@layer base {
+  /* Apply font family */
+  body {
+    font-family: var(--app-font-family);
+    @apply tw-bg-background tw-text-foreground;
+  }
+
+  /* Ensure input and textarea text is always visible */
+  input, textarea {
+    color: hsl(var(--foreground));
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .tw-input:focus-within {
+    transform: scale(1.01);
+    transition: transform 0.2s ease-in-out;
+    box-shadow: 0 0 0 2px hsl(var(--ring));
+  }
+
+  .tw-button {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  }
+  .tw-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  .dark .tw-button:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@layer components {
+  .tw-input {
+    @apply tw-flex tw-h-10 tw-w-full tw-rounded-md tw-border tw-border-input tw-bg-background tw-px-3 tw-py-2 tw-text-sm tw-ring-offset-background file:tw-border-0 file:tw-bg-transparent file:tw-text-sm file:tw-font-medium placeholder:tw-text-muted-foreground focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-ring focus-visible:tw-ring-offset-2 disabled:tw-cursor-not-allowed disabled:tw-opacity-50 tw-text-foreground;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.tw-animate-fade-in {
+  animation: fade-in 1s ease-in forwards;
+}
+
+@keyframes progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.tw-animate-progress {
+  width: 0%;
+  animation: progress var(--splash-duration, 3s) linear forwards;
+}

@@ -1,51 +1,38 @@
-const CACHE_NAME = 'wpw-scanner-feed-v3'; // Increment this version number when you make changes to cached assets
+const CACHE_NAME = 'wpw-scanner-feed-v5'; // Increment to v5
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll([
-        '/',
-        '/index.html',
-        '/favicon.ico',
-        '/Logo.png', // Pre-cache logo
-        // Add other essential assets here if needed, e.g., main JS bundle path
-        // Note: Vite generates hashed filenames, so direct caching of /src/main.tsx is not ideal.
-        // The browser's default caching for the main bundle is usually sufficient.
-      ]);
-    })
-  );
-  self.skipWaiting();
+  console.log('Service Worker: Installing', CACHE_NAME);
+  event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', (event) => {
+  console.log('Service Worker: Activating', CACHE_NAME);
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.filter((cacheName) => {
-          // Delete old caches that don't match the current CACHE_NAME
-          return cacheName !== CACHE_NAME;
-        }).map((cacheName) => {
-          return caches.delete(cacheName);
-        })
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
       );
-    })
-  );
-  self.clients.claim(); // Take control of all clients immediately
-});
-
-self.addEventListener('push', (event) => {
-  const data = event.data?.json() || { title: 'New Incident', body: 'Check the app!' };
-  event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: '/favicon.ico',
-      data: data.data, // Pass additional data for notificationclick
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const urlToOpen = event.notification.data?.url || '/home'; // Use URL from data or default to /home
-  event.waitUntil(clients.openWindow(urlToOpen));
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request).then((response) => response || fetch(event.request))
+  );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data.type === 'CLEANUP_CACHE') {
+    console.log('Service Worker: Cleaning up old caches, keeping:', event.data.cacheName);
+    caches.keys().then((cacheNames) => {
+      cacheNames.forEach((name) => {
+        if (name !== event.data.cacheName) {
+          caches.delete(name);
+        }
+      });
+    });
+  }
 });

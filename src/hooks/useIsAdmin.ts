@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { ProfileService } from '@/services/ProfileService';
+import { handleError } from '@/utils/errorHandler'; // Import handleError
 
 interface UseAdminResult {
   isAdmin: boolean;
@@ -9,7 +10,7 @@ interface UseAdminResult {
 }
 
 export function useIsAdmin(): UseAdminResult {
-  const { user, loading: authLoading, authReady } = useAuth(); // Get authReady
+  const { user, loading: authLoading, authReady } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,9 +24,8 @@ export function useIsAdmin(): UseAdminResult {
   }, []);
 
   const fetchRole = useCallback(async () => {
-    // Only proceed if auth is ready and not currently loading
     if (!authReady || authLoading) {
-      setProfileLoading(true); // Keep loading true until auth is ready
+      setProfileLoading(true);
       return;
     }
 
@@ -40,6 +40,8 @@ export function useIsAdmin(): UseAdminResult {
     setError(null);
 
     try {
+      // Ensure profile exists before attempting to fetch it
+      await ProfileService.ensureProfileExists(user.id);
       const profile = await ProfileService.fetchProfile(user.id);
 
       if (!isMountedRef.current) {
@@ -55,9 +57,7 @@ export function useIsAdmin(): UseAdminResult {
       if (!isMountedRef.current) {
         return;
       }
-      const errorMessage = err.message === 'Request timed out'
-        ? 'Profile fetch timed out. Please check your network or Supabase configuration.'
-        : `An unexpected error occurred during admin role check: ${err.message}`;
+      const errorMessage = handleError(err, 'An unexpected error occurred during admin role check.');
       setError(errorMessage);
       setIsAdmin(false);
     } finally {
@@ -65,7 +65,7 @@ export function useIsAdmin(): UseAdminResult {
         setProfileLoading(false);
       }
     }
-  }, [user, authLoading, authReady]); // Add authReady to dependencies
+  }, [user, authLoading, authReady]);
 
   useEffect(() => {
     fetchRole();

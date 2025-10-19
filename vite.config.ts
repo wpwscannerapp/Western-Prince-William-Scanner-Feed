@@ -1,9 +1,10 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react-swc';
+import react from '@vitejs/plugin-react-swc'; // Keep swc version
 import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  root: './', // Ensure root is explicitly set
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -29,6 +30,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true, // For debugging
+    assetsDir: 'assets', // Ensure assetsDir is set
   },
   optimizeDeps: {
     exclude: [], // No React-related entries

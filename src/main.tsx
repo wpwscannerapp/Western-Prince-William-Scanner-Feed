@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 
-const CACHE_NAME = 'wpw-scanner-feed-v4'; // Declare once at the top
+const CACHE_NAME = 'wpw-scanner-feed-v5'; // Increment to v5
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
@@ -20,10 +20,14 @@ if ('serviceWorker' in navigator) {
     await Promise.all(cacheNames.map((name) => caches.delete(name)));
     console.log('main.tsx: Cleared all caches.');
 
+    // Clear Supabase session storage
+    localStorage.removeItem('supabase.auth.token');
+    console.log('main.tsx: Cleared Supabase session storage.');
+
     // Register new service worker
     console.log('main.tsx: Registering service worker with cache-busting param.');
     navigator.serviceWorker
-      .register('/service-worker.js?v=4')
+      .register('/service-worker.js?v=5')
       .then((registration) => {
         console.log('main.tsx: Service Worker registered:', registration.scope);
         registration.active?.postMessage({ type: 'CLEANUP_CACHE', cacheName: CACHE_NAME });

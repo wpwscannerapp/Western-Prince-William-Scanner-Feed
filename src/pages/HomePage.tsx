@@ -5,22 +5,32 @@ import { Loader2, AlertCircle } from 'lucide-react';
 
 const HomePage: React.FC = () => {
   console.log('HomePage: Component rendering.');
-  // Call useIsAdmin unconditionally at the top
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
 
   console.log('HomePage: isAdminLoading state:', isAdminLoading, 'error:', isAdminError);
 
   if (isAdminError) {
+    console.log('HomePage: Error loading permissions:', isAdminError);
     return (
       <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
         <AlertCircle className="tw-h-12 tw-w-12 tw-text-destructive tw-mb-4" />
         <h1 className="tw-text-2xl tw-font-bold tw-text-destructive tw-mb-4">Error Loading Permissions</h1>
         <p className="tw-text-muted-foreground">{isAdminError}</p>
+        <button
+          className="tw-mt-4 tw-px-4 tw-py-2 tw-bg-primary tw-text-primary-foreground tw-rounded-md hover:tw-bg-primary/90 tw-transition-colors"
+          onClick={() => {
+            localStorage.removeItem('supabase.auth.token'); // Clear stale session
+            window.location.reload(); // Hard reload
+          }}
+        >
+          Retry
+        </button>
       </div>
     );
   }
 
   if (isAdminLoading) {
+    console.log('HomePage: Showing loading permissions UI.');
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
         <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
@@ -57,7 +67,7 @@ const HomePage: React.FC = () => {
         />
 
         {/* Admin Dashboard Tile (Conditional) */}
-        {isAdmin && ( // Conditional rendering after isAdmin is determined
+        {isAdmin && (
           <Tile
             title="Admin Dashboard"
             description="Manage posts, settings, and users."
