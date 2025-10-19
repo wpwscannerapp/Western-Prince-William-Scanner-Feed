@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { ProfileService } from '@/services/ProfileService';
 import { handleError } from '@/utils/errorHandler'; // Import handleError
+import { useQuery } from '@tanstack/react-query'; // Import useQuery
 
 interface UseAdminResult {
   isAdmin: boolean;
@@ -23,9 +24,27 @@ export function useIsAdmin(): UseAdminResult {
     };
   }, []);
 
-  const fetchRole = useCallback(async () => {
-    if (!authReady || authLoading) {
+  // Use react-query to fetch the profile, which will handle caching and deduplication
+  const { data: profile, isLoading: isProfileQueryLoading, isError: isProfileQueryError, error: profileQueryError } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: () => user ? ProfileService.fetchProfile(user.id) : Promise.resolve(null),
+    enabled: !!user && authReady, // Only fetch if user is present and auth is ready
+    staleTime: 1000 * 60 * 5, // Cache profile for 5 minutes
+  });
+
+  useEffect(() => {
+    if (!isMountedRef.current) return;
+
+    if (authLoading || !authReady || isProfileQueryLoading) {
       setProfileLoading(true);
+      return;
+    }
+
+    if (isProfileQueryError) {
+      const errorMessage = handleError(profileQueryError, 'Failed to load admin role.');
+      setError(errorMessage);
+      setIsAdmin(false);
+      setProfileLoading(false);
       return;
     }
 
@@ -36,40 +55,19 @@ export function useIsAdmin(): UseAdminResult {
       return;
     }
 
-    setProfileLoading(true);
-    setError(null);
-
-    try {
-      // Ensure profile exists before attempting to fetch it
-      await ProfileService.ensureProfileExists(user.id);
-      const profile = await ProfileService.fetchProfile(user.id);
-
-      if (!isMountedRef.current) {
-        return;
-      }
-
-      if (profile) {
-        setIsAdmin(profile.role === 'admin');
-      } else {
-        setIsAdmin(false);
-      }
-    } catch (err: any) {
-      if (!isMountedRef.current) {
-        return;
-      }
-      const errorMessage = handleError(err, 'An unexpected error occurred during admin role check.');
-      setError(errorMessage);
+    if (profile) {
+      setIsAdmin(profile.role === 'admin');
+      setError(null);
+    } else {
       setIsAdmin(false);
-    } finally {
-      if (isMountedRef.current) {
-        setProfileLoading(false);
-      }
+      // If no profile is found, it might be a new user or an issue.
+      // The ensureProfileExists in AuthContext should handle creation.
+      // If it's still null here, it means either it's not created yet or there's an RLS issue.
+      // For now, we'll just set isAdmin to false.
+      setError('User profile not found or accessible.');
     }
-  }, [user, authLoading, authReady]);
-
-  useEffect(() => {
-    fetchRole();
-  }, [fetchRole]);
+    setProfileLoading(false);
+  }, [user, authLoading, authReady, profile, isProfileQueryLoading, isProfileQueryError, profileQueryError]);
 
   return { isAdmin, loading: profileLoading, error };
 }

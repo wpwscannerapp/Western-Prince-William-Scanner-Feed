@@ -66,6 +66,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('AuthContext: Failed to ensure profile exists for user. Aborting session creation.');
         return;
       }
+      // Invalidate profile query after ensuring it exists, so other hooks refetch
+      queryClient.invalidateQueries({ queryKey: ['profile', currentSession.user.id] });
     } catch (err) {
       console.error('AuthContext: Error during ensureProfileExists:', (err as Error).message);
       handleError(err, 'Failed to ensure user profile exists.');
@@ -125,6 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthContext: Deleting all sessions for user:', userIdToDelete);
       await SessionService.deleteAllSessionsForUser(userIdToDelete);
     }
+    // Invalidate profile query after session deletion
     queryClient.invalidateQueries({ queryKey: ['profile', userIdToDelete] });
     console.log('AuthContext: Session(s) deleted and removed from localStorage. Profile cache invalidated.');
   }, [queryClient]);
@@ -158,7 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthContext: Cleaning up onAuthStateChange listener.');
       subscription.unsubscribe();
     };
-  }, [handleSessionCreation, handleSessionDeletion]); // Dependencies for handleSessionCreation/Deletion
+  }, [handleSessionCreation, handleSessionDeletion]);
 
   const signUp = async (email: string, password: string) => {
     setError(null);
