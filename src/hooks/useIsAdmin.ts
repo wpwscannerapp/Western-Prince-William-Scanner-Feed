@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { ProfileService } from '@/services/ProfileService';
 import { handleError } from '@/utils/errorHandler'; // Import handleError
