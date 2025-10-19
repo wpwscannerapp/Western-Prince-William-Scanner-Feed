@@ -19,7 +19,7 @@ const logSupabaseError = (functionName: string, error: any) => {
 
 export class ProfileService {
   static async ensureProfileExists(userId: string): Promise<boolean> {
-    console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Starting check/upsert process.`);
+    console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Starting upsert process.`);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       console.warn(`ProfileService: ensureProfileExists for user ID ${userId} timed out after ${SUPABASE_API_TIMEOUT / 1000}s.`);
@@ -27,34 +27,12 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
-      // First, check if the profile already exists
-      console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Checking for existing profile.`);
-      const { data: existingProfile, error: selectError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', userId)
-        .abortSignal(controller.signal)
-        .maybeSingle();
-
-      console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Select query completed. Data: ${existingProfile ? 'found' : 'not found'}, Error: ${selectError ? selectError.message : 'none'}`);
-
-      if (selectError && selectError.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
-        logSupabaseError('ensureProfileExists - select', selectError);
-        return false;
-      }
-
-      if (existingProfile) {
-        console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Profile already exists. Skipping upsert.`);
-        return true;
-      }
-
-      // If no profile exists, proceed with upsert to create it
-      console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - No profile found, executing upsert to create.`);
+      // Use upsert directly: inserts if ID does not exist, does nothing if it does.
       const { error: upsertError } = await supabase
         .from('profiles')
         .upsert(
           { id: userId, subscription_status: 'free', role: 'user' }, // Default values
-          { onConflict: 'id' }
+          { onConflict: 'id', ignoreDuplicates: true } // ignoreDuplicates is important for performance
         )
         .abortSignal(controller.signal);
 
