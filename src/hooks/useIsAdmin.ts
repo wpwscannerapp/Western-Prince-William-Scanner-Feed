@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { ProfileService } from '@/services/ProfileService';
-// Removed SUPABASE_API_TIMEOUT import as it's now handled by ProfileService
 
 interface UseAdminResult {
   isAdmin: boolean;
@@ -25,7 +24,7 @@ export function useIsAdmin(): UseAdminResult {
 
   const fetchRole = useCallback(async () => {
     if (authLoading) {
-      setProfileLoading(true); // Keep loading if auth is still loading
+      setProfileLoading(true);
       return;
     }
 
@@ -40,12 +39,12 @@ export function useIsAdmin(): UseAdminResult {
     setError(null);
 
     try {
-      // Ensure profile exists before fetching its role
-      await ProfileService.ensureProfileExists(user.id);
+      // Removed redundant call to ProfileService.ensureProfileExists
+      // AuthContext already ensures profile existence during session setup.
       const profile = await ProfileService.fetchProfile(user.id);
 
       if (!isMountedRef.current) {
-        return; // Component unmounted, do nothing
+        return;
       }
 
       if (profile) {
@@ -56,7 +55,7 @@ export function useIsAdmin(): UseAdminResult {
       }
     } catch (err: any) {
       if (!isMountedRef.current) {
-        return; // Component unmounted, do nothing
+        return;
       }
       // handleError is already called by ProfileService, just set local error state
       const errorMessage = err.message === 'Request timed out' 
@@ -69,11 +68,11 @@ export function useIsAdmin(): UseAdminResult {
         setProfileLoading(false);
       }
     }
-  }, [user, authLoading]); // Depend on user and authLoading
+  }, [user, authLoading]);
 
   useEffect(() => {
     fetchRole();
-  }, [fetchRole]); // Re-run when fetchRole changes
+  }, [fetchRole]);
 
   return { isAdmin, loading: profileLoading, error };
 }
