@@ -9,14 +9,11 @@ if ('serviceWorker' in navigator) {
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// import App from './App'; // Temporarily commented out
+import App from './App'; // Re-import App
 import './globals.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-    {/* Temporarily render a simple div to check if React is rendering at all */}
-    <div style={{ padding: '20px', textAlign: 'center', fontSize: '24px', color: 'white', backgroundColor: '#222' }}>
-      Hello World!
-    </div>
+    <App /> {/* Re-render App component */}
     </React.StrictMode>
 );
