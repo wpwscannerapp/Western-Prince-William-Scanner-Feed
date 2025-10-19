@@ -80,12 +80,14 @@ export class ProfileService {
           return null;
         }
         logSupabaseError('fetchProfile', error);
+        console.error(`ProfileService: Error fetching profile for user ID ${userId}:`, error); // Added error log
         throw error;
       }
       if (!data) {
         console.warn(`ProfileService: No profile data returned for user ID: ${userId} (maybeSingle returned null).`);
         return null;
       }
+      console.log(`ProfileService: Successfully fetched profile for user ID: ${userId}. Data:`, data); // Added data log
       console.log(`ProfileService: Successfully fetched profile for user ID: ${userId}. Role: ${data.role}`);
       return data as Profile;
     } catch (err: any) {
