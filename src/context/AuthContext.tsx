@@ -6,6 +6,7 @@ import { SessionService } from '@/services/SessionService';
 import { MAX_CONCURRENT_SESSIONS } from '@/config';
 import { ProfileService } from '@/services/ProfileService';
 import { handleError as globalHandleError } from '@/utils/errorHandler';
+import { useQueryClient } from '@tanstack/react-query'; // Import useQueryClient
 
 interface AuthState {
   session: Session | null;
@@ -30,6 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isMountedRef = useRef(true);
   const mountCountRef = useRef(0);
   const userRef = useRef<User | null>(null); // Ref to hold the latest user object
+  const queryClient = useQueryClient(); // Initialize queryClient
 
   // Keep userRef updated with the latest user state
   useEffect(() => {
@@ -120,7 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentSessionId) {
       console.log('AuthContext: Deleting specific session ID:', currentSessionId);
       await SessionService.deleteSession(userIdToDelete, currentSessionId);
-      localStorage.removeItem('wpw_session_id');
+      localStorage.removeItem('wpw_session_id'); // Ensure this is always cleared
     } else {
       console.log('AuthContext: No specific session ID found in localStorage to delete.');
     }
@@ -129,8 +131,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthContext: Deleting all sessions for user:', userIdToDelete);
       await SessionService.deleteAllSessionsForUser(userIdToDelete);
     }
-    console.log('AuthContext: Session(s) deleted and removed from localStorage.');
-  }, []);
+    // Invalidate all profile-related queries for the user who just logged out
+    queryClient.invalidateQueries({ queryKey: ['profile', userIdToDelete] });
+    console.log('AuthContext: Session(s) deleted and removed from localStorage. Profile cache invalidated.');
+  }, [queryClient]); // Add queryClient to dependencies
 
   // Effect for setting up auth state listener
   useEffect(() => {
@@ -217,6 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLoading(false);
           setAuthReady(true);
           await handleSessionDeletion(userRef.current?.id); // Use userRef for deletion
+          queryClient.invalidateQueries({ queryKey: ['profile'] }); // Invalidate profile cache on logout
           return { success: true };
         }
         handleError(authError, authError.message);
@@ -228,6 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
       setAuthReady(true);
       await handleSessionDeletion(userRef.current?.id); // Use userRef for deletion
+      queryClient.invalidateQueries({ queryKey: ['profile'] }); // Invalidate profile cache on logout
       return { success: true };
     } catch (e: any) {
       handleError(e, e.message || 'An unexpected error occurred during logout.');
