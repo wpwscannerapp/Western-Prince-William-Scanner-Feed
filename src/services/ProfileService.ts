@@ -19,27 +19,46 @@ const logSupabaseError = (functionName: string, error: any) => {
 
 export class ProfileService {
   static async ensureProfileExists(userId: string): Promise<boolean> {
-    console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Starting upsert process.`);
+    console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Starting existence check.`);
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error(`Operation timed out after ${SUPABASE_API_TIMEOUT / 1000}s`)), SUPABASE_API_TIMEOUT)
     );
 
     try {
-      const { error: upsertError } = await Promise.race([
+      // First, check if the profile already exists
+      const { data: existingProfile, error: selectError } = await Promise.race([
         supabase
           .from('profiles')
-          .upsert(
-            { id: userId, subscription_status: 'free', role: 'user' }, // Default values
-            { onConflict: 'id', ignoreDuplicates: true }
-          ),
+          .select('id')
+          .eq('id', userId)
+          .maybeSingle(),
         timeoutPromise
       ]);
 
-      if (upsertError) {
-        logSupabaseError('ensureProfileExists - upsert', upsertError);
+      if (selectError) {
+        logSupabaseError('ensureProfileExists - select', selectError);
         return false;
       }
-      console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Upsert query completed successfully.`);
+
+      if (existingProfile) {
+        console.log(`ProfileService: Profile for user ID: ${userId} already exists. No upsert needed.`);
+        return true; // Profile already exists, nothing to do
+      }
+
+      // If no profile exists, insert a new one
+      console.log(`ProfileService: No profile found for user ID: ${userId}. Inserting new profile.`);
+      const { error: insertError } = await Promise.race([
+        supabase
+          .from('profiles')
+          .insert({ id: userId, subscription_status: 'free', role: 'user' }), // Default values
+        timeoutPromise
+      ]);
+
+      if (insertError) {
+        logSupabaseError('ensureProfileExists - insert', insertError);
+        return false;
+      }
+      console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Insert query completed successfully.`);
       return true;
     } catch (err: any) {
       if (err.message.includes('timed out')) {
