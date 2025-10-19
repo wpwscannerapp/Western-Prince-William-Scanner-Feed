@@ -122,6 +122,9 @@ export const ProfileService = {
         .abortSignal(controller.signal)
         .maybeSingle();
 
+      // --- NEW LOG HERE ---
+      console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Select query completed. Data: ${existingProfile ? 'found' : 'not found'}, Error: ${selectError ? selectError.message : 'none'}`);
+
       if (selectError && selectError.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
         logSupabaseError('ensureProfileExists - select', selectError);
         return false;
