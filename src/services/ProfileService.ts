@@ -119,10 +119,9 @@ export const ProfileService = {
         .from('profiles')
         .select('id')
         .eq('id', userId)
-        .abortSignal(controller.signal)
+        .abortSignal(controller.signal) // ADDED abortSignal HERE
         .maybeSingle();
 
-      // --- NEW LOG HERE ---
       console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Select query completed. Data: ${existingProfile ? 'found' : 'not found'}, Error: ${selectError ? selectError.message : 'none'}`);
 
       if (selectError && selectError.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
