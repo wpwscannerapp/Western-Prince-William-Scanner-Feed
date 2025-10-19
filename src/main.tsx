@@ -6,3 +6,17 @@ if ('serviceWorker' in navigator) {
 } else {
   console.warn('main.tsx: Service Workers are not supported by this browser.');
 }
+
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+// import App from './App'; // Temporarily commented out
+import './globals.css';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+    {/* Temporarily render a simple div to check if React is rendering at all */}
+    <div style={{ padding: '20px', textAlign: 'center', fontSize: '24px', color: 'white', backgroundColor: '#222' }}>
+      Hello World!
+    </div>
+    </React.StrictMode>
+);
