@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { AuthContext } from '@/context/AuthContext'; // Adjust path
+import { AuthContext, AuthState } from '@/context/AuthContext'; // Adjust path and import AuthState
 import { ProfileService } from '@/services/ProfileService'; // Adjust path
 import { handleError } from '@/utils/errorHandler';
 
@@ -15,7 +15,7 @@ export function useIsAdmin(): UseAdminResult {
   if (context === undefined) {
     throw new Error('useIsAdmin must be used within an AuthProvider');
   }
-  const { user, session, authReady } = context;
+  const { user, session, authReady } = context as AuthState; // Explicitly cast context to AuthState
 
   console.log('useIsAdmin: authReady:', authReady, 'session:', !!session, 'userId:', user?.id);
 
@@ -38,8 +38,8 @@ export function useIsAdmin(): UseAdminResult {
     enabled: authReady && !!session && !!user?.id,
     retry: 0, // Disable retries to avoid multiple fetches on initial failure
     staleTime: Infinity, // Cache indefinitely
-    cacheTime: Infinity, // Prevent eviction
-    onError: (err) => {
+    gcTime: Infinity, // Prevent eviction (replaces cacheTime in TanStack Query v5)
+    onError: (err: Error) => { // Explicitly type err as Error
       console.error('useIsAdmin: Query failed:', err);
       handleError(err, 'Failed to determine admin status.');
     },

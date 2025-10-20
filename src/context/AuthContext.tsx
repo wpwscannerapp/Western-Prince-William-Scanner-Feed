@@ -20,7 +20,7 @@ interface AuthState {
   forgotPassword: (email: string) => Promise<{ success: boolean; error?: AuthError }>;
 }
 
-const AuthContext = createContext<AuthState | undefined>(undefined);
+export const AuthContext = createContext<AuthState | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);

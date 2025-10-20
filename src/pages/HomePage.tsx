@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'; // Import Button
 
 const HomePage: React.FC = () => {
   console.log('HomePage: Component rendering.');
-  const { user, authReady, session } = useAuth(); // Get user, authReady, and session
+  const { authReady, session } = useAuth(); // Get authReady, and session
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
 
   console.log('HomePage: isAdminLoading:', isAdminLoading, 'isAdmin:', isAdmin, 'error:', isAdminError);

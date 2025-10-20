@@ -1,6 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
-import { SUPABASE_API_TIMEOUT } from '@/config';
 import { Session } from '@supabase/supabase-js'; // Import Session type
 
 export interface Profile {
