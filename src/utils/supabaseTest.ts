@@ -56,8 +56,8 @@ export async function resetSession() {
     localStorage.removeItem('supabase.auth.token');
     console.log('Session cleared, attempting re-authentication');
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: 'test@example.com', // IMPORTANT: Replace with a valid test email
-      password: 'your-test-password' // IMPORTANT: Replace with the correct password
+      email: 'YOUR_VALID_TEST_EMAIL', // IMPORTANT: Replace with a valid test email
+      password: 'YOUR_VALID_TEST_PASSWORD' // IMPORTANT: Replace with the correct password
     });
     if (error) {
       console.error('Re-authentication failed:', error.message, error);
