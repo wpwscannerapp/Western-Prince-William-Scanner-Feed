@@ -8,11 +8,13 @@ import { ProfileService, Profile } from '@/services/ProfileService';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'; // Import CardContent
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'; // Import Tabs components
-import { useProfilePageContext } from '@/App'; // Import the context hook
 
-const ProfilePage: React.FC = () => {
+interface ProfilePageProps {
+  isWebPushInitialized: boolean; // New prop
+}
+
+const ProfilePage: React.FC<ProfilePageProps> = ({ isWebPushInitialized }) => {
   const { user, session, authReady } = useAuth(); // Destructure session and authReady from useAuth
-  const isWebPushInitialized = useProfilePageContext(); // Consume from context, renamed variable
 
   const { isLoading: isProfileLoading, isError: isProfileError, error: profileError } = useQuery<Profile | null, Error>({
     queryKey: ['profile', user?.id],
