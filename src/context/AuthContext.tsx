@@ -8,7 +8,7 @@ import { ProfileService } from '@/services/ProfileService';
 import { handleError as globalHandleError } from '@/utils/errorHandler';
 import { useQueryClient } from '@tanstack/react-query';
 
-export interface AuthContextType { // Exported AuthContextType
+export interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
@@ -60,10 +60,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     console.log('AuthContext: User ID for session creation:', currentSession.user.id);
     console.log('AuthContext: Access Token present:', !!currentSession.access_token);
-
-    // Removed ProfileService.ensureProfileExists call here.
-    // It will now be handled by useIsAdmin's queryFn (which calls fetchProfile).
-    // This ensures react-query manages the profile fetching lifecycle.
 
     let currentSessionId = localStorage.getItem('wpw_session_id');
     if (!currentSessionId) {

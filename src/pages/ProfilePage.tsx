@@ -11,13 +11,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useProfilePageContext } from '@/App'; // Import the context hook
 
 const ProfilePage: React.FC = () => {
-  const { user, session } = useAuth(); // Destructure session from useAuth
+  const { user, session, authReady } = useAuth(); // Destructure session and authReady from useAuth
   const isWebPushInitialized = useProfilePageContext(); // Consume from context, renamed variable
 
   const { isLoading: isProfileLoading, isError: isProfileError, error: profileError } = useQuery<Profile | null, Error>({
     queryKey: ['profile', user?.id],
-    queryFn: () => user ? ProfileService.fetchProfile(user.id, session) : Promise.resolve(null), // Pass session here
-    enabled: !!user,
+    queryFn: async () => {
+      if (!user?.id || !session) throw new Error('No user ID or session available');
+      return await ProfileService.fetchProfile(user.id, session);
+    },
+    enabled: authReady && !!user?.id && !!session, // Ensure query is enabled only when auth is ready and user/session exist
   });
 
   if (isProfileLoading) {

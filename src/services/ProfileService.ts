@@ -48,7 +48,7 @@ export class ProfileService {
         console.log(`ProfileService: ensureProfileExists - Insert - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`); // Added log
         const { error: insertError } = await supabase
           .from('profiles')
-          .insert({ id: userId, subscription_status: 'free', role: 'user' });
+          .insert({ id: userId, subscription_status: 'free', role: 'user' }); // Ensure default role is 'user'
 
         if (insertError) {
           logSupabaseError('ensureProfileExists - insert', insertError);

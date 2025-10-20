@@ -2,9 +2,9 @@ import React from 'react';
 import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Loader2, AlertCircle } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext'; // Import useAuth
-import { testProfileQuery } from '@/utils/testQuery'; // Import testProfileQuery
-import { Button } from '@/components/ui/button'; // Import Button
+import { useAuth } from '@/context/AuthContext'; // Corrected import path
+import { testProfileQuery } from '@/utils/testQuery';
+import { Button } from '@/components/ui/button';
 
 const HomePage: React.FC = () => {
   console.log('HomePage: Component rendering.');
