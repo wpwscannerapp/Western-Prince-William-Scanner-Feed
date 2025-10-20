@@ -61,20 +61,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AuthContext: User ID for session creation:', currentSession.user.id);
     console.log('AuthContext: Access Token present:', !!currentSession.access_token);
 
-    try {
-      // Pass the currentSession to ensureProfileExists
-      const profileEnsured = await ProfileService.ensureProfileExists(currentSession.user.id, currentSession);
-      if (!profileEnsured) {
-        console.error('AuthContext: Failed to ensure profile exists for user. Aborting session creation.');
-        return;
-      }
-      // Invalidate profile query after ensuring it exists, so other hooks refetch
-      queryClient.invalidateQueries({ queryKey: ['profile', currentSession.user.id] });
-    } catch (err) {
-      console.error('AuthContext: Error during ensureProfileExists:', (err as Error).message);
-      handleError(err, 'Failed to ensure user profile exists.');
-      return;
-    }
+    // Removed ProfileService.ensureProfileExists call here.
+    // It will now be handled by useIsAdmin's queryFn (which calls fetchProfile).
+    // This ensures react-query manages the profile fetching lifecycle.
 
     let currentSessionId = localStorage.getItem('wpw_session_id');
     if (!currentSessionId) {

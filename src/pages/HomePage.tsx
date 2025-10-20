@@ -2,12 +2,26 @@ import React from 'react';
 import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext'; // Import useAuth
+import { testProfileQuery } from '@/utils/testQuery'; // Import testProfileQuery
+import { Button } from '@/components/ui/button'; // Import Button
 
 const HomePage: React.FC = () => {
   console.log('HomePage: Component rendering.');
+  const { user, authReady, session } = useAuth(); // Get user, authReady, and session
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
 
-  console.log('HomePage: isAdminLoading state:', isAdminLoading, 'error:', isAdminError);
+  console.log('HomePage: isAdminLoading:', isAdminLoading, 'isAdmin:', isAdmin, 'error:', isAdminError);
+
+  if (!authReady || isAdminLoading) {
+    console.log('HomePage: Showing loading permissions UI.');
+    return (
+      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
+        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+        <p className="tw-ml-2">Loading user permissions...</p>
+      </div>
+    );
+  }
 
   if (isAdminError) {
     console.log('HomePage: Error loading permissions:', isAdminError);
@@ -25,16 +39,6 @@ const HomePage: React.FC = () => {
         >
           Retry
         </button>
-      </div>
-    );
-  }
-
-  if (isAdminLoading) {
-    console.log('HomePage: Showing loading permissions UI.');
-    return (
-      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
-        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
-        <p className="tw-ml-2">Loading user permissions...</p>
       </div>
     );
   }
@@ -75,6 +79,12 @@ const HomePage: React.FC = () => {
             icon="/Logo.png"
           />
         )}
+      </div>
+      {/* Debug Button for testing queries */}
+      <div className="tw-mt-8 tw-text-center">
+        <Button onClick={() => testProfileQuery(session)} variant="outline">
+          Test Profile Query (Debug)
+        </Button>
       </div>
     </div>
   );
