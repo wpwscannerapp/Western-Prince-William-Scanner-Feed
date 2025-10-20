@@ -47,16 +47,7 @@ export function useIsAdmin(): UseAdminResult {
       setError(errorMessage);
       setIsAdmin(false); // Default to false on error
       setProfileLoading(false);
-
-      // TEMPORARY WORKAROUND: If profile fetch fails but user is authenticated,
-      // assume admin for debugging purposes to unblock the UI.
-      // This should ONLY be used for local development debugging.
-      if (user && import.meta.env.DEV) { // Only in development mode
-        console.warn("useIsAdmin: Profile fetch failed, but user is authenticated. Temporarily assuming admin role for debugging.");
-        setIsAdmin(true);
-        setError("Profile fetch timed out. Assuming admin role for debugging (DEV mode).");
-      }
-      return;
+      return; // Removed the temporary DEV workaround
     }
 
     if (!user) {
