@@ -16,9 +16,16 @@ const ProfilePage: React.FC = () => {
 
   const { isLoading: isProfileLoading, isError: isProfileError, error: profileError } = useQuery<Profile | null, Error>({
     queryKey: ['profile', user?.id],
-    queryFn: async () => {
-      if (!user?.id || !session) throw new Error('No user ID or session available');
-      return await ProfileService.fetchProfile(user.id, session);
+    queryFn: async ({ queryKey }) => {
+      const [, userId] = queryKey; // Extract userId from queryKey
+      if (!userId || !session) {
+        // This case should ideally not be hit due to 'enabled' flag, but for type safety and robustness:
+        console.warn('ProfilePage: queryFn executed without user ID or session, returning null.');
+        throw new Error('User ID or session is missing when profile queryFn is executed.');
+      }
+      // Ensure profile exists before fetching it
+      await ProfileService.ensureProfileExists(userId as string, session);
+      return await ProfileService.fetchProfile(userId as string, session);
     },
     enabled: authReady && !!user?.id && !!session, // Ensure query is enabled only when auth is ready and user/session exist
   });
