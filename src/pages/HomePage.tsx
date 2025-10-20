@@ -8,20 +8,13 @@ import { Button } from '@/components/ui/button';
 
 const HomePage: React.FC = () => {
   console.log('HomePage: Component rendering.');
-  const { authReady, session } = useAuth(); // Get authReady, and session
+  const { session } = useAuth(); // Get session
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
 
   console.log('HomePage: isAdminLoading:', isAdminLoading, 'isAdmin:', isAdmin, 'error:', isAdminError);
 
-  if (!authReady || isAdminLoading) {
-    console.log('HomePage: Showing loading permissions UI.');
-    return (
-      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
-        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
-        <p className="tw-ml-2">Loading user permissions...</p>
-      </div>
-    );
-  }
+  // The authReady check is primarily handled by ProtectedRoute.
+  // We only need to show a loading state if there's an error in determining admin status.
 
   if (isAdminError) {
     console.log('HomePage: Error loading permissions:', isAdminError);
@@ -71,13 +64,20 @@ const HomePage: React.FC = () => {
         />
 
         {/* Admin Dashboard Tile (Conditional) */}
-        {isAdmin && (
-          <Tile
-            title="Admin Dashboard"
-            description="Manage posts, settings, and users."
-            to="/admin"
-            icon="/Logo.png"
-          />
+        {isAdminLoading ? (
+          <div className="tw-flex tw-items-center tw-justify-center tw-p-4 tw-bg-card tw-border-border tw-shadow-lg tw-rounded-lg">
+            <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
+            <p className="tw-ml-2 tw-text-sm tw-text-muted-foreground">Loading admin status...</p>
+          </div>
+        ) : (
+          isAdmin && (
+            <Tile
+              title="Admin Dashboard"
+              description="Manage posts, settings, and users."
+              to="/admin"
+              icon="/Logo.png"
+            />
+          )
         )}
       </div>
       {/* Debug Button for testing queries */}
