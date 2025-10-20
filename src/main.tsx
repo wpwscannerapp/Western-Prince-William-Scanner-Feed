@@ -20,9 +20,6 @@ if ('serviceWorker' in navigator) {
     await Promise.all(cacheNames.map((name) => caches.delete(name)));
     console.log('main.tsx: Cleared all caches.');
 
-    // Removed: localStorage.removeItem('supabase.auth.token');
-    console.log('main.tsx: Supabase session token clearing removed from here.');
-
     // Register new service worker
     console.log('main.tsx: Registering service worker with cache-busting param.');
     navigator.serviceWorker
