@@ -23,16 +23,3 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((response) => response || fetch(event.request))
   );
 });
-
-self.addEventListener('message', (event) => {
-  if (event.data.type === 'CLEANUP_CACHE') {
-    console.log('Service Worker: Cleaning up old caches, keeping:', event.data.cacheName);
-    caches.keys().then((cacheNames) => {
-      cacheNames.forEach((name) => {
-        if (name !== event.data.cacheName) {
-          caches.delete(name);
-        }
-      });
-    });
-  }
-});
