@@ -8,7 +8,7 @@ import { ProfileService } from '@/services/ProfileService';
 import { handleError as globalHandleError } from '@/utils/errorHandler';
 import { useQueryClient } from '@tanstack/react-query';
 
-interface AuthState {
+export interface AuthContextType { // Exported AuthContextType
   session: Session | null;
   user: User | null;
   loading: boolean;
@@ -20,7 +20,7 @@ interface AuthState {
   forgotPassword: (email: string) => Promise<{ success: boolean; error?: AuthError }>;
 }
 
-export const AuthContext = createContext<AuthState | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
