@@ -11,6 +11,11 @@ if (!supabaseUrl || !supabaseAnonKey || !supabaseAnonKey.startsWith('eyJ')) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true, // Explicitly set to true for clarity and to ensure session persistence
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+  db: {
+    schema: 'public',
   },
 });
 

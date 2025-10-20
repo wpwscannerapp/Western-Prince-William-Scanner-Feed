@@ -28,7 +28,9 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
-      console.log(`ProfileService: ensureProfileExists - Checking for existing profile for user ID: ${userId}.`);
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log(`ProfileService: ensureProfileExists - Current session for user ID ${userId}: ${session ? 'present' : 'null'}. Access token: ${session?.access_token ? 'present' : 'null'}`);
+
       // First, try to fetch the profile
       const { data: existingProfile, error: selectError } = await supabase
         .from('profiles')
@@ -86,6 +88,9 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log(`ProfileService: fetchProfile - Current session for user ID ${userId}: ${session ? 'present' : 'null'}. Access token: ${session?.access_token ? 'present' : 'null'}`);
+
       console.log(`ProfileService: Executing Supabase query for user ID: ${userId}`);
       const { data, error } = await supabase
         .from('profiles')
