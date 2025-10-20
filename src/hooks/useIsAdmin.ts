@@ -30,6 +30,8 @@ export function useIsAdmin(): UseAdminResult {
     queryFn: () => user ? ProfileService.fetchProfile(user.id) : Promise.resolve(null),
     enabled: !!user && authReady, // Only fetch if user is present and auth is ready
     staleTime: 1000 * 60 * 5, // Cache profile for 5 minutes
+    retry: 1, // Only retry once for profile fetch to quickly detect persistent issues
+    retryDelay: 1000, // Short delay for retry
   });
 
   useEffect(() => {
@@ -43,8 +45,17 @@ export function useIsAdmin(): UseAdminResult {
     if (isProfileQueryError) {
       const errorMessage = handleError(profileQueryError, 'Failed to load admin role.');
       setError(errorMessage);
-      setIsAdmin(false);
+      setIsAdmin(false); // Default to false on error
       setProfileLoading(false);
+
+      // TEMPORARY WORKAROUND: If profile fetch fails but user is authenticated,
+      // assume admin for debugging purposes to unblock the UI.
+      // This should ONLY be used for local development debugging.
+      if (user && import.meta.env.DEV) { // Only in development mode
+        console.warn("useIsAdmin: Profile fetch failed, but user is authenticated. Temporarily assuming admin role for debugging.");
+        setIsAdmin(true);
+        setError("Profile fetch timed out. Assuming admin role for debugging (DEV mode).");
+      }
       return;
     }
 
@@ -60,10 +71,6 @@ export function useIsAdmin(): UseAdminResult {
       setError(null);
     } else {
       setIsAdmin(false);
-      // If no profile is found, it might be a new user or an issue.
-      // The ensureProfileExists in AuthContext should handle creation.
-      // If it's still null here, it means either it's not created yet or there's an RLS issue.
-      // For now, we'll just set isAdmin to false.
       setError('User profile not found or accessible.');
     }
     setProfileLoading(false);
