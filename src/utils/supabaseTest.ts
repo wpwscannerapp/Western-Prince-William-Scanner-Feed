@@ -5,7 +5,8 @@ export async function testGetSession() {
   console.time('getSession');
   console.log('Starting supabase.auth.getSession()');
 
-  let timeoutId: ReturnType<typeof setTimeout>;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined = undefined; // Initialize timeoutId
+
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => {
       const timeoutError = new Error('Supabase getSession timed out after 15s');
@@ -19,7 +20,9 @@ export async function testGetSession() {
     const getSessionPromise = supabase.auth.getSession();
     const result = await Promise.race([getSessionPromise, timeoutPromise]);
 
-    clearTimeout(timeoutId); // Clear the timeout if getSessionPromise wins
+    if (timeoutId !== undefined) { // Only clear if it was assigned
+      clearTimeout(timeoutId); // Clear the timeout if getSessionPromise wins
+    }
     console.timeEnd('getSession');
 
     // The result will be from getSessionPromise if it wins
@@ -33,7 +36,9 @@ export async function testGetSession() {
     console.log('getSession success:', data);
     return data;
   } catch (err: any) {
-    clearTimeout(timeoutId); // Ensure timeout is cleared even if getSessionPromise rejects before timeout
+    if (timeoutId !== undefined) { // Only clear if it was assigned
+      clearTimeout(timeoutId); // Ensure timeout is cleared even if getSessionPromise rejects before timeout
+    }
     console.error('getSession failed:', err);
     // If the error is from our timeoutPromise, handleError was already called.
     // Otherwise, it's an error from supabase.auth.getSession itself.
