@@ -26,40 +26,41 @@ export class ProfileService {
     }
 
     const startTime = Date.now();
-    // Removed AbortController and setTimeout for SUPABASE_API_TIMEOUT
 
     try {
       console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Attempting to fetch existing profile.`);
-      console.log(`ProfileService: ensureProfileExists - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`); // Added log
+      console.log(`ProfileService: ensureProfileExists - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`);
       const { data: existingProfile, error: selectError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', userId)
         .maybeSingle();
 
-      if (selectError && selectError.code !== 'PGRST116') { // PGRST116 means no rows found
-        logSupabaseError('ensureProfileExists - select', selectError);
-        console.error(`ProfileService: ensureProfileExists for user ID ${userId} - Select failed:`, selectError);
-        return false;
-      }
-
-      if (!existingProfile) {
-        console.log(`ProfileService: No existing profile found for user ID: ${userId}. Attempting to insert.`);
-        console.log(`ProfileService: ensureProfileExists - Insert - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`); // Added log
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert({ id: userId, subscription_status: 'free', role: 'user' }); // Ensure default role is 'user'
-
-        if (insertError) {
-          logSupabaseError('ensureProfileExists - insert', insertError);
-          console.error(`ProfileService: ensureProfileExists for user ID ${userId} - Insert failed:`, insertError);
+      if (selectError) {
+        if (selectError.code === 'PGRST116') { // No rows found
+          console.log(`ProfileService: No existing profile found for user ID: ${userId}. Proceeding to insert.`);
+        } else {
+          logSupabaseError('ensureProfileExists - select', selectError);
+          console.error(`ProfileService: ensureProfileExists for user ID ${userId} - Select failed:`, selectError);
           return false;
         }
-        console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Insert completed successfully in ${Date.now() - startTime}ms.`);
-      } else {
+      } else if (existingProfile) {
         console.log(`ProfileService: Profile already exists for user ID: ${userId}. No insert needed.`);
+        console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Operation completed successfully in ${Date.now() - startTime}ms.`);
+        return true;
       }
-      console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Operation completed successfully in ${Date.now() - startTime}ms.`);
+
+      console.log(`ProfileService: Attempting to insert new profile for user ID: ${userId}.`);
+      const { error: insertError } = await supabase
+        .from('profiles')
+        .insert({ id: userId, subscription_status: 'free', role: 'user' }); // Ensure default role is 'user'
+
+      if (insertError) {
+        logSupabaseError('ensureProfileExists - insert', insertError);
+        console.error(`ProfileService: ensureProfileExists for user ID ${userId} - Insert failed:`, insertError);
+        return false;
+      }
+      console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Insert completed successfully in ${Date.now() - startTime}ms.`);
       return true;
     } catch (err: any) {
       console.error(`ProfileService: Caught unexpected error during ensureProfileExists for user ID ${userId}:`, err);
@@ -76,11 +77,10 @@ export class ProfileService {
     }
 
     const startTime = Date.now();
-    // Removed AbortController and setTimeout for SUPABASE_API_TIMEOUT
 
     try {
       console.log(`ProfileService: fetchProfile for user ID: ${userId} - Executing Supabase query.`);
-      console.log(`ProfileService: fetchProfile - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`); // Added log
+      console.log(`ProfileService: fetchProfile - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -115,7 +115,6 @@ export class ProfileService {
   ): Promise<Profile | null> {
     console.log(`ProfileService: Attempting to update profile for user ID: ${userId}`);
     const startTime = Date.now();
-    // Removed AbortController and setTimeout for SUPABASE_API_TIMEOUT
 
     try {
       const { data, error } = await supabase
