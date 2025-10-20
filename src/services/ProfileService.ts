@@ -35,6 +35,7 @@ export class ProfileService {
 
     try {
       console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Attempting to fetch existing profile.`);
+      console.log(`ProfileService: ensureProfileExists - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`); // Added log
       const { data: existingProfile, error: selectError } = await supabase
         .from('profiles')
         .select('id')
@@ -50,6 +51,7 @@ export class ProfileService {
 
       if (!existingProfile) {
         console.log(`ProfileService: No existing profile found for user ID: ${userId}. Attempting to insert.`);
+        console.log(`ProfileService: ensureProfileExists - Insert - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`); // Added log
         const { error: insertError } = await supabase
           .from('profiles')
           .insert({ id: userId, subscription_status: 'free', role: 'user' })
@@ -96,6 +98,7 @@ export class ProfileService {
 
     try {
       console.log(`ProfileService: fetchProfile for user ID: ${userId} - Executing Supabase query.`);
+      console.log(`ProfileService: fetchProfile - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`); // Added log
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
