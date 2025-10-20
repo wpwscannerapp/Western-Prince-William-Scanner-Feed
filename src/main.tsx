@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 
-// const CACHE_NAME = 'wpw-scanner-feed-v5'; // Increment to v5
+const CACHE_NAME = 'wpw-scanner-feed-v5'; // Increment to v5
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
