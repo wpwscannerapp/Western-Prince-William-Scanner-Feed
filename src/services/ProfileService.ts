@@ -28,9 +28,8 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
-      console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Calling supabase.auth.getSession().`);
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - supabase.auth.getSession() returned: ${session ? 'present' : 'null'}. Access token: ${session?.access_token ? 'present' : 'null'}`);
+      // Removed redundant supabase.auth.getSession() call here.
+      // This function is called after AuthContext has already established the session.
 
       console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Attempting to fetch existing profile.`);
       const { data: existingProfile, error: selectError } = await supabase
@@ -88,9 +87,8 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
-      console.log(`ProfileService: fetchProfile for user ID: ${userId} - Calling supabase.auth.getSession().`);
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log(`ProfileService: fetchProfile for user ID: ${userId} - supabase.auth.getSession() returned: ${session ? 'present' : 'null'}. Access token: ${session?.access_token ? 'present' : 'null'}`);
+      // Removed redundant supabase.auth.getSession() call here.
+      // This function is called after AuthContext has already established the session.
 
       console.log(`ProfileService: fetchProfile for user ID: ${userId} - Executing Supabase query.`);
       const { data, error } = await supabase
