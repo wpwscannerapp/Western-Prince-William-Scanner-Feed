@@ -3,7 +3,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext.tsx";
-import React from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
 import AppContent from './components/AppContent'; // Import the new AppContent
 

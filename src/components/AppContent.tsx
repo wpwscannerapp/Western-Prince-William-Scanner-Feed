@@ -19,6 +19,7 @@ import AuthPage from '@/pages/AuthPage';
 import SubscriptionPage from '@/pages/SubscriptionPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import TermsOfServicePage from '@/pages/TermsOfServicePage';
+import NotFound from '@/pages/NotFound'; // Import NotFound
 import { useAppSettings } from '@/hooks/useAppSettings';
 
 const AppContent: React.FC = () => {
