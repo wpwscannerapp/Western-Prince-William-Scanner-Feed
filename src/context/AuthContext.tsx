@@ -62,7 +62,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AuthContext: Access Token present:', !!currentSession.access_token);
 
     try {
-      const profileEnsured = await ProfileService.ensureProfileExists(currentSession.user.id);
+      // Pass the currentSession to ensureProfileExists
+      const profileEnsured = await ProfileService.ensureProfileExists(currentSession.user.id, currentSession);
       if (!profileEnsured) {
         console.error('AuthContext: Failed to ensure profile exists for user. Aborting session creation.');
         return;
@@ -91,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const profile = await ProfileService.fetchProfile(currentSession.user.id);
+      const profile = await ProfileService.fetchProfile(currentSession.user.id, currentSession); // Pass session here too
       const isCurrentUserAdmin = profile?.role === 'admin';
       console.log('AuthContext: User role:', profile?.role);
 

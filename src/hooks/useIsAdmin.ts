@@ -11,7 +11,7 @@ interface UseAdminResult {
 }
 
 export function useIsAdmin(): UseAdminResult {
-  const { user, loading: authLoading, authReady } = useAuth();
+  const { user, loading: authLoading, authReady, session } = useAuth(); // Get session from useAuth
   const [isAdmin, setIsAdmin] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +27,7 @@ export function useIsAdmin(): UseAdminResult {
   // Use react-query to fetch the profile, which will handle caching and deduplication
   const { data: profile, isLoading: isProfileQueryLoading, isError: isProfileQueryError, error: profileQueryError } = useQuery({
     queryKey: ['profile', user?.id],
-    queryFn: () => user ? ProfileService.fetchProfile(user.id) : Promise.resolve(null),
+    queryFn: () => user ? ProfileService.fetchProfile(user.id, session) : Promise.resolve(null), // Pass session here
     enabled: !!user && authReady, // Only fetch if user is present and auth is ready
     staleTime: 1000 * 60 * 5, // Cache profile for 5 minutes
     retry: 1, // Only retry once for profile fetch to quickly detect persistent issues
@@ -74,7 +74,7 @@ export function useIsAdmin(): UseAdminResult {
       setError('User profile not found or accessible.');
     }
     setProfileLoading(false);
-  }, [user, authLoading, authReady, profile, isProfileQueryLoading, isProfileQueryError, profileQueryError]);
+  }, [user, authLoading, authReady, profile, isProfileQueryLoading, isProfileQueryError, profileQueryError, session]); // Add session to dependency array
 
   return { isAdmin, loading: profileLoading, error };
 }

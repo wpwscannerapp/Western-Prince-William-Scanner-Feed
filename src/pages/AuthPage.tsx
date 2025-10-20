@@ -6,6 +6,8 @@ import { useEffect } from 'react';
 import { APP_NAME, APP_DESCRIPTION } from '@/lib/constants';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button'; // Import Button
+import { resetSession } from '@/utils/supabaseTest'; // Import resetSession
 
 const AuthPage = () => {
   const { user, loading, error } = useAuth();
@@ -60,6 +62,14 @@ const AuthPage = () => {
           </div>
         )}
       </div>
+      {/* Temporary Debug Button */}
+      <Button
+        onClick={() => resetSession()}
+        variant="outline"
+        className="tw-mt-8 tw-text-sm tw-text-muted-foreground hover:tw-text-primary"
+      >
+        Reset Session (Debug)
+      </Button>
       <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
     </div>
   );

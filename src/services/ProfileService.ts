@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
+import { Session } from '@supabase/supabase-js'; // Import Session type
 
 export interface Profile {
   id: string;
@@ -18,8 +19,13 @@ const logSupabaseError = (functionName: string, error: any) => {
 };
 
 export class ProfileService {
-  static async ensureProfileExists(userId: string): Promise<boolean> {
+  static async ensureProfileExists(userId: string, session: Session | null): Promise<boolean> {
     console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Starting operation.`);
+    if (!session) {
+      console.warn(`ProfileService: ensureProfileExists for user ID: ${userId} - No session provided. Aborting.`);
+      return false;
+    }
+
     const startTime = Date.now();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -28,9 +34,6 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
-      // Removed redundant supabase.auth.getSession() call here.
-      // This function is called after AuthContext has already established the session.
-
       console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Attempting to fetch existing profile.`);
       const { data: existingProfile, error: selectError } = await supabase
         .from('profiles')
@@ -77,8 +80,13 @@ export class ProfileService {
     }
   }
 
-  static async fetchProfile(userId: string): Promise<Profile | null> {
+  static async fetchProfile(userId: string, session: Session | null): Promise<Profile | null> {
     console.log(`ProfileService: Attempting to fetch profile for user ID: ${userId}`);
+    if (!session) {
+      console.warn(`ProfileService: fetchProfile for user ID: ${userId} - No session provided. Returning null.`);
+      return null;
+    }
+
     const startTime = Date.now();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -87,9 +95,6 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
-      // Removed redundant supabase.auth.getSession() call here.
-      // This function is called after AuthContext has already established the session.
-
       console.log(`ProfileService: fetchProfile for user ID: ${userId} - Executing Supabase query.`);
       const { data, error } = await supabase
         .from('profiles')
