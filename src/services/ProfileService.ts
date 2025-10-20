@@ -28,6 +28,7 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
+      console.log(`ProfileService: ensureProfileExists - Checking for existing profile for user ID: ${userId}.`);
       // First, try to fetch the profile
       const { data: existingProfile, error: selectError } = await supabase
         .from('profiles')

@@ -59,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     console.log('AuthContext: User ID for session creation:', currentSession.user.id);
+    console.log('AuthContext: Access Token present:', !!currentSession.access_token);
 
     try {
       const profileEnsured = await ProfileService.ensureProfileExists(currentSession.user.id);
