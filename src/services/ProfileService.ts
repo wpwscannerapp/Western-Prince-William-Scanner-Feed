@@ -38,7 +38,7 @@ export class ProfileService {
         .from('profiles')
         .select('id')
         .eq('id', userId)
-        .abortSignal(controller.signal) // Moved abortSignal here
+        .abortSignal(controller.signal)
         .maybeSingle();
 
       clearTimeout(timeoutId); // Clear timeout if query completes
@@ -61,7 +61,7 @@ export class ProfileService {
       const { error: insertError } = await supabase
         .from('profiles')
         .insert({ id: userId, subscription_status: 'free', role: 'user' })
-        .abortSignal(controller.signal); // Moved abortSignal here
+        .abortSignal(controller.signal);
 
       if (insertError) {
         logSupabaseError('ensureProfileExists - insert', insertError);
@@ -72,6 +72,7 @@ export class ProfileService {
       return true;
     } catch (err: any) {
       if (err.name === 'AbortError') {
+        console.error(`ProfileService: Query timed out for user ${userId} in ensureProfileExists.`); // Explicit timeout log
         handleError(new Error('Request timed out'), `Profile check for user ${userId} timed out.`);
       } else {
         console.error(`ProfileService: Caught unexpected error during ensureProfileExists for user ID ${userId}:`, err);
@@ -101,7 +102,7 @@ export class ProfileService {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .abortSignal(controller.signal) // Moved abortSignal here
+        .abortSignal(controller.signal)
         .maybeSingle();
 
       clearTimeout(timeoutId); // Clear timeout if query completes
@@ -123,6 +124,7 @@ export class ProfileService {
       return data as Profile;
     } catch (err: any) {
       if (err.name === 'AbortError') {
+        console.error(`ProfileService: Query timed out for user ${userId} in fetchProfile.`); // Explicit timeout log
         handleError(new Error('Request timed out'), `Profile fetch for user ${userId} timed out.`);
       } else {
         console.error(`ProfileService: Caught error during fetchProfile for user ID ${userId}:`, err);
@@ -148,7 +150,7 @@ export class ProfileService {
         .from('profiles')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', userId)
-        .abortSignal(controller.signal) // Moved abortSignal here
+        .abortSignal(controller.signal)
         .select()
         .single();
 
@@ -162,6 +164,7 @@ export class ProfileService {
       return data as Profile;
     } catch (err: any) {
       if (err.name === 'AbortError') {
+        console.error(`ProfileService: Query timed out for user ${userId} in updateProfile.`); // Explicit timeout log
         handleError(new Error('Request timed out'), `Profile update for user ${userId} timed out.`);
       } else {
         console.error(`ProfileService: Caught error during updateProfile for user ID ${userId}:`, err);

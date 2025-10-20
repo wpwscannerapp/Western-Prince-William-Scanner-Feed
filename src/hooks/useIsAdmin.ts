@@ -40,6 +40,11 @@ export function useIsAdmin(): UseAdminResult {
     gcTime: Infinity, // Prevent eviction (replaces cacheTime in TanStack Query v5)
   });
 
+  // Log the error if it occurs
+  if (isProfileQueryError) {
+    console.error('useIsAdmin: Profile query failed:', profileQueryError);
+  }
+
   return {
     isAdmin: isAdmin ?? false, // Default to false if data is undefined
     loading: isProfileQueryLoading || !authReady, // Consider loading if auth isn't ready yet
