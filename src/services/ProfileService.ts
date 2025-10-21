@@ -36,22 +36,22 @@ export class ProfileService {
     try {
       for (let i = 0; i < MAX_RETRIES; i++) {
         console.log(`ProfileService: ensureProfileExists - Attempting to select profile for ${userId} (Retry ${i + 1}/${MAX_RETRIES}).`);
-        const { data: existingProfile, error: selectError } = await supabase
+        const { data, error: selectError } = await supabase
           .from('profiles')
           .select('id')
           .eq('id', userId)
           .abortSignal(controller.signal)
-          .maybeSingle();
+          .limit(1); // Changed from maybeSingle()
 
-        console.log(`ProfileService: ensureProfileExists - Supabase response for select (Retry ${i + 1}):`, { existingProfile, selectError });
+        console.log(`ProfileService: ensureProfileExists - Supabase response for select (Retry ${i + 1}):`, { data, selectError });
 
-        if (selectError && selectError.code !== 'PGRST116') {
+        if (selectError) {
           logSupabaseError('ensureProfileExists - select', selectError);
           handleError(selectError, 'Failed to check for existing profile.');
           return false;
         }
 
-        if (existingProfile) {
+        if (data && data.length > 0) {
           console.log(`ProfileService: Profile already exists for ${userId} after ${i + 1} attempts.`);
           return true;
         }
@@ -95,26 +95,22 @@ export class ProfileService {
         .select('id, first_name, last_name, avatar_url, subscription_status, role, username, updated_at')
         .eq('id', userId)
         .abortSignal(controller.signal)
-        .maybeSingle();
+        .limit(1); // Changed from maybeSingle()
       
       console.log('ProfileService: fetchProfile - Query object created, awaiting response...');
       const { data, error } = await query;
       console.log('ProfileService: fetchProfile - Supabase query awaited. Result:', { data, error });
 
       if (error) {
-        if (error.code === 'PGRST116') {
-          console.log(`ProfileService: fetchProfile - No profile found for ${userId} (PGRST116).`);
-          return null;
-        }
         logSupabaseError('fetchProfile', error);
         throw error;
       }
-      if (!data) {
-        console.log(`ProfileService: fetchProfile - Data is null, returning null.`);
+      if (!data || data.length === 0) { // Check data.length
+        console.log(`ProfileService: fetchProfile - No profile found for ${userId}.`);
         return null;
       }
-      console.log(`ProfileService: fetchProfile - Profile data found:`, data);
-      return data as Profile;
+      console.log(`ProfileService: fetchProfile - Profile data found:`, data[0]); // Access first element
+      return data[0] as Profile; // Return first element
     } catch (err: any) {
       console.error(`ProfileService: fetchProfile - Caught an error:`, err);
       if (err.name === 'AbortError') {

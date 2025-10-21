@@ -69,7 +69,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Pass the currentSession to ensureProfileExists
       const profileEnsured = await ProfileService.ensureProfileExists(currentSession.user.id, currentSession);
       if (!profileEnsured) {
-        console.error('AuthContext: Failed to ensure profile exists for user. Aborting session creation.');
+        console.error('AuthContext: Failed to ensure profile exists for user. Aborting session creation and further profile fetching.');
+        // If profile is not ensured, we cannot proceed with session management that relies on profile data.
+        // This might indicate a critical issue with the handle_new_user trigger.
         return;
       }
       // Invalidate profile query after ensuring it exists, so other hooks refetch
