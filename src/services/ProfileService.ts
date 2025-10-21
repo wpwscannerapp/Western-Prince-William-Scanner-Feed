@@ -49,18 +49,10 @@ export class ProfileService {
       console.log(`ProfileService: ensureProfileExists - existingProfile check result:`, existingProfile);
 
       if (!existingProfile) {
-        console.log(`ProfileService: No existing profile found for ${userId}. Attempting to insert.`);
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert({ id: userId, subscription_status: 'free', role: 'user' })
-          .abortSignal(controller.signal);
-
-        if (insertError) {
-          logSupabaseError('ensureProfileExists - insert', insertError);
-          handleError(insertError, 'Failed to create new user profile.');
-          return false;
-        }
-        console.log(`ProfileService: Profile successfully inserted for ${userId}.`);
+        console.warn(`ProfileService: No existing profile found for ${userId}. This might indicate an issue with the 'handle_new_user' trigger or a race condition. Relying on trigger for creation.`);
+        // Do NOT attempt to insert here. The handle_new_user trigger should handle this.
+        // If it's still missing, it's a deeper issue with the trigger itself.
+        return false; // Indicate that the profile was not found/ensured by this call
       } else {
         console.log(`ProfileService: Profile already exists for ${userId}.`);
       }
@@ -76,6 +68,7 @@ export class ProfileService {
       return false;
     } finally {
       clearTimeout(timeoutId);
+      console.log(`ProfileService: Exiting ensureProfileExists for user ID: ${userId}.`);
     }
   }
 
@@ -98,9 +91,9 @@ export class ProfileService {
         .abortSignal(controller.signal)
         .maybeSingle();
       
-      console.log('ProfileService: fetchProfile - Query object created, awaiting response...'); // <-- NEW LOG
+      console.log('ProfileService: fetchProfile - Query object created, awaiting response...');
       const { data, error } = await query;
-      console.log('ProfileService: fetchProfile - Supabase query awaited. Result:', { data, error }); // <-- NEW LOG
+      console.log('ProfileService: fetchProfile - Supabase query awaited. Result:', { data, error });
 
       if (error) {
         if (error.code === 'PGRST116') {
