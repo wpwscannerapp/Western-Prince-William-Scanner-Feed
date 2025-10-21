@@ -38,8 +38,6 @@ export function useIsAdmin(): UseAdminResult {
     console.log('useIsAdmin useEffect: Current state for profile processing:', { authLoading, authReady, isProfileQueryLoading, user: user?.id, profile, isProfileQueryError, profileQueryError });
 
     // If auth is not ready or still loading, we can't determine admin status yet.
-    // The `enabled` prop of useQuery already handles preventing the query from running.
-    // We should only update isAdmin and error based on the *result* of the profile query.
     if (!authReady || authLoading) {
       setIsAdmin(false);
       setError(null); // Clear any previous errors
