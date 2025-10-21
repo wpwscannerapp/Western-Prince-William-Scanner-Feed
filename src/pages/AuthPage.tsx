@@ -1,8 +1,6 @@
 import AuthForm from '@/components/AuthForm';
 import TeaserPost from '@/components/TeaserPost';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
 import { APP_NAME, APP_DESCRIPTION } from '@/lib/constants';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,14 +9,7 @@ import { resetSession, testDirectRestApiCall } from '@/utils/supabaseTest'; // I
 
 const AuthPage = () => {
   const { user, loading, error, session } = useAuth(); // Get session from useAuth
-  const navigate = useNavigate();
-
-  // Re-enable this useEffect to redirect after login
-  useEffect(() => {
-    if (!loading && user) {
-      navigate('/home');
-    }
-  }, [user, loading, navigate]);
+  // Removed unused 'navigate' variable and its corresponding 'useEffect' import
 
   const handleDirectRestCall = async () => {
     if (user && session) {
