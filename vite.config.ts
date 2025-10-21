@@ -1,10 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc'; // Keep swc version
 import path from 'path';
-import dyadComponentTagger from '@dyad-sh/react-vite-component-tagger';
 
 export default defineConfig({
-  plugins: [dyadComponentTagger(), react()],
+  plugins: [react()],
   root: './', // Ensure root is explicitly set
   resolve: {
     alias: {

@@ -1,8 +1,8 @@
-import { useContext } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { AuthContext, AuthContextType } from '@/context/AuthContext'; // Updated import
+import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { ProfileService } from '@/services/ProfileService';
-import { handleError } from '@/utils/errorHandler';
+import { handleError } from '@/utils/errorHandler'; // Import handleError
+import { useQuery } from '@tanstack/react-query'; // Import useQuery
 
 interface UseAdminResult {
   isAdmin: boolean;
@@ -11,43 +11,61 @@ interface UseAdminResult {
 }
 
 export function useIsAdmin(): UseAdminResult {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useIsAdmin must be used within an AuthProvider');
-  }
-  const { user, session, authReady } = context as AuthContextType; // Explicitly cast context to AuthContextType
+  const { user, loading: authLoading, authReady, session } = useAuth(); // Get session from useAuth
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
 
-  console.log('useIsAdmin: authReady:', authReady, 'session:', !!session, 'userId:', user?.id);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
-  const { data: isAdmin, isLoading: isProfileQueryLoading, isError: isProfileQueryError, error: profileQueryError } = useQuery<boolean, Error>({
-    queryKey: ['profile', 'admin', user?.id],
-    queryFn: async () => {
-      if (!session || !user?.id) {
-        console.error('useIsAdmin: No session or user ID available for queryFn.');
-        throw new Error('No session or user ID available');
-      }
-      console.log('useIsAdmin: Fetching profile for user ID:', user.id);
-      // Ensure profile exists before fetching it, this handles new user signups
-      await ProfileService.ensureProfileExists(user.id, session);
-      const profile = await ProfileService.fetchProfile(user.id, session);
-      const userIsAdmin = profile?.role === 'admin'; // Ensure boolean return
-      console.log('useIsAdmin: Profile fetched, role:', profile?.role, 'isAdmin:', userIsAdmin);
-      return userIsAdmin;
-    },
-    enabled: authReady && !!session && !!user?.id,
-    retry: 0, // Disable retries to avoid multiple fetches on initial failure
-    staleTime: Infinity, // Cache indefinitely
-    gcTime: Infinity, // Prevent eviction (replaces cacheTime in TanStack Query v5)
+  // Use react-query to fetch the profile, which will handle caching and deduplication
+  const { data: profile, isLoading: isProfileQueryLoading, isError: isProfileQueryError, error: profileQueryError } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: () => user ? ProfileService.fetchProfile(user.id, session) : Promise.resolve(null), // Pass session here
+    enabled: !!user && authReady, // Only fetch if user is present and auth is ready
+    staleTime: 1000 * 60 * 5, // Cache profile for 5 minutes
+    retry: 1, // Only retry once for profile fetch to quickly detect persistent issues
+    retryDelay: 1000, // Short delay for retry
   });
 
-  // Log the error if it occurs
-  if (isProfileQueryError) {
-    console.error('useIsAdmin: Profile query failed:', profileQueryError);
-  }
+  useEffect(() => {
+    if (!isMountedRef.current) return;
 
-  return {
-    isAdmin: isAdmin ?? false, // Default to false if data is undefined
-    loading: isProfileQueryLoading || !authReady, // Consider loading if auth isn't ready yet
-    error: isProfileQueryError ? handleError(profileQueryError, 'Failed to load admin status.') : null,
-  };
+    if (authLoading || !authReady || isProfileQueryLoading) {
+      setProfileLoading(true);
+      return;
+    }
+
+    if (isProfileQueryError) {
+      const errorMessage = handleError(profileQueryError, 'Failed to load admin role.');
+      setError(errorMessage);
+      setIsAdmin(false); // Default to false on error
+      setProfileLoading(false);
+      return; // Removed the temporary DEV workaround
+    }
+
+    if (!user) {
+      setIsAdmin(false);
+      setProfileLoading(false);
+      setError(null);
+      return;
+    }
+
+    if (profile) {
+      setIsAdmin(profile.role === 'admin');
+      setError(null);
+    } else {
+      setIsAdmin(false);
+      setError('User profile not found or accessible.');
+    }
+    setProfileLoading(false);
+  }, [user, authLoading, authReady, profile, isProfileQueryLoading, isProfileQueryError, profileQueryError, session]); // Add session to dependency array
+
+  return { isAdmin, loading: profileLoading, error };
 }

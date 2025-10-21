@@ -2,19 +2,12 @@ import React from 'react';
 import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Loader2, AlertCircle } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext'; // Corrected import path
-import { testProfileQuery } from '@/utils/testQuery';
-import { Button } from '@/components/ui/button';
 
 const HomePage: React.FC = () => {
   console.log('HomePage: Component rendering.');
-  const { session } = useAuth(); // Get session
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
 
-  console.log('HomePage: isAdminLoading:', isAdminLoading, 'isAdmin:', isAdmin, 'error:', isAdminError);
-
-  // The authReady check is primarily handled by ProtectedRoute.
-  // We only need to show a loading state if there's an error in determining admin status.
+  console.log('HomePage: isAdminLoading state:', isAdminLoading, 'error:', isAdminError);
 
   if (isAdminError) {
     console.log('HomePage: Error loading permissions:', isAdminError);
@@ -32,6 +25,16 @@ const HomePage: React.FC = () => {
         >
           Retry
         </button>
+      </div>
+    );
+  }
+
+  if (isAdminLoading) {
+    console.log('HomePage: Showing loading permissions UI.');
+    return (
+      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
+        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+        <p className="tw-ml-2">Loading user permissions...</p>
       </div>
     );
   }
@@ -64,27 +67,14 @@ const HomePage: React.FC = () => {
         />
 
         {/* Admin Dashboard Tile (Conditional) */}
-        {isAdminLoading ? (
-          <div className="tw-flex tw-items-center tw-justify-center tw-p-4 tw-bg-card tw-border-border tw-shadow-lg tw-rounded-lg">
-            <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
-            <p className="tw-ml-2 tw-text-sm tw-text-muted-foreground">Loading admin status...</p>
-          </div>
-        ) : (
-          isAdmin && (
-            <Tile
-              title="Admin Dashboard"
-              description="Manage posts, settings, and users."
-              to="/admin"
-              icon="/Logo.png"
-            />
-          )
+        {isAdmin && (
+          <Tile
+            title="Admin Dashboard"
+            description="Manage posts, settings, and users."
+            to="/admin"
+            icon="/Logo.png"
+          />
         )}
-      </div>
-      {/* Debug Button for testing queries */}
-      <div className="tw-mt-8 tw-text-center">
-        <Button onClick={() => testProfileQuery(session)} variant="outline">
-          Test Profile Query (Debug)
-        </Button>
       </div>
     </div>
   );

@@ -8,28 +8,16 @@ import { ProfileService, Profile } from '@/services/ProfileService';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'; // Import CardContent
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'; // Import Tabs components
+import { useProfilePageContext } from '@/App'; // Import the context hook
 
-interface ProfilePageProps {
-  isWebPushInitialized: boolean; // New prop
-}
-
-const ProfilePage: React.FC<ProfilePageProps> = ({ isWebPushInitialized }) => {
-  const { user, session, authReady } = useAuth(); // Destructure session and authReady from useAuth
+const ProfilePage: React.FC = () => {
+  const { user, session } = useAuth(); // Destructure session from useAuth
+  const isWebPushInitialized = useProfilePageContext(); // Consume from context, renamed variable
 
   const { isLoading: isProfileLoading, isError: isProfileError, error: profileError } = useQuery<Profile | null, Error>({
     queryKey: ['profile', user?.id],
-    queryFn: async ({ queryKey }) => {
-      const [, userId] = queryKey; // Extract userId from queryKey
-      if (!userId || !session) {
-        // This case should ideally not be hit due to 'enabled' flag, but for type safety and robustness:
-        console.warn('ProfilePage: queryFn executed without user ID or session, returning null.');
-        throw new Error('User ID or session is missing when profile queryFn is executed.');
-      }
-      // Ensure profile exists before fetching it
-      await ProfileService.ensureProfileExists(userId as string, session);
-      return await ProfileService.fetchProfile(userId as string, session);
-    },
-    enabled: authReady && !!user?.id && !!session, // Ensure query is enabled only when auth is ready and user/session exist
+    queryFn: () => user ? ProfileService.fetchProfile(user.id, session) : Promise.resolve(null), // Pass session here
+    enabled: !!user,
   });
 
   if (isProfileLoading) {

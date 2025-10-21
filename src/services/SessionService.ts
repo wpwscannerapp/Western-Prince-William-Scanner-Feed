@@ -5,13 +5,13 @@ import { Session } from '@supabase/supabase-js'; // Import Session type
 export interface UserSession {
   id: string;
   user_id: string;
-  session_id: string; // This will now store the Supabase session.id
+  session_id: string;
   created_at: string;
   expires_at: string;
 }
 
 export const SessionService = {
-  async createSession(session: Session, supabaseSessionId: string): Promise<UserSession | null> {
+  async createSession(session: Session, sessionId: string): Promise<UserSession | null> {
     if (!session.user || !session.expires_in) {
       handleError(null, 'Invalid session data provided for creation.');
       return null;
@@ -21,7 +21,7 @@ export const SessionService = {
       const { data, error } = await supabase
         .from('user_sessions')
         .upsert(
-          { user_id: session.user.id, session_id: supabaseSessionId, expires_at: expiresAt },
+          { user_id: session.user.id, session_id: sessionId, expires_at: expiresAt },
           { onConflict: 'session_id' } // Use upsert to prevent 409 conflicts on session_id
         )
         .select()
@@ -38,7 +38,7 @@ export const SessionService = {
     }
   },
 
-  async deleteSession(userId: string | undefined, supabaseSessionId: string): Promise<boolean> {
+  async deleteSession(userId: string | undefined, sessionId: string): Promise<boolean> {
     // Issue 6: deleteSession now explicitly takes userId
     if (!userId) {
       console.warn('SessionService: No user ID provided for session deletion, skipping database deletion.');
@@ -49,7 +49,7 @@ export const SessionService = {
       const { error } = await supabase
         .from('user_sessions')
         .delete()
-        .eq('session_id', supabaseSessionId)
+        .eq('session_id', sessionId)
         .eq('user_id', userId); // Ensure only the current user's session is deleted
 
       if (error) {
@@ -148,13 +148,13 @@ export const SessionService = {
     }
   },
 
-  async isValidSession(userId: string, supabaseSessionId: string): Promise<boolean> {
+  async isValidSession(userId: string, sessionId: string): Promise<boolean> {
     try {
       const { data, error } = await supabase
         .from('user_sessions')
         .select('id')
         .eq('user_id', userId)
-        .eq('session_id', supabaseSessionId)
+        .eq('session_id', sessionId)
         .gt('expires_at', new Date().toISOString())
         .limit(1); // Returns T[] | null
 

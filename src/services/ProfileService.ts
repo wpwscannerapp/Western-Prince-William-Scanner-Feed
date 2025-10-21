@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
+import { SUPABASE_API_TIMEOUT } from '@/config';
 import { Session } from '@supabase/supabase-js'; // Import Session type
-import { SUPABASE_API_TIMEOUT } from '@/config'; // Import timeout constant
 
 export interface Profile {
   id: string;
@@ -28,12 +28,14 @@ export class ProfileService {
 
     const startTime = Date.now();
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
+    const timeoutId = setTimeout(() => {
+      console.warn(`ProfileService: ensureProfileExists for user ID ${userId} timed out after ${SUPABASE_API_TIMEOUT / 1000}s.`);
+      controller.abort();
+    }, SUPABASE_API_TIMEOUT);
 
     try {
       console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Attempting to fetch existing profile.`);
-      console.log(`ProfileService: ensureProfileExists - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`);
-      
+      console.log(`ProfileService: ensureProfileExists - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`); // Added log
       const { data: existingProfile, error: selectError } = await supabase
         .from('profiles')
         .select('id')
@@ -41,46 +43,42 @@ export class ProfileService {
         .abortSignal(controller.signal)
         .maybeSingle();
 
-      clearTimeout(timeoutId); // Clear timeout if query completes
-
-      if (selectError) {
-        if (selectError.code === 'PGRST116') { // No rows found
-          console.log(`ProfileService: No existing profile found for user ID: ${userId}. Proceeding to insert.`);
-        } else {
-          logSupabaseError('ensureProfileExists - select', selectError);
-          console.error(`ProfileService: ensureProfileExists for user ID ${userId} - Select failed:`, selectError);
-          return false;
-        }
-      } else if (existingProfile) {
-        console.log(`ProfileService: Profile already exists for user ID: ${userId}. No insert needed.`);
-        console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Operation completed successfully in ${Date.now() - startTime}ms.`);
-        return true;
-      }
-
-      console.log(`ProfileService: Attempting to insert new profile for user ID: ${userId}.`);
-      const { error: insertError } = await supabase
-        .from('profiles')
-        .insert({ id: userId, subscription_status: 'free', role: 'user' })
-        .abortSignal(controller.signal);
-
-      if (insertError) {
-        logSupabaseError('ensureProfileExists - insert', insertError);
-        console.error(`ProfileService: ensureProfileExists for user ID ${userId} - Insert failed:`, insertError);
+      if (selectError && selectError.code !== 'PGRST116') { // PGRST116 means no rows found
+        logSupabaseError('ensureProfileExists - select', selectError);
+        console.error(`ProfileService: ensureProfileExists for user ID ${userId} - Select failed:`, selectError);
         return false;
       }
-      console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Insert completed successfully in ${Date.now() - startTime}ms.`);
+
+      if (!existingProfile) {
+        console.log(`ProfileService: No existing profile found for user ID: ${userId}. Attempting to insert.`);
+        console.log(`ProfileService: ensureProfileExists - Insert - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`); // Added log
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({ id: userId, subscription_status: 'free', role: 'user' })
+          .abortSignal(controller.signal);
+
+        if (insertError) {
+          logSupabaseError('ensureProfileExists - insert', insertError);
+          console.error(`ProfileService: ensureProfileExists for user ID ${userId} - Insert failed:`, insertError);
+          return false;
+        }
+        console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Insert completed successfully in ${Date.now() - startTime}ms.`);
+      } else {
+        console.log(`ProfileService: Profile already exists for user ID: ${userId}. No insert needed.`);
+      }
+      console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Operation completed successfully in ${Date.now() - startTime}ms.`);
       return true;
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        console.error(`ProfileService: Query timed out for user ${userId} in ensureProfileExists.`); // Explicit timeout log
-        handleError(new Error('Request timed out'), `Profile check for user ${userId} timed out.`);
+        console.error(`ProfileService: ensureProfileExists for user ID ${userId} aborted due to timeout.`);
+        handleError(new Error('Request timed out'), 'Ensuring profile existence timed out.');
       } else {
         console.error(`ProfileService: Caught unexpected error during ensureProfileExists for user ID ${userId}:`, err);
         logSupabaseError('ensureProfileExists', err);
       }
       return false;
     } finally {
-      clearTimeout(timeoutId); // Ensure timeout is always cleared
+      clearTimeout(timeoutId);
     }
   }
 
@@ -93,19 +91,20 @@ export class ProfileService {
 
     const startTime = Date.now();
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
+    const timeoutId = setTimeout(() => {
+      console.warn(`ProfileService: Fetch profile for user ID ${userId} timed out after ${SUPABASE_API_TIMEOUT / 1000}s.`);
+      controller.abort();
+    }, SUPABASE_API_TIMEOUT);
 
     try {
       console.log(`ProfileService: fetchProfile for user ID: ${userId} - Executing Supabase query.`);
-      console.log(`ProfileService: fetchProfile - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`);
+      console.log(`ProfileService: fetchProfile - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`); // Added log
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .abortSignal(controller.signal)
         .maybeSingle();
-
-      clearTimeout(timeoutId); // Clear timeout if query completes
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -124,15 +123,15 @@ export class ProfileService {
       return data as Profile;
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        console.error(`ProfileService: Query timed out for user ${userId} in fetchProfile.`); // Explicit timeout log
-        handleError(new Error('Request timed out'), `Profile fetch for user ${userId} timed out.`);
+        console.error(`ProfileService: Fetch profile for user ID ${userId} aborted due to timeout.`);
+        handleError(new Error('Request timed out'), 'Fetching profile timed out.');
       } else {
         console.error(`ProfileService: Caught error during fetchProfile for user ID ${userId}:`, err);
         logSupabaseError('fetchProfile', err);
       }
-      throw err; // Re-throw to be caught by react-query
+      throw err;
     } finally {
-      clearTimeout(timeoutId); // Ensure timeout is always cleared
+      clearTimeout(timeoutId);
     }
   }
 
@@ -143,7 +142,10 @@ export class ProfileService {
     console.log(`ProfileService: Attempting to update profile for user ID: ${userId}`);
     const startTime = Date.now();
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
+    const timeoutId = setTimeout(() => {
+      console.warn(`ProfileService: Update profile for user ID ${userId} timed out after ${SUPABASE_API_TIMEOUT / 1000}s.`);
+      controller.abort();
+    }, SUPABASE_API_TIMEOUT);
 
     try {
       const { data, error } = await supabase
@@ -154,8 +156,6 @@ export class ProfileService {
         .select()
         .single();
 
-      clearTimeout(timeoutId); // Clear timeout if query completes
-
       if (error) {
         logSupabaseError('updateProfile', error);
         return null;
@@ -164,15 +164,15 @@ export class ProfileService {
       return data as Profile;
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        console.error(`ProfileService: Query timed out for user ${userId} in updateProfile.`); // Explicit timeout log
-        handleError(new Error('Request timed out'), `Profile update for user ${userId} timed out.`);
+        console.error(`ProfileService: Update profile for user ID ${userId} aborted due to timeout.`);
+        handleError(new Error('Request timed out'), 'Updating profile timed out.');
       } else {
-        console.error(`ProfileService: Caught error during updateProfile for user ID ${userId}:`, err);
         logSupabaseError('updateProfile', err);
       }
       return null;
     } finally {
-      clearTimeout(timeoutId); // Ensure timeout is always cleared
+      clearTimeout(timeoutId);
+      console.log(`ProfileService: Update profile for user ID ${userId} finished.`);
     }
   }
 }
