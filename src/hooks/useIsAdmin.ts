@@ -86,6 +86,7 @@ export function useIsAdmin(): UseAdminResult {
   // This ensures that if auth is still loading, useIsAdmin is also loading.
   // And if auth is ready, but profile is still fetching, useIsAdmin is loading.
   const overallLoading = authLoading || (authReady && isProfileQueryLoading);
+  console.log('[useIsAdmin] Render: overallLoading calculation:', { authLoading, authReady, isProfileQueryLoading, overallLoading });
 
   return { isAdmin, loading: overallLoading, error };
 }
