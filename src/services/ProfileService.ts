@@ -76,6 +76,7 @@ export class ProfileService {
   }
 
   static async fetchProfile(userId: string, session: Session | null): Promise<Profile | null> {
+    console.log(`ProfileService: Entering fetchProfile for user ID: ${userId}. Session present: ${!!session}.`); // Added this log
     if (!session) {
       console.warn(`ProfileService: fetchProfile for user ID: ${userId} - No session provided. Returning null.`);
       return null;
@@ -118,6 +119,7 @@ export class ProfileService {
       throw err;
     } finally {
       clearTimeout(timeoutId);
+      console.log(`ProfileService: Exiting fetchProfile for user ID: ${userId}.`); // Added this log
     }
   }
 
