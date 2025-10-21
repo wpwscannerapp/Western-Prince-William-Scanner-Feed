@@ -4,20 +4,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { APP_NAME, APP_DESCRIPTION } from '@/lib/constants';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button'; // Import Button
-import { resetSession, testDirectRestApiCall } from '@/utils/supabaseTest'; // Import testDirectRestApiCall
+// Removed Button import as it's no longer needed for debug buttons
+// Removed resetSession, testDirectRestApiCall imports
 
 const AuthPage = () => {
-  const { user, loading, error, session } = useAuth(); // Get session from useAuth
-  // Removed unused 'navigate' variable and its corresponding 'useEffect' import
-
-  const handleDirectRestCall = async () => {
-    if (user && session) {
-      await testDirectRestApiCall(user.id, session.access_token);
-    } else {
-      handleError(null, 'User not logged in or session not available for direct REST API call.');
-    }
-  };
+  const { user, loading, error } = useAuth(); 
+  // Removed handleDirectRestCall as it's no longer needed
 
   if (loading) {
     return (
@@ -62,25 +54,7 @@ const AuthPage = () => {
           </div>
         )}
       </div>
-      {/* Debug Buttons */}
-      <div className="tw-mt-8 tw-flex tw-gap-4">
-        <Button
-          onClick={() => resetSession()}
-          variant="outline"
-          className="tw-text-sm tw-text-muted-foreground hover:tw-text-primary"
-        >
-          Reset Session (Debug)
-        </Button>
-        {user && session && (
-          <Button
-            onClick={handleDirectRestCall}
-            variant="outline"
-            className="tw-text-sm tw-text-muted-foreground hover:tw-text-primary"
-          >
-            Test Direct REST API Call
-          </Button>
-        )}
-      </div>
+      {/* Removed Debug Buttons */}
       <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
     </div>
   );
