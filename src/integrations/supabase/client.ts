@@ -8,9 +8,10 @@ if (!supabaseUrl || !supabaseAnonKey || !supabaseAnonKey.startsWith('eyJ')) {
   throw new Error('Supabase configuration error: VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is missing or invalid.');
 }
 
+// Create the client once and export it
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: true, // Explicitly set to true for clarity and to ensure session persistence
+    persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
