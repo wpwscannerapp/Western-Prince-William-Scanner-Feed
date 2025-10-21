@@ -30,39 +30,59 @@ export class ProfileService {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
-    const MAX_RETRIES = 5;
-    const RETRY_DELAY_MS = 1000; // 1 second
-
     try {
-      for (let i = 0; i < MAX_RETRIES; i++) {
-        console.log(`ProfileService: ensureProfileExists - Attempting to select profile for ${userId} (Retry ${i + 1}/${MAX_RETRIES}).`);
-        const { data, error: selectError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', userId)
-          .abortSignal(controller.signal)
-          .limit(1); // Changed from maybeSingle()
+      console.log(`ProfileService: ensureProfileExists - Attempting to select profile for ${userId}.`);
+      const { data, error: selectError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .abortSignal(controller.signal)
+        .limit(1);
 
-        console.log(`ProfileService: ensureProfileExists - Supabase response for select (Retry ${i + 1}):`, { data, selectError });
+      console.log(`ProfileService: ensureProfileExists - Supabase response for select:`, { data, selectError });
 
-        if (selectError) {
-          logSupabaseError('ensureProfileExists - select', selectError);
-          handleError(selectError, 'Failed to check for existing profile.');
-          return false;
-        }
-
-        if (data && data.length > 0) {
-          console.log(`ProfileService: Profile already exists for ${userId} after ${i + 1} attempts.`);
-          return true;
-        }
-
-        console.log(`ProfileService: No existing profile found for ${userId} on attempt ${i + 1}. Retrying in ${RETRY_DELAY_MS}ms.`);
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+      if (selectError) {
+        logSupabaseError('ensureProfileExists - select', selectError);
+        handleError(selectError, 'Failed to check for existing profile.');
+        return false;
       }
 
-      console.warn(`ProfileService: Failed to find profile for ${userId} after ${MAX_RETRIES} retries. The 'handle_new_user' trigger might have failed or is severely delayed.`);
-      handleError(null, 'User profile could not be loaded. Please try logging out and back in.');
-      return false; // Indicate that the profile was not found/ensured by this call
+      if (data && data.length > 0) {
+        console.log(`ProfileService: Profile already exists for ${userId}.`);
+        return true;
+      }
+
+      console.log(`ProfileService: No existing profile found for ${userId}. Attempting to insert a default profile.`);
+      // If no profile exists, create a basic one
+      const { data: insertData, error: insertError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          first_name: null,
+          last_name: null,
+          avatar_url: null,
+          subscription_status: 'free', // Default status
+          role: 'user', // Default role
+          username: null,
+          updated_at: new Date().toISOString(),
+        })
+        .abortSignal(controller.signal)
+        .select()
+        .single();
+
+      if (insertError) {
+        // Handle unique constraint violation if the trigger somehow created it concurrently
+        if (insertError.code === '23505') {
+          console.warn(`ProfileService: Profile for ${userId} was created concurrently. Ignoring insert error.`);
+          return true;
+        }
+        logSupabaseError('ensureProfileExists - insert', insertError);
+        handleError(insertError, 'Failed to create default profile.');
+        return false;
+      }
+
+      console.log(`ProfileService: Default profile created for ${userId}.`, insertData);
+      return true;
     } catch (err: any) {
       console.error(`ProfileService: ensureProfileExists - Caught error:`, err);
       if (err.name === 'AbortError') {
@@ -95,7 +115,7 @@ export class ProfileService {
         .select('id, first_name, last_name, avatar_url, subscription_status, role, username, updated_at')
         .eq('id', userId)
         .abortSignal(controller.signal)
-        .limit(1); // Changed from maybeSingle()
+        .limit(1);
       
       console.log('ProfileService: fetchProfile - Query object created, awaiting response...');
       const { data, error } = await query;
@@ -105,12 +125,12 @@ export class ProfileService {
         logSupabaseError('fetchProfile', error);
         throw error;
       }
-      if (!data || data.length === 0) { // Check data.length
+      if (!data || data.length === 0) {
         console.log(`ProfileService: fetchProfile - No profile found for ${userId}.`);
         return null;
       }
-      console.log(`ProfileService: fetchProfile - Profile data found:`, data[0]); // Access first element
-      return data[0] as Profile; // Return first element
+      console.log(`ProfileService: fetchProfile - Profile data found:`, data[0]);
+      return data[0] as Profile;
     } catch (err: any) {
       console.error(`ProfileService: fetchProfile - Caught an error:`, err);
       if (err.name === 'AbortError') {
