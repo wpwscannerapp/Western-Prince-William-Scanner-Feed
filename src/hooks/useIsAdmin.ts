@@ -13,7 +13,6 @@ interface UseAdminResult {
 export function useIsAdmin(): UseAdminResult {
   const { user, loading: authLoading, authReady, session } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [profileLoading, setProfileLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
 
@@ -27,7 +26,7 @@ export function useIsAdmin(): UseAdminResult {
   const { data: profile, isLoading: isProfileQueryLoading, isError: isProfileQueryError, error: profileQueryError } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: () => user ? ProfileService.fetchProfile(user.id, session) : Promise.resolve(null),
-    enabled: !!user && authReady,
+    enabled: !!user && authReady, // Only run query when user is present AND auth is ready
     staleTime: 1000 * 60 * 5,
     retry: 1,
     retryDelay: 1000,
@@ -36,11 +35,14 @@ export function useIsAdmin(): UseAdminResult {
   useEffect(() => {
     if (!isMountedRef.current) return;
 
-    console.log('useIsAdmin useEffect: Current state:', { authLoading, authReady, isProfileQueryLoading, user: user?.id, profile, isProfileQueryError, profileQueryError });
+    console.log('useIsAdmin useEffect: Current state for profile processing:', { authLoading, authReady, isProfileQueryLoading, user: user?.id, profile, isProfileQueryError, profileQueryError });
 
-    if (authLoading || !authReady || isProfileQueryLoading) {
-      console.log('useIsAdmin: Setting profileLoading to true due to authLoading, !authReady, or isProfileQueryLoading.');
-      setProfileLoading(true);
+    // If auth is not ready or still loading, we can't determine admin status yet.
+    // The `enabled` prop of useQuery already handles preventing the query from running.
+    // We should only update isAdmin and error based on the *result* of the profile query.
+    if (!authReady || authLoading) {
+      setIsAdmin(false);
+      setError(null); // Clear any previous errors
       return;
     }
 
@@ -48,13 +50,12 @@ export function useIsAdmin(): UseAdminResult {
       const errorMessage = handleError(profileQueryError, 'Failed to load admin role.');
       setError(errorMessage);
       setIsAdmin(false);
-      setProfileLoading(false);
       return;
     }
 
     if (!user) {
+      // If auth is ready but no user, then not admin.
       setIsAdmin(false);
-      setProfileLoading(false);
       setError(null);
       return;
     }
@@ -64,14 +65,17 @@ export function useIsAdmin(): UseAdminResult {
       setIsAdmin(profile.role === 'admin');
       setError(null);
     } else {
-      console.log('useIsAdmin: Profile is null or undefined.');
+      console.log('useIsAdmin: Profile is null or undefined after authReady.');
       setIsAdmin(false);
       setError('User profile not found or accessible.');
     }
-    console.log('useIsAdmin: Setting profileLoading to false. Final isAdmin:', isAdmin);
-    setProfileLoading(false);
-  }, [user, authLoading, authReady, profile, isProfileQueryLoading, isProfileQueryError, profileQueryError, session]); // Removed 'isAdmin' from dependencies
-  // The 'isAdmin' state is derived from 'profile.role', so 'profile' is the primary dependency.
+    console.log('useIsAdmin: Finished processing profile. Final isAdmin:', isAdmin);
+  }, [user, authReady, profile, isProfileQueryLoading, isProfileQueryError, profileQueryError, session, authLoading]);
 
-  return { isAdmin, loading: profileLoading, error };
+  // The `loading` state for useIsAdmin should now directly reflect `authLoading` OR `isProfileQueryLoading`
+  // This ensures that if auth is still loading, useIsAdmin is also loading.
+  // And if auth is ready, but profile is still fetching, useIsAdmin is loading.
+  const overallLoading = authLoading || (authReady && isProfileQueryLoading);
+
+  return { isAdmin, loading: overallLoading, error };
 }
