@@ -91,14 +91,16 @@ export class ProfileService {
 
     try {
       console.log(`ProfileService: fetchProfile - Attempting Supabase select for profile ${userId}.`);
-      const { data, error } = await supabase
+      const query = supabase
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, subscription_status, role, username, updated_at')
         .eq('id', userId)
         .abortSignal(controller.signal)
         .maybeSingle();
-
-      console.log('ProfileService: Supabase query awaited. Result:', { data, error });
+      
+      console.log('ProfileService: fetchProfile - Query object created, awaiting response...'); // <-- NEW LOG
+      const { data, error } = await query;
+      console.log('ProfileService: fetchProfile - Supabase query awaited. Result:', { data, error }); // <-- NEW LOG
 
       if (error) {
         if (error.code === 'PGRST116') {
