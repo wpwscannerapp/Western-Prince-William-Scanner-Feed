@@ -31,6 +31,7 @@ export class ProfileService {
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
+      console.log(`ProfileService: ensureProfileExists - Attempting to select profile for ${userId}.`); // New log
       const { data: existingProfile, error: selectError } = await supabase
         .from('profiles')
         .select('id')
@@ -63,6 +64,7 @@ export class ProfileService {
       }
       return true;
     } catch (err: any) {
+      console.error(`ProfileService: ensureProfileExists - Caught error:`, err); // Direct error log
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Ensuring profile existence timed out.');
       } else {
@@ -76,7 +78,6 @@ export class ProfileService {
   }
 
   static async fetchProfile(userId: string, session: Session | null): Promise<Profile | null> {
-    console.log(`ProfileService: Entering fetchProfile for user ID: ${userId}. Session present: ${!!session}.`); // Added this log
     if (!session) {
       console.warn(`ProfileService: fetchProfile for user ID: ${userId} - No session provided. Returning null.`);
       return null;
@@ -87,6 +88,7 @@ export class ProfileService {
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
+      console.log(`ProfileService: fetchProfile - Attempting Supabase select for profile ${userId}.`); // New log
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -111,6 +113,7 @@ export class ProfileService {
       console.log(`ProfileService: fetchProfile - Profile data found:`, data);
       return data as Profile;
     } catch (err: any) {
+      console.error(`ProfileService: fetchProfile - Caught error:`, err); // Direct error log
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching profile timed out.');
       } else {
@@ -119,7 +122,7 @@ export class ProfileService {
       throw err;
     } finally {
       clearTimeout(timeoutId);
-      console.log(`ProfileService: Exiting fetchProfile for user ID: ${userId}.`); // Added this log
+      console.log(`ProfileService: Exiting fetchProfile for user ID: ${userId}.`);
     }
   }
 
