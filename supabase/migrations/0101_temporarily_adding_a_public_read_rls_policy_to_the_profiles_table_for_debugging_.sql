@@ -1,0 +1,1 @@
+CREATE POLICY "Debug: Public read access for profiles" ON public.profiles FOR SELECT USING (true);
