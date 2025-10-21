@@ -1,5 +1,7 @@
 import { supabase } from '@/integrations/supabase/client'; // Adjusted path to your Supabase client file
 import { handleError } from '@/utils/errorHandler';
+import { ProfileService } from '@/services/ProfileService'; // Import ProfileService
+import { Session } from '@supabase/supabase-js'; // Import Session type
 
 export async function testGetSession() {
   console.time('getSession');
@@ -48,6 +50,64 @@ export async function testGetSession() {
     throw err;
   }
 }
+
+export async function testProfileQuery(session: Session | null) {
+  console.log('Starting testProfileQuery...');
+  if (!session || !session.user) {
+    console.warn('testProfileQuery: No active session or user found. Cannot test profile query.');
+    handleError(null, 'No active session or user to test profile query.');
+    return;
+  }
+
+  try {
+    console.log(`testProfileQuery: Attempting to fetch profile for user ID: ${session.user.id}`);
+    const profile = await ProfileService.fetchProfile(session.user.id, session);
+    if (profile) {
+      console.log('testProfileQuery: Profile fetched successfully:', profile);
+      handleError(null, `Profile fetched successfully for ${profile.username || profile.first_name || session.user.email}. Role: ${profile.role}`, { duration: 5000 });
+    } else {
+      console.warn('testProfileQuery: Profile not found or could not be fetched.');
+      handleError(null, 'Profile not found or could not be fetched for the current user.');
+    }
+  } catch (err: any) {
+    console.error('testProfileQuery: Error fetching profile:', err);
+    handleError(err, 'Failed to fetch profile during test query.');
+  }
+}
+
+export async function testDirectRestApiCall(userId: string, accessToken: string) {
+  console.log('Starting testDirectRestApiCall...');
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const restUrl = `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=*`;
+
+  try {
+    console.log('Attempting direct fetch to:', restUrl);
+    const response = await fetch(restUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    console.log('Direct fetch response status:', response.status);
+    const data = await response.json();
+    console.log('Direct fetch response data:', data);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}, message: ${JSON.stringify(data)}`);
+    }
+
+    handleError(null, 'Direct REST API call successful!', { duration: 5000 });
+    return data;
+  } catch (err: any) {
+    console.error('Direct REST API call failed:', err);
+    handleError(err, 'Direct REST API call failed.');
+    throw err;
+  }
+}
+
 
 export async function resetSession() {
   try {

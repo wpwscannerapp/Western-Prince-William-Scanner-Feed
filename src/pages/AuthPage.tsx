@@ -7,10 +7,10 @@ import { APP_NAME, APP_DESCRIPTION } from '@/lib/constants';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button'; // Import Button
-import { resetSession } from '@/utils/supabaseTest'; // Import resetSession
+import { resetSession, testDirectRestApiCall } from '@/utils/supabaseTest'; // Import testDirectRestApiCall
 
 const AuthPage = () => {
-  const { user, loading, error } = useAuth();
+  const { user, loading, error, session } = useAuth(); // Get session from useAuth
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -18,6 +18,14 @@ const AuthPage = () => {
       navigate('/home');
     }
   }, [user, loading, navigate]);
+
+  const handleDirectRestCall = async () => {
+    if (user && session) {
+      await testDirectRestApiCall(user.id, session.access_token);
+    } else {
+      handleError(null, 'User not logged in or session not available for direct REST API call.');
+    }
+  };
 
   if (loading) {
     return (
@@ -62,14 +70,25 @@ const AuthPage = () => {
           </div>
         )}
       </div>
-      {/* Temporary Debug Button */}
-      <Button
-        onClick={() => resetSession()}
-        variant="outline"
-        className="tw-mt-8 tw-text-sm tw-text-muted-foreground hover:tw-text-primary"
-      >
-        Reset Session (Debug)
-      </Button>
+      {/* Debug Buttons */}
+      <div className="tw-mt-8 tw-flex tw-gap-4">
+        <Button
+          onClick={() => resetSession()}
+          variant="outline"
+          className="tw-text-sm tw-text-muted-foreground hover:tw-text-primary"
+        >
+          Reset Session (Debug)
+        </Button>
+        {user && session && (
+          <Button
+            onClick={handleDirectRestCall}
+            variant="outline"
+            className="tw-text-sm tw-text-muted-foreground hover:tw-text-primary"
+          >
+            Test Direct REST API Call
+          </Button>
+        )}
+      </div>
       <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
     </div>
   );
