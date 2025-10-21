@@ -22,9 +22,10 @@ export class ProfileService {
   static async ensureProfileExists(userId: string, session: Session | null): Promise<boolean> {
     if (!session) {
       console.warn(`ProfileService: ensureProfileExists for user ID: ${userId} - No session provided. Aborting.`);
-      handleError(null, 'No active session to ensure profile exists.'); // Added error toast
+      handleError(null, 'No active session to ensure profile exists.');
       return false;
     }
+    console.log(`ProfileService: ensureProfileExists for user ID: ${userId}. Session present.`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
@@ -37,13 +38,15 @@ export class ProfileService {
         .abortSignal(controller.signal)
         .maybeSingle();
 
-      if (selectError && selectError.code !== 'PGRST116') { // PGRST116 means no rows found
+      if (selectError && selectError.code !== 'PGRST116') {
         logSupabaseError('ensureProfileExists - select', selectError);
-        handleError(selectError, 'Failed to check for existing profile.'); // Added error toast
+        handleError(selectError, 'Failed to check for existing profile.');
         return false;
       }
+      console.log(`ProfileService: ensureProfileExists - existingProfile check result:`, existingProfile);
 
       if (!existingProfile) {
+        console.log(`ProfileService: No existing profile found for ${userId}. Attempting to insert.`);
         const { error: insertError } = await supabase
           .from('profiles')
           .insert({ id: userId, subscription_status: 'free', role: 'user' })
@@ -51,9 +54,12 @@ export class ProfileService {
 
         if (insertError) {
           logSupabaseError('ensureProfileExists - insert', insertError);
-          handleError(insertError, 'Failed to create new user profile.'); // Added error toast
+          handleError(insertError, 'Failed to create new user profile.');
           return false;
         }
+        console.log(`ProfileService: Profile successfully inserted for ${userId}.`);
+      } else {
+        console.log(`ProfileService: Profile already exists for ${userId}.`);
       }
       return true;
     } catch (err: any) {
@@ -61,7 +67,7 @@ export class ProfileService {
         handleError(new Error('Request timed out'), 'Ensuring profile existence timed out.');
       } else {
         logSupabaseError('ensureProfileExists', err);
-        handleError(err, 'An unexpected error occurred while ensuring profile exists.'); // Added error toast
+        handleError(err, 'An unexpected error occurred while ensuring profile exists.');
       }
       return false;
     } finally {
@@ -74,6 +80,7 @@ export class ProfileService {
       console.warn(`ProfileService: fetchProfile for user ID: ${userId} - No session provided. Returning null.`);
       return null;
     }
+    console.log(`ProfileService: fetchProfile for user ID: ${userId}. Session present.`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
@@ -88,14 +95,18 @@ export class ProfileService {
 
       if (error) {
         if (error.code === 'PGRST116') {
+          console.log(`ProfileService: fetchProfile - No profile found for ${userId} (PGRST116).`);
           return null;
         }
         logSupabaseError('fetchProfile', error);
         throw error;
       }
+      console.log(`ProfileService: fetchProfile - Supabase data result:`, data);
       if (!data) {
+        console.log(`ProfileService: fetchProfile - Data is null, returning null.`);
         return null;
       }
+      console.log(`ProfileService: fetchProfile - Profile data found:`, data);
       return data as Profile;
     } catch (err: any) {
       if (err.name === 'AbortError') {
