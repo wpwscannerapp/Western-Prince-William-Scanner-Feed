@@ -76,9 +76,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       // Invalidate profile query after ensuring it exists, so other hooks refetch
       queryClient.invalidateQueries({ queryKey: ['profile', currentSession.user.id] });
+
+      // Fetch the profile immediately after ensuring it exists
+      const profile = await ProfileService.fetchProfile(currentSession.user.id, currentSession);
+      if (profile) {
+        // Manually set the profile data in the cache
+        queryClient.setQueryData(['profile', currentSession.user.id], profile);
+        console.log('AuthContext: Profile data set in cache:', profile);
+      } else {
+        console.warn('AuthContext: Failed to fetch profile after ensuring existence.');
+      }
+
     } catch (err) {
-      console.error('AuthContext: Error during ensureProfileExists:', (err as Error).message);
-      handleError(err, 'Failed to ensure user profile exists.');
+      console.error('AuthContext: Error during ensureProfileExists/fetchProfile:', (err as Error).message);
+      handleError(err, 'Failed to ensure user profile exists or fetch it.');
       return;
     }
 
@@ -166,16 +177,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(currentSession);
           setUser(currentSession?.user || null);
           setError(null); // Clear any previous errors on auth state change
-          setLoading(false);
-          setAuthReady(true); // Auth is ready once we've processed the first session event
-          console.log(`AuthContext: Auth state changed. Loading set to false. AuthReady set to true. User: ${currentSession?.user ? 'present' : 'null'}`);
-
+          
           if (currentSession) {
-            await handleSessionCreation(currentSession);
+            await handleSessionCreation(currentSession); // Wait for profile to be fetched and cached
           } else {
             // Pass the user ID that was *just* logged out, if available from userRef
             await handleSessionDeletion(userRef.current?.id);
           }
+
+          // Move these state updates AFTER handleSessionCreation/Deletion
+          setLoading(false);
+          setAuthReady(true);
+          console.log(`AuthContext: Auth state changed. Loading set to false. AuthReady set to true. User: ${currentSession?.user ? 'present' : 'null'}`);
         }
       }
     );
