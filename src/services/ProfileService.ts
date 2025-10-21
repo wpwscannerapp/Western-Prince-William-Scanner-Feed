@@ -31,7 +31,7 @@ export class ProfileService {
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
-      console.log(`ProfileService: ensureProfileExists - Attempting to select profile for ${userId}.`); // New log
+      console.log(`ProfileService: ensureProfileExists - Attempting to select profile for ${userId}.`);
       const { data: existingProfile, error: selectError } = await supabase
         .from('profiles')
         .select('id')
@@ -64,7 +64,7 @@ export class ProfileService {
       }
       return true;
     } catch (err: any) {
-      console.error(`ProfileService: ensureProfileExists - Caught error:`, err); // Direct error log
+      console.error(`ProfileService: ensureProfileExists - Caught error:`, err);
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Ensuring profile existence timed out.');
       } else {
@@ -84,19 +84,20 @@ export class ProfileService {
     }
     console.log(`ProfileService: fetchProfile for user ID: ${userId}. Session present.`);
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
+    // Removed abortSignal for debugging purposes
+    // const controller = new AbortController();
+    // const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
-      console.log(`ProfileService: fetchProfile - Attempting Supabase select for profile ${userId}.`); // New log
+      console.log(`ProfileService: fetchProfile - Attempting Supabase select for profile ${userId}.`);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .abortSignal(controller.signal)
+        // .abortSignal(controller.signal) // Temporarily removed for debugging
         .maybeSingle();
 
-      console.log('ProfileService: Supabase response for fetchProfile:', { data, error });
+      console.log('ProfileService: Supabase query awaited. Result:', { data, error }); // New log after await
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -113,15 +114,15 @@ export class ProfileService {
       console.log(`ProfileService: fetchProfile - Profile data found:`, data);
       return data as Profile;
     } catch (err: any) {
-      console.error(`ProfileService: fetchProfile - Caught error:`, err); // Direct error log
-      if (err.name === 'AbortError') {
-        handleError(new Error('Request timed out'), 'Fetching profile timed out.');
-      } else {
+      console.error(`ProfileService: fetchProfile - Caught an error:`, err); // More explicit error log
+      // if (err.name === 'AbortError') { // AbortError check removed as signal is removed
+      //   handleError(new Error('Request timed out'), 'Fetching profile timed out.');
+      // } else {
         logSupabaseError('fetchProfile', err);
-      }
+      // }
       throw err;
     } finally {
-      clearTimeout(timeoutId);
+      // clearTimeout(timeoutId); // Timeout cleanup removed as signal is removed
       console.log(`ProfileService: Exiting fetchProfile for user ID: ${userId}.`);
     }
   }
