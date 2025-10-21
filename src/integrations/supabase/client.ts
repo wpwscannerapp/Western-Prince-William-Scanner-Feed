@@ -30,13 +30,4 @@ if (import.meta.env.DEV) {
       console.log('Supabase Auth Init Passed');
     }
   });
-
-  // Add a test for public database access
-  supabase.from('app_settings').select('id').limit(1).then(({ error }) => {
-    if (error) {
-      console.error(`Supabase DB Access Test Failed: ${error.message}`);
-    } else {
-      console.log('Supabase DB Access Test Passed (app_settings read successful).');
-    }
-  });
 }
