@@ -36,11 +36,12 @@ export class ProfileService {
     try {
       console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Attempting to fetch existing profile.`);
       console.log(`ProfileService: ensureProfileExists - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`);
+      console.log(`ProfileService: ensureProfileExists - Executing select query for existing profile.`); // New log
       const { data: existingProfile, error: selectError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', userId)
-        // .abortSignal(controller.signal) // Temporarily removed abortSignal for debugging
+        .abortSignal(controller.signal)
         .maybeSingle();
       console.log(`ProfileService: ensureProfileExists - Select query returned. Data: ${existingProfile ? 'present' : 'null'}, Error: ${selectError ? selectError.message : 'none'}`);
 
@@ -54,11 +55,11 @@ export class ProfileService {
       if (!existingProfile) {
         console.log(`ProfileService: No existing profile found for user ID: ${userId}. Attempting to insert.`);
         console.log(`ProfileService: ensureProfileExists - Insert - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`);
+        console.log(`ProfileService: ensureProfileExists - Executing insert query for new profile.`); // New log
         const { error: insertError } = await supabase
           .from('profiles')
           .insert({ id: userId, subscription_status: 'free', role: 'user' })
-          // .abortSignal(controller.signal) // Temporarily removed abortSignal for debugging
-          ;
+          .abortSignal(controller.signal);
         console.log(`ProfileService: ensureProfileExists - Insert query returned. Error: ${insertError ? insertError.message : 'none'}`);
 
 
@@ -104,11 +105,12 @@ export class ProfileService {
     try {
       console.log(`ProfileService: fetchProfile for user ID: ${userId} - Executing Supabase query.`);
       console.log(`ProfileService: fetchProfile - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`);
+      console.log(`ProfileService: fetchProfile - Executing select query for profile data.`); // New log
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        // .abortSignal(controller.signal) // Temporarily removed abortSignal for debugging
+        .abortSignal(controller.signal)
         .maybeSingle();
       console.log(`ProfileService: fetchProfile - Select query returned. Data: ${data ? 'present' : 'null'}, Error: ${error ? error.message : 'none'}`);
 
@@ -156,11 +158,12 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
+      console.log(`ProfileService: updateProfile - Executing update query for profile data.`); // New log
       const { data, error } = await supabase
         .from('profiles')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', userId)
-        // .abortSignal(controller.signal) // Temporarily removed abortSignal for debugging
+        .abortSignal(controller.signal)
         .select()
         .single();
       console.log(`ProfileService: updateProfile - Update query returned. Data: ${data ? 'present' : 'null'}, Error: ${error ? error.message : 'none'}`);
