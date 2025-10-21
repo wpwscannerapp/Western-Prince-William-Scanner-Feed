@@ -38,15 +38,18 @@ const AuthForm = () => {
   });
 
   const onSubmit = async (values: AuthFormValues) => {
+    console.log('AuthForm: onSubmit triggered with values:', values); // Debug log
     if (showForgotPassword) {
       await handleForgotPassword();
       return;
     }
     
     if (isLogin) {
+      console.log('AuthForm: Attempting to sign in.'); // Debug log
       if (!values.password) return;
       await signIn(values.email, values.password);
     } else {
+      console.log('AuthForm: Attempting to sign up.'); // Debug log
       if (!values.password) return;
       await signUp(values.email, values.password);
     }
