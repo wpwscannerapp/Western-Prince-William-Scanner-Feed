@@ -25,7 +25,19 @@ export function useIsAdmin(): UseAdminResult {
 
   const { data: profile, isLoading: isProfileQueryLoading, isError: isProfileQueryError, error: profileQueryError } = useQuery({
     queryKey: ['profile', user?.id],
-    queryFn: () => user ? ProfileService.fetchProfile(user.id, session) : Promise.resolve(null),
+    queryFn: async () => { // Made async to allow logging before the call
+      console.log('[useIsAdmin] queryFn: Executing. User:', user?.id, 'Session present:', !!session);
+      if (!user) {
+        console.log('[useIsAdmin] queryFn: No user, returning null.');
+        return null;
+      }
+      // Explicitly check session here before calling ProfileService
+      if (!session) {
+        console.warn('[useIsAdmin] queryFn: User present but session is null. Cannot fetch profile.');
+        return null;
+      }
+      return ProfileService.fetchProfile(user.id, session);
+    },
     enabled: !!user && authReady, // Only run query when user is present AND auth is ready
     staleTime: 1000 * 60 * 5,
     retry: 1,
