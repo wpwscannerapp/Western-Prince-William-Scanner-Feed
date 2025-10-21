@@ -3,7 +3,7 @@ import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SessionService } from '@/services/SessionService';
-import { MAX_CONCURRENT_SESSIONS } from '@/config';
+import { MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT } from '@/config'; // Import AUTH_INITIALIZATION_TIMEOUT
 import { ProfileService } from '@/services/ProfileService';
 import { handleError as globalHandleError } from '@/utils/errorHandler';
 import { useQueryClient } from '@tanstack/react-query';
@@ -31,11 +31,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isMountedRef = useRef(true);
   const userRef = useRef<User | null>(null); // To hold the user ID for cleanup after logout
   const queryClient = useQueryClient();
+  const authTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null); // Ref for the timeout
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      if (authTimeoutRef.current) {
+        clearTimeout(authTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -137,10 +141,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('AuthContext: Setting up onAuthStateChange listener.');
 
+    // Set a timeout for auth initialization
+    authTimeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current && !authReady) {
+        console.warn(`AuthContext: Auth initialization timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms. Forcing authReady to true.`);
+        setAuthReady(true);
+        setLoading(false);
+        setError(new AuthError('Authentication initialization timed out.'));
+      }
+    }, AUTH_INITIALIZATION_TIMEOUT);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
         console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
         if (isMountedRef.current) {
+          // Clear the timeout if an auth event is received
+          if (authTimeoutRef.current) {
+            clearTimeout(authTimeoutRef.current);
+            authTimeoutRef.current = null;
+          }
+
           setSession(currentSession);
           setUser(currentSession?.user || null);
           setError(null); // Clear any previous errors on auth state change
@@ -162,8 +182,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       console.log('AuthContext: Cleaning up onAuthStateChange listener.');
       subscription.unsubscribe();
+      if (authTimeoutRef.current) {
+        clearTimeout(authTimeoutRef.current);
+        authTimeoutRef.current = null;
+      }
     };
-  }, [handleSessionCreation, handleSessionDeletion]);
+  }, [handleSessionCreation, handleSessionDeletion, authReady]); // Added authReady to dependencies to ensure timeout logic re-evaluates if authReady changes
 
   const signUp = async (email: string, password: string) => {
     setError(null);
