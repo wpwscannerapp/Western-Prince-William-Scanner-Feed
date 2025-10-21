@@ -6,6 +6,6 @@ export const handleError = (error: any, defaultMessage: string = 'An unexpected 
   const message = actualError.message; // Use the message from the actualError
 
   toast.error(message, options);
-  console.error('Application Error:', actualError); // Log the actual Error object
+  console.error('Application Error (handled):', actualError); // Log the actual Error object
   return message;
 };
