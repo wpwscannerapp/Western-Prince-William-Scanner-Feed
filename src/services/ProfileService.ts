@@ -22,6 +22,7 @@ export class ProfileService {
   static async ensureProfileExists(userId: string, session: Session | null): Promise<boolean> {
     if (!session) {
       console.warn(`ProfileService: ensureProfileExists for user ID: ${userId} - No session provided. Aborting.`);
+      handleError(null, 'No active session to ensure profile exists.'); // Added error toast
       return false;
     }
 
@@ -38,6 +39,7 @@ export class ProfileService {
 
       if (selectError && selectError.code !== 'PGRST116') { // PGRST116 means no rows found
         logSupabaseError('ensureProfileExists - select', selectError);
+        handleError(selectError, 'Failed to check for existing profile.'); // Added error toast
         return false;
       }
 
@@ -49,6 +51,7 @@ export class ProfileService {
 
         if (insertError) {
           logSupabaseError('ensureProfileExists - insert', insertError);
+          handleError(insertError, 'Failed to create new user profile.'); // Added error toast
           return false;
         }
       }
@@ -58,6 +61,7 @@ export class ProfileService {
         handleError(new Error('Request timed out'), 'Ensuring profile existence timed out.');
       } else {
         logSupabaseError('ensureProfileExists', err);
+        handleError(err, 'An unexpected error occurred while ensuring profile exists.'); // Added error toast
       }
       return false;
     } finally {

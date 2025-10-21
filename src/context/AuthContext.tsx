@@ -187,7 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authTimeoutRef.current = null;
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion, authReady]); // Added authReady to dependencies to ensure timeout logic re-evaluates if authReady changes
+  }, [handleSessionCreation, handleSessionDeletion]); // Removed authReady from dependencies
 
   const signUp = async (email: string, password: string) => {
     setError(null);
