@@ -39,7 +39,7 @@ export class ProfileService {
         .abortSignal(controller.signal)
         .maybeSingle();
 
-      console.log(`ProfileService: ensureProfileExists - Supabase response for select:`, { existingProfile, selectError }); // New log
+      console.log(`ProfileService: ensureProfileExists - Supabase response for select:`, { existingProfile, selectError });
 
       if (selectError && selectError.code !== 'PGRST116') {
         logSupabaseError('ensureProfileExists - select', selectError);
@@ -90,11 +90,11 @@ export class ProfileService {
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
-      console.log(`ProfileService: fetchProfile - Attempting Supabase select for profile ${userId}.`);
+      console.log(`ProfileService: fetchProfile - DEBUG: Attempting Supabase select for app_settings.`); // Changed log
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url, subscription_status, role, username, updated_at') // Simplified select
-        .eq('id', userId)
+        .from('app_settings') // Temporarily changed to app_settings for debugging
+        .select('*') // Select all from app_settings
+        .limit(1) // Limit to 1 row
         .abortSignal(controller.signal)
         .maybeSingle();
 
@@ -102,7 +102,7 @@ export class ProfileService {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          console.log(`ProfileService: fetchProfile - No profile found for ${userId} (PGRST116).`);
+          console.log(`ProfileService: fetchProfile - No app_settings found (PGRST116).`);
           return null;
         }
         logSupabaseError('fetchProfile', error);
@@ -112,19 +112,21 @@ export class ProfileService {
         console.log(`ProfileService: fetchProfile - Data is null, returning null.`);
         return null;
       }
-      console.log(`ProfileService: fetchProfile - Profile data found:`, data);
-      return data as Profile;
+      console.log(`ProfileService: fetchProfile - App settings data found:`, data); // Changed log
+      // For debugging, we're returning app_settings data as if it were a profile.
+      // This is not type-safe but helps diagnose the query issue.
+      return data as unknown as Profile; 
     } catch (err: any) {
       console.error(`ProfileService: fetchProfile - Caught an error:`, err);
       if (err.name === 'AbortError') {
-        handleError(new Error('Request timed out'), 'Fetching profile timed out.');
+        handleError(new Error('Request timed out'), 'Fetching profile (app_settings) timed out.');
       } else {
         logSupabaseError('fetchProfile', err);
       }
       throw err;
     } finally {
       clearTimeout(timeoutId);
-      console.log(`ProfileService: Exiting fetchProfile for user ID: ${userId}.`);
+      console.log(`ProfileService: Exiting fetchProfile for user ID: ${userId}. (Query was against app_settings)`); // Changed log
     }
   }
 
