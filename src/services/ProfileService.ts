@@ -30,33 +30,39 @@ export class ProfileService {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
+    const MAX_RETRIES = 5;
+    const RETRY_DELAY_MS = 1000; // 1 second
+
     try {
-      console.log(`ProfileService: ensureProfileExists - Attempting to select profile for ${userId}.`);
-      const { data: existingProfile, error: selectError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', userId)
-        .abortSignal(controller.signal)
-        .maybeSingle();
+      for (let i = 0; i < MAX_RETRIES; i++) {
+        console.log(`ProfileService: ensureProfileExists - Attempting to select profile for ${userId} (Retry ${i + 1}/${MAX_RETRIES}).`);
+        const { data: existingProfile, error: selectError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', userId)
+          .abortSignal(controller.signal)
+          .maybeSingle();
 
-      console.log(`ProfileService: ensureProfileExists - Supabase response for select:`, { existingProfile, selectError });
+        console.log(`ProfileService: ensureProfileExists - Supabase response for select (Retry ${i + 1}):`, { existingProfile, selectError });
 
-      if (selectError && selectError.code !== 'PGRST116') {
-        logSupabaseError('ensureProfileExists - select', selectError);
-        handleError(selectError, 'Failed to check for existing profile.');
-        return false;
+        if (selectError && selectError.code !== 'PGRST116') {
+          logSupabaseError('ensureProfileExists - select', selectError);
+          handleError(selectError, 'Failed to check for existing profile.');
+          return false;
+        }
+
+        if (existingProfile) {
+          console.log(`ProfileService: Profile already exists for ${userId} after ${i + 1} attempts.`);
+          return true;
+        }
+
+        console.log(`ProfileService: No existing profile found for ${userId} on attempt ${i + 1}. Retrying in ${RETRY_DELAY_MS}ms.`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
       }
-      console.log(`ProfileService: ensureProfileExists - existingProfile check result:`, existingProfile);
 
-      if (!existingProfile) {
-        console.warn(`ProfileService: No existing profile found for ${userId}. This might indicate an issue with the 'handle_new_user' trigger or a race condition. Relying on trigger for creation.`);
-        // Do NOT attempt to insert here. The handle_new_user trigger should handle this.
-        // If it's still missing, it's a deeper issue with the trigger itself.
-        return false; // Indicate that the profile was not found/ensured by this call
-      } else {
-        console.log(`ProfileService: Profile already exists for ${userId}.`);
-      }
-      return true;
+      console.warn(`ProfileService: Failed to find profile for ${userId} after ${MAX_RETRIES} retries. The 'handle_new_user' trigger might have failed or is severely delayed.`);
+      handleError(null, 'User profile could not be loaded. Please try logging out and back in.');
+      return false; // Indicate that the profile was not found/ensured by this call
     } catch (err: any) {
       console.error(`ProfileService: ensureProfileExists - Caught error:`, err);
       if (err.name === 'AbortError') {
