@@ -13,12 +13,12 @@ const AuthPage = () => {
   const { user, loading, error, session } = useAuth(); // Get session from useAuth
   const navigate = useNavigate();
 
-  // Temporarily comment out this useEffect to prevent redirection after login
-  // useEffect(() => {
-  //   if (!loading && user) {
-  //     navigate('/home'); // This will attempt to navigate, but since /home is not defined, it will fall back to AuthPage
-  //   }
-  // }, [user, loading, navigate]);
+  // Re-enable this useEffect to redirect after login
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/home');
+    }
+  }, [user, loading, navigate]);
 
   const handleDirectRestCall = async () => {
     if (user && session) {
@@ -40,7 +40,7 @@ const AuthPage = () => {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
         <div className="tw-text-center">
-          <h1 className="tw-text-2xl tw-font-bold tw-text-destructive tw-mb-4">Authentication Error</h1>
+          <h1 className="tw-2xl tw-font-bold tw-text-destructive tw-mb-4">Authentication Error</h1>
           <p className="tw-text-muted-foreground">{handleError(error, 'An authentication error occurred.')}</p>
         </div>
       </div>

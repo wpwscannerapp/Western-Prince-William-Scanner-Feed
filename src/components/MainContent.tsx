@@ -32,8 +32,8 @@ const MainContent: React.FC = () => {
       <TopNavBar />
       <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
         <Routes>
-          {/* The root path will now be the AuthPage for debugging */}
-          <Route path="/" element={<AuthPage />} /> 
+          {/* The root path will now be the Index component */}
+          <Route path="/" element={<Index />} /> 
 
           {/* Public routes that don't require authentication */}
           <Route path="/auth" element={<AuthPage />} />
@@ -43,7 +43,7 @@ const MainContent: React.FC = () => {
 
           {/* Protected routes wrapped by ProtectedRoute */}
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            {/* No index route here, as / is handled by AuthPage */}
+            {/* No index route here, as / is handled by Index */}
             <Route path="home" element={<HomePage />} />
             <Route path="home/incidents" element={<IncidentsPage />} />
             {/* <Route path="home/traffic" element={<TrafficPage />} /> */} {/* Removed TrafficPage route */}

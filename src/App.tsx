@@ -1,17 +1,14 @@
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import AuthPage from "./pages/AuthPage";
+import { BrowserRouter } from "react-router-dom";
 import { useAppSettings } from "./hooks/useAppSettings";
-import TopNavBar from "./components/TopNavBar";
-import { Button } from "./components/ui/button";
 import { AuthProvider, useAuth } from "@/context/AuthContext.tsx";
 import React, { useEffect, useState, useRef } from 'react';
 import { NotificationService } from './services/NotificationService';
 import { SUPABASE_API_TIMEOUT } from './config';
 import ErrorBoundary from './components/ErrorBoundary';
-import MainContent from './components/MainContent'; // Re-import MainContent
+import MainContent from './components/MainContent';
 
 const queryClient = new QueryClient();
 
