@@ -35,13 +35,15 @@ export class ProfileService {
 
     try {
       console.log(`ProfileService: ensureProfileExists for user ID: ${userId} - Attempting to fetch existing profile.`);
-      console.log(`ProfileService: ensureProfileExists - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`); // Added log
+      console.log(`ProfileService: ensureProfileExists - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`);
       const { data: existingProfile, error: selectError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', userId)
-        .abortSignal(controller.signal)
+        // .abortSignal(controller.signal) // Temporarily removed abortSignal for debugging
         .maybeSingle();
+      console.log(`ProfileService: ensureProfileExists - Select query returned. Data: ${existingProfile ? 'present' : 'null'}, Error: ${selectError ? selectError.message : 'none'}`);
+
 
       if (selectError && selectError.code !== 'PGRST116') { // PGRST116 means no rows found
         logSupabaseError('ensureProfileExists - select', selectError);
@@ -51,11 +53,14 @@ export class ProfileService {
 
       if (!existingProfile) {
         console.log(`ProfileService: No existing profile found for user ID: ${userId}. Attempting to insert.`);
-        console.log(`ProfileService: ensureProfileExists - Insert - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`); // Added log
+        console.log(`ProfileService: ensureProfileExists - Insert - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`);
         const { error: insertError } = await supabase
           .from('profiles')
           .insert({ id: userId, subscription_status: 'free', role: 'user' })
-          .abortSignal(controller.signal);
+          // .abortSignal(controller.signal) // Temporarily removed abortSignal for debugging
+          ;
+        console.log(`ProfileService: ensureProfileExists - Insert query returned. Error: ${insertError ? insertError.message : 'none'}`);
+
 
         if (insertError) {
           logSupabaseError('ensureProfileExists - insert', insertError);
@@ -103,8 +108,10 @@ export class ProfileService {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .abortSignal(controller.signal)
+        // .abortSignal(controller.signal) // Temporarily removed abortSignal for debugging
         .maybeSingle();
+      console.log(`ProfileService: fetchProfile - Select query returned. Data: ${data ? 'present' : 'null'}, Error: ${error ? error.message : 'none'}`);
+
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -153,9 +160,11 @@ export class ProfileService {
         .from('profiles')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', userId)
-        .abortSignal(controller.signal)
+        // .abortSignal(controller.signal) // Temporarily removed abortSignal for debugging
         .select()
         .single();
+      console.log(`ProfileService: updateProfile - Update query returned. Data: ${data ? 'present' : 'null'}, Error: ${error ? error.message : 'none'}`);
+
 
       if (error) {
         logSupabaseError('updateProfile', error);
@@ -168,6 +177,7 @@ export class ProfileService {
         console.error(`ProfileService: Update profile for user ID ${userId} aborted due to timeout.`);
         handleError(new Error('Request timed out'), 'Updating profile timed out.');
       } else {
+        console.error(`ProfileService: Caught error during updateProfile for user ID ${userId}:`, err);
         logSupabaseError('updateProfile', err);
       }
       return null;

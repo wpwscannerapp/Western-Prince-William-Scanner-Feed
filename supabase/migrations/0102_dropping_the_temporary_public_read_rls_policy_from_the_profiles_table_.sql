@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Debug: Public read access for profiles" ON public.profiles;
