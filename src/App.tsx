@@ -2,7 +2,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+// import Index from "./pages/Index"; // Temporarily removed
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/AuthPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
@@ -100,8 +100,8 @@ const App = () => {
                 <TopNavBar />
                 <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
                   <Routes>
-                    {/* The root path will now be the splash screen */}
-                    <Route path="/" element={<Index />} /> 
+                    {/* The root path will now be the AuthPage for debugging */}
+                    <Route path="/" element={<AuthPage />} /> 
 
                     {/* Public routes that don't require authentication */}
                     <Route path="/auth" element={<AuthPage />} />
@@ -111,7 +111,7 @@ const App = () => {
 
                     {/* Protected routes wrapped by ProtectedRoute */}
                     <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                      {/* No index route here, as / is handled by Index.tsx */}
+                      {/* No index route here, as / is handled by AuthPage.tsx */}
                       <Route path="home" element={<HomePage />} />
                       <Route path="home/incidents" element={<IncidentsPage />} />
                       {/* <Route path="home/traffic" element={<TrafficPage />} /> */} {/* Removed TrafficPage route */}
