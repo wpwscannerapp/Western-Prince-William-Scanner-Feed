@@ -4,8 +4,8 @@ import { useAuth } from '@/context/AuthContext';
 import { SPLASH_DURATION } from '@/config';
 
 const Index: React.FC = () => {
-  const { user, loading: authLoading, authReady } = useAuth();
-  const [splashActive, setSplashActive] = useState(true);
+  const { user, authReady } = useAuth(); // Removed authLoading as it's covered by authReady
+  const [minimumSplashDurationPassed, setMinimumSplashDurationPassed] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -13,28 +13,21 @@ const Index: React.FC = () => {
     if (splashDuration > 0) {
       document.documentElement.style.setProperty('--splash-duration', `${splashDuration / 1000}s`);
       const timer = setTimeout(() => {
-        console.log('Index: Splash timer ended, setting splashActive to false.');
-        setSplashActive(false);
+        console.log('Index: Minimum splash duration passed.');
+        setMinimumSplashDurationPassed(true);
       }, splashDuration);
       return () => clearTimeout(timer);
     } else {
-      // If splash duration is 0 or less, skip splash
-      setSplashActive(false);
+      // If splash duration is 0 or less, skip minimum duration
+      setMinimumSplashDurationPassed(true);
     }
   }, []);
 
   useEffect(() => {
-    console.log('Index: Navigation check -', { splashActive, authReady, authLoading, user });
+    console.log('Index: Navigation check -', { minimumSplashDurationPassed, authReady, user });
 
-    // Only proceed with navigation once auth is ready
-    if (authReady) {
-      // If splash is still active, wait for it to finish
-      if (splashActive) {
-        console.log('Index: Auth ready, but splash still active. Waiting for splash to end.');
-        return;
-      }
-
-      // Splash is not active AND auth is ready, now navigate
+    // Only navigate if both minimum splash duration has passed AND auth is ready
+    if (minimumSplashDurationPassed && authReady) {
       if (user) {
         console.log('Index: Navigating to /home (user authenticated).');
         navigate('/home', { replace: true });
@@ -43,13 +36,12 @@ const Index: React.FC = () => {
         navigate('/auth', { replace: true });
       }
     } else {
-      // Auth is not ready, keep showing loading state (either splash or generic loader)
-      console.log('Index: Auth not ready. Waiting for AuthProvider to initialize.');
+      console.log('Index: Waiting for minimum splash duration or AuthProvider to initialize.');
     }
-  }, [splashActive, authReady, user, navigate]);
+  }, [minimumSplashDurationPassed, authReady, user, navigate]);
 
-  // Render splash only if splashActive is true
-  if (splashActive) {
+  // Render splash if either minimum duration hasn't passed OR auth is not ready
+  if (!minimumSplashDurationPassed || !authReady) {
     console.log('Index: Showing splash screen.');
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-primary/20 tw-to-background tw-animate-fade-in" aria-label="Loading application">
@@ -59,17 +51,6 @@ const Index: React.FC = () => {
             <div className="tw-h-full tw-bg-primary tw-animate-progress" />
           </div>
         </div>
-      </div>
-    );
-  }
-
-  // If splash is not active but auth is not ready, show a generic loader
-  if (!authReady) {
-    console.log('Index: Splash ended, but authReady is false, showing generic loader.');
-    return (
-      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
-        <div className="tw-animate-spin tw-h-8 tw-w-8 tw-text-primary" />
-        <p className="tw-ml-2">Loading authentication...</p>
       </div>
     );
   }
