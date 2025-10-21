@@ -11,6 +11,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { NotificationService } from './services/NotificationService';
 import { SUPABASE_API_TIMEOUT } from './config';
 import ErrorBoundary from './components/ErrorBoundary';
+import MainContent from './components/MainContent'; // Re-import MainContent
 
 const queryClient = new QueryClient();
 
@@ -80,22 +81,8 @@ const App = () => {
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AuthProvider>
               <AppSettingsProvider>
-                <TopNavBar />
-                <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
-                  <Routes>
-                    {/* Temporarily only render AuthPage for debugging */}
-                    <Route path="*" element={<AuthPage />} /> 
-                  </Routes>
-                </div>
-
-                <Button
-                  variant="outline"
-                  className="tw-fixed tw-bottom-4 tw-right-4 tw-rounded-full tw-shadow-lg tw-button tw-z-50"
-                  onClick={() => window.open('mailto:support@example.com')}
-                  aria-label="Send feedback"
-                >
-                  Feedback
-                </Button>
+                {/* Render MainContent which contains all routes */}
+                <MainContent />
               </AppSettingsProvider>
             </AuthProvider>
           </BrowserRouter>

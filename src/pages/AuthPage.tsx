@@ -13,12 +13,12 @@ const AuthPage = () => {
   const { user, loading, error, session } = useAuth(); // Get session from useAuth
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Re-enable this redirect. Since /home is no longer a route, it will effectively keep the user on AuthPage
-    if (!loading && user) {
-      navigate('/home'); // This will attempt to navigate, but since /home is not defined, it will fall back to AuthPage
-    }
-  }, [user, loading, navigate]);
+  // Temporarily comment out this useEffect to prevent redirection after login
+  // useEffect(() => {
+  //   if (!loading && user) {
+  //     navigate('/home'); // This will attempt to navigate, but since /home is not defined, it will fall back to AuthPage
+  //   }
+  // }, [user, loading, navigate]);
 
   const handleDirectRestCall = async () => {
     if (user && session) {
