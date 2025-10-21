@@ -20,18 +20,18 @@ const logSupabaseError = (functionName: string, error: any) => {
 
 export class ProfileService {
   static async ensureProfileExists(userId: string, session: Session | null): Promise<boolean> {
+    console.log(`[ProfileService] ensureProfileExists: Starting for user ID: ${userId}. Session present: ${!!session}`);
     if (!session) {
-      console.warn(`ProfileService: ensureProfileExists for user ID: ${userId} - No session provided. Aborting.`);
+      console.warn(`[ProfileService] ensureProfileExists for user ID: ${userId} - No session provided. Aborting.`);
       handleError(null, 'No active session to ensure profile exists.');
       return false;
     }
-    console.log(`ProfileService: ensureProfileExists for user ID: ${userId}. Session present.`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
-      console.log(`ProfileService: ensureProfileExists - Attempting to select profile for ${userId}.`);
+      console.log(`[ProfileService] ensureProfileExists: Attempting to select profile for ${userId}.`);
       const { data, error: selectError } = await supabase
         .from('profiles')
         .select('id')
@@ -39,7 +39,7 @@ export class ProfileService {
         .abortSignal(controller.signal)
         .limit(1);
 
-      console.log(`ProfileService: ensureProfileExists - Supabase response for select:`, { data, selectError });
+      console.log(`[ProfileService] ensureProfileExists: Supabase response for select:`, { data, selectError });
 
       if (selectError) {
         logSupabaseError('ensureProfileExists - select', selectError);
@@ -48,11 +48,11 @@ export class ProfileService {
       }
 
       if (data && data.length > 0) {
-        console.log(`ProfileService: Profile already exists for ${userId}.`);
+        console.log(`[ProfileService] ensureProfileExists: Profile already exists for ${userId}.`);
         return true;
       }
 
-      console.log(`ProfileService: No existing profile found for ${userId}. Attempting to insert a default profile.`);
+      console.log(`[ProfileService] ensureProfileExists: No existing profile found for ${userId}. Attempting to insert a default profile.`);
       // If no profile exists, create a basic one
       const { data: insertData, error: insertError } = await supabase
         .from('profiles')
@@ -70,10 +70,12 @@ export class ProfileService {
         .select()
         .single();
 
+      console.log(`[ProfileService] ensureProfileExists: Supabase response for insert:`, { insertData, insertError });
+
       if (insertError) {
         // Handle unique constraint violation if the trigger somehow created it concurrently
         if (insertError.code === '23505') {
-          console.warn(`ProfileService: Profile for ${userId} was created concurrently. Ignoring insert error.`);
+          console.warn(`[ProfileService] ensureProfileExists: Profile for ${userId} was created concurrently. Ignoring insert error.`);
           return true;
         }
         logSupabaseError('ensureProfileExists - insert', insertError);
@@ -81,10 +83,10 @@ export class ProfileService {
         return false;
       }
 
-      console.log(`ProfileService: Default profile created for ${userId}.`, insertData);
+      console.log(`[ProfileService] ensureProfileExists: Default profile created for ${userId}.`, insertData);
       return true;
     } catch (err: any) {
-      console.error(`ProfileService: ensureProfileExists - Caught error:`, err);
+      console.error(`[ProfileService] ensureProfileExists: Caught error:`, err);
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Ensuring profile existence timed out.');
       } else {
@@ -94,22 +96,22 @@ export class ProfileService {
       return false;
     } finally {
       clearTimeout(timeoutId);
-      console.log(`ProfileService: Exiting ensureProfileExists for user ID: ${userId}.`);
+      console.log(`[ProfileService] ensureProfileExists: Exiting for user ID: ${userId}.`);
     }
   }
 
   static async fetchProfile(userId: string, session: Session | null): Promise<Profile | null> {
+    console.log(`[ProfileService] fetchProfile: Starting for user ID: ${userId}. Session present: ${!!session}`);
     if (!session) {
-      console.warn(`ProfileService: fetchProfile for user ID: ${userId} - No session provided. Returning null.`);
+      console.warn(`[ProfileService] fetchProfile for user ID: ${userId} - No session provided. Returning null.`);
       return null;
     }
-    console.log(`ProfileService: fetchProfile for user ID: ${userId}. Session present.`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
-      console.log(`ProfileService: fetchProfile - Attempting Supabase select for profile ${userId}.`);
+      console.log(`[ProfileService] fetchProfile: Attempting Supabase select for profile ${userId}.`);
       const query = supabase
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, subscription_status, role, username, updated_at')
@@ -117,22 +119,22 @@ export class ProfileService {
         .abortSignal(controller.signal)
         .limit(1);
       
-      console.log('ProfileService: fetchProfile - Query object created, awaiting response...');
+      console.log('[ProfileService] fetchProfile: Query object created, awaiting response...');
       const { data, error } = await query;
-      console.log('ProfileService: fetchProfile - Supabase query awaited. Result:', { data, error });
+      console.log('[ProfileService] fetchProfile: Supabase query awaited. Result:', { data, error });
 
       if (error) {
         logSupabaseError('fetchProfile', error);
         throw error;
       }
       if (!data || data.length === 0) {
-        console.log(`ProfileService: fetchProfile - No profile found for ${userId}.`);
+        console.log(`[ProfileService] fetchProfile: No profile found for ${userId}.`);
         return null;
       }
-      console.log(`ProfileService: fetchProfile - Profile data found:`, data[0]);
+      console.log(`[ProfileService] fetchProfile: Profile data found:`, data[0]);
       return data[0] as Profile;
     } catch (err: any) {
-      console.error(`ProfileService: fetchProfile - Caught an error:`, err);
+      console.error(`[ProfileService] fetchProfile: Caught an error:`, err);
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching profile timed out.');
       } else {
@@ -141,7 +143,7 @@ export class ProfileService {
       throw err;
     } finally {
       clearTimeout(timeoutId);
-      console.log(`ProfileService: Exiting fetchProfile for user ID: ${userId}.`);
+      console.log(`[ProfileService] fetchProfile: Exiting for user ID: ${userId}.`);
     }
   }
 
@@ -149,6 +151,7 @@ export class ProfileService {
     userId: string,
     updates: { first_name?: string | null; last_name?: string | null; avatar_url?: string | null; username?: string | null }
   ): Promise<Profile | null> {
+    console.log(`[ProfileService] updateProfile: Starting for user ID: ${userId}. Updates:`, updates);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -161,12 +164,16 @@ export class ProfileService {
         .select()
         .single();
 
+      console.log(`[ProfileService] updateProfile: Supabase response:`, { data, error });
+
       if (error) {
         logSupabaseError('updateProfile', error);
         return null;
       }
+      console.log(`[ProfileService] updateProfile: Profile updated for ${userId}.`, data);
       return data as Profile;
     } catch (err: any) {
+      console.error(`[ProfileService] updateProfile: Caught an error:`, err);
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Updating profile timed out.');
       } else {
@@ -175,6 +182,7 @@ export class ProfileService {
       return null;
     } finally {
       clearTimeout(timeoutId);
+      console.log(`[ProfileService] updateProfile: Exiting for user ID: ${userId}.`);
     }
   }
 }
