@@ -14,9 +14,10 @@ const AuthPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) {
-      navigate('/home');
-    }
+    // Temporarily comment out this redirect to allow testing the direct API call
+    // if (!loading && user) {
+    //   navigate('/home');
+    // }
   }, [user, loading, navigate]);
 
   const handleDirectRestCall = async () => {
