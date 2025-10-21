@@ -1,22 +1,22 @@
 import ProfileForm from '@/components/ProfileForm';
-import NotificationSettingsForm from '@/components/NotificationSettingsForm'; // Import NotificationSettingsForm
+import NotificationSettingsForm from '@/components/NotificationSettingsForm';
 import { PROFILE_TITLE, PROFILE_DESCRIPTION } from '@/lib/constants';
 import { Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { ProfileService, Profile } from '@/services/ProfileService';
 import { handleError } from '@/utils/errorHandler';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'; // Import CardContent
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'; // Import Tabs components
-import { useProfilePageContext } from '@/App'; // Import the context hook
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useProfilePageContext } from '@/context/ProfilePageContext';
 
 const ProfilePage: React.FC = () => {
-  const { user, session } = useAuth(); // Destructure session from useAuth
-  const isWebPushInitialized = useProfilePageContext(); // Consume from context, renamed variable
+  const { user, session } = useAuth();
+  const isWebPushInitialized = useProfilePageContext();
 
   const { isLoading: isProfileLoading, isError: isProfileError, error: profileError } = useQuery<Profile | null, Error>({
     queryKey: ['profile', user?.id],
-    queryFn: () => user ? ProfileService.fetchProfile(user.id, session) : Promise.resolve(null), // Pass session here
+    queryFn: () => user ? ProfileService.fetchProfile(user.id, session) : Promise.resolve(null),
     enabled: !!user,
   });
 
@@ -41,13 +41,13 @@ const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-3xl"> {/* Increased max-w for tabs */}
+    <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-3xl">
       <Card className="tw-w-full tw-mx-auto tw-bg-card tw-shadow-lg">
         <CardHeader className="tw-text-center">
           <CardTitle className="tw-text-3xl tw-font-bold">{PROFILE_TITLE}</CardTitle>
           <CardDescription className="tw-text-muted-foreground">{PROFILE_DESCRIPTION}</CardDescription>
         </CardHeader>
-        <CardContent className="tw-p-6"> {/* Added padding to CardContent */}
+        <CardContent className="tw-p-6">
           <Tabs defaultValue="profile-details" className="tw-w-full">
             <TabsList className="tw-grid tw-w-full tw-grid-cols-2">
               <TabsTrigger value="profile-details">Profile Details</TabsTrigger>
@@ -57,7 +57,7 @@ const ProfilePage: React.FC = () => {
               <ProfileForm />
             </TabsContent>
             <TabsContent value="notification-settings" className="tw-mt-6">
-              <NotificationSettingsForm isWebPushInitialized={isWebPushInitialized} /> {/* Pass prop */}
+              <NotificationSettingsForm isWebPushInitialized={isWebPushInitialized} />
             </TabsContent>
           </Tabs>
         </CardContent>
