@@ -54,25 +54,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleSessionCreation = useCallback(async (currentSession: Session) => {
     console.log('AuthContext: handleSessionCreation called with session:', currentSession ? 'present' : 'null');
-    if (!currentSession.user || !currentSession.expires_in) {
-      console.log('AuthContext: No user or expires_in in session, skipping session creation.');
+    if (!currentSession.user || !currentSession.expires_in || !currentSession.id) {
+      console.log('AuthContext: No user, expires_in, or session ID in session, skipping session creation.');
       return;
     }
     console.log('AuthContext: User ID for session creation:', currentSession.user.id);
+    console.log('AuthContext: Supabase Session ID:', currentSession.id);
     console.log('AuthContext: Access Token present:', !!currentSession.access_token);
 
-    let currentSessionId = localStorage.getItem('wpw_session_id');
-    if (!currentSessionId) {
-      currentSessionId = crypto.randomUUID();
-      localStorage.setItem('wpw_session_id', currentSessionId);
-      console.log('AuthContext: Generated new session ID:', currentSessionId);
-    } else {
-      console.log('AuthContext: Found existing session ID:', currentSessionId);
-    }
+    // Use the Supabase session ID directly for database tracking
+    const supabaseSessionId = currentSession.id;
 
-    const isValid = await SessionService.isValidSession(currentSession.user.id, currentSessionId);
+    const isValid = await SessionService.isValidSession(currentSession.user.id, supabaseSessionId);
     if (isValid) {
-      console.log('AuthContext: Session is already valid, no action needed.');
+      console.log('AuthContext: Database session record is already valid, no action needed.');
       return;
     }
 
@@ -86,11 +81,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await SessionService.deleteOldestSessions(currentSession.user.id, MAX_CONCURRENT_SESSIONS);
       }
 
-      const createdSession = await SessionService.createSession(currentSession, currentSessionId);
+      const createdSession = await SessionService.createSession(currentSession, supabaseSessionId);
       if (createdSession) {
-        console.log('AuthContext: Session created successfully.');
+        console.log('AuthContext: Database session record created successfully.');
       } else {
-        console.error('AuthContext: Failed to create session (error handled by SessionService).');
+        console.error('AuthContext: Failed to create database session record (error handled by SessionService).');
       }
     } catch (err) {
       console.error('AuthContext: Error during session management:', (err as Error).message);
@@ -99,24 +94,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AuthContext: handleSessionCreation finished.');
   }, [queryClient]);
 
-  const handleSessionDeletion = useCallback(async (userIdToDelete?: string) => {
+  const handleSessionDeletion = useCallback(async (userIdToDelete?: string, supabaseSessionIdToDelete?: string) => {
     console.log('AuthContext: handleSessionDeletion called.');
-    const currentSessionId = localStorage.getItem('wpw_session_id');
-    if (currentSessionId) {
-      console.log('AuthContext: Deleting specific session ID:', currentSessionId);
-      await SessionService.deleteSession(userIdToDelete, currentSessionId);
-      localStorage.removeItem('wpw_session_id');
-    } else {
-      console.log('AuthContext: No specific session ID found in localStorage to delete.');
-    }
-
-    if (userIdToDelete) {
-      console.log('AuthContext: Deleting all sessions for user:', userIdToDelete);
+    if (userIdToDelete && supabaseSessionIdToDelete) {
+      console.log('AuthContext: Deleting specific database session record for user:', userIdToDelete, 'session ID:', supabaseSessionIdToDelete);
+      await SessionService.deleteSession(userIdToDelete, supabaseSessionIdToDelete);
+    } else if (userIdToDelete) {
+      console.log('AuthContext: Deleting all database session records for user:', userIdToDelete);
       await SessionService.deleteAllSessionsForUser(userIdToDelete);
+    } else {
+      console.log('AuthContext: No user ID or session ID provided for database session deletion.');
     }
     // Invalidate profile query after session deletion
     queryClient.invalidateQueries({ queryKey: ['profile', userIdToDelete] });
-    console.log('AuthContext: Session(s) deleted and removed from localStorage. Profile cache invalidated.');
+    console.log('AuthContext: Database session record(s) deleted. Profile cache invalidated.');
   }, [queryClient]);
 
   useEffect(() => {
@@ -136,8 +127,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (currentSession) {
             await handleSessionCreation(currentSession);
           } else {
-            // Pass the user ID that was *just* logged out, if available from userRef
-            await handleSessionDeletion(userRef.current?.id);
+            // Pass the user ID that was *just* logged out, and the session ID if available
+            await handleSessionDeletion(userRef.current?.id, userRef.current?.aud === 'authenticated' ? session?.id : undefined);
           }
         }
       }
@@ -148,7 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthContext: Cleaning up onAuthStateChange listener.');
       subscription.unsubscribe();
     };
-  }, [handleSessionCreation, handleSessionDeletion]);
+  }, [handleSessionCreation, handleSessionDeletion, session?.id]); // Add session.id to dependencies
 
   const signUp = async (email: string, password: string) => {
     setError(null);
@@ -184,7 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(null);
           setLoading(false);
           setAuthReady(true);
-          await handleSessionDeletion(userRef.current?.id);
+          await handleSessionDeletion(userRef.current?.id, session?.id); // Pass session.id here
           queryClient.invalidateQueries({ queryKey: ['profile'] });
           return { success: true };
         }
@@ -196,7 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setLoading(false);
       setAuthReady(true);
-      await handleSessionDeletion(userRef.current?.id);
+      await handleSessionDeletion(userRef.current?.id, session?.id); // Pass session.id here
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       return { success: true };
     } catch (e: any) {
