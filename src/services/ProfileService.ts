@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
-import { Session } from '@supabase/supabase-js'; // Import Session type
+import { Session } from '@supabase/supabase-js';
 
 export interface Profile {
   id: string;
@@ -93,6 +93,8 @@ export class ProfileService {
         .abortSignal(controller.signal)
         .maybeSingle();
 
+      console.log('ProfileService: Supabase response for fetchProfile:', { data, error });
+
       if (error) {
         if (error.code === 'PGRST116') {
           console.log(`ProfileService: fetchProfile - No profile found for ${userId} (PGRST116).`);
@@ -101,7 +103,6 @@ export class ProfileService {
         logSupabaseError('fetchProfile', error);
         throw error;
       }
-      console.log(`ProfileService: fetchProfile - Supabase data result:`, data);
       if (!data) {
         console.log(`ProfileService: fetchProfile - Data is null, returning null.`);
         return null;
