@@ -83,7 +83,7 @@ export class ProfileService {
   }
 
   static async fetchProfile(userId: string, session: Session | null): Promise<Profile | null> {
-    console.log(`ProfileService: Attempting to fetch profile for user ID: ${userId}`);
+    console.log(`ProfileService: fetchProfile for user ID: ${userId} - Starting operation.`);
     if (!session) {
       console.warn(`ProfileService: fetchProfile for user ID: ${userId} - No session provided. Returning null.`);
       return null;
@@ -98,7 +98,7 @@ export class ProfileService {
 
     try {
       console.log(`ProfileService: fetchProfile for user ID: ${userId} - Executing Supabase query.`);
-      console.log(`ProfileService: fetchProfile - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`); // Added log
+      console.log(`ProfileService: fetchProfile - User ID: ${userId}, Session present: ${!!session}, Access Token present: ${!!session?.access_token}`);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -132,6 +132,7 @@ export class ProfileService {
       throw err;
     } finally {
       clearTimeout(timeoutId);
+      console.log(`ProfileService: Fetch profile for user ID ${userId} finished.`);
     }
   }
 

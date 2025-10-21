@@ -37,7 +37,10 @@ export function useIsAdmin(): UseAdminResult {
   useEffect(() => {
     if (!isMountedRef.current) return;
 
+    console.log('useIsAdmin useEffect:', { authLoading, authReady, isProfileQueryLoading, user: user?.id, profile: profile ? 'present' : 'null', isProfileQueryError, profileQueryError });
+
     if (authLoading || !authReady || isProfileQueryLoading) {
+      console.log('useIsAdmin: Setting profileLoading to true due to authLoading, !authReady, or isProfileQueryLoading.');
       setProfileLoading(true);
       return;
     }
@@ -47,7 +50,7 @@ export function useIsAdmin(): UseAdminResult {
       setError(errorMessage);
       setIsAdmin(false); // Default to false on error
       setProfileLoading(false);
-      return; // Removed the temporary DEV workaround
+      return;
     }
 
     if (!user) {
@@ -64,8 +67,9 @@ export function useIsAdmin(): UseAdminResult {
       setIsAdmin(false);
       setError('User profile not found or accessible.');
     }
+    console.log('useIsAdmin: Setting profileLoading to false. Final isAdmin:', isAdmin);
     setProfileLoading(false);
-  }, [user, authLoading, authReady, profile, isProfileQueryLoading, isProfileQueryError, profileQueryError, session]); // Add session to dependency array
+  }, [user, authLoading, authReady, profile, isProfileQueryLoading, isProfileQueryError, profileQueryError, session, isAdmin]); // Add isAdmin to dependency array to prevent stale closure issues
 
   return { isAdmin, loading: profileLoading, error };
 }
