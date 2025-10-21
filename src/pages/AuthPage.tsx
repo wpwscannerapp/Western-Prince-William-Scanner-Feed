@@ -14,10 +14,10 @@ const AuthPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Temporarily comment out this redirect to allow testing the direct API call
-    // if (!loading && user) {
-    //   navigate('/home');
-    // }
+    // Re-enable this redirect. Since /home is no longer a route, it will effectively keep the user on AuthPage
+    if (!loading && user) {
+      navigate('/home'); // This will attempt to navigate, but since /home is not defined, it will fall back to AuthPage
+    }
   }, [user, loading, navigate]);
 
   const handleDirectRestCall = async () => {
