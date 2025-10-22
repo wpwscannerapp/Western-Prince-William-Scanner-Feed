@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Menu, Home, User, Shield, LogIn, LogOut, CreditCard } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden'; // Import VisuallyHidden
 
 interface MobileNavProps {
   onLinkClick?: () => void;
@@ -44,9 +45,18 @@ const MobileNav: React.FC<MobileNavProps> = ({ onLinkClick }) => {
           aria-label="Open navigation menu"
         >
           <Menu className="tw-h-6 tw-w-6" />
+          <span className="tw-sr-only">Open navigation menu</span>
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="tw-w-[250px] sm:tw-w-[300px] tw-bg-sidebar tw-border-r tw-border-sidebar-border tw-flex tw-flex-col">
+        <SheetHeader>
+          <VisuallyHidden.Root>
+            <SheetTitle>Navigation Menu</SheetTitle>
+          </VisuallyHidden.Root>
+          <VisuallyHidden.Root>
+            <SheetDescription>Access application navigation links.</SheetDescription>
+          </VisuallyHidden.Root>
+        </SheetHeader>
         <div className="tw-px-4 tw-py-6 tw-border-b tw-border-sidebar-border">
           <h2 className="tw-text-xl tw-font-bold tw-text-sidebar-foreground">Navigation</h2>
         </div>
