@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'; // Added useEffect
+import React from 'react';
 import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Loader2, AlertCircle } from 'lucide-react';
