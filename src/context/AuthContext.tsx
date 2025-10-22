@@ -1,3 +1,4 @@
+console.log('AuthContext.tsx: Module loaded.'); // Added for debugging
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -288,7 +289,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export const useAuth = () => {
-  console.log('useAuth: AuthContext object:', AuthContext); // Added for debugging
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
