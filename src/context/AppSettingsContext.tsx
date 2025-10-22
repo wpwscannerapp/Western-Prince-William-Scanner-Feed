@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAppSettings } from '@/hooks/useAppSettings';
-import { useAuth } from '@/context/AuthContext';
 import { NotificationService } from '@/services/NotificationService';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { ProfilePageContext } from './ProfilePageContext';
 
 const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useAppSettings();
-  const { user, loading: authLoading } = useAuth();
+  // Removed useAuth hook call as it was causing context order issues.
+  // The logic for handling user logout can be placed in components that are guaranteed
+  // to be rendered within both AuthProvider and AppSettingsProvider.
   const [isWebPushInitialized, setIsWebPushInitialized] = useState(false);
   const webPushInitAttemptedRef = useRef(false);
 
@@ -45,11 +46,7 @@ const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializeWebPushSDK();
   }, []);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      // Logic for handling user logout if needed
-    }
-  }, [user, authLoading]);
+  // Removed useEffect that depended on user and authLoading as it's no longer needed here.
 
   return (
     <ProfilePageContext.Provider value={isWebPushInitialized}>
