@@ -145,10 +145,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('AuthContext: Setting up onAuthStateChange listener.');
 
+    // Set authReady to true immediately after setting up the listener
+    // This indicates that the AuthProvider has finished its initial setup phase
+    // and is now ready to provide auth state, even if it's 'no user'.
+    // The 'loading' state will handle ongoing async operations.
+    setAuthReady(true); 
+    console.log(`AuthContext: AuthReady set to true synchronously.`);
+
     authTimeoutRef.current = setTimeout(() => {
-      if (isMountedRef.current && !authReady) {
+      if (isMountedRef.current && !authReady) { // This condition will now likely be false if onAuthStateChange fires quickly
         console.warn(`AuthContext: Auth initialization timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms. Forcing authReady to true.`);
-        setAuthReady(true);
+        setAuthReady(true); // Redundant if already true, but safe
         setLoading(false);
         setError(new AuthError('Authentication initialization timed out.'));
       }
@@ -167,10 +174,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(currentSession?.user || null);
           setError(null);
 
-          // Set authReady to true immediately after the initial session check
-          // This signals that the auth system has initialized, even if profile fetching is ongoing.
-          setAuthReady(true); 
-          console.log(`AuthContext: Auth state changed. AuthReady set to true. User: ${currentSession?.user ? 'present' : 'null'}`);
+          // authReady is already set to true above, no need to set it again here.
+          // This ensures authReady is true as soon as the listener is active.
 
           if (currentSession) {
             setLoading(true); // Set loading true for async session/profile ops
