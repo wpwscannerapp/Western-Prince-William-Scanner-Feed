@@ -41,7 +41,6 @@ export function useIsAdmin(): UseAdminResult {
   // Effect to handle errors from the profile query
   useEffect(() => {
     if (isMountedRef.current && isProfileQueryError && profileQueryError) {
-      console.error('useIsAdmin: Profile query error:', profileQueryError);
       setError(handleError(profileQueryError, 'Failed to load admin role.'));
       setIsAdmin(false);
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
@@ -87,6 +86,8 @@ export function useIsAdmin(): UseAdminResult {
   }, [authLoading, authReady, isProfileQueryLoading, user, profile, isProfileQueryError]);
 
   const overallLoading = authLoading || (authReady && isProfileQueryLoading);
+
+  console.log('useIsAdmin: Returning', { isAdmin, loading: overallLoading, error });
 
   return { isAdmin, loading: overallLoading, error };
 }

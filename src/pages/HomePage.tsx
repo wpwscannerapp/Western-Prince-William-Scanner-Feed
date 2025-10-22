@@ -6,11 +6,13 @@ import { Loader2, AlertCircle } from 'lucide-react';
 const HomePage: React.FC = () => {
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
 
+  console.log('HomePage: Rendered with', { isAdmin, isAdminLoading, isAdminError });
+
   if (isAdminError) {
     return (
       <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
         <AlertCircle className="tw-h-12 tw-w-12 tw-text-destructive tw-mb-4" />
-        <h1 className="tw-text-2xl tw-font-bold tw-text-destructive tw-mb-4">Error Loading Permissions</h1>
+        <h1 className="tw-2xl tw-font-bold tw-text-destructive tw-mb-4">Error Loading Permissions</h1>
         <p className="tw-text-muted-foreground">{isAdminError}</p>
         <button
           className="tw-mt-4 tw-px-4 tw-py-2 tw-bg-primary tw-text-primary-foreground tw-rounded-md hover:tw-bg-primary/90 tw-transition-colors"
