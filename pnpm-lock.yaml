@@ -107,6 +107,9 @@ importers:
       '@types/react-color':
         specifier: ^3.0.13
         version: 3.0.13(@types/react@18.3.26)
+      '@types/web-push':
+        specifier: ^3.6.4
+        version: 3.6.4
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -1544,6 +1547,9 @@ packages:
     resolution: {integrity: sha512-gi3S+aUi6kpkF5vdhUsnkwbiSEIU/BEJyD7kBy2SudWBUuKmJk8AQKE0OVcQQeEy40Azh0lV6uynxlikYIJuwg==}
     peerDependencies:
       '@types/react': '*'
+
+  '@types/web-push@3.6.4':
+    resolution: {integrity: sha512-GnJmSr40H3RAnj0s34FNTcJi1hmWFV5KXugE0mYWnYhgTAHLJ/dJKAwDmvPJYMke0RplY2XE9LnM4hqSqKIjhQ==}
 
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
@@ -4035,6 +4041,10 @@ snapshots:
   '@types/reactcss@1.2.13(@types/react@18.3.26)':
     dependencies:
       '@types/react': 18.3.26
+
+  '@types/web-push@3.6.4':
+    dependencies:
+      '@types/node': 22.18.12
 
   '@types/ws@8.18.1':
     dependencies:
