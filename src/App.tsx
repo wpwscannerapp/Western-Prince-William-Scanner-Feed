@@ -10,6 +10,7 @@ import MainContent from './components/MainContent';
 const queryClient = new QueryClient();
 
 const App = () => {
+  console.log('App.tsx: Rendering AuthProvider.'); // Added for debugging
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>

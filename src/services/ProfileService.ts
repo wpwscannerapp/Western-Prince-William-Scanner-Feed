@@ -36,8 +36,8 @@ export class ProfileService {
         .from('profiles')
         .select('id')
         .eq('id', userId)
-        .single()
-        .abortSignal(controller.signal);
+        .abortSignal(controller.signal) // Moved abortSignal here
+        .single();
 
       console.log(`ProfileService: ensureProfileExists - Supabase response for select:`, { data, selectError });
 
@@ -114,8 +114,8 @@ export class ProfileService {
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, subscription_status, role, username, updated_at')
         .eq('id', userId)
-        .single()
-        .abortSignal(controller.signal);
+        .abortSignal(controller.signal) // Moved abortSignal here
+        .single();
 
       console.log('ProfileService: fetchProfile - Supabase query result:', { data, error });
 

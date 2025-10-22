@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { ProfileService } from '@/services/ProfileService';
+import { Profile, ProfileService } from '@/services/ProfileService'; // Ensure Profile is imported
 import { handleError } from '@/utils/errorHandler';
 
 interface UseAdminResult {
@@ -24,7 +24,7 @@ export function useIsAdmin(): UseAdminResult {
     };
   }, []);
 
-  const { data: profile, isLoading: isProfileQueryLoading, isError: isProfileQueryError, error: profileQueryError } = useQuery({
+  const { data: profile, isLoading: isProfileQueryLoading, isError: isProfileQueryError, error: profileQueryError } = useQuery<Profile | null, Error>({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
       if (!user || !session) return null;
@@ -35,14 +35,20 @@ export function useIsAdmin(): UseAdminResult {
     staleTime: 1000 * 60 * 5,
     retry: 3,
     retryDelay: 1000,
-    onError: (err) => {
-      console.error('useIsAdmin: Profile query error:', err);
-      if (isMountedRef.current) {
-        setError(handleError(err, 'Failed to load admin role.'));
-        setIsAdmin(false);
-      }
-    },
   });
+
+  // Handle errors using a separate useEffect
+  useEffect(() => {
+    if (isMountedRef.current && isProfileQueryError && profileQueryError) {
+      console.error('useIsAdmin: Profile query error:', profileQueryError);
+      setError(handleError(profileQueryError, 'Failed to load admin role.'));
+      setIsAdmin(false);
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] }); // Invalidate on error
+    } else if (isMountedRef.current && !isProfileQueryError) {
+      setError(null); // Clear error if it resolves
+    }
+  }, [isProfileQueryError, profileQueryError, queryClient, user?.id]);
+
 
   useEffect(() => {
     if (!isMountedRef.current) return;
@@ -63,12 +69,13 @@ export function useIsAdmin(): UseAdminResult {
       return;
     }
 
-    if (isProfileQueryError) {
-      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
-      setError(handleError(profileQueryError, 'Failed to load admin role.'));
-      setIsAdmin(false);
-      return;
-    }
+    // Error handling is now managed by the separate useEffect above
+    // if (isProfileQueryError) {
+    //   queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+    //   setError(handleError(profileQueryError, 'Failed to load admin role.'));
+    //   setIsAdmin(false);
+    //   return;
+    // }
 
     if (!user) {
       setIsAdmin(false);
@@ -76,17 +83,17 @@ export function useIsAdmin(): UseAdminResult {
       return;
     }
 
-    if (profile) {
+    if (profile) { // profile is now guaranteed to be of type Profile due to explicit typing in useQuery
       console.log('useIsAdmin: Profile found, role:', profile.role);
       setIsAdmin(profile.role === 'admin');
-      setError(null);
+      // Error is cleared by the separate useEffect if query is not in error state
     } else {
       console.log('useIsAdmin: Profile is null');
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
       setIsAdmin(false);
       setError('User profile not found.');
     }
-  }, [authReady, isProfileQueryLoading, isProfileQueryError, profileQueryError, profile, user, queryClient, authLoading]);
+  }, [authReady, isProfileQueryLoading, profile, user, queryClient, authLoading]); // Removed isProfileQueryError, profileQueryError from dependencies as they are watched in separate useEffect
 
   const overallLoading = authLoading || (authReady && isProfileQueryLoading);
 

@@ -269,7 +269,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: authError };
     }
     toast.success('Password reset email sent. Check your inbox!');
-    return { success: true };
+    return { success: true }; // Corrected return type
   };
 
   const value = {
@@ -288,6 +288,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export const useAuth = () => {
+  console.log('useAuth: AuthContext object:', AuthContext); // Added for debugging
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
