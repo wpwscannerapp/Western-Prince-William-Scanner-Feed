@@ -74,24 +74,3 @@ export async function testProfileQuery(session: Session | null) {
     handleError(err, 'Failed to fetch profile during test query.');
   }
 }
-
-export async function resetSession() {
-  try {
-    console.log('Signing out...');
-    await supabase.auth.signOut();
-    localStorage.removeItem('supabase.auth.token');
-    console.log('Session cleared, attempting re-authentication');
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: 'test@example.com', // IMPORTANT: Replace with a valid test email
-      password: 'your-test-password' // IMPORTANT: Replace with the correct password
-    });
-    if (error) {
-      console.error('Re-authentication failed:', error.message, error);
-      throw error;
-    }
-    console.log('Re-authentication success:', data);
-    console.log('Post-auth localStorage supabase.auth.token:', localStorage.getItem('supabase.auth.token'));
-  } catch (err) {
-    console.error('resetSession failed:', err);
-  }
-}
