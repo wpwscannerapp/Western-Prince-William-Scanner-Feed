@@ -1,4 +1,3 @@
-console.log('AuthContext.tsx: Module loaded.'); // Added for debugging
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -75,9 +74,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // This might indicate a critical issue with the handle_new_user trigger.
         return;
       }
-      // Invalidate profile query after ensuring it exists, so other hooks refetch
-      queryClient.invalidateQueries({ queryKey: ['profile', currentSession.user.id] });
-
       // Fetch the profile immediately after ensuring it exists
       const profile = await ProfileService.fetchProfile(currentSession.user.id, currentSession);
       if (profile) {
