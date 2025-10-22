@@ -3,7 +3,7 @@ import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SessionService } from '@/services/SessionService';
-import { MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT } from '@/config'; // Import AUTH_INITIALIZATION_TIMEOUT
+import { MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT } from '@/config';
 import { ProfileService } from '@/services/ProfileService';
 import { handleError as globalHandleError } from '@/utils/errorHandler';
 import { useQueryClient } from '@tanstack/react-query';
@@ -29,9 +29,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<AuthError | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const isMountedRef = useRef(true);
-  const userRef = useRef<User | null>(null); // To hold the user ID for cleanup after logout
+  const userRef = useRef<User | null>(null);
   const queryClient = useQueryClient();
-  const authTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null); // Ref for the timeout
+  const authTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -44,7 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    userRef.current = user; // Keep userRef updated with the latest user object
+    userRef.current = user;
   }, [user]);
 
   const handleError = (err: any, defaultMessage: string) => {
@@ -57,120 +57,101 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const handleSessionCreation = useCallback(async (currentSession: Session) => {
-    console.log('[AuthContext] handleSessionCreation: Called with session:', currentSession ? 'present' : 'null');
-    if (!currentSession.user || !currentSession.expires_in) {
-      console.log('[AuthContext] handleSessionCreation: No user or expires_in in session, skipping session creation.');
+    console.log('AuthContext: handleSessionCreation called with session:', currentSession ? 'present' : 'null');
+    if (!currentSession.user || !currentSession.access_token) {
+      console.log('AuthContext: No user or access_token in session, skipping session creation.');
       return;
     }
-    console.log('[AuthContext] handleSessionCreation: User ID for session creation:', currentSession.user.id);
-    console.log('[AuthContext] handleSessionCreation: Access Token present:', !!currentSession.access_token);
+    console.log('AuthContext: User ID for session creation:', currentSession.user.id);
 
     try {
-      // Pass the currentSession to ensureProfileExists
       const profileEnsured = await ProfileService.ensureProfileExists(currentSession.user.id, currentSession);
-      console.log('[AuthContext] handleSessionCreation: Profile ensured status:', profileEnsured);
       if (!profileEnsured) {
-        console.error('[AuthContext] handleSessionCreation: Failed to ensure profile exists for user. Aborting session creation and further profile fetching.');
-        // If profile is not ensured, we cannot proceed with session management that relies on profile data.
-        // This might indicate a critical issue with the handle_new_user trigger.
+        console.error('AuthContext: Failed to ensure profile exists for user.');
         return;
       }
-      // Invalidate profile query after ensuring it exists, so other hooks refetch
       queryClient.invalidateQueries({ queryKey: ['profile', currentSession.user.id] });
 
-      // Fetch the profile immediately after ensuring it exists
-      const profile = await ProfileService.fetchProfile(currentSession.user.id, currentSession);
-      console.log('[AuthContext] handleSessionCreation: Fetched profile after ensure:', profile);
-      if (profile) {
-        // Manually set the profile data in the cache
-        queryClient.setQueryData(['profile', currentSession.user.id], profile);
-        console.log('[AuthContext] handleSessionCreation: Profile data set in cache:', profile);
+      let currentSessionId = localStorage.getItem('wpw_session_id');
+      if (!currentSessionId) {
+        currentSessionId = crypto.randomUUID();
+        localStorage.setItem('wpw_session_id', currentSessionId);
+        console.log('AuthContext: Generated new session ID:', currentSessionId);
       } else {
-        console.warn('[AuthContext] handleSessionCreation: Failed to fetch profile after ensuring existence.');
+        console.log('AuthContext: Found existing session ID:', currentSessionId);
       }
 
-    } catch (err) {
-      console.error('[AuthContext] handleSessionCreation: Error during ensureProfileExists/fetchProfile:', (err as Error).message);
-      handleError(err, 'Failed to ensure user profile exists or fetch it.');
-      return;
-    }
+      const isValid = await SessionService.isValidSession(currentSession.user.id, currentSessionId);
+      if (isValid) {
+        console.log('AuthContext: Session is already valid, no action needed.');
+        return;
+      }
 
-    let currentSessionId = localStorage.getItem('wpw_session_id');
-    if (!currentSessionId) {
-      currentSessionId = crypto.randomUUID();
-      localStorage.setItem('wpw_session_id', currentSessionId);
-      console.log('[AuthContext] handleSessionCreation: Generated new session ID:', currentSessionId);
-    } else {
-      console.log('[AuthContext] handleSessionCreation: Found existing session ID:', currentSessionId);
-    }
-
-    const isValid = await SessionService.isValidSession(currentSession.user.id, currentSessionId);
-    if (isValid) {
-      console.log('[AuthContext] handleSessionCreation: Session is already valid, no action needed.');
-      return;
-    }
-
-    try {
-      const profile = await ProfileService.fetchProfile(currentSession.user.id, currentSession); // Pass session here too
+      const profile = await ProfileService.fetchProfile(currentSession.user.id, currentSession);
       const isCurrentUserAdmin = profile?.role === 'admin';
-      console.log('[AuthContext] handleSessionCreation: User role:', profile?.role);
+      console.log('AuthContext: User role:', profile?.role);
 
       if (!isCurrentUserAdmin) {
-        console.log('[AuthContext] handleSessionCreation: User is not admin, checking concurrent sessions.');
+        console.log('AuthContext: User is not admin, checking concurrent sessions.');
         await SessionService.deleteOldestSessions(currentSession.user.id, MAX_CONCURRENT_SESSIONS);
       }
 
       const createdSession = await SessionService.createSession(currentSession, currentSessionId);
       if (createdSession) {
-        console.log('[AuthContext] handleSessionCreation: Session created successfully.');
+        console.log('AuthContext: Session created successfully.');
       } else {
-        console.error('[AuthContext] handleSessionCreation: Failed to create session (error handled by SessionService).');
+        console.error('AuthContext: Failed to create session.');
       }
     } catch (err) {
-      console.error('[AuthContext] handleSessionCreation: Error during session management:', (err as Error).message);
+      console.error('AuthContext: Error during session creation:', (err as Error).message);
       handleError(err, 'Failed to manage user session.');
     }
-    console.log('[AuthContext] handleSessionCreation: Finished.');
   }, [queryClient]);
 
   const handleSessionDeletion = useCallback(async (userIdToDelete?: string) => {
-    console.log('[AuthContext] handleSessionDeletion: Called.');
+    console.log('AuthContext: handleSessionDeletion called.');
     const currentSessionId = localStorage.getItem('wpw_session_id');
     if (currentSessionId) {
-      console.log('[AuthContext] handleSessionDeletion: Deleting specific session ID:', currentSessionId);
+      console.log('AuthContext: Deleting specific session ID:', currentSessionId);
       await SessionService.deleteSession(userIdToDelete, currentSessionId);
       localStorage.removeItem('wpw_session_id');
-    } else {
-      console.log('[AuthContext] handleSessionDeletion: No specific session ID found in localStorage to delete.');
     }
-
     if (userIdToDelete) {
-      console.log('[AuthContext] handleSessionDeletion: Deleting all sessions for user:', userIdToDelete);
+      console.log('AuthContext: Deleting all sessions for user:', userIdToDelete);
       await SessionService.deleteAllSessionsForUser(userIdToDelete);
     }
-    // Invalidate profile query after session deletion
     queryClient.invalidateQueries({ queryKey: ['profile', userIdToDelete] });
-    console.log('[AuthContext] handleSessionDeletion: Session(s) deleted and removed from localStorage. Profile cache invalidated.');
+    console.log('AuthContext: Session(s) deleted and removed from localStorage. Profile cache invalidated.');
   }, [queryClient]);
 
   useEffect(() => {
-    console.log('[AuthContext] useEffect: Setting up onAuthStateChange listener.');
+    console.log('AuthContext: Setting up onAuthStateChange listener.');
 
-    // Set a timeout for auth initialization
     authTimeoutRef.current = setTimeout(() => {
       if (isMountedRef.current && !authReady) {
-        console.warn(`[AuthContext] useEffect: Auth initialization timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms. Forcing authReady to true.`);
+        console.warn(`AuthContext: Auth initialization timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms. Forcing authReady to true.`);
         setAuthReady(true);
         setLoading(false);
         setError(new AuthError('Authentication initialization timed out.'));
       }
     }, AUTH_INITIALIZATION_TIMEOUT);
 
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (isMountedRef.current) {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+        setAuthReady(true);
+        if (session) {
+          handleSessionCreation(session);
+        }
+      }
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
-        console.log(`[AuthContext] onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
+        console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
         if (isMountedRef.current) {
-          // Clear the timeout if an auth event is received
           if (authTimeoutRef.current) {
             clearTimeout(authTimeoutRef.current);
             authTimeoutRef.current = null;
@@ -178,33 +159,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           setSession(currentSession);
           setUser(currentSession?.user || null);
-          setError(null); // Clear any previous errors on auth state change
-          
+          setError(null);
+
           if (currentSession) {
-            await handleSessionCreation(currentSession); // Wait for profile to be fetched and cached
+            await handleSessionCreation(currentSession);
           } else {
-            // Pass the user ID that was *just* logged out, if available from userRef
             await handleSessionDeletion(userRef.current?.id);
           }
 
-          // Move these state updates AFTER handleSessionCreation/Deletion
           setLoading(false);
           setAuthReady(true);
-          console.log(`[AuthContext] onAuthStateChange: Auth state changed. Loading set to false. AuthReady set to true. User: ${currentSession?.user ? 'present' : 'null'}`);
+          console.log(`AuthContext: Auth state changed. Loading set to false. AuthReady set to true. User: ${currentSession?.user ? 'present' : 'null'}`);
         }
       }
     );
 
-    // Cleanup function: unsubscribe when the component unmounts or the effect re-runs
     return () => {
-      console.log('[AuthContext] useEffect: Cleaning up onAuthStateChange listener.');
+      console.log('AuthContext: Cleaning up onAuthStateChange listener.');
       subscription.unsubscribe();
       if (authTimeoutRef.current) {
         clearTimeout(authTimeoutRef.current);
-        authTimeoutRef.current = null;
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion]); // Removed authReady from dependencies
+  }, [handleSessionCreation, handleSessionDeletion]);
 
   const signUp = async (email: string, password: string) => {
     setError(null);
