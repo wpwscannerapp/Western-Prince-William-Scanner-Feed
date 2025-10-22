@@ -4,18 +4,9 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 const HomePage: React.FC = () => {
-  console.log('HomePage: Component rendering.');
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
 
-  // Added useEffect for logging to see state changes over time
-  useEffect(() => {
-    console.log('HomePage useEffect: isAdminLoading changed to', isAdminLoading, 'isAdmin:', isAdmin, 'error:', isAdminError);
-  }, [isAdminLoading, isAdmin, isAdminError]);
-
-  console.log('HomePage: Current isAdminLoading state:', isAdminLoading, 'isAdmin:', isAdmin, 'error:', isAdminError);
-
   if (isAdminError) {
-    console.log('HomePage: Error loading permissions:', isAdminError);
     return (
       <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
         <AlertCircle className="tw-h-12 tw-w-12 tw-text-destructive tw-mb-4" />
@@ -34,9 +25,7 @@ const HomePage: React.FC = () => {
     );
   }
 
-  // Only show loading spinner if it's truly loading and not just a quick re-render
   if (isAdminLoading) {
-    console.log('HomePage: Displaying loading permissions UI.');
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
         <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
@@ -45,8 +34,6 @@ const HomePage: React.FC = () => {
     );
   }
 
-  // If not loading and no error, then render the content
-  console.log('HomePage: Rendering main content.');
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-6xl">
       <div className="tw-grid tw-grid-cols-2 sm:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-6">

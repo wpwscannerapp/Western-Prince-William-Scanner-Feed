@@ -28,63 +28,51 @@ export function useIsAdmin(): UseAdminResult {
     queryKey: ['profile', user?.id],
     queryFn: async () => {
       if (!user || !session) return null;
-      // Ensure profile exists before fetching. This is crucial.
       await ProfileService.ensureProfileExists(user.id, session);
       return ProfileService.fetchProfile(user.id, session);
     },
-    enabled: !!user && authReady,
+    enabled: !!user && authReady, // Only run query if user is present and auth is ready
     staleTime: 1000 * 60 * 5,
     retry: 3,
     retryDelay: 1000,
   });
 
-  // Effect to handle errors from the profile query
-  useEffect(() => {
-    if (isMountedRef.current && isProfileQueryError && profileQueryError) {
-      console.error('useIsAdmin: Profile query error:', profileQueryError);
-      setError(handleError(profileQueryError, 'Failed to load admin role.'));
-      setIsAdmin(false);
-      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
-    } else if (isMountedRef.current && !isProfileQueryError && error) {
-      setError(null);
-    }
-  }, [isProfileQueryError, profileQueryError, queryClient, user?.id, error]);
-
-  // Main effect to determine isAdmin status and overall loading
+  // Effect to determine isAdmin status and handle errors
   useEffect(() => {
     if (!isMountedRef.current) return;
 
-    const currentOverallLoading = authLoading || (authReady && isProfileQueryLoading);
-
-    if (currentOverallLoading) {
-      // If still loading, do not update isAdmin or error states.
-      // This prevents flickering during intermediate loading states.
-      return;
-    }
-
-    // Now that loading is complete (currentOverallLoading is false)
-    if (!user) {
-      setIsAdmin(false);
+    // If authentication is still loading or not ready, defer setting isAdmin/error.
+    if (authLoading || !authReady) {
+      setIsAdmin(false); // Default to false while auth is in progress
       setError(null);
       return;
     }
 
-    if (isProfileQueryError) {
-      // Error already handled by the separate useEffect, just ensure isAdmin is false
+    // Auth is ready. Now evaluate user and profile status.
+    if (!user) {
+      // No user after auth is ready means not logged in.
       setIsAdmin(false);
-      return;
-    }
-
-    if (profile) {
+      setError(null);
+    } else if (isProfileQueryLoading) {
+      // User is logged in, but profile is still being fetched.
+      // Keep isAdmin as false (or its previous value) and no error yet.
+      setIsAdmin(false); 
+      setError(null);
+    } else if (isProfileQueryError) {
+      // User is logged in, but profile fetching failed.
+      setIsAdmin(false);
+      setError(handleError(profileQueryError, 'Failed to load admin role.'));
+      queryClient.invalidateQueries({ queryKey: ['profile', user.id] }); // Invalidate to allow retry
+    } else if (profile) {
+      // User is logged in, profile loaded successfully.
       setIsAdmin(profile.role === 'admin');
-      setError(null); // Clear any previous errors if profile is successfully loaded
+      setError(null);
     } else {
-      // This case should ideally be covered by isProfileQueryError or !user,
-      // but as a fallback, if profile is null after loading, it's not admin.
+      // User is logged in, but profile is null (e.g., not found after ensureProfileExists).
       setIsAdmin(false);
       setError('User profile not found or could not be fetched.');
     }
-  }, [authLoading, authReady, isProfileQueryLoading, user, profile, isProfileQueryError]);
+  }, [authLoading, authReady, user, isProfileQueryLoading, isProfileQueryError, profile, profileQueryError, queryClient]);
 
   const overallLoading = authLoading || (authReady && isProfileQueryLoading);
 
