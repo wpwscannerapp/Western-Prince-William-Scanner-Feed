@@ -36,13 +36,13 @@ export class ProfileService {
         .from('profiles')
         .select('id')
         .eq('id', userId)
-        .abortSignal(controller.signal) // Moved abortSignal here
+        .abortSignal(controller.signal)
         .single();
 
       console.log(`ProfileService: ensureProfileExists - Supabase response for select:`, { data, selectError });
 
       if (selectError) {
-        if (selectError.code === 'PGRST116') {
+        if (selectError.code === 'PGRST116') { // No rows found
           console.log(`ProfileService: No existing profile found for ${userId}. Attempting to insert a default profile.`);
           const { error: insertError } = await supabase
             .from('profiles')
@@ -56,7 +56,7 @@ export class ProfileService {
               username: null,
               updated_at: new Date().toISOString(),
             })
-            .abortSignal(controller.signal);
+            .abortSignal(controller.signal); // <--- ADDED abortSignal HERE
           if (insertError) {
             if (insertError.code === '23505') {
               console.warn(`ProfileService: Profile for ${userId} was created concurrently. Ignoring insert error.`);
@@ -103,8 +103,8 @@ export class ProfileService {
 
     try {
       console.log(`ProfileService: fetchProfile - Ensuring profile exists for ${userId}.`);
-      const profileExists = await ProfileService.ensureProfileExists(userId, session);
-      if (!profileExists) {
+      const profileEnsured = await ProfileService.ensureProfileExists(userId, session);
+      if (!profileEnsured) {
         console.warn(`ProfileService: fetchProfile - Failed to ensure profile for ${userId}. Returning null.`);
         return null;
       }
@@ -114,7 +114,7 @@ export class ProfileService {
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, subscription_status, role, username, updated_at')
         .eq('id', userId)
-        .abortSignal(controller.signal) // Moved abortSignal here
+        .abortSignal(controller.signal)
         .single();
 
       console.log('ProfileService: fetchProfile - Supabase query result:', { data, error });
