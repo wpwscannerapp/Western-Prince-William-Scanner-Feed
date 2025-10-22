@@ -31,6 +31,9 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true, // For debugging
     assetsDir: 'assets', // Ensure assetsDir is set
+    rollupOptions: {
+      external: ['tslib'], // Explicitly externalize tslib
+    },
   },
   optimizeDeps: {
     exclude: [], // No React-related entries
