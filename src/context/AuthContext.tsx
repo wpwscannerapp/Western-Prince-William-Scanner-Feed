@@ -167,19 +167,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(currentSession?.user || null);
           setError(null);
 
+          // Set authReady to true immediately after the initial session check
+          // This signals that the auth system has initialized, even if profile fetching is ongoing.
+          setAuthReady(true); 
+          console.log(`AuthContext: Auth state changed. AuthReady set to true. User: ${currentSession?.user ? 'present' : 'null'}`);
+
           if (currentSession) {
-            // Set loading to true while session creation (including profile fetch) is in progress
-            setLoading(true);
+            setLoading(true); // Set loading true for async session/profile ops
             await handleSessionCreation(currentSession);
           } else {
             setLoading(true); // Set loading true during logout process
             await handleSessionDeletion(userRef.current?.id);
           }
 
-          // After all async operations in handleSessionCreation/Deletion are done
-          setLoading(false);
-          setAuthReady(true);
-          console.log(`AuthContext: Auth state changed. Loading set to false. AuthReady set to true. User: ${currentSession?.user ? 'present' : 'null'}`);
+          setLoading(false); // Clear loading after all async ops
         }
       }
     );
@@ -192,7 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authTimeoutRef.current = null;
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion]); // Removed authReady from dependencies
+  }, [handleSessionCreation, handleSessionDeletion]);
 
   const signUp = async (email: string, password: string) => {
     setError(null);
