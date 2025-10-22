@@ -36,7 +36,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['tslib'], // Explicitly include tslib for pre-bundling
+    // Removed 'tslib' from include to let Vite handle it by default
     exclude: [], // No React-related entries
   },
 });
