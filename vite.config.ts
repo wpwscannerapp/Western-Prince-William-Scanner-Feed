@@ -32,7 +32,8 @@ export default defineConfig({
     sourcemap: true, // For debugging
     assetsDir: 'assets', // Ensure assetsDir is set
     rollupOptions: {
-      external: ['tslib'], // Explicitly externalize tslib
+      // Removed 'tslib' from external to ensure it's bundled
+      external: [], 
     },
   },
   optimizeDeps: {
