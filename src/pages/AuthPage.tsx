@@ -4,12 +4,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { APP_NAME, APP_DESCRIPTION } from '@/lib/constants';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardContent } from '@/components/ui/card';
-// Removed Button import as it's no longer needed for debug buttons
-// Removed resetSession, testDirectRestApiCall imports
+import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin to log its state
 
 const AuthPage = () => {
   const { user, loading, error } = useAuth(); 
-  // Removed handleDirectRestCall as it's no longer needed
+  const { isAdmin, loading: isAdminLoading } = useIsAdmin(); // Get isAdmin status
+
+  // Log isAdmin status on AuthPage for debugging
+  console.log('AuthPage: isAdmin status:', isAdmin, 'isAdminLoading:', isAdminLoading);
 
   if (loading) {
     return (
