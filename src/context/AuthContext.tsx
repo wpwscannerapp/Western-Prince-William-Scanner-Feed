@@ -225,14 +225,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    setLoading(true); // Start loading
+    // Removed: setLoading(true); // <--- THIS LINE WAS REMOVED
     setError(null);
     try {
       const { error: authError } = await supabase.auth.signOut();
       if (authError) {
         if (authError.message.includes('Auth session missing') || authError.message.includes('Invalid session')) {
           console.warn('Supabase signOut: Session already missing or invalid on server. Proceeding with local logout.');
-          // No need to set state here, onAuthStateChange will handle it
           toast.success('Logged out successfully!');
           return { success: true };
         }
@@ -240,13 +239,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: authError };
       }
       toast.success('Logged out successfully!');
-      // No need to set state here, onAuthStateChange will handle it
       return { success: true };
     } catch (e: any) {
       handleError(e, e.message || 'An unexpected error occurred during logout.');
       return { success: false, error: e };
     } finally {
-      // setLoading(false); // Removed: onAuthStateChange will handle the final loading state
+      // setLoading(false); // This was already commented out, which is good.
     }
   };
 
