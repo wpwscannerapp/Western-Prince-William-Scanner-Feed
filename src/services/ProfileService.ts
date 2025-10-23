@@ -56,7 +56,7 @@ export class ProfileService {
               username: null,
               updated_at: new Date().toISOString(),
             })
-            .abortSignal(controller.signal); // <--- ADDED abortSignal HERE
+            .abortSignal(controller.signal);
           if (insertError) {
             if (insertError.code === '23505') {
               console.warn(`ProfileService: Profile for ${userId} was created concurrently. Ignoring insert error.`);
@@ -108,6 +108,7 @@ export class ProfileService {
         console.warn(`ProfileService: fetchProfile - Failed to ensure profile for ${userId}. Returning null.`);
         return null;
       }
+      console.log(`ProfileService: fetchProfile - Profile existence ensured for ${userId}.`);
 
       console.log(`ProfileService: fetchProfile - Attempting Supabase select for profile ${userId}.`);
       const { data, error } = await supabase
@@ -124,7 +125,7 @@ export class ProfileService {
         throw error;
       }
       if (!data) {
-        console.log(`ProfileService: fetchProfile - No profile found for ${userId}.`);
+        console.log(`ProfileService: fetchProfile - No profile data returned for ${userId} after successful ensure. This is unexpected.`);
         return null;
       }
       console.log(`ProfileService: fetchProfile - Profile data found:`, data);
