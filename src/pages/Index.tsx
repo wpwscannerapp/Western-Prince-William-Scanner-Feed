@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { SPLASH_DURATION } from '@/config';
 
 const Index: React.FC = () => {
-  const { user, authReady } = useAuth(); // Removed authLoading as it's covered by authReady
+  const { user, authReady, loading: authLoading } = useAuth(); // Get authLoading
   const [minimumSplashDurationPassed, setMinimumSplashDurationPassed] = useState(false);
   const navigate = useNavigate();
 
@@ -24,10 +24,10 @@ const Index: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    console.log('Index: Navigation check -', { minimumSplashDurationPassed, authReady, user });
+    console.log('Index: Navigation check -', { minimumSplashDurationPassed, authReady, authLoading, user }); // Log authLoading
 
-    // Only navigate if both minimum splash duration has passed AND auth is ready
-    if (minimumSplashDurationPassed && authReady) {
+    // Only navigate if both minimum splash duration has passed AND auth is ready AND auth is NOT loading
+    if (minimumSplashDurationPassed && authReady && !authLoading) { // Add !authLoading here
       if (user) {
         console.log('Index: Navigating to /home (user authenticated).');
         navigate('/home', { replace: true });
@@ -36,12 +36,12 @@ const Index: React.FC = () => {
         navigate('/auth', { replace: true });
       }
     } else {
-      console.log('Index: Waiting for minimum splash duration or AuthProvider to initialize.');
+      console.log('Index: Waiting for minimum splash duration, AuthProvider to initialize, or AuthProvider to finish loading.');
     }
-  }, [minimumSplashDurationPassed, authReady, user, navigate]);
+  }, [minimumSplashDurationPassed, authReady, authLoading, user, navigate]); // Add authLoading to deps
 
-  // Render splash if either minimum duration hasn't passed OR auth is not ready
-  if (!minimumSplashDurationPassed || !authReady) {
+  // Render splash if either minimum duration hasn't passed OR auth is not ready OR auth is loading
+  if (!minimumSplashDurationPassed || !authReady || authLoading) { // Add authLoading here
     console.log('Index: Showing splash screen.');
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-primary/20 tw-to-background tw-animate-fade-in" aria-label="Loading application">
