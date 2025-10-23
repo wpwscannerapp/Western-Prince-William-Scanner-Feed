@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
 import { useAuth } from '@/context/AuthContext';
 import { SPLASH_DURATION } from '@/config';
 
 const Index: React.FC = () => {
-  const { user, authReady, loading: authLoading } = useAuth(); // Get authLoading
+  const { user, authReady, loading: authLoading } = useAuth();
   const [minimumSplashDurationPassed, setMinimumSplashDurationPassed] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation(); // Initialize useLocation
 
   useEffect(() => {
     const splashDuration = SPLASH_DURATION || 3000; // Default if undefined or 0
@@ -24,24 +25,24 @@ const Index: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    console.log('Index: Navigation check -', { minimumSplashDurationPassed, authReady, authLoading, user }); // Log authLoading
+    console.log('Index: Navigation check -', { minimumSplashDurationPassed, authReady, authLoading, user: user ? 'present' : 'null', currentPath: location.pathname }); // Added currentPath
 
     // Only navigate if both minimum splash duration has passed AND auth is ready AND auth is NOT loading
-    if (minimumSplashDurationPassed && authReady && !authLoading) { // Add !authLoading here
+    if (minimumSplashDurationPassed && authReady && !authLoading) {
       if (user) {
-        console.log('Index: Navigating to /home (user authenticated).');
+        console.log('Index: Navigating to /home (user authenticated) from', location.pathname); // Added from path
         navigate('/home', { replace: true });
       } else {
-        console.log('Index: Navigating to /auth (no user).');
+        console.log('Index: Navigating to /auth (no user) from', location.pathname); // Added from path
         navigate('/auth', { replace: true });
       }
     } else {
-      console.log('Index: Waiting for minimum splash duration, AuthProvider to initialize, or AuthProvider to finish loading.');
+      console.log('Index: Waiting for minimum splash duration, AuthProvider to initialize, or AuthProvider to finish loading. Current path:', location.pathname); // Added currentPath
     }
-  }, [minimumSplashDurationPassed, authReady, authLoading, user, navigate]); // Add authLoading to deps
+  }, [minimumSplashDurationPassed, authReady, authLoading, user, navigate, location.pathname]); // Added location.pathname to deps
 
   // Render splash if either minimum duration hasn't passed OR auth is not ready OR auth is loading
-  if (!minimumSplashDurationPassed || !authReady || authLoading) { // Add authLoading here
+  if (!minimumSplashDurationPassed || !authReady || authLoading) {
     console.log('Index: Showing splash screen.');
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-primary/20 tw-to-background tw-animate-fade-in" aria-label="Loading application">
