@@ -4,23 +4,24 @@ import { useAuth } from '@/hooks/useAuth';
 import { APP_NAME, APP_DESCRIPTION } from '@/lib/constants';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardContent } from '@/components/ui/card';
-import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin to log its state
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react'; // Import useEffect
 
 const AuthPage = () => {
   const { user, loading, error } = useAuth(); 
-  const { isAdmin, loading: isAdminLoading } = useIsAdmin(); // Get isAdmin status
-  const navigate = useNavigate(); // Initialize useNavigate
+  const { isAdmin, loading: isAdminLoading } = useIsAdmin();
+  const navigate = useNavigate();
 
-  // Log isAdmin status on AuthPage for debugging
   console.log('AuthPage: isAdmin status:', isAdmin, 'isAdminLoading:', isAdminLoading);
 
-  // Redirect if user is already authenticated and not currently loading auth state
-  if (!loading && user) {
-    console.log('AuthPage: User already authenticated, redirecting to /home.');
-    navigate('/home', { replace: true });
-    return null; // Don't render anything while redirecting
-  }
+  // Use useEffect to handle navigation after render
+  useEffect(() => {
+    if (!loading && user) {
+      console.log('AuthPage: User already authenticated, redirecting to /home.');
+      navigate('/home', { replace: true });
+    }
+  }, [user, loading, navigate]); // Dependencies for the effect
 
   if (loading) {
     return (
@@ -39,6 +40,12 @@ const AuthPage = () => {
         </div>
       </div>
     );
+  }
+
+  // If user is authenticated, this component will render briefly before the useEffect triggers navigation.
+  // We can return null here to prevent rendering the form if navigation is imminent.
+  if (user) {
+    return null;
   }
 
   return (
@@ -65,7 +72,6 @@ const AuthPage = () => {
           </div>
         )}
       </div>
-      {/* Removed Debug Buttons */}
       <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
     </div>
   );
