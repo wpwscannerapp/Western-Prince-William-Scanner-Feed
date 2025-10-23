@@ -1,27 +1,26 @@
-import { useEffect } from 'react'; // Import useEffect
 import AuthForm from '@/components/AuthForm';
 import TeaserPost from '@/components/TeaserPost';
 import { useAuth } from '@/hooks/useAuth';
 import { APP_NAME, APP_DESCRIPTION } from '@/lib/constants';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardContent } from '@/components/ui/card';
-import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { useNavigate } from 'react-router-dom';
+import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin to log its state
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const AuthPage = () => {
   const { user, loading, error } = useAuth(); 
-  const { isAdmin, loading: isAdminLoading } = useIsAdmin();
-  const navigate = useNavigate();
+  const { isAdmin, loading: isAdminLoading } = useIsAdmin(); // Get isAdmin status
+  const navigate = useNavigate(); // Initialize useNavigate
 
+  // Log isAdmin status on AuthPage for debugging
   console.log('AuthPage: isAdmin status:', isAdmin, 'isAdminLoading:', isAdminLoading);
 
-  // Move the redirect logic into a useEffect hook
-  useEffect(() => {
-    if (!loading && user) {
-      console.log('AuthPage: User already authenticated, redirecting to /home.');
-      navigate('/home', { replace: true });
-    }
-  }, [user, loading, navigate]); // Depend on user and loading to re-run when they change
+  // Redirect if user is already authenticated and not currently loading auth state
+  if (!loading && user) {
+    console.log('AuthPage: User already authenticated, redirecting to /home.');
+    navigate('/home', { replace: true });
+    return null; // Don't render anything while redirecting
+  }
 
   if (loading) {
     return (
@@ -66,6 +65,7 @@ const AuthPage = () => {
           </div>
         )}
       </div>
+      {/* Removed Debug Buttons */}
       <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
     </div>
   );
