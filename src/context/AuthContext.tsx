@@ -158,6 +158,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log(`AuthContext: AuthReady set to true after first onAuthStateChange.`);
           }
 
+          // --- IMMEDIATE LOADING STATE UPDATE FOR LOGOUT/INITIAL_SESSION (null) ---
+          // If the session is null (signed out or initial session with no user),
+          // we can immediately set loading to false to prevent the splash screen from hanging.
+          if (!currentSession) {
+            console.log('AuthContext: Session is null, immediately setting loading to false.');
+            setLoading(false);
+          }
+          // --- END IMMEDIATE LOADING STATE UPDATE ---
+
           try {
             // Handle session creation/deletion in the background
             if (currentSession) {
@@ -174,8 +183,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Errors from handleSessionCreation are already handled internally and should not
             // set the global AuthContext error state here, as it would affect the AuthPage's error display.
           } finally {
-            console.log('AuthContext: Setting main loading state to false.');
-            setLoading(false);
+            // Only set loading to false here if it's a SIGNED_IN event,
+            // otherwise it was already set above for SIGNED_OUT/INITIAL_SESSION (null).
+            if (currentSession) { // If there's a session, it means we just signed in or refreshed
+              console.log('AuthContext: Setting main loading state to false after session creation.');
+              setLoading(false);
+            }
             console.log('AuthContext: Main loading state is now false.');
           }
         }
@@ -225,7 +238,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    // Removed: setLoading(true); // <--- THIS LINE WAS REMOVED
     setError(null);
     try {
       const { error: authError } = await supabase.auth.signOut();
@@ -244,7 +256,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       handleError(e, e.message || 'An unexpected error occurred during logout.');
       return { success: false, error: e };
     } finally {
-      // setLoading(false); // This was already commented out, which is good.
+      // The onAuthStateChange listener will handle setting loading to false.
     }
   };
 
