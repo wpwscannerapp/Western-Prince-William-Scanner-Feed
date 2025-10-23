@@ -145,18 +145,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('AuthContext: Setting up onAuthStateChange listener.');
 
-    // Set authReady to true immediately after setting up the listener
-    // This indicates that the AuthProvider has finished its initial setup phase
-    // and is now ready to provide auth state, even if it's 'no user'.
-    // The 'loading' state will handle ongoing async operations.
-    setAuthReady(true); 
-    console.log(`AuthContext: AuthReady set to true synchronously.`);
-
+    // This timeout is for the *very first* auth check.
     authTimeoutRef.current = setTimeout(() => {
-      if (isMountedRef.current && !authReady) { // This condition will now likely be false if onAuthStateChange fires quickly
-        console.warn(`AuthContext: Auth initialization timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms. Forcing authReady to true.`);
-        setAuthReady(true); // Redundant if already true, but safe
-        setLoading(false);
+      if (isMountedRef.current && !authReady) { // Check !authReady here
+        console.warn(`AuthContext: Auth initialization timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms. Forcing authReady to true and loading to false.`);
+        setAuthReady(true);
+        setLoading(false); // Ensure loading is false on timeout
         setError(new AuthError('Authentication initialization timed out.'));
       }
     }, AUTH_INITIALIZATION_TIMEOUT);
@@ -174,18 +168,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(currentSession?.user || null);
           setError(null);
 
-          // authReady is already set to true above, no need to set it again here.
-          // This ensures authReady is true as soon as the listener is active.
-
-          if (currentSession) {
-            setLoading(true); // Set loading true for async session/profile ops
-            await handleSessionCreation(currentSession);
-          } else {
-            setLoading(true); // Set loading true during logout process
-            await handleSessionDeletion(userRef.current?.id);
+          // Set authReady to true once the first auth state is received and processed
+          if (!authReady) { // Only set if not already true
+            setAuthReady(true);
+            console.log(`AuthContext: AuthReady set to true after first onAuthStateChange.`);
           }
 
-          setLoading(false); // Clear loading after all async ops
+          // Handle session creation/deletion in the background
+          if (currentSession) {
+            console.log('AuthContext: Starting async session/profile handling...');
+            await handleSessionCreation(currentSession);
+            console.log('AuthContext: Async session/profile handling complete.');
+          } else {
+            console.log('AuthContext: Starting async session deletion handling...');
+            await handleSessionDeletion(userRef.current?.id);
+            console.log('AuthContext: Async session deletion handling complete.');
+          }
+
+          console.log('AuthContext: Setting main loading state to false.');
+          setLoading(false);
+          console.log('AuthContext: Main loading state is now false.');
         }
       }
     );
@@ -198,31 +200,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authTimeoutRef.current = null;
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion]);
+  }, [authReady, handleSessionCreation, handleSessionDeletion]); // Keep authReady in deps
 
   const signUp = async (email: string, password: string) => {
+    setLoading(true); // Start loading
     setError(null);
-    const { data, error: authError } = await supabase.auth.signUp({ email, password });
-    if (authError) {
-      handleError(authError, authError.message);
-      return { error: authError };
+    try {
+      const { data, error: authError } = await supabase.auth.signUp({ email, password });
+      if (authError) {
+        handleError(authError, authError.message);
+        return { error: authError };
+      }
+      toast.success('Signup successful! Please check your email to confirm your account.');
+      return { data };
+    } finally {
+      setLoading(false); // End loading
     }
-    toast.success('Signup successful! Please check your email to confirm your account.');
-    return { data };
   };
 
   const signIn = async (email: string, password: string) => {
+    setLoading(true); // Start loading
     setError(null);
-    const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-    if (authError) {
-      handleError(authError, authError.message);
-      return { error: authError };
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      if (authError) {
+        handleError(authError, authError.message);
+        return { error: authError };
+      }
+      toast.success('Logged in successfully!');
+      return { data };
+    } finally {
+      setLoading(false); // End loading
     }
-    toast.success('Logged in successfully!');
-    return { data };
   };
 
   const signOut = async () => {
+    setLoading(true); // Start loading
     setError(null);
     try {
       const { error: authError } = await supabase.auth.signOut();
@@ -232,7 +245,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           toast.success('Logged out successfully!');
           setSession(null);
           setUser(null);
-          setLoading(false);
           setAuthReady(true);
           await handleSessionDeletion(userRef.current?.id);
           queryClient.invalidateQueries({ queryKey: ['profile'] });
@@ -244,7 +256,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.success('Logged out successfully!');
       setSession(null);
       setUser(null);
-      setLoading(false);
       setAuthReady(true);
       await handleSessionDeletion(userRef.current?.id);
       queryClient.invalidateQueries({ queryKey: ['profile'] });
@@ -252,6 +263,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e: any) {
       handleError(e, e.message || 'An unexpected error occurred during logout.');
       return { success: false, error: e };
+    } finally {
+      setLoading(false); // End loading
     }
   };
 
