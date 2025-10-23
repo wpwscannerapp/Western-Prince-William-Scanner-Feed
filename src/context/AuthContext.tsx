@@ -172,7 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } catch (e: any) {
             console.error('AuthContext: Error during session/profile handling in onAuthStateChange:', e);
             // Errors from handleSessionCreation are already handled internally and should not
-            // set the global AuthContext error state here.
+            // set the global AuthContext error state here, as it would affect the AuthPage's error display.
           } finally {
             console.log('AuthContext: Setting main loading state to false.');
             setLoading(false);
@@ -232,29 +232,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (authError) {
         if (authError.message.includes('Auth session missing') || authError.message.includes('Invalid session')) {
           console.warn('Supabase signOut: Session already missing or invalid on server. Proceeding with local logout.');
+          // No need to set state here, onAuthStateChange will handle it
           toast.success('Logged out successfully!');
-          setSession(null);
-          setUser(null);
-          setAuthReady(true);
-          await handleSessionDeletion(userRef.current?.id);
-          queryClient.invalidateQueries({ queryKey: ['profile'] });
           return { success: true };
         }
         handleError(authError, authError.message);
         return { success: false, error: authError };
       }
       toast.success('Logged out successfully!');
-      setSession(null);
-      setUser(null);
-      setAuthReady(true);
-      await handleSessionDeletion(userRef.current?.id);
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      // No need to set state here, onAuthStateChange will handle it
       return { success: true };
     } catch (e: any) {
       handleError(e, e.message || 'An unexpected error occurred during logout.');
       return { success: false, error: e };
     } finally {
-      setLoading(false); // End loading
+      // setLoading(false); // Removed: onAuthStateChange will handle the final loading state
     }
   };
 

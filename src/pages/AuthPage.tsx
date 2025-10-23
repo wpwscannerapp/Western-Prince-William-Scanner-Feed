@@ -5,13 +5,22 @@ import { APP_NAME, APP_DESCRIPTION } from '@/lib/constants';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardContent } from '@/components/ui/card';
 import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin to log its state
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const AuthPage = () => {
   const { user, loading, error } = useAuth(); 
   const { isAdmin, loading: isAdminLoading } = useIsAdmin(); // Get isAdmin status
+  const navigate = useNavigate(); // Initialize useNavigate
 
   // Log isAdmin status on AuthPage for debugging
   console.log('AuthPage: isAdmin status:', isAdmin, 'isAdminLoading:', isAdminLoading);
+
+  // Redirect if user is already authenticated and not currently loading auth state
+  if (!loading && user) {
+    console.log('AuthPage: User already authenticated, redirecting to /home.');
+    navigate('/home', { replace: true });
+    return null; // Don't render anything while redirecting
+  }
 
   if (loading) {
     return (
