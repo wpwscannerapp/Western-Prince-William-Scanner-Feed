@@ -11,6 +11,10 @@ const queryClient = new QueryClient();
 
 const App = () => {
   console.log('App.tsx: Rendering AuthProvider.'); // Added for debugging
+  // TEMPORARY: Clear local storage to force a fresh login state for debugging
+  localStorage.clear(); 
+  console.log('App.tsx: localStorage cleared for debugging purposes.');
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
