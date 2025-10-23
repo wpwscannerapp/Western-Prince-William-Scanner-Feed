@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SessionService } from '@/services/SessionService';
 import { MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT } from '@/config';
-import { ProfileService } from '@/services/ProfileService';
+import { ProfileService, Profile } from '@/services/ProfileService'; // Import Profile type
 import { handleError as globalHandleError } from '@/utils/errorHandler';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -65,16 +65,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AuthContext: User ID for session creation:', currentSession.user.id);
     console.log('AuthContext: Access Token present:', !!currentSession.access_token);
 
+    let fetchedProfile: Profile | null = null; // Declare a variable to hold the fetched profile
+
     try {
       const profileEnsured = await ProfileService.ensureProfileExists(currentSession.user.id, currentSession);
       if (!profileEnsured) {
         console.error('AuthContext: Failed to ensure profile exists for user. Aborting session creation and further profile fetching.');
         return;
       }
-      const profile = await ProfileService.fetchProfile(currentSession.user.id, currentSession);
-      if (profile) {
-        queryClient.setQueryData(['profile', currentSession.user.id], profile);
-        console.log('AuthContext: Profile data set in cache:', profile);
+      
+      // Fetch the profile immediately after ensuring it exists
+      fetchedProfile = await ProfileService.fetchProfile(currentSession.user.id, currentSession);
+      if (fetchedProfile) {
+        queryClient.setQueryData(['profile', currentSession.user.id], fetchedProfile);
+        console.log('AuthContext: Profile data set in cache:', fetchedProfile);
       } else {
         console.warn('AuthContext: Failed to fetch profile after ensuring existence.');
       }
@@ -101,9 +105,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const profile = await ProfileService.fetchProfile(currentSession.user.id, currentSession);
-      const isCurrentUserAdmin = profile?.role === 'admin';
-      console.log('AuthContext: User role:', profile?.role);
+      // Use the profile already fetched and cached, or fetch if somehow not available
+      // This avoids a redundant network request if fetchedProfile is already populated
+      const profileForAdminCheck = fetchedProfile || await ProfileService.fetchProfile(currentSession.user.id, currentSession);
+      const isCurrentUserAdmin = profileForAdminCheck?.role === 'admin';
+      console.log('AuthContext: User role:', profileForAdminCheck?.role);
 
       if (!isCurrentUserAdmin) {
         console.log('AuthContext: User is not admin, checking concurrent sessions.');
