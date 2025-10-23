@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { ProfileService } from '@/services/ProfileService';
 import { handleError } from '@/utils/errorHandler';
@@ -14,7 +14,6 @@ interface UseAdminResult {
 
 export function useIsAdmin(): UseAdminResult {
   const { user, loading: authLoading, authReady, session } = useAuth();
-  const queryClient = useQueryClient();
   const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
@@ -27,13 +26,9 @@ export function useIsAdmin(): UseAdminResult {
     };
   }, []);
 
-  // Determine if on the auth page
   const isOnAuthPage = location.pathname === '/auth';
-
-  // Only enable the query if user is present, auth is ready, AND not on the /auth path
   const queryEnabled = !!user && authReady && !isOnAuthPage;
   
-  // Log for debugging purposes to understand when the query is enabled/disabled
   console.log('useIsAdmin: Query enabled status:', queryEnabled, { userId: user?.id, authReady, pathname: location.pathname, isOnAuthPage });
 
   const { data: profile, isLoading: isProfileQueryLoading, isError: isProfileQueryError, error: profileQueryError } = useQuery<Profile | null, Error>({
@@ -44,10 +39,11 @@ export function useIsAdmin(): UseAdminResult {
         console.warn('useIsAdmin: QueryFn - No user or session, returning null.');
         return null;
       }
+      // ensureProfileExists is called here, which should guarantee a profile exists for an authenticated user
       await ProfileService.ensureProfileExists(user.id, session);
       return ProfileService.fetchProfile(user.id, session);
     },
-    enabled: queryEnabled, // Use the new enabled condition
+    enabled: queryEnabled,
     staleTime: 1000 * 60 * 5,
     retry: 3,
     retryDelay: 1000,
@@ -61,7 +57,7 @@ export function useIsAdmin(): UseAdminResult {
       authReady,
       isProfileQueryLoading,
       userId: user?.id,
-      profile,
+      profile: profile ? 'present' : 'null', // Log presence, not full object
       isProfileQueryError,
       profileQueryError,
       queryEnabled,
@@ -69,9 +65,8 @@ export function useIsAdmin(): UseAdminResult {
     });
 
     // If on the auth page, or auth is not ready/still loading, ensure isAdmin is false and no error.
-    // This ensures the hook is inert on the auth screen.
     if (isOnAuthPage || !authReady || authLoading) {
-      if (isAdmin || error) { // Only update state if it's not already the desired default
+      if (isAdmin || error) {
         console.log('useIsAdmin: Resetting isAdmin state for auth page or initial loading.');
         setIsAdmin(false);
         setError(null);
@@ -89,31 +84,28 @@ export function useIsAdmin(): UseAdminResult {
       return;
     }
 
+    // Handle query errors
     if (isProfileQueryError) {
-      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
       setError(handleError(profileQueryError, 'Failed to load admin role.'));
       setIsAdmin(false);
       return;
     }
 
-    if (!user) { // Should be covered by !queryEnabled, but as a safeguard
-      setIsAdmin(false);
-      setError(null);
-      return;
+    // Once profile query is not loading and no error, determine admin status
+    if (!isProfileQueryLoading) {
+      if (profile && profile.role) {
+        console.log('useIsAdmin: Profile data available, role:', profile.role);
+        setIsAdmin(profile.role === 'admin');
+        setError(null);
+      } else {
+        // This case should ideally not happen for an authenticated user due to ensureProfileExists
+        console.warn('useIsAdmin: Profile data is missing or role is undefined after query completed.');
+        setIsAdmin(false);
+        setError('User profile data incomplete.');
+      }
     }
-
-    // Check if profile exists and has a role property
-    if (profile && profile.role) {
-      console.log('useIsAdmin: Profile found, role:', profile.role);
-      setIsAdmin(profile.role === 'admin');
-      setError(null);
-    } else {
-      console.log('useIsAdmin: Profile is null or role is missing.');
-      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
-      setIsAdmin(false);
-      setError('User profile not found or role is missing.');
-    }
-  }, [authReady, isProfileQueryLoading, isProfileQueryError, profileQueryError, profile, user, queryClient, authLoading, queryEnabled, session, isOnAuthPage, isAdmin, error]);
+    // If isProfileQueryLoading is true, we are still waiting for data, so don't update isAdmin/error yet.
+  }, [authReady, isProfileQueryLoading, isProfileQueryError, profileQueryError, profile, user, authLoading, queryEnabled, session, isOnAuthPage, isAdmin, error]);
 
   const overallLoading = authLoading || (authReady && isProfileQueryLoading);
 
