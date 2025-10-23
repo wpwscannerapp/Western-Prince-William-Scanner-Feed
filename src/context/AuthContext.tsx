@@ -82,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       console.error('AuthContext: Error during ensureProfileExists/fetchProfile:', (err as Error).message);
       handleError(err, 'Failed to ensure user profile exists or fetch it.');
-      return;
+      throw err; // Re-throw to be caught by the outer try-catch in onAuthStateChange
     }
 
     let currentSessionId = localStorage.getItem('wpw_session_id');
@@ -119,6 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       console.error('AuthContext: Error during session management:', (err as Error).message);
       handleError(err, 'Failed to manage user session.');
+      throw err; // Re-throw to be caught by the outer try-catch in onAuthStateChange
     }
     console.log('AuthContext: handleSessionCreation finished.');
   }, [queryClient]);
@@ -174,20 +175,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log(`AuthContext: AuthReady set to true after first onAuthStateChange.`);
           }
 
-          // Handle session creation/deletion in the background
-          if (currentSession) {
-            console.log('AuthContext: Starting async session/profile handling...');
-            await handleSessionCreation(currentSession);
-            console.log('AuthContext: Async session/profile handling complete.');
-          } else {
-            console.log('AuthContext: Starting async session deletion handling...');
-            await handleSessionDeletion(userRef.current?.id);
-            console.log('AuthContext: Async session deletion handling complete.');
+          try { // ADDED TRY BLOCK HERE
+            // Handle session creation/deletion in the background
+            if (currentSession) {
+              console.log('AuthContext: Starting async session/profile handling...');
+              await handleSessionCreation(currentSession);
+              console.log('AuthContext: Async session/profile handling complete.');
+            } else {
+              console.log('AuthContext: Starting async session deletion handling...');
+              await handleSessionDeletion(userRef.current?.id);
+              console.log('AuthContext: Async session deletion handling complete.');
+            }
+          } catch (e: any) { // CATCH ANY ERRORS FROM SESSION HANDLING
+            console.error('AuthContext: Error during session/profile handling in onAuthStateChange:', e);
+            handleError(e, 'An error occurred during session initialization.');
+          } finally { // ENSURE LOADING IS ALWAYS SET TO FALSE
+            console.log('AuthContext: Setting main loading state to false.');
+            setLoading(false);
+            console.log('AuthContext: Main loading state is now false.');
           }
-
-          console.log('AuthContext: Setting main loading state to false.');
-          setLoading(false);
-          console.log('AuthContext: Main loading state is now false.');
         }
       }
     );
@@ -200,7 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authTimeoutRef.current = null;
       }
     };
-  }, [authReady, handleSessionCreation, handleSessionDeletion]); // Keep authReady in deps
+  }, [authReady, handleSessionCreation, handleSessionDeletion]);
 
   const signUp = async (email: string, password: string) => {
     setLoading(true); // Start loading
