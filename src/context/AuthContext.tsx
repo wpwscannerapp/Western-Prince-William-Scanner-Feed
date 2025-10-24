@@ -173,13 +173,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log(`AuthContext: AuthReady set to true after first onAuthStateChange.`);
           }
 
-          // --- IMMEDIATE LOADING STATE UPDATE ---
-          // Set loading to false immediately based on session presence.
-          // Background tasks (handleSessionCreation/Deletion) should not block this.
-          console.log('AuthContext: Immediately setting main loading state to false based on session presence.');
-          setLoading(false);
-          // --- END IMMEDIATE LOADING STATE UPDATE ---
-
           // Correctly set isExplicitlySignedIn for restored sessions and explicit sign-ins
           if (_event === 'SIGNED_IN' && currentSession) {
             setIsExplicitlySignedIn(true); // Session restored or explicitly signed in
@@ -211,7 +204,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Errors from handleSessionCreation are already handled internally and should not
             // set the global AuthContext error state here, as it would affect the AuthPage's error display.
           } finally {
-            // No need to set loading here anymore, it's handled above.
+            // Set loading to false ONLY after all async session/profile handling is complete
+            console.log('AuthContext: Setting main loading state to false after all async operations.');
+            setLoading(false);
             console.log('AuthContext: Main onAuthStateChange handler finished.');
           }
         }
