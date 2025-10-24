@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wpw-scanner-feed-v9'; // Increment cache version again for new strategy
+const CACHE_NAME = 'wpw-scanner-feed-v10'; // Increment cache version again for new strategy
 const FILES_TO_CACHE = [
   '/Logo.png', // Pre-cache logo
   '/manifest.json',
