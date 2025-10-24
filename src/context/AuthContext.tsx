@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SessionService } from '@/services/SessionService';
 import { MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT } from '@/config';
-import { ProfileService } from '@/services/ProfileService';
+import { ProfileService } from '@/services/ProfileService'; // Corrected import syntax
 import { handleError as globalHandleError } from '@/utils/errorHandler';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -180,22 +180,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLoading(false);
           // --- END IMMEDIATE LOADING STATE UPDATE ---
 
-          // Correctly set isExplicitlySignedIn for restored sessions
-          if (_event === 'INITIAL_SESSION' && currentSession) {
-            setIsExplicitlySignedIn(true); // Session restored, consider it explicitly signed in for navigation
-            console.log(`AuthContext: Event INITIAL_SESSION with session, isExplicitlySignedIn set to true.`);
+          // Correctly set isExplicitlySignedIn for restored sessions and explicit sign-ins
+          if (_event === 'SIGNED_IN' && currentSession) {
+            setIsExplicitlySignedIn(true); // Session restored or explicitly signed in
+            console.log(`AuthContext: Event SIGNED_IN with session, isExplicitlySignedIn set to true.`);
           } else if (_event === 'SIGNED_OUT') {
             setIsExplicitlySignedIn(false);
             console.log(`AuthContext: Event SIGNED_OUT, isExplicitlySignedIn set to false.`);
-          } else if (_event === 'SIGNED_IN') {
-            // This is handled by the signIn function itself, but as a fallback/confirmation
-            // we can ensure it's true here if it's a SIGNED_IN event.
-            // However, the signIn function is the primary setter for explicit sign-in.
-            // We should NOT set it to true here, as it would override the explicit flag.
-            // The signIn function is the only place that should set it to true.
-            console.log(`AuthContext: Event SIGNED_IN, isExplicitlySignedIn remains as set by signIn function.`);
           } else {
-            // For other events like PASSWORD_RECOVERY, TOKEN_REFRSHED, USER_UPDATED,
+            // For other events like INITIAL_SESSION, PASSWORD_RECOVERY, TOKEN_REFRSHED, USER_UPDATED,
             // we should not change isExplicitlySignedIn. It should retain its value
             // from the last explicit sign-in or initial session check.
             console.log(`AuthContext: Event ${_event}, isExplicitlySignedIn state unchanged.`);
