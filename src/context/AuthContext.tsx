@@ -169,9 +169,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           // Reset isExplicitlySignedIn for any non-SIGNED_IN event or if session is null
           // For INITIAL_SESSION, it should always be false.
-          if (_event === 'INITIAL_SESSION') {
+          if (_event === 'INITIAL_SESSION' || _event === 'SIGNED_OUT') {
             setIsExplicitlySignedIn(false);
-            console.log(`AuthContext: Event INITIAL_SESSION, isExplicitlySignedIn set to false.`);
+            console.log(`AuthContext: Event ${_event}, isExplicitlySignedIn set to false.`);
           } else if (_event === 'SIGNED_IN') {
             // This is handled by the signIn function itself, but as a fallback/confirmation
             // we can ensure it's true here if it's a SIGNED_IN event.
@@ -179,9 +179,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // We should NOT set it to true here, as it would override the explicit flag.
             // The signIn function is the only place that should set it to true.
             console.log(`AuthContext: Event SIGNED_IN, isExplicitlySignedIn remains as set by signIn function.`);
-          } else if (_event === 'SIGNED_OUT') {
-            setIsExplicitlySignedIn(false);
-            console.log(`AuthContext: Event SIGNED_OUT, isExplicitlySignedIn set to false.`);
           } else {
             // For other events like PASSWORD_RECOVERY, TOKEN_REFRESHED, USER_UPDATED,
             // we should not change isExplicitlySignedIn. It should retain its value
