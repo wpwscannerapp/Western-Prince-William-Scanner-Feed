@@ -6,22 +6,21 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import * as VisuallyHidden from '@radix-ui/react-visually-hidden'; // Import VisuallyHidden
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 
 interface MobileNavProps {
   onLinkClick?: () => void;
 }
 
 const MobileNav: React.FC<MobileNavProps> = ({ onLinkClick }) => {
-  // All hooks called unconditionally at top
   const [isOpen, setIsOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
-  const { isAdmin } = useIsAdmin(); // Call useIsAdmin unconditionally
+  const { isAdmin } = useIsAdmin();
   const location = useLocation();
 
   const handleSignOut = async () => {
     await signOut();
-    onLinkClick?.(); // Close sheet after sign out
+    onLinkClick?.();
   };
 
   const navItems = [
@@ -29,7 +28,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ onLinkClick }) => {
     { name: 'Profile', icon: User, path: '/profile', requiresAuth: true },
     { name: 'Admin', icon: Shield, path: '/admin', requiresAuth: true, adminOnly: true },
     { name: 'Subscribe', icon: CreditCard, path: '/subscribe', requiresAuth: false, showWhenLoggedOut: true },
-    { name: 'Login', icon: LogIn, path: '/auth', requiresAuth: false, showWhenLoggedOut: true },
+    { name: 'Login / Sign Up', icon: LogIn, path: '/auth', requiresAuth: false, showWhenLoggedOut: true }, // Updated link
   ];
 
   return (
@@ -64,7 +63,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ onLinkClick }) => {
           {!loading && user ? (
             <>
               {navItems.filter(item => item.requiresAuth).map((item) => (
-                (item.adminOnly && !isAdmin) ? null : ( // Conditional rendering based on isAdmin
+                (item.adminOnly && !isAdmin) ? null : (
                   <NavLink
                     key={item.name}
                     to={item.path}

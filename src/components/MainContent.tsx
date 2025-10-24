@@ -7,46 +7,44 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import HomePage from '@/pages/HomePage';
 import IncidentsPage from '@/pages/IncidentsPage';
-// import TrafficPage from '@/pages/TrafficPage'; // Removed TrafficPage import
 import ProfilePage from '@/pages/ProfilePage';
 import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
 import ContactUsPage from '@/pages/ContactUsPage';
 import IncidentArchivePage from '@/pages/IncidentArchivePage';
-import AuthPage from '@/pages/AuthPage';
+import AuthPage from '@/pages/AuthPage'; // The new Auth landing page
+import LoginPage from '@/pages/LoginPage'; // New Login Page
+import SignupPage from '@/pages/SignupPage'; // New Signup Page
 import SubscriptionPage from '@/pages/SubscriptionPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import TermsOfServicePage from '@/pages/TermsOfServicePage';
 import NotFound from '@/pages/NotFound';
 import { Button } from '@/components/ui/button';
-import Index from '@/pages/Index'; // Import Index for the root route
+import Index from '@/pages/Index';
 
 const MainContent: React.FC = () => {
-  // The useAuth hook is still called, but its destructured values are no longer used directly in MainContent.
-  // The AuthProvider in App.tsx manages the global auth state.
   useAuth(); 
-  useAppSettings(); // Apply app settings here
+  useAppSettings();
 
   return (
     <>
       <TopNavBar />
       <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
         <Routes>
-          {/* The root path will now be the Index component */}
           <Route path="/" element={<Index />} /> 
 
-          {/* Public routes that don't require authentication */}
-          <Route path="/auth" element={<AuthPage />} />
+          {/* Public routes for authentication and related pages */}
+          <Route path="/auth" element={<AuthPage />} /> {/* Auth landing page */}
+          <Route path="/auth/login" element={<LoginPage />} /> {/* Dedicated Login page */}
+          <Route path="/auth/signup" element={<SignupPage />} /> {/* Dedicated Signup page */}
           <Route path="/subscribe" element={<SubscriptionPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
           {/* Protected routes wrapped by ProtectedRoute */}
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            {/* No index route here, as / is handled by Index */}
             <Route path="home" element={<HomePage />} />
             <Route path="home/incidents" element={<IncidentsPage />} />
-            {/* <Route path="home/traffic" element={<TrafficPage />} /> */} {/* Removed TrafficPage route */}
             <Route path="home/contact-us" element={<ContactUsPage />} />
             <Route path="home/archive" element={<IncidentArchivePage />} />
             <Route path="profile" element={<ProfilePage />} />

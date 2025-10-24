@@ -1,9 +1,8 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, User, LogIn, LogOut, CreditCard } from 'lucide-react'; // Removed BellRing
+import { Home, User, LogIn, LogOut, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-// Removed NotificationBell import
 import MobileNav from './MobileNav';
 
 const TopNavBar = () => {
@@ -54,6 +53,7 @@ const TopNavBar = () => {
           ) : (
             !loading && (
               <>
+                {/* Link to the new Auth landing page */}
                 {location.pathname !== '/auth' && (
                   <NavLink
                     to="/auth"
@@ -65,7 +65,7 @@ const TopNavBar = () => {
                     }
                   >
                     <LogIn className="tw-h-5 tw-w-5 tw-mr-1" />
-                    Login
+                    Login / Sign Up
                   </NavLink>
                 )}
                 {location.pathname !== '/subscribe' && (
