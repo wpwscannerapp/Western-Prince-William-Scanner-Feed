@@ -4,31 +4,20 @@ import { APP_NAME, APP_DESCRIPTION } from '@/lib/constants';
 import { handleError } from '@/utils/errorHandler';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { Button } from '@/components/ui/button'; // Import Button
+import { Button } from '@/components/ui/button';
 
 const AuthPage = () => {
   const { user, loading, error, isExplicitlySignedIn } = useAuth(); 
   const navigate = useNavigate();
 
-  // Use useEffect to handle navigation after render
   useEffect(() => {
-    // Only redirect if auth is ready, not loading, and the user is explicitly signed in.
-    // If user is present but not explicitly signed in, it means it's a restored session,
-    // and they should remain on the auth screen to explicitly log in.
-    if (!loading && user && isExplicitlySignedIn) { // Add isExplicitlySignedIn check
+    if (!loading && user && isExplicitlySignedIn) {
       console.log('AuthPage: User explicitly authenticated, redirecting to /home.');
       navigate('/home', { replace: true });
     }
-  }, [user, loading, isExplicitlySignedIn, navigate]); // Add isExplicitlySignedIn to dependencies
+  }, [user, loading, isExplicitlySignedIn, navigate]);
 
-  if (loading) {
-    return (
-      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
-        <p>Loading authentication...</p>
-      </div>
-    );
-  }
-
+  // If there's an error, display it. This is a critical state.
   if (error) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
@@ -40,17 +29,17 @@ const AuthPage = () => {
     );
   }
 
-  // If user is authenticated but not explicitly signed in, or if no user, render the auth screen.
-  // The useEffect above will handle redirection if explicitly signed in.
-  if (user && !isExplicitlySignedIn) {
-    // User is present (restored session), but not explicitly signed in. Stay on auth screen.
-    // No need to return null here, proceed to render the auth form.
-  } else if (user && isExplicitlySignedIn) {
-    // User is explicitly signed in, but useEffect hasn't redirected yet. Return null to avoid flicker.
+  // If loading is true AND user is explicitly signed in, it means a redirect is imminent.
+  // Return null to prevent flicker before the useEffect handles the navigation.
+  if (loading && user && isExplicitlySignedIn) {
     return null;
   }
 
-
+  // Otherwise, render the login/signup options. This covers:
+  // 1. !loading && !user (no session)
+  // 2. !loading && user && !isExplicitlySignedIn (restored session)
+  // 3. loading && !user (initial check, no session found yet - show content immediately)
+  // 4. loading && user && !isExplicitlySignedIn (initial check, restored session - show content immediately)
   return (
     <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-primary/10 tw-to-background tw-text-foreground tw-p-4">
       {/* Branded Hero Section */}
@@ -69,7 +58,7 @@ const AuthPage = () => {
       </div>
       <div className="tw-relative tw-z-10 tw-flex tw-flex-col md:tw-flex-row tw-items-center tw-justify-center tw-gap-8 tw-w-full tw-max-w-5xl tw-px-4 sm:tw-px-6">
         {/* Conditional TeaserPost with hover effect */}
-        {!user && (
+        {!user && ( // Only show teaser if no user is present (even restored session)
           <div className="tw-w-full md:tw-w-1/2 tw-max-w-md tw-transition tw-duration-300 hover:tw-scale-105">
             <TeaserPost />
           </div>
