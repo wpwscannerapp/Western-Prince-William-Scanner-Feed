@@ -13,7 +13,7 @@ import { ProfileService, Profile } from '@/services/ProfileService';
 import { StorageService } from '@/services/StorageService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import useDebounce from '@/hooks/useDebounce';
-import { supabase } from '@/integrations/supabase/client'; // Added this import
+import { supabase } from '@/integrations/supabase/client';
 
 const profileSchema = z.object({
   first_name: z.string().max(50, { message: 'First name too long.' }).optional().or(z.literal('')),
@@ -31,7 +31,7 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 const ProfileForm: React.FC = () => {
-  const { user, session } = useAuth(); // Get session from useAuth
+  const { user } = useAuth(); // Removed session from here
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -40,9 +40,9 @@ const ProfileForm: React.FC = () => {
     queryFn: async () => {
       if (!user) return null;
       // Pass the session to ensureProfileExists
-      await ProfileService.ensureProfileExists(user.id, session);
+      await ProfileService.ensureProfileExists(user.id); // Removed session parameter
       // Pass the session to fetchProfile
-      return ProfileService.fetchProfile(user.id, session);
+      return ProfileService.fetchProfile(user.id); // Removed session parameter
     },
     enabled: !!user,
   });

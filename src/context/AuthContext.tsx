@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SessionService } from '@/services/SessionService';
 import { MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT } from '@/config';
-import { ProfileService } from '@/services/ProfileService'; // Corrected import syntax
+import { ProfileService } from '@/services/ProfileService';
 import { handleError as globalHandleError } from '@/utils/errorHandler';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -14,7 +14,7 @@ interface AuthState {
   loading: boolean;
   error: AuthError | null;
   authReady: boolean;
-  isExplicitlySignedIn: boolean; // New state for explicit sign-in
+  isExplicitlySignedIn: boolean;
   signUp: (email: string, password: string) => Promise<{ data?: any; error?: AuthError }>;
   signIn: (email: string, password: string) => Promise<{ data?: any; error?: AuthError }>;
   signOut: () => Promise<{ success: boolean; error?: AuthError }>;
@@ -26,10 +26,10 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // Keep loading true initially
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AuthError | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const [isExplicitlySignedIn, setIsExplicitlySignedIn] = useState(false); // Initialize new state
+  const [isExplicitlySignedIn, setIsExplicitlySignedIn] = useState(false);
   const isMountedRef = useRef(true);
   const userRef = useRef<User | null>(null);
   const queryClient = useQueryClient();
@@ -85,11 +85,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Ensure profile exists before proceeding with session management or fetching profile details
       console.log('AuthContext: Calling ProfileService.ensureProfileExists...');
-      await ProfileService.ensureProfileExists(currentSession.user.id, currentSession);
+      await ProfileService.ensureProfileExists(currentSession.user.id); // Removed session parameter
       console.log('AuthContext: ProfileService.ensureProfileExists completed.');
 
       // Fetch profile to determine admin status for session management.
-      const profile = await ProfileService.fetchProfile(currentSession.user.id, currentSession);
+      const profile = await ProfileService.fetchProfile(currentSession.user.id); // Removed session parameter
       const isCurrentUserAdmin = profile?.role === 'admin';
       console.log('AuthContext: User role for session management:', profile?.role);
 
@@ -229,7 +229,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [authReady, handleSessionCreation, handleSessionDeletion]);
 
   const signUp = async (email: string, password: string) => {
-    setLoading(true); // Start loading
+    setLoading(true);
     setError(null);
     try {
       const { data, error: authError } = await supabase.auth.signUp({ email, password });
@@ -238,17 +238,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: authError };
       }
       toast.success('Signup successful! Please check your email to confirm your account.');
-      // After signup, the user is technically "signed in" by Supabase, but not explicitly
-      // confirmed by email yet. We should not set isExplicitlySignedIn to true here.
-      // It will be set to true upon successful email confirmation and subsequent login.
       return { data };
     } finally {
-      setLoading(false); // End loading
+      setLoading(false);
     }
   };
 
   const signIn = async (email: string, password: string) => {
-    setLoading(true); // Start loading
+    setLoading(true);
     setError(null);
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
@@ -257,10 +254,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: authError };
       }
       toast.success('Logged in successfully!');
-      setIsExplicitlySignedIn(true); // Set to true on successful explicit sign-in
+      setIsExplicitlySignedIn(true);
       return { data };
     } finally {
-      setLoading(false); // End loading
+      setLoading(false);
     }
   };
 
@@ -278,7 +275,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: authError };
       }
       toast.success('Logged out successfully!');
-      setIsExplicitlySignedIn(false); // Reset on sign out
+      setIsExplicitlySignedIn(false);
       return { success: true };
     } catch (e: any) {
       handleError(e, e.message || 'An unexpected error occurred during logout.');
@@ -307,7 +304,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     error,
     authReady,
-    isExplicitlySignedIn, // Include in context value
+    isExplicitlySignedIn,
     signUp,
     signIn,
     signOut,

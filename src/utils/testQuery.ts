@@ -1,13 +1,13 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
-import { ProfileService } from '@/services/ProfileService'; // Import ProfileService
-import { Session } from '@supabase/supabase-js'; // Import Session type
+import { ProfileService } from '@/services/ProfileService';
+import { Session } from '@supabase/supabase-js';
 
 export async function testGetSession() {
   console.time('getSession');
   console.log('Starting supabase.auth.getSession()');
 
-  let timeoutId: ReturnType<typeof setTimeout> | undefined = undefined; // Initialize timeoutId
+  let timeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => {
@@ -22,12 +22,11 @@ export async function testGetSession() {
     const getSessionPromise = supabase.auth.getSession();
     const result = await Promise.race([getSessionPromise, timeoutPromise]);
 
-    if (timeoutId !== undefined) { // Only clear if it was assigned
-      clearTimeout(timeoutId); // Clear the timeout if getSessionPromise wins
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
     }
     console.timeEnd('getSession');
 
-    // The result will be from getSessionPromise if it wins
     const { data, error } = result as { data: { session: any | null }; error: any | null };
 
     if (error) {
@@ -38,12 +37,10 @@ export async function testGetSession() {
     console.log('getSession success:', data);
     return data;
   } catch (err: any) {
-    if (timeoutId !== undefined) { // Only clear if it was assigned
-      clearTimeout(timeoutId); // Ensure timeout is cleared even if getSessionPromise rejects before timeout
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
     }
     console.error('getSession failed:', err);
-    // If the error is from our timeoutPromise, handleError was already called.
-    // Otherwise, it's an error from supabase.auth.getSession itself.
     if (err.message !== 'Supabase getSession timed out after 15s') {
       handleError(err, 'Supabase session retrieval failed unexpectedly.');
     }
@@ -61,7 +58,7 @@ export async function testProfileQuery(session: Session | null) {
 
   try {
     console.log(`testProfileQuery: Attempting to fetch profile for user ID: ${session.user.id}`);
-    const profile = await ProfileService.fetchProfile(session.user.id, session);
+    const profile = await ProfileService.fetchProfile(session.user.id); // Removed session parameter
     if (profile) {
       console.log('testProfileQuery: Profile fetched successfully:', profile);
       handleError(null, `Profile fetched successfully for ${profile.username || profile.first_name || session.user.email}. Role: ${profile.role}`, { duration: 5000 });
