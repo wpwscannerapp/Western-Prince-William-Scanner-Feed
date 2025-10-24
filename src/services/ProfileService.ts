@@ -20,12 +20,13 @@ const logSupabaseError = (functionName: string, error: any) => {
 
 export class ProfileService {
   static async ensureProfileExists(userId: string, session: Session | null): Promise<boolean> {
+    console.log(`ProfileService: ensureProfileExists called for userId: ${userId}, session present: ${!!session}`);
     if (!session) {
       console.warn(`ProfileService: ensureProfileExists for user ID: ${userId} - No session provided. Aborting.`);
       handleError(null, 'No active session to ensure profile exists.');
       throw new Error('No active session to ensure profile exists.'); // Throw error
     }
-    console.log(`ProfileService: ensureProfileExists for user ID: ${userId}. Session present.`);
+    console.log(`ProfileService: ensureProfileExists for user ID: ${userId}. Session user ID: ${session.user.id}.`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -93,11 +94,12 @@ export class ProfileService {
   }
 
   static async fetchProfile(userId: string, session: Session | null): Promise<Profile | null> {
+    console.log(`ProfileService: fetchProfile called for userId: ${userId}, session present: ${!!session}`);
     if (!session) {
       console.warn(`ProfileService: fetchProfile for user ID: ${userId} - No session provided. Returning null.`);
       throw new Error('No active session to fetch profile.'); // Throw error
     }
-    console.log(`ProfileService: fetchProfile for user ID: ${userId}. Session present.`);
+    console.log(`ProfileService: fetchProfile for user ID: ${userId}. Session user ID: ${session.user.id}.`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
