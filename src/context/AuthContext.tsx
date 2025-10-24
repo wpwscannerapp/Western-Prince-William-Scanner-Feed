@@ -85,11 +85,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Ensure profile exists before proceeding with session management or fetching profile details
       console.log('AuthContext: Calling ProfileService.ensureProfileExists...');
-      await ProfileService.ensureProfileExists(currentSession.user.id); // Removed session parameter
+      await ProfileService.ensureProfileExists(currentSession.user.id); // ProfileService now handles role based on email
       console.log('AuthContext: ProfileService.ensureProfileExists completed.');
 
       // Fetch profile to determine admin status for session management.
-      const profile = await ProfileService.fetchProfile(currentSession.user.id); // Removed session parameter
+      const profile = await ProfileService.fetchProfile(currentSession.user.id);
       const isCurrentUserAdmin = profile?.role === 'admin';
       console.log('AuthContext: User role for session management:', profile?.role);
 

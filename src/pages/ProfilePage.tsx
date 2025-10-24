@@ -11,12 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useProfilePageContext } from '@/context/ProfilePageContext';
 
 const ProfilePage: React.FC = () => {
-  const { user } = useAuth(); // Removed session from here
+  const { user } = useAuth();
   const isWebPushInitialized = useProfilePageContext();
 
   const { isLoading: isProfileLoading, isError: isProfileError, error: profileError } = useQuery<Profile | null, Error>({
     queryKey: ['profile', user?.id],
-    queryFn: () => user ? ProfileService.fetchProfile(user.id) : Promise.resolve(null), // Removed session parameter
+    queryFn: () => user ? ProfileService.fetchProfile(user.id) : Promise.resolve(null), // ProfileService.ensureProfileExists is now handled by AuthContext
     enabled: !!user,
   });
 

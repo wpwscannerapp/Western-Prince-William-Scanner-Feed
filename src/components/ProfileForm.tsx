@@ -31,7 +31,7 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 const ProfileForm: React.FC = () => {
-  const { user } = useAuth(); // Removed session from here
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -39,10 +39,8 @@ const ProfileForm: React.FC = () => {
     queryKey: ['profile', user?.id],
     queryFn: async () => {
       if (!user) return null;
-      // Pass the session to ensureProfileExists
-      await ProfileService.ensureProfileExists(user.id); // Removed session parameter
-      // Pass the session to fetchProfile
-      return ProfileService.fetchProfile(user.id); // Removed session parameter
+      // ProfileService.ensureProfileExists is now handled by AuthContext, so we can directly fetch.
+      return ProfileService.fetchProfile(user.id);
     },
     enabled: !!user,
   });

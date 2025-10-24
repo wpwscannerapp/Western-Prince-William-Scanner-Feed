@@ -4,7 +4,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client'; // Import supabase directly
 import { handleError } from '@/utils/errorHandler';
 import { useLocation } from 'react-router-dom';
-import { ProfileService } from '@/services/ProfileService'; // Still need ProfileService for ensureProfileExists
 import { SUPABASE_API_TIMEOUT } from '@/config'; // Import SUPABASE_API_TIMEOUT
 
 interface UseAdminResult {
@@ -14,7 +13,7 @@ interface UseAdminResult {
 }
 
 export function useIsAdmin(): UseAdminResult {
-  const { user, loading: authLoading, authReady } = useAuth(); // Removed session from here
+  const { user, loading: authLoading, authReady } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
@@ -42,18 +41,7 @@ export function useIsAdmin(): UseAdminResult {
         return null;
       }
       
-      // Ensure profile exists before attempting to fetch role
-      // This is crucial to prevent issues if a user logs in but their profile isn't yet created.
-      try {
-        await ProfileService.ensureProfileExists(user.id);
-        console.log(`useIsAdmin: Profile ensured for user ${user.id}.`);
-      } catch (e) {
-        console.error(`useIsAdmin: Failed to ensure profile exists for ${user.id}:`, e);
-        // If ensureProfileExists fails, we can't reliably get the role.
-        // Let's re-throw to propagate the error to the query.
-        throw e;
-      }
-
+      // ProfileService.ensureProfileExists is now handled by AuthContext, so we can directly query.
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
@@ -72,7 +60,7 @@ export function useIsAdmin(): UseAdminResult {
 
         if (supabaseError) {
           if (supabaseError.code === 'PGRST116') { // No rows found
-            console.warn(`useIsAdmin: No profile found for user ${user.id} after ensureProfileExists. This is unexpected.`);
+            console.warn(`useIsAdmin: No profile found for user ${user.id}. This is unexpected if AuthContext ensured it.`);
             return null;
           }
           throw supabaseError;
