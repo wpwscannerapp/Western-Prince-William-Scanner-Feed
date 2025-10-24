@@ -7,7 +7,7 @@ import { MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT } from '@/config';
 import { ProfileService } from '@/services/ProfileService';
 import { handleError as globalHandleError } from '@/utils/errorHandler';
 import { useQueryClient } from '@tanstack/react-query';
-import { AuthContext } from './auth-context-definition'; // Removed AuthState import
+import { AuthContext } from './auth-context-definition';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -69,12 +69,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Ensure profile exists before proceeding with session management or fetching profile details
       console.log('AuthContext: Calling ProfileService.ensureProfileExists...');
-      await ProfileService.ensureProfileExists(currentSession.user.id); // ProfileService now handles role based on email
+      await ProfileService.ensureProfileExists(currentSession.user.id);
       console.log('AuthContext: ProfileService.ensureProfileExists completed.');
 
-      // Fetch profile to determine admin status for session management.
       const profile = await ProfileService.fetchProfile(currentSession.user.id);
       const isCurrentUserAdmin = profile?.role === 'admin';
       console.log('AuthContext: User role for session management:', profile?.role);
@@ -92,9 +90,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (err) {
       console.error('AuthContext: Error during session management (non-critical for global auth state):', (err as Error).message);
-      // Errors from SessionService or ProfileService are already handled internally by those services
-      // (e.g., showing toasts, logging to console). We do not want to set the global AuthContext error
-      // state here, as it would affect the AuthPage's error display.
     }
     console.log('AuthContext: handleSessionCreation finished.');
   }, []);
@@ -119,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [queryClient]);
 
   useEffect(() => {
-    console.log('AuthContext: Setting up onAuthStateChange listener. Current authReady:', authReady, 'Current loading:', loading);
+    console.log('AuthContext: Setting up onAuthStateChange listener.');
 
     authTimeoutRef.current = setTimeout(() => {
       if (isMountedRef.current && !authReady) {
@@ -142,17 +137,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             authTimeoutRef.current = null;
           }
 
+          // Synchronous state updates
           setSession(currentSession);
           setUser(currentSession?.user || null);
           setError(null);
 
-          // Set authReady to true once the first auth state is received and processed
-          if (!authReady) { // Only set if not already true
+          if (!authReady) {
             setAuthReady(true);
             console.log(`AuthContext: AuthReady set to true after first onAuthStateChange.`);
           }
 
-          // Update isExplicitlySignedIn based on event
           if (_event === 'SIGNED_OUT') {
             setIsExplicitlySignedIn(false);
             console.log(`AuthContext: Event SIGNED_OUT, isExplicitlySignedIn set to false.`);
@@ -161,24 +155,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             console.log(`AuthContext: Event ${_event}, isExplicitlySignedIn state unchanged.`);
           }
-
-          // Run session management tasks in the background
-          if (currentSession) {
-            console.log('AuthContext: Starting async session/profile handling in background...');
-            handleSessionCreation(currentSession).catch(e => {
-              console.error('AuthContext: Error during background session/profile handling:', (e as Error).message);
-            });
-          } else {
-            console.log('AuthContext: Starting async session deletion handling in background...');
-            handleSessionDeletion(userRef.current?.id).catch(e => {
-              console.error('AuthContext: Error during background session deletion handling:', (e as Error).message);
-            });
-          }
           
-          // Set loading to false ONLY after all synchronous state updates and background tasks initiated
+          // Set loading to false immediately after all synchronous state updates.
+          // The background tasks will not block this.
           setLoading(false);
-          console.log('AuthContext: Setting main loading state to false after initial session/user update and background tasks initiated.');
-          console.log(`AuthContext: State AFTER update - authReady: ${authReady}, loading: ${loading}`); // Note: authReady here might be stale due to closure
+          console.log('AuthContext: Setting main loading state to false after initial synchronous state updates.');
+
+          // Run session management tasks in the background (don't await here)
+          (async () => {
+            if (currentSession) {
+              console.log('AuthContext: Starting async session/profile handling in background...');
+              await handleSessionCreation(currentSession);
+              console.log('AuthContext: Async session/profile handling complete.');
+            } else {
+              console.log('AuthContext: Starting async session deletion handling in background...');
+              await handleSessionDeletion(userRef.current?.id);
+              console.log('AuthContext: Async session deletion handling complete.');
+            }
+          })().catch(e => {
+            console.error('AuthContext: Error during background session/profile handling:', (e as Error).message);
+          });
+          
           console.log('AuthContext: Main onAuthStateChange handler finished.');
         }
       }
@@ -192,7 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authTimeoutRef.current = null;
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion, isExplicitlySignedIn]); // Removed authReady from dependencies
+  }, [handleSessionCreation, handleSessionDeletion]); // Removed isExplicitlySignedIn from dependencies
 
   const signUp = async (email: string, password: string) => {
     setLoading(true);
