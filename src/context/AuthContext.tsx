@@ -29,7 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AuthError | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const [isExplicitlySignedIn, setIsExplicitlySignedIn] = useState(false);
+  const [isExplicitlySignedIn, setIsExplicitlySignedIn] = useState(false); // Default to false
   const isMountedRef = useRef(true);
   const userRef = useRef<User | null>(null);
   const queryClient = useQueryClient();
@@ -173,20 +173,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log(`AuthContext: AuthReady set to true after first onAuthStateChange.`);
           }
 
-          // Correctly set isExplicitlySignedIn for restored sessions and explicit sign-ins
-          if (_event === 'SIGNED_IN' && currentSession) {
-            setIsExplicitlySignedIn(true); // Session restored or explicitly signed in
-            console.log(`AuthContext: Event SIGNED_IN with session, isExplicitlySignedIn set to true.`);
-          } else if (_event === 'SIGNED_OUT') {
+          // Only set isExplicitlySignedIn to false on SIGNED_OUT.
+          // It should only be set to true by the signIn function.
+          if (_event === 'SIGNED_OUT') {
             setIsExplicitlySignedIn(false);
             console.log(`AuthContext: Event SIGNED_OUT, isExplicitlySignedIn set to false.`);
           } else {
-            // For other events like INITIAL_SESSION, PASSWORD_RECOVERY, TOKEN_REFRSHED, USER_UPDATED,
-            // we should not change isExplicitlySignedIn. It should retain its value
-            // from the last explicit sign-in or initial session check.
             console.log(`AuthContext: Event ${_event}, isExplicitlySignedIn state unchanged.`);
           }
-
 
           try {
             // Handle session creation/deletion in the background
@@ -249,7 +243,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: authError };
       }
       toast.success('Logged in successfully!');
-      setIsExplicitlySignedIn(true);
+      setIsExplicitlySignedIn(true); // Set to true ONLY on explicit sign-in
       return { data };
     } finally {
       setLoading(false);
@@ -270,7 +264,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: authError };
       }
       toast.success('Logged out successfully!');
-      setIsExplicitlySignedIn(false);
+      setIsExplicitlySignedIn(false); // Set to false on sign-out
       return { success: true };
     } catch (e: any) {
       handleError(e, e.message || 'An unexpected error occurred during logout.');
