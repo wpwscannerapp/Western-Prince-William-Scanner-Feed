@@ -92,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('AuthContext: Error during session management (non-critical for global auth state):', (err as Error).message);
     }
     console.log('AuthContext: handleSessionCreation finished.');
-  }, []);
+  }, []); // Dependencies are stable
 
   const handleSessionDeletion = useCallback(async (userIdToDelete?: string) => {
     console.log('AuthContext: handleSessionDeletion called.');
@@ -111,10 +111,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     queryClient.invalidateQueries({ queryKey: ['profile', userIdToDelete] });
     console.log('AuthContext: Session(s) deleted and removed from localStorage. Profile cache invalidated.');
-  }, [queryClient]);
+  }, [queryClient]); // Dependencies are stable
 
   useEffect(() => {
-    console.log('AuthContext: Setting up onAuthStateChange listener.');
+    console.log('AuthContext: Setting up onAuthStateChange listener. Initial state - authReady:', authReady, 'loading:', loading);
 
     authTimeoutRef.current = setTimeout(() => {
       if (isMountedRef.current && !authReady) {
@@ -142,18 +142,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(currentSession?.user || null);
           setError(null);
 
-          if (!authReady) {
+          if (!authReady) { // Only set if not already true
             setAuthReady(true);
             console.log(`AuthContext: AuthReady set to true after first onAuthStateChange.`);
           }
 
-          if (_event === 'SIGNED_OUT') {
+          // Update isExplicitlySignedIn based on event
+          if (_event === 'SIGNED_IN') {
+            setIsExplicitlySignedIn(true); // Set to true on explicit sign-in
+            console.log(`AuthContext: Event SIGNED_IN, isExplicitlySignedIn set to true.`);
+          } else if (_event === 'SIGNED_OUT') {
             setIsExplicitlySignedIn(false);
             console.log(`AuthContext: Event SIGNED_OUT, isExplicitlySignedIn set to false.`);
-          } else if (_event === 'INITIAL_SESSION' || _event === 'SIGNED_IN') {
-            console.log(`AuthContext: Event ${_event}, isExplicitlySignedIn state unchanged (current value: ${isExplicitlySignedIn}).`);
           } else {
-            console.log(`AuthContext: Event ${_event}, isExplicitlySignedIn state unchanged.`);
+            // For INITIAL_SESSION and other events, keep the current state of isExplicitlySignedIn
+            console.log(`AuthContext: Event ${_event}, isExplicitlySignedIn state unchanged (current value: ${isExplicitlySignedIn}).`);
           }
           
           // Set loading to false immediately after all synchronous state updates.
@@ -177,6 +180,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
           
           console.log('AuthContext: Main onAuthStateChange handler finished.');
+          console.log(`AuthContext: State AFTER handler - authReady: ${authReady}, loading: ${loading}, isExplicitlySignedIn: ${isExplicitlySignedIn}`);
         }
       }
     );
@@ -189,7 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authTimeoutRef.current = null;
       }
     };
-  }, [handleSessionCreation, handleSessionDeletion]); // Removed isExplicitlySignedIn from dependencies
+  }, []); // Empty dependency array to run only once on mount
 
   const signUp = async (email: string, password: string) => {
     setLoading(true);
