@@ -26,8 +26,7 @@ export class ProfileService {
       handleError(null, 'No active session to ensure profile exists.');
       throw new Error('No active session to ensure profile exists.'); // Throw error
     }
-    console.log(`ProfileService: ensureProfileExists for user ID: ${userId}. Session user ID: ${session.user.id}.`);
-    console.log('ProfileService: ensureProfileExists received session details:', {
+    console.log(`ProfileService: ensureProfileExists received session details:`, {
       userId: session.user?.id,
       userEmail: session.user?.email,
       accessTokenLength: session.access_token?.length,
@@ -48,8 +47,7 @@ export class ProfileService {
         .eq('id', userId)
         .abortSignal(controller.signal)
         .single();
-
-      console.log(`ProfileService: ensureProfileExists - Supabase response for select:`, { data, selectError });
+      console.log(`ProfileService: ensureProfileExists - Supabase select query completed. Data:`, data, `Error:`, selectError);
 
       if (selectError) {
         if (selectError.code === 'PGRST116') { // No rows found
@@ -67,8 +65,10 @@ export class ProfileService {
               updated_at: new Date().toISOString(),
             })
             .abortSignal(controller.signal);
+          console.log(`ProfileService: ensureProfileExists - Supabase insert query completed. Error:`, insertError);
+
           if (insertError) {
-            if (insertError.code === '23505') {
+            if (insertError.code === '23505') { // Unique constraint violation, means profile was created concurrently
               console.warn(`ProfileService: Profile for ${userId} was created concurrently. Ignoring insert error.`);
               return true;
             }
@@ -114,8 +114,6 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
-      console.log(`ProfileService: fetchProfile - Assuming profile existence is ensured by AuthContext for ${userId}.`);
-
       console.log(`ProfileService: fetchProfile - Attempting Supabase select for profile ${userId}.`);
       const { data, error } = await supabase
         .from('profiles')
@@ -123,8 +121,7 @@ export class ProfileService {
         .eq('id', userId)
         .abortSignal(controller.signal)
         .single();
-
-      console.log('ProfileService: fetchProfile - Supabase query result:', { data, error });
+      console.log('ProfileService: fetchProfile - Supabase select query completed. Data:', data, 'Error:', error);
 
       if (error) {
         logSupabaseError('fetchProfile', error);
@@ -164,6 +161,7 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
+      console.log(`ProfileService: updateProfile - Attempting Supabase update for profile ${userId}.`);
       const { data, error } = await supabase
         .from('profiles')
         .update({ ...updates, updated_at: new Date().toISOString() })
@@ -171,6 +169,7 @@ export class ProfileService {
         .abortSignal(controller.signal)
         .select()
         .single();
+      console.log('ProfileService: updateProfile - Supabase update query completed. Data:', data, 'Error:', error);
 
       if (error) {
         logSupabaseError('updateProfile', error);
@@ -187,6 +186,7 @@ export class ProfileService {
       }
     } finally {
       clearTimeout(timeoutId);
+      console.log(`ProfileService: Exiting updateProfile for user ID: ${userId}.`);
     }
   }
 }
