@@ -40,8 +40,7 @@ export function useIsAdmin(): UseAdminResult {
         console.warn('useIsAdmin: QueryFn - No user or session, returning null.');
         return null;
       }
-      // ensureProfileExists is called here, which should guarantee a profile exists for an authenticated user
-      await ProfileService.ensureProfileExists(user.id, session);
+      // ensureProfileExists is now handled by AuthContext, so we just fetch the profile
       return ProfileService.fetchProfile(user.id, session);
     },
     enabled: queryEnabled,

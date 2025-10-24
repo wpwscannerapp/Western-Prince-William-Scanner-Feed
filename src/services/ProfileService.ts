@@ -108,13 +108,8 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
-      console.log(`ProfileService: fetchProfile - Ensuring profile exists for ${userId}.`);
-      const profileEnsured = await ProfileService.ensureProfileExists(userId, session);
-      if (!profileEnsured) {
-        console.warn(`ProfileService: fetchProfile - Failed to ensure profile for ${userId}. Returning null.`);
-        throw new Error('Failed to ensure profile existence before fetching.'); // Throw error
-      }
-      console.log(`ProfileService: fetchProfile - Profile existence ensured for ${userId}.`);
+      // Removed the call to ensureProfileExists here. It should now be handled by AuthContext.
+      console.log(`ProfileService: fetchProfile - Assuming profile existence is ensured by AuthContext for ${userId}.`);
 
       console.log(`ProfileService: fetchProfile - Attempting Supabase select for profile ${userId}.`);
       const { data, error } = await supabase
