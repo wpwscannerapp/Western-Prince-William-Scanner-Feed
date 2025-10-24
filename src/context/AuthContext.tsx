@@ -119,14 +119,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [queryClient]);
 
   useEffect(() => {
-    console.log('AuthContext: Setting up onAuthStateChange listener.');
+    console.log('AuthContext: Setting up onAuthStateChange listener. Current authReady:', authReady, 'Current loading:', loading);
 
-    // This timeout is for the *very first* auth check.
     authTimeoutRef.current = setTimeout(() => {
-      if (isMountedRef.current && !authReady) { // Check !authReady here
+      if (isMountedRef.current && !authReady) {
         console.warn(`AuthContext: Auth initialization timed out after ${AUTH_INITIALIZATION_TIMEOUT}ms. Forcing authReady to true and loading to false.`);
         setAuthReady(true);
-        setLoading(false); // Ensure loading is false on timeout
+        setLoading(false);
         setError(new AuthError('Authentication initialization timed out.'));
       }
     }, AUTH_INITIALIZATION_TIMEOUT);
@@ -135,15 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
         console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
         console.log(`AuthContext: isExplicitlySignedIn BEFORE state update: ${isExplicitlySignedIn}`);
-
-        if (currentSession) {
-          console.log('AuthContext: currentSession details:', {
-            userId: currentSession.user?.id,
-            userEmail: currentSession.user?.email,
-            accessTokenLength: currentSession.access_token?.length,
-            expiresAt: currentSession.expires_at,
-          });
-        }
+        console.log(`AuthContext: State BEFORE update - authReady: ${authReady}, loading: ${loading}`);
 
         if (isMountedRef.current) {
           if (authTimeoutRef.current) {
@@ -161,46 +152,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log(`AuthContext: AuthReady set to true after first onAuthStateChange.`);
           }
 
-          // Only set isExplicitlySignedIn to false on SIGNED_OUT.
-          // It should only be set to true by the signIn function.
+          // Update isExplicitlySignedIn based on event
           if (_event === 'SIGNED_OUT') {
             setIsExplicitlySignedIn(false);
             console.log(`AuthContext: Event SIGNED_OUT, isExplicitlySignedIn set to false.`);
           } else if (_event === 'INITIAL_SESSION' || _event === 'SIGNED_IN') {
-            // For initial session or restored session, ensure isExplicitlySignedIn is false
-            // unless it was explicitly set to true by a recent signIn call (which would be handled by the signIn function itself)
-            // This ensures that a page refresh or direct URL access with an existing session
-            // does NOT set isExplicitlySignedIn to true.
-            if (isExplicitlySignedIn) {
-              console.log(`AuthContext: Event ${_event}, isExplicitlySignedIn was true, keeping it true.`);
-            } else {
-              console.log(`AuthContext: Event ${_event}, isExplicitlySignedIn was false, keeping it false.`);
-            }
+            console.log(`AuthContext: Event ${_event}, isExplicitlySignedIn state unchanged (current value: ${isExplicitlySignedIn}).`);
           } else {
             console.log(`AuthContext: Event ${_event}, isExplicitlySignedIn state unchanged.`);
           }
 
-          try {
-            // Handle session creation/deletion in the background
-            if (currentSession) {
-              console.log('AuthContext: Starting async session/profile handling...');
-              await handleSessionCreation(currentSession);
-              console.log('AuthContext: Async session/profile handling complete.');
-            } else {
-              console.log('AuthContext: Starting async session deletion handling...');
-              await handleSessionDeletion(userRef.current?.id);
-              console.log('AuthContext: Async session deletion handling complete.');
-            }
-          } catch (e: any) {
-            console.error('AuthContext: Error during session/profile handling in onAuthStateChange:', e);
-            // Errors from handleSessionCreation are already handled internally and should not
-            // set the global AuthContext error state here, as it would affect the AuthPage's error display.
-          } finally {
-            // Set loading to false ONLY after all async session/profile handling is complete
-            console.log('AuthContext: Setting main loading state to false after all async operations.');
-            setLoading(false);
-            console.log('AuthContext: Main onAuthStateChange handler finished.');
+          // Run session management tasks in the background
+          if (currentSession) {
+            console.log('AuthContext: Starting async session/profile handling in background...');
+            handleSessionCreation(currentSession).catch(e => {
+              console.error('AuthContext: Error during background session/profile handling:', (e as Error).message);
+            });
+          } else {
+            console.log('AuthContext: Starting async session deletion handling in background...');
+            handleSessionDeletion(userRef.current?.id).catch(e => {
+              console.error('AuthContext: Error during background session deletion handling:', (e as Error).message);
+            });
           }
+          
+          // Set loading to false ONLY after all synchronous state updates and background tasks initiated
+          setLoading(false);
+          console.log('AuthContext: Setting main loading state to false after initial session/user update and background tasks initiated.');
+          console.log(`AuthContext: State AFTER update - authReady: ${authReady}, loading: ${loading}`); // Note: authReady here might be stale due to closure
+          console.log('AuthContext: Main onAuthStateChange handler finished.');
         }
       }
     );
@@ -213,7 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authTimeoutRef.current = null;
       }
     };
-  }, [authReady, handleSessionCreation, handleSessionDeletion, isExplicitlySignedIn]); // Added isExplicitlySignedIn to deps
+  }, [handleSessionCreation, handleSessionDeletion, isExplicitlySignedIn]); // Removed authReady from dependencies
 
   const signUp = async (email: string, password: string) => {
     setLoading(true);
