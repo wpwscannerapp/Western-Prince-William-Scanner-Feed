@@ -6,20 +6,18 @@ import { AuthProvider } from "@/context/AuthContext.tsx";
 import AppSettingsProvider from './context/AppSettingsContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import MainContent from './components/MainContent';
-// Removed import for supabase client as it's no longer used here
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  console.log('App.tsx: Rendering AuthProvider.');
-  // Removed temporary localStorage clear and forced Supabase logout.
+  console.log('App: Component is rendering.');
 
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Sonner />
-          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <BrowserRouter> {/* Removed future prop */}
             <AuthProvider>
               <AppSettingsProvider>
                 {/* Render MainContent which contains all routes */}

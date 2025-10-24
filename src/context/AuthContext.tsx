@@ -92,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('AuthContext: Error during session management (non-critical for global auth state):', (err as Error).message);
     }
     console.log('AuthContext: handleSessionCreation finished.');
-  }, []); // Dependencies are stable
+  }, []);
 
   const handleSessionDeletion = useCallback(async (userIdToDelete?: string) => {
     console.log('AuthContext: handleSessionDeletion called.');
@@ -111,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     queryClient.invalidateQueries({ queryKey: ['profile', userIdToDelete] });
     console.log('AuthContext: Session(s) deleted and removed from localStorage. Profile cache invalidated.');
-  }, [queryClient]); // Dependencies are stable
+  }, [queryClient]);
 
   useEffect(() => {
     console.log('AuthContext: Setting up onAuthStateChange listener. Initial state - authReady:', authReady, 'loading:', loading);
