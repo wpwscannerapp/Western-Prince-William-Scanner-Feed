@@ -1,0 +1,1 @@
+DROP POLICY "Authenticated users can view all profiles" ON public.profiles;
