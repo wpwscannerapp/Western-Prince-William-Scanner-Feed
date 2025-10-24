@@ -45,8 +45,11 @@ self.addEventListener('fetch', (event) => {
         .then(async (networkResponse) => {
           // If network is successful, cache it for potential offline use and return
           if (networkResponse && networkResponse.status === 200) {
-            const cache = await caches.open(CACHE_NAME);
-            cache.put(event.request, networkResponse.clone());
+            // Only cache http(s) requests
+            if (requestUrl.protocol === 'http:' || requestUrl.protocol === 'https:') {
+              const cache = await caches.open(CACHE_NAME);
+              cache.put(event.request, networkResponse.clone());
+            }
           }
           return networkResponse;
         })
@@ -68,8 +71,11 @@ self.addEventListener('fetch', (event) => {
     fetch(event.request)
       .then(async (networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
-          const cache = await caches.open(CACHE_NAME);
-          cache.put(event.request, networkResponse.clone());
+          // Only cache http(s) requests
+          if (requestUrl.protocol === 'http:' || requestUrl.protocol === 'https:') {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(event.request, networkResponse.clone());
+          }
         }
         return networkResponse;
       })
