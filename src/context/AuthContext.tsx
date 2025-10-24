@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -7,21 +7,7 @@ import { MAX_CONCURRENT_SESSIONS, AUTH_INITIALIZATION_TIMEOUT } from '@/config';
 import { ProfileService } from '@/services/ProfileService';
 import { handleError as globalHandleError } from '@/utils/errorHandler';
 import { useQueryClient } from '@tanstack/react-query';
-
-interface AuthState {
-  session: Session | null;
-  user: User | null;
-  loading: boolean;
-  error: AuthError | null;
-  authReady: boolean;
-  isExplicitlySignedIn: boolean;
-  signUp: (email: string, password: string) => Promise<{ data?: any; error?: AuthError }>;
-  signIn: (email: string, password: string) => Promise<{ data?: any; error?: AuthError }>;
-  signOut: () => Promise<{ success: boolean; error?: AuthError }>;
-  forgotPassword: (email: string) => Promise<{ success: boolean; error?: AuthError }>;
-}
-
-const AuthContext = createContext<AuthState | undefined>(undefined);
+import { AuthContext } from './auth-context-definition'; // Removed AuthState import
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
