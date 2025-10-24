@@ -27,6 +27,12 @@ export class ProfileService {
       throw new Error('No active session to ensure profile exists.'); // Throw error
     }
     console.log(`ProfileService: ensureProfileExists for user ID: ${userId}. Session user ID: ${session.user.id}.`);
+    console.log('ProfileService: ensureProfileExists received session details:', {
+      userId: session.user?.id,
+      userEmail: session.user?.email,
+      accessTokenLength: session.access_token?.length,
+      expiresAt: session.expires_at,
+    });
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {

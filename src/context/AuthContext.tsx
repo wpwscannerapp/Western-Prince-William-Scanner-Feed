@@ -148,6 +148,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
         console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
+        if (currentSession) {
+          console.log('AuthContext: currentSession details:', {
+            userId: currentSession.user?.id,
+            userEmail: currentSession.user?.email,
+            accessTokenLength: currentSession.access_token?.length,
+            expiresAt: currentSession.expires_at,
+          });
+        }
+
         if (isMountedRef.current) {
           if (authTimeoutRef.current) {
             clearTimeout(authTimeoutRef.current);
@@ -184,7 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // The signIn function is the only place that should set it to true.
             console.log(`AuthContext: Event SIGNED_IN, isExplicitlySignedIn remains as set by signIn function.`);
           } else {
-            // For other events like PASSWORD_RECOVERY, TOKEN_REFRESHED, USER_UPDATED,
+            // For other events like PASSWORD_RECOVERY, TOKEN_REFRSHED, USER_UPDATED,
             // we should not change isExplicitlySignedIn. It should retain its value
             // from the last explicit sign-in or initial session check.
             console.log(`AuthContext: Event ${_event}, isExplicitlySignedIn state unchanged.`);
