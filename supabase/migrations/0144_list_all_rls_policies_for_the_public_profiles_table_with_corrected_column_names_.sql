@@ -1,0 +1,3 @@
+SELECT policyname, cmd, qual, permissive
+FROM pg_policies
+WHERE schemaname = 'public' AND tablename = 'profiles';
