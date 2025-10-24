@@ -7,15 +7,16 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 
 const AuthPage = () => {
-  const { user, loading, error, isExplicitlySignedIn } = useAuth(); 
+  const { user, loading, error } = useAuth(); 
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user && isExplicitlySignedIn) {
-      console.log('AuthPage: User explicitly authenticated, redirecting to /home.');
+    // Redirect if user is present and auth is not loading, regardless of explicit sign-in
+    if (!loading && user) { 
+      console.log('AuthPage: User session present, redirecting to /home.');
       navigate('/home', { replace: true });
     }
-  }, [user, loading, isExplicitlySignedIn, navigate]);
+  }, [user, loading, navigate]);
 
   // If there's an error, display it. This is a critical state.
   if (error) {
@@ -31,15 +32,14 @@ const AuthPage = () => {
 
   // If loading is true AND user is explicitly signed in, it means a redirect is imminent.
   // Return null to prevent flicker before the useEffect handles the navigation.
-  if (loading && user && isExplicitlySignedIn) {
+  if (loading && user) { // Simplified condition
     return null;
   }
 
   // Otherwise, render the login/signup options. This covers:
   // 1. !loading && !user (no session)
-  // 2. !loading && user && !isExplicitlySignedIn (restored session)
+  // 2. !loading && user (restored session, but useEffect will redirect)
   // 3. loading && !user (initial check, no session found yet - show content immediately)
-  // 4. loading && user && !isExplicitlySignedIn (initial check, restored session - show content immediately)
   return (
     <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-primary/10 tw-to-background tw-text-foreground tw-p-4">
       {/* Branded Hero Section */}
