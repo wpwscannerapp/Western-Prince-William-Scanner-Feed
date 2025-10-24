@@ -114,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [queryClient]);
 
   useEffect(() => {
-    console.log('AuthContext: Setting up onAuthStateChange listener. Initial state - authReady:', authReady, 'loading:', loading);
+    console.log('AuthContext: Setting up onAuthStateChange listener.');
 
     authTimeoutRef.current = setTimeout(() => {
       if (isMountedRef.current && !authReady) {
@@ -127,7 +127,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
-        console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
+        console.log(`AuthContext: onAuthStateChange event: ${_event}`);
+        console.log(`AuthContext: currentSession: ${currentSession ? 'present' : 'null'}`);
         console.log(`AuthContext: isExplicitlySignedIn BEFORE state update: ${isExplicitlySignedIn}`);
         console.log(`AuthContext: State BEFORE update - authReady: ${authReady}, loading: ${loading}`);
 
