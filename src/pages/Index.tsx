@@ -4,13 +4,13 @@ import { useAuth } from '@/context/AuthContext';
 import { SPLASH_DURATION } from '@/config';
 
 const Index: React.FC = () => {
-  const { user, authReady, loading: authLoading, isExplicitlySignedIn } = useAuth(); // Get isExplicitlySignedIn
+  const { user, authReady, loading: authLoading, isExplicitlySignedIn } = useAuth();
   const [minimumSplashDurationPassed, setMinimumSplashDurationPassed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    const splashDuration = SPLASH_DURATION || 3000; // Default if undefined or 0
+    const splashDuration = SPLASH_DURATION || 3000;
     if (splashDuration > 0) {
       document.documentElement.style.setProperty('--splash-duration', `${splashDuration / 1000}s`);
       const timer = setTimeout(() => {
@@ -19,7 +19,6 @@ const Index: React.FC = () => {
       }, splashDuration);
       return () => clearTimeout(timer);
     } else {
-      // If splash duration is 0 or less, skip minimum duration
       setMinimumSplashDurationPassed(true);
     }
   }, []);
@@ -28,15 +27,15 @@ const Index: React.FC = () => {
     console.log('Index: Navigation check -', {
       minimumSplashDurationPassed,
       authReady,
-      authLoading,
+      authLoading, // Keep for logging, but not for condition
       user: user ? 'present' : 'null',
       isExplicitlySignedIn,
       currentPath: location.pathname
     });
 
-    // Only navigate if both minimum splash duration has passed AND auth is ready AND auth is NOT loading
-    if (minimumSplashDurationPassed && authReady && !authLoading) {
-      if (isExplicitlySignedIn) { // Use isExplicitlySignedIn for navigation to /home
+    // Navigate if minimum splash duration has passed AND auth is ready
+    if (minimumSplashDurationPassed && authReady) {
+      if (isExplicitlySignedIn) {
         console.log('Index: Navigating to /home (user explicitly authenticated) from', location.pathname);
         navigate('/home', { replace: true });
       } else {
@@ -44,12 +43,11 @@ const Index: React.FC = () => {
         navigate('/auth', { replace: true });
       }
     } else {
-      console.log('Index: Waiting for minimum splash duration, AuthProvider to initialize, or AuthProvider to finish loading. Current path:', location.pathname);
+      console.log('Index: Waiting for minimum splash duration or AuthProvider to initialize. Current path:', location.pathname);
     }
-  }, [minimumSplashDurationPassed, authReady, authLoading, user, isExplicitlySignedIn, navigate, location.pathname]); // Add isExplicitlySignedIn to deps
+  }, [minimumSplashDurationPassed, authReady, user, isExplicitlySignedIn, navigate, location.pathname]);
 
-  // Render splash if either minimum duration hasn't passed OR auth is not ready OR auth is loading
-  if (!minimumSplashDurationPassed || !authReady || authLoading) {
+  if (!minimumSplashDurationPassed || !authReady) { // Removed authLoading from this condition
     console.log('Index: Showing splash screen.');
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-primary/20 tw-to-background tw-animate-fade-in" aria-label="Loading application">
@@ -63,7 +61,7 @@ const Index: React.FC = () => {
     );
   }
 
-  return null; // Should not be reached as navigation will occur
+  return null;
 };
 
 export default Index;
