@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { SPLASH_DURATION } from '@/config';
 
 const Index: React.FC = () => {
-  const { user, authReady, loading: authLoading } = useAuth();
+  const { user, authReady, loading: authLoading, isExplicitlySignedIn } = useAuth(); // Get isExplicitlySignedIn
   const [minimumSplashDurationPassed, setMinimumSplashDurationPassed] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation(); // Initialize useLocation
+  const location = useLocation();
 
   useEffect(() => {
     const splashDuration = SPLASH_DURATION || 3000; // Default if undefined or 0
@@ -25,21 +25,21 @@ const Index: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    console.log('Index: Navigation check -', { minimumSplashDurationPassed, authReady, authLoading, user: user ? 'present' : 'null', currentPath: location.pathname }); // Added currentPath
+    console.log('Index: Navigation check -', { minimumSplashDurationPassed, authReady, authLoading, user: user ? 'present' : 'null', isExplicitlySignedIn, currentPath: location.pathname });
 
     // Only navigate if both minimum splash duration has passed AND auth is ready AND auth is NOT loading
     if (minimumSplashDurationPassed && authReady && !authLoading) {
-      if (user) {
-        console.log('Index: Navigating to /home (user authenticated) from', location.pathname); // Added from path
+      if (isExplicitlySignedIn) { // Use isExplicitlySignedIn for navigation to /home
+        console.log('Index: Navigating to /home (user explicitly authenticated) from', location.pathname);
         navigate('/home', { replace: true });
       } else {
-        console.log('Index: Navigating to /auth (no user) from', location.pathname); // Added from path
+        console.log('Index: Navigating to /auth (no explicit user session) from', location.pathname);
         navigate('/auth', { replace: true });
       }
     } else {
-      console.log('Index: Waiting for minimum splash duration, AuthProvider to initialize, or AuthProvider to finish loading. Current path:', location.pathname); // Added currentPath
+      console.log('Index: Waiting for minimum splash duration, AuthProvider to initialize, or AuthProvider to finish loading. Current path:', location.pathname);
     }
-  }, [minimumSplashDurationPassed, authReady, authLoading, user, navigate, location.pathname]); // Added location.pathname to deps
+  }, [minimumSplashDurationPassed, authReady, authLoading, user, isExplicitlySignedIn, navigate, location.pathname]); // Add isExplicitlySignedIn to deps
 
   // Render splash if either minimum duration hasn't passed OR auth is not ready OR auth is loading
   if (!minimumSplashDurationPassed || !authReady || authLoading) {

@@ -14,6 +14,7 @@ interface AuthState {
   loading: boolean;
   error: AuthError | null;
   authReady: boolean;
+  isExplicitlySignedIn: boolean; // New state for explicit sign-in
   signUp: (email: string, password: string) => Promise<{ data?: any; error?: AuthError }>;
   signIn: (email: string, password: string) => Promise<{ data?: any; error?: AuthError }>;
   signOut: () => Promise<{ success: boolean; error?: AuthError }>;
@@ -28,6 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true); // Keep loading true initially
   const [error, setError] = useState<AuthError | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  const [isExplicitlySignedIn, setIsExplicitlySignedIn] = useState(false); // Initialize new state
   const isMountedRef = useRef(true);
   const userRef = useRef<User | null>(null);
   const queryClient = useQueryClient();
@@ -165,6 +167,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLoading(false);
           // --- END IMMEDIATE LOADING STATE UPDATE ---
 
+          // Reset isExplicitlySignedIn for any non-SIGNED_IN event or if session is null
+          if (_event !== 'SIGNED_IN' || !currentSession) {
+            setIsExplicitlySignedIn(false);
+          }
+
           try {
             // Handle session creation/deletion in the background
             if (currentSession) {
@@ -224,6 +231,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: authError };
       }
       toast.success('Logged in successfully!');
+      setIsExplicitlySignedIn(true); // Set to true on successful explicit sign-in
       return { data };
     } finally {
       setLoading(false); // End loading
@@ -244,6 +252,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: authError };
       }
       toast.success('Logged out successfully!');
+      setIsExplicitlySignedIn(false); // Reset on sign out
       return { success: true };
     } catch (e: any) {
       handleError(e, e.message || 'An unexpected error occurred during logout.');
@@ -272,6 +281,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     error,
     authReady,
+    isExplicitlySignedIn, // Include in context value
     signUp,
     signIn,
     signOut,
