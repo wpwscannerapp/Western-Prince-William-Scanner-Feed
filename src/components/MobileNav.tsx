@@ -15,7 +15,10 @@ interface MobileNavProps {
 const MobileNav: React.FC<MobileNavProps> = ({ onLinkClick }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
-  const { isAdmin } = useIsAdmin();
+  
+  // Conditionally call useIsAdmin only if a user is present and auth is not loading
+  // The fallback object now only includes 'isAdmin' to match the destructuring.
+  const { isAdmin } = !loading && user ? useIsAdmin() : { isAdmin: false };
   const location = useLocation();
 
   const handleSignOut = async () => {
