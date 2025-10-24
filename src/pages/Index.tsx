@@ -25,7 +25,14 @@ const Index: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    console.log('Index: Navigation check -', { minimumSplashDurationPassed, authReady, authLoading, user: user ? 'present' : 'null', isExplicitlySignedIn, currentPath: location.pathname });
+    console.log('Index: Navigation check -', {
+      minimumSplashDurationPassed,
+      authReady,
+      authLoading,
+      user: user ? 'present' : 'null',
+      isExplicitlySignedIn,
+      currentPath: location.pathname
+    });
 
     // Only navigate if both minimum splash duration has passed AND auth is ready AND auth is NOT loading
     if (minimumSplashDurationPassed && authReady && !authLoading) {

@@ -148,6 +148,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, currentSession: Session | null) => {
         console.log(`AuthContext: onAuthStateChange event: ${_event}, session: ${currentSession ? 'present' : 'null'}`);
+        console.log(`AuthContext: isExplicitlySignedIn BEFORE state update: ${isExplicitlySignedIn}`);
+
         if (currentSession) {
           console.log('AuthContext: currentSession details:', {
             userId: currentSession.user?.id,
@@ -178,6 +180,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (_event === 'SIGNED_OUT') {
             setIsExplicitlySignedIn(false);
             console.log(`AuthContext: Event SIGNED_OUT, isExplicitlySignedIn set to false.`);
+          } else if (_event === 'INITIAL_SESSION' || _event === 'SIGNED_IN') {
+            // For initial session or restored session, ensure isExplicitlySignedIn is false
+            // unless it was explicitly set to true by a recent signIn call (which would be handled by the signIn function itself)
+            // This ensures that a page refresh or direct URL access with an existing session
+            // does NOT set isExplicitlySignedIn to true.
+            if (isExplicitlySignedIn) {
+              console.log(`AuthContext: Event ${_event}, isExplicitlySignedIn was true, keeping it true.`);
+            } else {
+              console.log(`AuthContext: Event ${_event}, isExplicitlySignedIn was false, keeping it false.`);
+            }
           } else {
             console.log(`AuthContext: Event ${_event}, isExplicitlySignedIn state unchanged.`);
           }
@@ -215,7 +227,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authTimeoutRef.current = null;
       }
     };
-  }, [authReady, handleSessionCreation, handleSessionDeletion]);
+  }, [authReady, handleSessionCreation, handleSessionDeletion, isExplicitlySignedIn]); // Added isExplicitlySignedIn to deps
 
   const signUp = async (email: string, password: string) => {
     setLoading(true);
@@ -244,6 +256,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       toast.success('Logged in successfully!');
       setIsExplicitlySignedIn(true); // Set to true ONLY on explicit sign-in
+      console.log('AuthContext: signIn successful, isExplicitlySignedIn set to true.');
       return { data };
     } finally {
       setLoading(false);
@@ -265,6 +278,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       toast.success('Logged out successfully!');
       setIsExplicitlySignedIn(false); // Set to false on sign-out
+      console.log('AuthContext: signOut successful, isExplicitlySignedIn set to false.');
       return { success: true };
     } catch (e: any) {
       handleError(e, e.message || 'An unexpected error occurred during logout.');
