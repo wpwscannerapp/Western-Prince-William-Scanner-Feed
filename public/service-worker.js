@@ -84,6 +84,14 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('Service Worker: Received SKIP_WAITING message. Skipping waiting.');
+    self.skipWaiting();
+  }
+  if (event.data && event.data.type === 'CLAIM_CLIENTS') {
+    console.log('Service Worker: Received CLAIM_CLIENTS message. Claiming clients.');
+    self.clients.claim();
+  }
   if (event.data.type === 'CLEANUP_CACHE') {
     console.log('Service Worker: Received CLEANUP_CACHE message, keeping:', event.data.cacheName);
     caches.keys().then((cacheNames) => {
