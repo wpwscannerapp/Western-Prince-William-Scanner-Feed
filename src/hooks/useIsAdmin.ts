@@ -26,10 +26,11 @@ export function useIsAdmin(): UseAdminResult {
     };
   }, []);
 
-  const isOnAuthPage = location.pathname === '/auth';
-  const queryEnabled = !!user && authReady && !isOnAuthPage;
+  const isOnAuthPage = location.pathname === '/auth' || location.pathname === '/auth/login' || location.pathname === '/auth/signup';
+  // The query is enabled only if a user is present, auth is ready, auth is NOT loading, and not on an auth page.
+  const queryEnabled = !!user && authReady && !authLoading && !isOnAuthPage;
   
-  console.log('useIsAdmin: Query enabled status:', queryEnabled, { userId: user?.id, authReady, pathname: location.pathname, isOnAuthPage });
+  console.log('useIsAdmin: Query enabled status:', queryEnabled, { userId: user?.id, authReady, authLoading, pathname: location.pathname, isOnAuthPage });
 
   const { data: profile, isLoading: isProfileQueryLoading, isError: isProfileQueryError, error: profileQueryError } = useQuery<Profile | null, Error>({
     queryKey: ['profile', user?.id],
@@ -64,7 +65,7 @@ export function useIsAdmin(): UseAdminResult {
       isOnAuthPage,
     });
 
-    // If on the auth page, or auth is not ready/still loading, ensure isAdmin is false and no error.
+    // If on an auth page, or auth is not ready/still loading, ensure isAdmin is false and no error.
     if (isOnAuthPage || !authReady || authLoading) {
       if (isAdmin || error) {
         console.log('useIsAdmin: Resetting isAdmin state for auth page or initial loading.');
@@ -107,6 +108,8 @@ export function useIsAdmin(): UseAdminResult {
     // If isProfileQueryLoading is true, we are still waiting for data, so don't update isAdmin/error yet.
   }, [authReady, isProfileQueryLoading, isProfileQueryError, profileQueryError, profile, user, authLoading, queryEnabled, session, isOnAuthPage, isAdmin, error]);
 
+  // The overall loading state for useIsAdmin should be true if auth is loading,
+  // or if auth is ready but the profile query is still loading.
   const overallLoading = authLoading || (authReady && isProfileQueryLoading);
 
   return { isAdmin, loading: overallLoading, error };
