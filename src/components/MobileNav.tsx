@@ -33,10 +33,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ onLinkClick }) => {
   ];
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => {
-      console.log('MobileNav: Sheet open state changed to', open);
-      setIsOpen(open);
-    }}>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}> {/* Removed onLinkClick from here */}
       <SheetTrigger asChild>
         <Button
           variant="ghost"
