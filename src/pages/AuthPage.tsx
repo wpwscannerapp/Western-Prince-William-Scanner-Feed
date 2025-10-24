@@ -7,16 +7,19 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button'; // Import Button
 
 const AuthPage = () => {
-  const { user, loading, error } = useAuth(); 
+  const { user, loading, error, isExplicitlySignedIn } = useAuth(); 
   const navigate = useNavigate();
 
   // Use useEffect to handle navigation after render
   useEffect(() => {
-    if (!loading && user) {
-      console.log('AuthPage: User already authenticated, redirecting to /home.');
+    // Only redirect if auth is ready, not loading, and the user is explicitly signed in.
+    // If user is present but not explicitly signed in, it means it's a restored session,
+    // and they should remain on the auth screen to explicitly log in.
+    if (!loading && user && isExplicitlySignedIn) { // Add isExplicitlySignedIn check
+      console.log('AuthPage: User explicitly authenticated, redirecting to /home.');
       navigate('/home', { replace: true });
     }
-  }, [user, loading, navigate]); // Dependencies for the effect
+  }, [user, loading, isExplicitlySignedIn, navigate]); // Add isExplicitlySignedIn to dependencies
 
   if (loading) {
     return (
@@ -37,11 +40,16 @@ const AuthPage = () => {
     );
   }
 
-  // If user is authenticated, this component will render briefly before the useEffect triggers navigation.
-  // We can return null here to prevent rendering the form if navigation is imminent.
-  if (user) {
+  // If user is authenticated but not explicitly signed in, or if no user, render the auth screen.
+  // The useEffect above will handle redirection if explicitly signed in.
+  if (user && !isExplicitlySignedIn) {
+    // User is present (restored session), but not explicitly signed in. Stay on auth screen.
+    // No need to return null here, proceed to render the auth form.
+  } else if (user && isExplicitlySignedIn) {
+    // User is explicitly signed in, but useEffect hasn't redirected yet. Return null to avoid flicker.
     return null;
   }
+
 
   return (
     <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-primary/10 tw-to-background tw-text-foreground tw-p-4">
