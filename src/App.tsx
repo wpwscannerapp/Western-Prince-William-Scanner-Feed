@@ -10,10 +10,10 @@ import MainContent from './components/MainContent';
 const queryClient = new QueryClient();
 
 const App = () => {
-  console.log('App.tsx: Rendering AuthProvider.'); // Added for debugging
+  console.log('App.tsx: Rendering AuthProvider.');
   // TEMPORARY: Clear local storage to force a fresh login state for debugging
-  // localStorage.clear(); // Removed for production readiness
-  // console.log('App.tsx: localStorage cleared for debugging purposes.'); // Removed for production readiness
+  localStorage.clear(); 
+  console.log('App.tsx: localStorage cleared for debugging purposes.');
 
   return (
     <ErrorBoundary>
