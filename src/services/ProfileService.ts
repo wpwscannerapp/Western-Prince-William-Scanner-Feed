@@ -18,9 +18,8 @@ const logSupabaseError = (functionName: string, error: any) => {
 };
 
 export class ProfileService {
-  static async ensureProfileExists(userId: string): Promise<boolean> { // Removed session parameter
+  static async ensureProfileExists(userId: string): Promise<boolean> {
     console.log(`ProfileService: ensureProfileExists called for userId: ${userId}`);
-    // No need for session check here, supabase client handles auth context
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -41,14 +40,10 @@ export class ProfileService {
       if (selectError) {
         if (selectError.code === 'PGRST116') { // No rows found
           console.log(`ProfileService: No existing profile found for ${userId}. Attempting to insert a default profile.`);
-          // Fetch current user's email to determine role for new profile
-          const { data: { user }, error: userError } = await supabase.auth.getUser();
-          const userEmail = user?.email;
-
-          if (userError || !userEmail) {
-            console.warn(`ProfileService: Could not get user email for role assignment during profile creation for ${userId}. Defaulting to 'user'.`, userError);
-          }
-
+          
+          // Removed supabase.auth.getUser() and role determination based on email.
+          // Rely on the database trigger (handle_new_user) for initial role assignment,
+          // or the table's default value if the trigger is not active/fails.
           const { error: insertError } = await supabase
             .from('profiles')
             .insert({
@@ -57,7 +52,6 @@ export class ProfileService {
               last_name: null,
               avatar_url: null,
               subscription_status: 'free',
-              role: userEmail === 'wpwscannerfeed@gmail.com' ? 'admin' : 'user', // Determine role based on email
               username: null,
               updated_at: new Date().toISOString(),
             })
@@ -96,9 +90,8 @@ export class ProfileService {
     }
   }
 
-  static async fetchProfile(userId: string): Promise<Profile | null> { // Removed session parameter
+  static async fetchProfile(userId: string): Promise<Profile | null> {
     console.log(`ProfileService: fetchProfile called for userId: ${userId}`);
-    // No need for session check here, supabase client handles auth context
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -121,7 +114,7 @@ export class ProfileService {
         throw error;
       }
       if (!data) {
-        console.log(`ProfileService: fetchProfile - No profile data returned for ${userId} after successful ensure. This is unexpected.`);
+        console.log(`ProfileService: fetchProfile - No profile data returned for ${userId}. This is unexpected.`);
         return null;
       }
       console.log(`ProfileService: fetchProfile - Profile data found:`, data);
