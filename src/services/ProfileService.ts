@@ -114,7 +114,6 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
-      // Removed the call to ensureProfileExists here. It should now be handled by AuthContext.
       console.log(`ProfileService: fetchProfile - Assuming profile existence is ensured by AuthContext for ${userId}.`);
 
       console.log(`ProfileService: fetchProfile - Attempting Supabase select for profile ${userId}.`);
@@ -143,7 +142,9 @@ export class ProfileService {
         handleError(new Error('Request timed out'), 'Fetching profile timed out.');
         throw new Error('Fetching profile timed out.'); // Re-throw for upstream
       } else {
-        logSupabaseError('fetchProfile', err);
+        // Log the specific Supabase error code if available
+        const errorMessage = err.code ? `Supabase Error (${err.code}): ${err.message}` : err.message;
+        handleError(err, `Failed to fetch profile: ${errorMessage}`);
         throw err; // Re-throw original error
       }
     } finally {
