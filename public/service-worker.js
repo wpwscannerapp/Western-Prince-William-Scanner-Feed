@@ -1,18 +1,15 @@
-const CACHE_NAME = 'wpw-scanner-feed-v8'; // Increment cache version for new strategy
+const CACHE_NAME = 'wpw-scanner-feed-v9'; // Increment cache version again for new strategy
 const FILES_TO_CACHE = [
-  '/', // Cache the root HTML
-  '/index.html',
   '/Logo.png', // Pre-cache logo
   '/manifest.json',
-  // Note: Vite generates hashed filenames for JS/CSS, so we can't hardcode them here.
-  // The fetch strategy below will handle caching these dynamically.
+  // index.html and / will be handled with a network-only strategy
 ];
 
 self.addEventListener('install', (event) => {
   console.log('Service Worker: Installing', CACHE_NAME);
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Service Worker: Pre-caching shell assets');
+      console.log('Service Worker: Pre-caching shell assets (excluding index.html)');
       return cache.addAll(FILES_TO_CACHE);
     }).then(() => self.skipWaiting()) // Activate new service worker immediately
   );
@@ -40,11 +37,36 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url);
 
-  // For all requests: Network-first, then cache
+  // Strategy for index.html and root path: Network-only (or network-first with cache fallback)
+  // Always try network first for the main HTML file to ensure latest version.
+  if (requestUrl.pathname === '/' || requestUrl.pathname === '/index.html') {
+    event.respondWith(
+      fetch(event.request)
+        .then(async (networkResponse) => {
+          // If network is successful, cache it for potential offline use and return
+          if (networkResponse && networkResponse.status === 200) {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(event.request, networkResponse.clone());
+          }
+          return networkResponse;
+        })
+        .catch(async () => {
+          // If network fails (e.g., offline), try to serve from cache
+          const cachedResponse = await caches.match(event.request);
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          // Fallback for offline if both network and cache fail
+          return new Response('Offline content not available', { status: 503, statusText: 'Service Unavailable' });
+        })
+    );
+    return; // Stop processing further for index.html
+  }
+
+  // For all other assets (JS, CSS, images, etc.): Network-first, then cache
   event.respondWith(
     fetch(event.request)
       .then(async (networkResponse) => {
-        // If we get a valid network response, cache it and return it
         if (networkResponse && networkResponse.status === 200) {
           const cache = await caches.open(CACHE_NAME);
           cache.put(event.request, networkResponse.clone());
@@ -52,12 +74,10 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(async () => {
-        // If network fails, try cache
         const cachedResponse = await caches.match(event.request);
         if (cachedResponse) {
           return cachedResponse;
         }
-        // Fallback for offline if both network and cache fail
         return new Response('Offline content not available', { status: 503, statusText: 'Service Unavailable' });
       })
   );
