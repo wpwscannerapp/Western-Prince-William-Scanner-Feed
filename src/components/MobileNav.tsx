@@ -5,7 +5,7 @@ import { Menu, Home, User, Shield, LogIn, LogOut, CreditCard } from 'lucide-reac
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
-import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 
 interface MobileNavProps {
@@ -16,9 +16,8 @@ const MobileNav: React.FC<MobileNavProps> = ({ onLinkClick }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
   
-  // Conditionally call useIsAdmin only if a user is present and auth is not loading
-  // The fallback object now only includes 'isAdmin' to match the destructuring.
-  const { isAdmin } = !loading && user ? useIsAdmin() : { isAdmin: false };
+  // Call useIsAdmin unconditionally. The hook itself handles internal loading/user checks.
+  const { isAdmin } = useIsAdmin(); 
   const location = useLocation();
 
   const handleSignOut = async () => {

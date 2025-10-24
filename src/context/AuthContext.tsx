@@ -164,6 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // The background tasks will not block this.
           setLoading(false);
           console.log('AuthContext: Setting main loading state to false after initial synchronous state updates.');
+          console.log(`AuthContext: IMMEDIATE STATE AFTER SYNC UPDATES - authReady: ${authReady}, loading: ${loading}, isExplicitlySignedIn: ${isExplicitlySignedIn}`); // <-- NEW LOG
 
           // Run session management tasks in the background (don't await here)
           (async () => {
