@@ -63,6 +63,14 @@ const HomePage: React.FC = () => {
           icon="/Logo.png"
         />
 
+        {/* Anonymous Report Tile (New) */}
+        <Tile
+          title="Report Incident"
+          description="Submit an anonymous incident report."
+          to="/home/report-incident"
+          icon="/Logo.png"
+        />
+
         {/* Admin Dashboard Tile (Conditional) */}
         {isAdmin && (
           <Tile

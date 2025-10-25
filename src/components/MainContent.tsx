@@ -12,6 +12,7 @@ import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
 import ContactUsPage from '@/pages/ContactUsPage';
 import IncidentArchivePage from '@/pages/IncidentArchivePage';
+import AnonymousReportPage from '@/pages/AnonymousReportPage'; // New import
 import AuthPage from '@/pages/AuthPage'; // The new Auth landing page
 import LoginPage from '@/pages/LoginPage'; // New Login Page
 import SignupPage from '@/pages/SignupPage'; // New Signup Page
@@ -47,6 +48,7 @@ const MainContent: React.FC = () => {
             <Route path="home/incidents" element={<IncidentsPage />} />
             <Route path="home/contact-us" element={<ContactUsPage />} />
             <Route path="home/archive" element={<IncidentArchivePage />} />
+            <Route path="home/report-incident" element={<AnonymousReportPage />} /> {/* New route */}
             <Route path="profile" element={<ProfilePage />} />
             <Route path="admin" element={<AdminPage />} />
             <Route path="posts/:postId" element={<PostDetailPage />} />
