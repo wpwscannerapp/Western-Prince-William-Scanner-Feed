@@ -1,0 +1,1 @@
+CREATE POLICY "Public can read alerts" ON alerts FOR SELECT USING (true);

@@ -12,16 +12,17 @@ import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
 import ContactUsPage from '@/pages/ContactUsPage';
 import IncidentArchivePage from '@/pages/IncidentArchivePage';
-import AnonymousReportPage from '@/pages/AnonymousReportPage'; // New import
-import AuthPage from '@/pages/AuthPage'; // The new Auth landing page
-import LoginPage from '@/pages/LoginPage'; // New Login Page
-import SignupPage from '@/pages/SignupPage'; // New Signup Page
+import AnonymousReportPage from '@/pages/AnonymousReportPage';
+import AuthPage from '@/pages/AuthPage';
+import LoginPage from '@/pages/LoginPage';
+import SignupPage from '@/pages/SignupPage';
 import SubscriptionPage from '@/pages/SubscriptionPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import TermsOfServicePage from '@/pages/TermsOfServicePage';
 import NotFound from '@/pages/NotFound';
 import { Button } from '@/components/ui/button';
 import Index from '@/pages/Index';
+import Sidebar from './Sidebar'; // Import the new Sidebar component
 
 const MainContent: React.FC = () => {
   useAuth(); 
@@ -30,33 +31,36 @@ const MainContent: React.FC = () => {
   return (
     <>
       <TopNavBar />
-      <div className="tw-min-h-screen tw-flex tw-flex-col tw-bg-background tw-text-foreground tw-pt-16">
-        <Routes>
-          <Route path="/" element={<Index />} /> 
+      <div className="tw-flex tw-min-h-screen tw-bg-background tw-text-foreground tw-pt-16"> {/* Added tw-flex for sidebar layout */}
+        <Sidebar /> {/* Render the Sidebar */}
+        <div className="tw-flex-1 tw-overflow-auto"> {/* Main content area, takes remaining space */}
+          <Routes>
+            <Route path="/" element={<Index />} /> 
 
-          {/* Public routes for authentication and related pages */}
-          <Route path="/auth" element={<AuthPage />} /> {/* Auth landing page */}
-          <Route path="/auth/login" element={<LoginPage />} /> {/* Dedicated Login page */}
-          <Route path="/auth/signup" element={<SignupPage />} /> {/* Dedicated Signup page */}
-          <Route path="/subscribe" element={<SubscriptionPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+            {/* Public routes for authentication and related pages */}
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/auth/login" element={<LoginPage />} />
+            <Route path="/auth/signup" element={<SignupPage />} />
+            <Route path="/subscribe" element={<SubscriptionPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
-          {/* Protected routes wrapped by ProtectedRoute */}
-          <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route path="home" element={<HomePage />} />
-            <Route path="home/incidents" element={<IncidentsPage />} />
-            <Route path="home/contact-us" element={<ContactUsPage />} />
-            <Route path="home/archive" element={<IncidentArchivePage />} />
-            <Route path="home/report-incident" element={<AnonymousReportPage />} /> {/* New route */}
-            <Route path="profile" element={<ProfilePage />} />
-            <Route path="admin" element={<AdminPage />} />
-            <Route path="posts/:postId" element={<PostDetailPage />} />
-          </Route>
+            {/* Protected routes wrapped by ProtectedRoute */}
+            <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+              <Route path="home" element={<HomePage />} />
+              <Route path="home/incidents" element={<IncidentsPage />} />
+              <Route path="home/contact-us" element={<ContactUsPage />} />
+              <Route path="home/archive" element={<IncidentArchivePage />} />
+              <Route path="home/report-incident" element={<AnonymousReportPage />} />
+              <Route path="profile" element={<ProfilePage />} />
+              <Route path="admin" element={<AdminPage />} />
+              <Route path="posts/:postId" element={<PostDetailPage />} />
+            </Route>
 
-          {/* Catch-all for 404 - ensure it's after all other specific routes */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            {/* Catch-all for 404 - ensure it's after all other specific routes */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
       </div>
 
       {/* Floating Feedback Button */}

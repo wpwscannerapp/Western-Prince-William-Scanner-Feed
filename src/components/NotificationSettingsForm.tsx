@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { NotificationService, PushSubscription } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
+import { supabase } from '@/integrations/supabase/client'; // Import supabase for real-time
 
 const alertTypes = ['Fire', 'Police', 'Road Closure', 'Medical', 'Other'];
 const radiusOptions = [1, 5, 10, 25, 50]; // Miles
@@ -38,11 +39,11 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
   const [isSaving, setIsSaving] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [alertRealtimeStatus, setAlertRealtimeStatus] = useState<'active' | 'failed' | 'connecting'>('connecting'); // New state for real-time status
 
   const form = useForm<NotificationSettingsFormValues>({
     resolver: zodResolver(notificationSettingsSchema),
     defaultValues: {
-      // Removed 'enabled' from defaultValues here, it will be set by reset()
       preferred_types: [],
       radius_miles: 5,
       manual_location_address: null,
@@ -62,7 +63,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
       const settings = await NotificationService.getUserNotificationSettings(user.id);
       if (settings) {
         reset({
-          enabled: settings.enabled ?? false, // Use DB value or false
+          enabled: settings.enabled ?? false,
           preferred_types: settings.preferred_types ?? [],
           radius_miles: settings.radius_miles ?? 5,
           manual_location_address: settings.manual_location_address ?? null,
@@ -70,7 +71,6 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
           longitude: settings.longitude ?? null,
         });
       } else {
-        // If no settings exist, initialize with defaults
         reset({
           enabled: false,
           preferred_types: [],
@@ -80,7 +80,6 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
           longitude: null,
         });
       }
-      // Check browser notification permission
       setNotificationPermission(Notification.permission);
     } catch (err) {
       handleError(err, 'Failed to load notification settings.');
@@ -94,6 +93,41 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
       fetchSettings();
     }
   }, [user, authLoading, fetchSettings]);
+
+  // Supabase Real-Time Subscription for Alerts
+  useEffect(() => {
+    const channel = supabase
+      .channel('public:alerts')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'alerts' }, (payload) => {
+        // This callback is for UI updates, not for sending push notifications (that's handled by Netlify function)
+        // You could add a toast here to show a new alert has been received in the app
+        console.log('New alert received via real-time:', payload.new);
+        toast.info(`New Alert: ${payload.new.title}`, {
+          description: payload.new.description,
+          duration: 5000,
+        });
+      })
+      .subscribe((status) => {
+        console.log('Supabase alerts channel status:', status);
+        if (status === 'SUBSCRIBED') {
+          setAlertRealtimeStatus('active');
+          toast.success('Real-time alerts connection active!', { id: 'alert-rt-status', duration: 3000 });
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setAlertRealtimeStatus('failed');
+          toast.error('Real-time alerts connection failed. Please refresh.', { id: 'alert-rt-status', duration: 5000 });
+        } else if (status === 'CLOSED') {
+          setAlertRealtimeStatus('failed');
+          toast.warning('Real-time alerts connection closed.', { id: 'alert-rt-status', duration: 3000 });
+        } else if (status === 'UNSUBSCRIBED') {
+          setAlertRealtimeStatus('failed');
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+      setAlertRealtimeStatus('connecting'); // Reset status on unmount
+    };
+  }, []); // Empty dependency array to run once on mount and cleanup on unmount
 
   const onSubmit = async (values: NotificationSettingsFormValues) => {
     if (!user) {
@@ -112,42 +146,38 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
       let notificationsEnabledInDb = values.enabled;
 
       if (values.enabled) {
-        // If enabling, ensure permission is granted and then subscribe
         if (notificationPermission !== 'granted') {
           const permission = await Notification.requestPermission();
           setNotificationPermission(permission);
           if (permission !== 'granted') {
-            notificationsEnabledInDb = false; // Force disable in DB if permission not granted
+            notificationsEnabledInDb = false;
             throw new Error('permission_denied');
           }
         }
-        // Now that permission is granted, attempt to subscribe or get existing subscription
         pushSubscription = await NotificationService.subscribeUserToPush();
         if (!pushSubscription) {
-          notificationsEnabledInDb = false; // Force disable in DB if subscription failed
+          notificationsEnabledInDb = false;
           throw new Error('subscription_failed');
         }
       } else {
-        // If disabling, unsubscribe from browser and clear DB subscription
         const unsubscribed = await NotificationService.unsubscribeWebPush(user.id);
         if (!unsubscribed) {
           throw new Error('unsubscribe_failed');
         }
-        pushSubscription = null; // Explicitly set to null for DB update
+        pushSubscription = null;
         notificationsEnabledInDb = false;
       }
 
-      // Update user settings in Supabase
       const updatedSettings = await NotificationService.updateUserNotificationSettings(user.id, {
         ...values,
-        enabled: notificationsEnabledInDb, // Use the determined enabled status
+        enabled: notificationsEnabledInDb,
         push_subscription: pushSubscription,
       });
 
       if (updatedSettings) {
         toast.success('Settings saved successfully!', { id: 'save-settings' });
-        setNotificationPermission(Notification.permission); // Update permission status
-        reset(updatedSettings); // Update form with fresh data from DB
+        setNotificationPermission(Notification.permission);
+        reset(updatedSettings);
       } else {
         throw new Error('database_update_failed');
       }
@@ -159,7 +189,6 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
         database_update_failed: 'Failed to save settings. Please try again later.',
       };
       handleError(err, errorMessages[err.message] || 'An unexpected error occurred while saving settings.', { id: 'save-settings' });
-      // If permission was denied, ensure the 'enabled' switch reflects this
       if (err.message === 'permission_denied') {
         setValue('enabled', false);
       }
@@ -189,7 +218,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
       });
       setValue('latitude', position.coords.latitude);
       setValue('longitude', position.coords.longitude);
-      setValue('manual_location_address', null); // Clear manual address if geolocation is successful
+      setValue('manual_location_address', null);
       toast.success('Location updated!', { id: 'get-location' });
     } catch (err: any) {
       handleError(err, 'Failed to get current location. Please enable location services or enter manually.');
@@ -203,7 +232,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) {
       handleError(null, 'Notifications are not supported by your browser.');
-      return 'denied'; // Return 'denied' if not supported
+      return 'denied';
     }
 
     try {
@@ -217,13 +246,13 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
       return permission;
     } catch (err) {
       handleError(err, 'Failed to request notification permission.');
-      return 'denied'; // Assume denied on error
+      return 'denied';
     }
   };
 
   const isFormDisabled = isSaving || isLocating || !isWebPushInitialized;
 
-  if (authLoading || isLoading || !isWebPushInitialized) { // Issue 4: Include isWebPushInitialized in loading state
+  if (authLoading || isLoading || !isWebPushInitialized) {
     return (
       <Card className="tw-bg-card tw-border-border tw-shadow-lg">
         <CardContent className="tw-py-8 tw-text-center">
@@ -269,11 +298,10 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
               checked={enabled}
               onCheckedChange={async (checked) => {
                 setValue('enabled', checked);
-                // Issue 1: Inconsistent Permission Handling on Toggle
                 if (checked && notificationPermission === 'default') {
                   const permission = await requestNotificationPermission();
                   if (permission !== 'granted') {
-                    setValue('enabled', false); // Sync form state with permission
+                    setValue('enabled', false);
                     toast.error('Notifications disabled due to permission denial.');
                   }
                 }
@@ -296,6 +324,26 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
               <CheckCircle2 className="tw-h-4 tw-w-4" /> Notifications are enabled and granted by your browser.
             </p>
           )}
+
+          {/* Real-time alerts status feedback */}
+          <div className="tw-flex tw-items-center tw-gap-2 tw-text-sm">
+            <span className="tw-font-medium">Real-time Alerts Status:</span>
+            {alertRealtimeStatus === 'connecting' && (
+              <span className="tw-flex tw-items-center tw-gap-1 tw-text-muted-foreground">
+                <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin" /> Connecting...
+              </span>
+            )}
+            {alertRealtimeStatus === 'active' && (
+              <span className="tw-flex tw-items-center tw-gap-1 tw-text-green-600">
+                <CheckCircle2 className="tw-h-4 tw-w-4" /> Active
+              </span>
+            )}
+            {alertRealtimeStatus === 'failed' && (
+              <span className="tw-flex tw-items-center tw-gap-1 tw-text-destructive">
+                <XCircle className="tw-h-4 tw-w-4" /> Failed
+              </span>
+            )}
+          </div>
 
           <div>
             <Label className="tw-mb-2 tw-block">Preferred Alert Types</Label>

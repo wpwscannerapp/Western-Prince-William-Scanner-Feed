@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, Home, User, Shield, LogIn, LogOut, CreditCard } from 'lucide-react';
+import { Menu, Home, User, Shield, LogIn, LogOut, CreditCard, Archive, Phone, MapPin, FileText } from 'lucide-react'; // Added new icons
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
-import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 
 interface MobileNavProps {
   onLinkClick?: () => void;
@@ -14,9 +14,7 @@ interface MobileNavProps {
 const MobileNav: React.FC<MobileNavProps> = ({ onLinkClick }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
-  
-  // Call useIsAdmin unconditionally. The hook itself handles internal loading/user checks.
-  const { isAdmin } = useIsAdmin(); 
+  const { isAdmin } = useIsAdmin();
   const location = useLocation();
 
   const handleSignOut = async () => {
@@ -24,16 +22,21 @@ const MobileNav: React.FC<MobileNavProps> = ({ onLinkClick }) => {
     onLinkClick?.();
   };
 
+  // Define navigation items consistent with the new Sidebar
   const navItems = [
-    { name: 'Home Page', icon: Home, path: '/home', requiresAuth: true },
+    { name: 'Home', icon: Home, path: '/home', requiresAuth: true },
+    { name: 'Incidents Feed', icon: MapPin, path: '/home/incidents', requiresAuth: true },
+    { name: 'Incident Archive', icon: Archive, path: '/home/archive', requiresAuth: true },
+    { name: 'Report Incident', icon: FileText, path: '/home/report-incident', requiresAuth: true },
+    { name: 'Contact Us', icon: Phone, path: '/home/contact-us', requiresAuth: true },
     { name: 'Profile', icon: User, path: '/profile', requiresAuth: true },
-    { name: 'Admin', icon: Shield, path: '/admin', requiresAuth: true, adminOnly: true },
+    { name: 'Admin Dashboard', icon: Shield, path: '/admin', requiresAuth: true, adminOnly: true },
     { name: 'Subscribe', icon: CreditCard, path: '/subscribe', requiresAuth: false, showWhenLoggedOut: true },
-    { name: 'Login / Sign Up', icon: LogIn, path: '/auth', requiresAuth: false, showWhenLoggedOut: true }, // Updated link
+    { name: 'Login / Sign Up', icon: LogIn, path: '/auth', requiresAuth: false, showWhenLoggedOut: true },
   ];
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}> {/* Removed onLinkClick from here */}
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button
           variant="ghost"
@@ -47,7 +50,6 @@ const MobileNav: React.FC<MobileNavProps> = ({ onLinkClick }) => {
       </SheetTrigger>
       <SheetContent side="left" className="tw-w-[250px] sm:tw-w-[300px] tw-bg-sidebar tw-border-r tw-border-sidebar-border tw-flex tw-flex-col">
         <SheetHeader>
-          {/* Using sr-only directly for visual hiding while maintaining accessibility */}
           <SheetTitle className="tw-sr-only">Navigation Menu</SheetTitle>
           <SheetDescription className="tw-sr-only">Access application navigation links.</SheetDescription>
         </SheetHeader>

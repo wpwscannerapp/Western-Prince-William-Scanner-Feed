@@ -1,10 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Map, List } from 'lucide-react';
+import IncidentMap from '@/components/IncidentMap'; // Import the new map component
+import { useQuery } from '@tanstack/react-query';
+import { NotificationService, Alert } from '@/services/NotificationService'; // Import Alert and NotificationService
+import { handleError } from '@/utils/errorHandler';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 const HomePage: React.FC = () => {
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('list'); // State for map/list view
+
+  // Fetch alerts for the map
+  const { data: alerts, isLoading: isLoadingAlerts, isError: isAlertsError, error: alertsError } = useQuery<Alert[], Error>({
+    queryKey: ['alerts'],
+    queryFn: () => NotificationService.fetchAlerts(),
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
+
+  useEffect(() => {
+    if (isAlertsError) {
+      handleError(alertsError, 'Failed to load real-time alerts for the map.');
+    }
+  }, [isAlertsError, alertsError]);
 
   console.log('HomePage: Rendered with', { isAdmin, isAdminLoading, isAdminError });
 
@@ -17,8 +37,8 @@ const HomePage: React.FC = () => {
         <button
           className="tw-mt-4 tw-px-4 tw-py-2 tw-bg-primary tw-text-primary-foreground tw-rounded-md hover:tw-bg-primary/90 tw-transition-colors"
           onClick={() => {
-            localStorage.removeItem('supabase.auth.token'); // Clear stale session
-            window.location.reload(); // Hard reload
+            localStorage.removeItem('supabase.auth.token');
+            window.location.reload();
           }}
         >
           Retry
@@ -38,6 +58,65 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-6xl">
+      <div className="tw-mb-8">
+        <div className="tw-flex tw-justify-between tw-items-center tw-mb-4">
+          <h2 className="tw-text-2xl tw-font-bold tw-text-foreground">Real-time Alerts</h2>
+          <div className="tw-flex tw-gap-2">
+            <Button
+              variant={viewMode === 'list' ? 'secondary' : 'outline'}
+              size="icon"
+              onClick={() => setViewMode('list')}
+              aria-label="View alerts as list"
+            >
+              <List className="tw-h-4 tw-w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'map' ? 'secondary' : 'outline'}
+              size="icon"
+              onClick={() => setViewMode('map')}
+              aria-label="View alerts on map"
+            >
+              <Map className="tw-h-4 tw-w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {isLoadingAlerts ? (
+          <Card className="tw-bg-card tw-border-border tw-shadow-md">
+            <CardContent className="tw-flex tw-items-center tw-justify-center tw-py-8">
+              <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
+              <span className="tw-ml-2 tw-text-muted-foreground">Loading alerts...</span>
+            </CardContent>
+          </Card>
+        ) : alerts && alerts.length > 0 ? (
+          viewMode === 'map' ? (
+            <IncidentMap alerts={alerts} />
+          ) : (
+            <div className="tw-space-y-4">
+              {alerts.map((alert) => (
+                <Card key={alert.id} className="tw-bg-card tw-border-border tw-shadow-sm">
+                  <CardHeader className="tw-pb-2">
+                    <CardTitle className="tw-text-lg tw-font-semibold">{alert.title}</CardTitle>
+                    <CardDescription className="tw-text-sm tw-text-muted-foreground">
+                      {new Date(alert.created_at).toLocaleString()} - {alert.type}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="tw-text-sm tw-text-foreground">{alert.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )
+        ) : (
+          <Card className="tw-bg-card tw-border-border tw-shadow-md">
+            <CardContent className="tw-py-8 tw-text-center tw-text-muted-foreground">
+              No real-time alerts available.
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
       <div className="tw-grid tw-grid-cols-2 sm:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-6">
         {/* Incidents Tile */}
         <Tile

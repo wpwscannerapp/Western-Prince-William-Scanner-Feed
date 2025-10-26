@@ -42,7 +42,6 @@ export const NotificationService = {
   async ensureWebPushReady(): Promise<boolean> {
     const vapidPublicKey = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY;
 
-    // Issue 9: Add VAPID key validation
     if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
       handleError(null, 'Invalid VAPID Public Key configuration. Push notifications will not work.');
       return false;
@@ -55,7 +54,7 @@ export const NotificationService = {
 
     try {
       await navigator.serviceWorker.register('/service-worker.js');
-      return true; // Environment is ready, but not necessarily subscribed
+      return true;
     } catch (err: any) {
       handleError(err, 'Failed to register service worker for push notifications.');
       return false;
@@ -65,7 +64,6 @@ export const NotificationService = {
   async subscribeUserToPush(): Promise<PushSubscription | null> {
     const vapidPublicKey = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY;
 
-    // VAPID key validation already done in ensureWebPushReady, but a quick check here too
     if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
       handleError(null, 'VAPID Public Key is missing or invalid. Cannot subscribe.');
       return null;
@@ -83,11 +81,10 @@ export const NotificationService = {
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: NotificationService.urlBase64ToUint8Array(vapidPublicKey) as BufferSource, // Explicitly cast to BufferSource
+          applicationServerKey: NotificationService.urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
         });
       }
 
-      // Return the subscription object, the form will handle updating Supabase
       return subscription.toJSON() as PushSubscription;
     } catch (err: any) {
       handleError(err, 'Failed to subscribe to push notifications. Please ensure your VAPID keys are correct and try again.');
@@ -106,19 +103,17 @@ export const NotificationService = {
 
       if (subscription) {
         await subscription.unsubscribe();
-        // Issue 8: Only update DB if an actual unsubscription occurred
         await NotificationService.updateUserNotificationSettings(userId, {
           push_subscription: null,
           enabled: false,
         });
         return true;
       } else {
-        // Even if no browser subscription, ensure DB reflects disabled state
         await NotificationService.updateUserNotificationSettings(userId, {
           push_subscription: null,
           enabled: false,
         });
-        return true; // No action needed if no subscription, but DB is consistent
+        return true;
       }
     } catch (err: any) {
       handleError(err, 'Failed to unsubscribe from push notifications.');
@@ -139,13 +134,12 @@ export const NotificationService = {
         .limit(1); 
 
       if (error) {
-        if (error.code === 'PGRST116') { // No rows found
+        if (error.code === 'PGRST116') {
           return null;
         }
         logSupabaseError('getUserNotificationSettings', error);
         return null;
       }
-      // If data is an array, return the first element, otherwise null
       return (data && data.length > 0) ? data[0] as UserNotificationSettings : null;
     } catch (err: any) {
       if (err.name === 'AbortError') {
@@ -225,7 +219,36 @@ export const NotificationService = {
     }
   },
 
-  // Utility function to convert VAPID public key to Uint8Array
+  // New method to fetch alerts for the map
+  async fetchAlerts(): Promise<Alert[]> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
+
+    try {
+      const { data, error } = await supabase
+        .from('alerts')
+        .select('id, title, type, latitude, longitude, description, created_at')
+        .order('created_at', { ascending: false })
+        .limit(50) // Fetch a reasonable number of recent alerts
+        .abortSignal(controller.signal);
+
+      if (error) {
+        logSupabaseError('fetchAlerts', error);
+        return [];
+      }
+      return data as Alert[];
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        handleError(new Error('Request timed out'), 'Fetching alerts for map timed out.');
+      } else {
+        logSupabaseError('fetchAlerts', err);
+      }
+      return [];
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  },
+
   urlBase64ToUint8Array(base64String: string): Uint8Array {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
