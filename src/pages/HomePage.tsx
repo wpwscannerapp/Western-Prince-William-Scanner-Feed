@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { Loader2, AlertCircle, Map, List } from 'lucide-react';
-import IncidentMap from '@/components/IncidentMap'; // Import the new map component
+import { Loader2, AlertCircle, Map, List, User, CreditCard, LogIn } from 'lucide-react'; // Added User, CreditCard, LogIn icons
+import IncidentMap from '@/components/IncidentMap';
 import { useQuery } from '@tanstack/react-query';
-import { NotificationService, Alert } from '@/services/NotificationService'; // Import Alert and NotificationService
+import { NotificationService, Alert } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
 const HomePage: React.FC = () => {
+  const { user, loading: authLoading } = useAuth(); // Get user and auth loading state
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
   const [viewMode, setViewMode] = useState<'map' | 'list'>('list'); // State for map/list view
 
@@ -47,7 +49,7 @@ const HomePage: React.FC = () => {
     );
   }
 
-  if (isAdminLoading) {
+  if (isAdminLoading || authLoading) { // Include authLoading in overall loading state
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
         <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
@@ -142,7 +144,7 @@ const HomePage: React.FC = () => {
           icon="/Logo.png"
         />
 
-        {/* Anonymous Report Tile (New) */}
+        {/* Anonymous Report Tile */}
         <Tile
           title="Report Incident"
           description="Submit an anonymous incident report."
@@ -150,14 +152,43 @@ const HomePage: React.FC = () => {
           icon="/Logo.png"
         />
 
-        {/* Admin Dashboard Tile (Conditional) */}
-        {isAdmin && (
-          <Tile
-            title="Admin Dashboard"
-            description="Manage posts, settings, and users."
-            to="/admin"
-            icon="/Logo.png"
-          />
+        {/* Conditional Tiles based on authentication */}
+        {user ? (
+          <>
+            {/* Profile Tile */}
+            <Tile
+              title="Profile"
+              description="Manage your personal settings."
+              to="/profile"
+              icon="/Logo.png" // You might want a specific icon for profile
+            />
+            {/* Admin Dashboard Tile (Conditional) */}
+            {isAdmin && (
+              <Tile
+                title="Admin Dashboard"
+                description="Manage posts, settings, and users."
+                to="/admin"
+                icon="/Logo.png"
+              />
+            )}
+          </>
+        ) : (
+          <>
+            {/* Subscribe Tile */}
+            <Tile
+              title="Subscribe"
+              description="Unlock premium features."
+              to="/subscribe"
+              icon="/Logo.png" // You might want a specific icon for subscribe
+            />
+            {/* Login / Sign Up Tile */}
+            <Tile
+              title="Login / Sign Up"
+              description="Access your account or create a new one."
+              to="/auth"
+              icon="/Logo.png" // You might want a specific icon for login/signup
+            />
+          </>
         )}
       </div>
     </div>

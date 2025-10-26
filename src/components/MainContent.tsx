@@ -2,7 +2,6 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext.tsx';
 import { useAppSettings } from '@/hooks/useAppSettings';
-import TopNavBar from '@/components/TopNavBar';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import HomePage from '@/pages/HomePage';
@@ -29,8 +28,7 @@ const MainContent: React.FC = () => {
 
   return (
     <>
-      <TopNavBar />
-      <div className="tw-min-h-screen tw-bg-background tw-text-foreground tw-pt-16"> {/* Removed tw-flex for sidebar layout */}
+      <div className="tw-min-h-screen tw-bg-background tw-text-foreground"> {/* Removed tw-pt-16 as there's no top nav */}
         <Routes>
           <Route path="/" element={<Index />} /> 
 
