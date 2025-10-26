@@ -7,20 +7,28 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import AdminDashboardTabs from '@/components/AdminDashboardTabs';
 import AdminSidebar from '@/components/AdminSidebar';
 import AdminDebugInfo from '@/components/AdminDebugInfo'; // Import the new debug component
+import { useQueryClient } from '@tanstack/react-query'; // Import useQueryClient
 
 const AdminPage = () => {
-  const { loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: isAdminLoading } = useIsAdmin();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('incidents'); // Default to 'incidents' tab
+  const queryClient = useQueryClient(); // Initialize queryClient
 
   useEffect(() => {
+    // Invalidate the userRole query when AdminPage mounts to ensure fresh admin status check
+    if (user) {
+      console.log('AdminPage: Invalidating userRole query for user:', user.id);
+      queryClient.invalidateQueries({ queryKey: ['userRole', user.id] });
+    }
+
     // Only redirect if not loading and user is definitively not an admin
     if (!authLoading && !isAdminLoading && !isAdmin) {
       toast.error('Access Denied: You must be an administrator to view this page.');
       navigate('/home', { replace: true }); // Redirect to home page
     }
-  }, [authLoading, isAdminLoading, isAdmin, navigate]);
+  }, [authLoading, isAdminLoading, isAdmin, navigate, user, queryClient]); // Added user and queryClient to dependencies
 
   if (authLoading || isAdminLoading) {
     return (
