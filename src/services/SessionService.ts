@@ -1,16 +1,9 @@
 "use client";
 
-import { getStore } from '@netlify/blobs';
 import { handleError } from '@/utils/errorHandler';
 import { Session } from '@supabase/supabase-js';
-import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsService
-
-// Define the structure of a session stored in Netlify Blobs
-export interface BlobSessionData {
-  userId: string;
-  expiresAt: string; // ISO string
-  createdAt: string; // ISO string
-}
+import { NetlifyClient } from '@/integrations/netlify/client'; // Import the new NetlifyClient
+import { AnalyticsService } from './AnalyticsService';
 
 export interface UserSession {
   id: string; // This will be the sessionId
@@ -20,32 +13,17 @@ export interface UserSession {
   expires_at: string;
 }
 
-const netlifySiteID = import.meta.env.VITE_NETLIFY_SITE_ID;
-const netlifyApiToken = import.meta.env.VITE_NETLIFY_API_TOKEN;
-
-if (!netlifySiteID || !netlifyApiToken) {
-  console.error('Netlify Blobs configuration error: VITE_NETLIFY_SITE_ID or VITE_NETLIFY_API_TOKEN is missing.');
-  throw new Error('Netlify Blobs configuration missing. Please ensure VITE_NETLIFY_SITE_ID and VITE_NETLIFY_API_TOKEN are set in your .env file.');
-}
-
-// Initialize the sessionsStore with explicit siteID and token from environment variables
-// These environment variables must be set in your .env file or Netlify build settings.
-const sessionsStore = (getStore as any)('user_sessions', {
-  siteID: netlifySiteID as string,
-  token: netlifyApiToken as string,
-});
-
-const logBlobError = (functionName: string, error: any) => {
+const logError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
   if (import.meta.env.DEV) {
-    console.error(`Netlify Blobs Error in ${functionName}:`, error);
+    console.error(`SessionService Error in ${functionName}:`, error);
   }
 };
 
 export const SessionService = {
   async createSession(session: Session, sessionId: string): Promise<UserSession | null> {
     if (!session.user || !session.expires_in) {
-      handleError(null, 'Invalid session data provided for creation.');
+      logError('createSession', 'Invalid session data provided for creation.');
       AnalyticsService.trackEvent({ name: 'create_session_failed', properties: { reason: 'invalid_session_data' } });
       return null;
     }
@@ -54,16 +32,22 @@ export const SessionService = {
     const expiresAtISO = expiresAtDate.toISOString();
     const createdAtISO = new Date().toISOString();
 
-    const blobData: BlobSessionData = {
-      userId: session.user.id,
-      expiresAt: expiresAtISO,
-      createdAt: createdAtISO,
-    };
-
     try {
-      // The 'ttl' option is in milliseconds for Netlify Blobs.
-      // Using 'as any' to bypass TypeScript type definition issues with @netlify/blobs.
-      await sessionsStore.setJSON(sessionId, blobData, { ttl: session.expires_in * 1000 } as any);
+      const { data, error } = await NetlifyClient.invoke<{ success: boolean }>('session-manager', {
+        action: 'createSession',
+        payload: {
+          sessionId,
+          userId: session.user.id,
+          expiresAt: expiresAtISO,
+          expiresIn: session.expires_in,
+        },
+      });
+
+      if (error || !data?.success) {
+        logError('createSession', error || 'Netlify Function reported failure.');
+        AnalyticsService.trackEvent({ name: 'create_session_failed', properties: { userId: session.user.id, error: error || 'Netlify Function reported failure.' } });
+        return null;
+      }
 
       AnalyticsService.trackEvent({ name: 'session_created_or_updated', properties: { userId: session.user.id, sessionId } });
       return {
@@ -74,7 +58,7 @@ export const SessionService = {
         expires_at: expiresAtISO,
       };
     } catch (err) {
-      logBlobError('createSession', err);
+      logError('createSession', err);
       AnalyticsService.trackEvent({ name: 'create_session_unexpected_error', properties: { userId: session.user.id, error: (err as Error).message } });
       return null;
     }
@@ -90,89 +74,87 @@ export const SessionService = {
     }
 
     try {
-      await sessionsStore.delete(sessionId);
+      const { data, error } = await NetlifyClient.invoke<{ success: boolean }>('session-manager', {
+        action: 'deleteSession',
+        payload: { sessionId },
+      });
+
+      if (error || !data?.success) {
+        logError('deleteSession', error || 'Netlify Function reported failure.');
+        AnalyticsService.trackEvent({ name: 'delete_session_failed', properties: { userId, sessionId, error: error || 'Netlify Function reported failure.' } });
+        return false;
+      }
+
       AnalyticsService.trackEvent({ name: 'session_deleted', properties: { userId, sessionId } });
       return true;
     } catch (err) {
-      logBlobError('deleteSession', err);
+      logError('deleteSession', err);
       AnalyticsService.trackEvent({ name: 'delete_session_unexpected_error', properties: { userId, sessionId, error: (err as Error).message } });
       return false;
     }
   },
 
-  // NOTE: This operation can be inefficient for a large number of sessions
-  // as it requires listing all keys and fetching each blob.
   async deleteAllSessionsForUser(userId: string): Promise<boolean> {
     try {
-      const { blobs } = await sessionsStore.list();
-      const deletePromises: Promise<void>[] = [];
+      const { data, error } = await NetlifyClient.invoke<{ success: boolean }>('session-manager', {
+        action: 'deleteAllSessionsForUser',
+        payload: { userId },
+      });
 
-      for (const blob of blobs) {
-        // Using 'as any' to bypass TypeScript type definition issues with @netlify/blobs.
-        const blobData = await (sessionsStore as any).getJson(blob.key) as BlobSessionData; // Removed type argument, added cast to result
-        if (blobData && blobData.userId === userId) {
-          deletePromises.push(sessionsStore.delete(blob.key));
-        }
+      if (error || !data?.success) {
+        logError('deleteAllSessionsForUser', error || 'Netlify Function reported failure.');
+        AnalyticsService.trackEvent({ name: 'delete_all_sessions_failed', properties: { userId, error: error || 'Netlify Function reported failure.' } });
+        return false;
       }
-      await Promise.all(deletePromises);
-      AnalyticsService.trackEvent({ name: 'all_sessions_deleted', properties: { userId, count: deletePromises.length } });
+
+      AnalyticsService.trackEvent({ name: 'all_sessions_deleted', properties: { userId } });
       return true;
     } catch (err) {
-      logBlobError('deleteAllSessionsForUser', err);
+      logError('deleteAllSessionsForUser', err);
       AnalyticsService.trackEvent({ name: 'delete_all_sessions_unexpected_error', properties: { userId, error: (err as Error).message } });
       return false;
     }
   },
 
-  // NOTE: This operation can be inefficient for a large number of sessions
-  // as it requires listing all keys and fetching each blob.
   async countActiveSessions(userId: string): Promise<number> {
     try {
-      const { blobs } = await sessionsStore.list();
-      let count = 0;
-      const now = new Date();
+      const { data, error } = await NetlifyClient.invoke<{ count: number }>('session-manager', {
+        action: 'countActiveSessions',
+        payload: { userId },
+      });
 
-      for (const blob of blobs) {
-        // Using 'as any' to bypass TypeScript type definition issues with @netlify/blobs.
-        const blobData = await (sessionsStore as any).getJson(blob.key) as BlobSessionData; // Removed type argument, added cast to result
-        if (blobData && blobData.userId === userId && new Date(blobData.expiresAt) > now) {
-          count++;
-        }
+      if (error) {
+        logError('countActiveSessions', error);
+        AnalyticsService.trackEvent({ name: 'count_active_sessions_failed', properties: { userId, error } });
+        return 0;
       }
-      AnalyticsService.trackEvent({ name: 'count_active_sessions_fetched', properties: { userId, count } });
-      return count;
+
+      AnalyticsService.trackEvent({ name: 'count_active_sessions_fetched', properties: { userId, count: data?.count || 0 } });
+      return data?.count || 0;
     } catch (err) {
-      logBlobError('countActiveSessions', err);
+      logError('countActiveSessions', err);
       AnalyticsService.trackEvent({ name: 'count_active_sessions_unexpected_error', properties: { userId, error: (err as Error).message } });
       return 0;
     }
   },
 
-  // NOTE: This operation can be inefficient for a large number of sessions
-  // as it requires listing all keys and fetching each blob.
   async deleteOldestSessions(userId: string, limit: number): Promise<boolean> {
     try {
-      const { blobs } = await sessionsStore.list();
-      const userSessions: { key: string; data: BlobSessionData }[] = [];
+      const { data, error } = await NetlifyClient.invoke<{ success: boolean }>('session-manager', {
+        action: 'deleteOldestSessions',
+        payload: { userId, limit },
+      });
 
-      for (const blob of blobs) {
-        // Using 'as any' to bypass TypeScript type definition issues with @netlify/blobs.
-        const blobData = await (sessionsStore as any).getJson(blob.key) as BlobSessionData; // Removed type argument, added cast to result
-        if (blobData && blobData.userId === userId) {
-          userSessions.push({ key: blob.key, data: blobData });
-        }
+      if (error || !data?.success) {
+        logError('deleteOldestSessions', error || 'Netlify Function reported failure.');
+        AnalyticsService.trackEvent({ name: 'delete_oldest_sessions_failed', properties: { userId, error: error || 'Netlify Function reported failure.' } });
+        return false;
       }
 
-      if (userSessions.length >= limit) {
-        userSessions.sort((a, b) => new Date(a.data.createdAt).getTime() - new Date(b.data.createdAt).getTime());
-        const sessionsToDelete = userSessions.slice(0, userSessions.length - limit + 1);
-        const deletePromises = sessionsToDelete.map(s => sessionsStore.delete(s.key));
-        await Promise.all(deletePromises);
-        AnalyticsService.trackEvent({ name: 'oldest_sessions_deleted', properties: { userId, count: deletePromises.length } });
-      }
+      AnalyticsService.trackEvent({ name: 'oldest_sessions_deleted', properties: { userId } });
       return true;
     } catch (err) {
-      logBlobError('deleteOldestSessions', err);
+      logError('deleteOldestSessions', err);
       AnalyticsService.trackEvent({ name: 'delete_oldest_sessions_unexpected_error', properties: { userId, error: (err as Error).message } });
       return false;
     }
@@ -180,13 +162,21 @@ export const SessionService = {
 
   async isValidSession(userId: string, sessionId: string): Promise<boolean> {
     try {
-      // Using 'as any' to bypass TypeScript type definition issues with @netlify/blobs.
-      const blobData = await (sessionsStore as any).getJson(sessionId) as BlobSessionData; // Removed type argument, added cast to result
-      const isValid = blobData !== null && blobData.userId === userId && new Date(blobData.expiresAt) > new Date();
-      AnalyticsService.trackEvent({ name: 'session_validated', properties: { userId, sessionId, isValid } });
-      return isValid;
+      const { data, error } = await NetlifyClient.invoke<{ isValid: boolean }>('session-manager', {
+        action: 'isValidSession',
+        payload: { userId, sessionId },
+      });
+
+      if (error) {
+        logError('isValidSession', error);
+        AnalyticsService.trackEvent({ name: 'session_validated_failed', properties: { userId, sessionId, error } });
+        return false;
+      }
+
+      AnalyticsService.trackEvent({ name: 'session_validated', properties: { userId, sessionId, isValid: data?.isValid || false } });
+      return data?.isValid || false;
     } catch (err) {
-      logBlobError('isValidSession', err);
+      logError('isValidSession', err);
       AnalyticsService.trackEvent({ name: 'is_valid_session_unexpected_error', properties: { userId, sessionId, error: (err as Error).message } });
       return false;
     }
