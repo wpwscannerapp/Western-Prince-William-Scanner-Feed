@@ -11,7 +11,6 @@ import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
 import ContactUsPage from '@/pages/ContactUsPage';
 import IncidentArchivePage from '@/pages/IncidentArchivePage';
-import AnonymousReportPage from '@/pages/AnonymousReportPage'; // Keep for now, will delete later
 import FeedbackPage from '@/pages/FeedbackPage'; // New import
 import AuthPage from '@/pages/AuthPage';
 import LoginPage from '@/pages/LoginPage';
@@ -47,7 +46,7 @@ const MainContent: React.FC = () => {
             <Route path="home/incidents" element={<IncidentsPage />} />
             <Route path="home/contact-us" element={<ContactUsPage />} />
             <Route path="home/archive" element={<IncidentArchivePage />} />
-            <Route path="home/report-incident" element={<AnonymousReportPage />} /> {/* Keep for now */}
+            {/* Removed the route for AnonymousReportPage */}
             <Route path="home/feedback" element={<FeedbackPage />} /> {/* New route */}
             <Route path="profile" element={<ProfilePage />} />
             <Route path="admin" element={<AdminPage />} />
