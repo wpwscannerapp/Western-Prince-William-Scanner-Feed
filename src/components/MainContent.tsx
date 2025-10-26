@@ -22,7 +22,6 @@ import TermsOfServicePage from '@/pages/TermsOfServicePage';
 import NotFound from '@/pages/NotFound';
 import { Button } from '@/components/ui/button';
 import Index from '@/pages/Index';
-import Sidebar from './Sidebar'; // Import the new Sidebar component
 
 const MainContent: React.FC = () => {
   useAuth(); 
@@ -31,36 +30,33 @@ const MainContent: React.FC = () => {
   return (
     <>
       <TopNavBar />
-      <div className="tw-flex tw-min-h-screen tw-bg-background tw-text-foreground tw-pt-16"> {/* Added tw-flex for sidebar layout */}
-        <Sidebar /> {/* Render the Sidebar */}
-        <div className="tw-flex-1 tw-overflow-auto"> {/* Main content area, takes remaining space */}
-          <Routes>
-            <Route path="/" element={<Index />} /> 
+      <div className="tw-min-h-screen tw-bg-background tw-text-foreground tw-pt-16"> {/* Removed tw-flex for sidebar layout */}
+        <Routes>
+          <Route path="/" element={<Index />} /> 
 
-            {/* Public routes for authentication and related pages */}
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/auth/login" element={<LoginPage />} />
-            <Route path="/auth/signup" element={<SignupPage />} />
-            <Route path="/subscribe" element={<SubscriptionPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+          {/* Public routes for authentication and related pages */}
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/auth/login" element={<LoginPage />} />
+          <Route path="/auth/signup" element={<SignupPage />} />
+          <Route path="/subscribe" element={<SubscriptionPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
-            {/* Protected routes wrapped by ProtectedRoute */}
-            <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-              <Route path="home" element={<HomePage />} />
-              <Route path="home/incidents" element={<IncidentsPage />} />
-              <Route path="home/contact-us" element={<ContactUsPage />} />
-              <Route path="home/archive" element={<IncidentArchivePage />} />
-              <Route path="home/report-incident" element={<AnonymousReportPage />} />
-              <Route path="profile" element={<ProfilePage />} />
-              <Route path="admin" element={<AdminPage />} />
-              <Route path="posts/:postId" element={<PostDetailPage />} />
-            </Route>
+          {/* Protected routes wrapped by ProtectedRoute */}
+          <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+            <Route path="home" element={<HomePage />} />
+            <Route path="home/incidents" element={<IncidentsPage />} />
+            <Route path="home/contact-us" element={<ContactUsPage />} />
+            <Route path="home/archive" element={<IncidentArchivePage />} />
+            <Route path="home/report-incident" element={<AnonymousReportPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="admin" element={<AdminPage />} />
+            <Route path="posts/:postId" element={<PostDetailPage />} />
+          </Route>
 
-            {/* Catch-all for 404 - ensure it's after all other specific routes */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </div>
+          {/* Catch-all for 404 - ensure it's after all other specific routes */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </div>
 
       {/* Floating Feedback Button */}

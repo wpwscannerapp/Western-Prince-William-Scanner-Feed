@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Alert } from '@/services/NotificationService';
-import { MapPin } from 'lucide-react';
+// Removed MapPin import as it was unused
 
 // Fix for default Leaflet icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
