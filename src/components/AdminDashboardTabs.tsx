@@ -7,7 +7,10 @@ import AnalyticsCard from '@/components/AnalyticsCard';
 import AppSettingsForm from '@/components/AppSettingsForm';
 import AdminNotificationSender from '@/components/AdminNotificationSender';
 import ContactSettingsForm from '@/components/ContactSettingsForm';
-import { PostService } from '@/services/PostService'; // Updated import
+import IncidentForm from '@/components/IncidentForm'; // Import IncidentForm
+import AdminIncidentTable from '@/components/AdminIncidentTable'; // Import AdminIncidentTable
+import { PostService } from '@/services/PostService';
+import { IncidentService } from '@/services/IncidentService'; // Import IncidentService
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -27,12 +30,17 @@ interface SubscriptionData {
 const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) => {
   const { user } = useAuth();
   const [postFormLoading, setPostFormLoading] = React.useState(false);
+  const [incidentFormLoading, setIncidentFormLoading] = useState(false); // New state for incident form
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData[]>([]);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
   const refreshPostTable = useCallback(() => {
     // This function will be passed to AdminPostTable to trigger its internal refresh
     // AdminPostTable will manage its own data fetching.
+  }, []);
+
+  const refreshIncidentTable = useCallback(() => {
+    // This function will be passed to AdminIncidentTable to trigger its internal refresh
   }, []);
 
   const handleCreatePost = async (text: string, imageFile: File | null) => {
@@ -44,10 +52,11 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
     setPostFormLoading(true);
     try {
       toast.loading('Creating post...', { id: 'create-post' });
-      const newPost = await PostService.createPost(text, imageFile, user.id); // Using PostService
+      const newPost = await PostService.createPost(text, imageFile, user.id);
       
       if (newPost) {
         toast.success('Post created successfully!', { id: 'create-post' });
+        refreshPostTable(); // Trigger refresh of post table
         return true;
       } else {
         handleError(null, 'Failed to create post.');
@@ -58,6 +67,41 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
       return false;
     } finally {
       setPostFormLoading(false);
+    }
+  };
+
+  const handleCreateIncident = async (type: string, location: string, description: string) => {
+    if (!user) {
+      toast.error('You must be logged in to create an incident.');
+      return false;
+    }
+
+    setIncidentFormLoading(true);
+    toast.loading('Submitting incident...', { id: 'create-incident' });
+
+    try {
+      const title = `${type} at ${location}`;
+      const newIncident = await IncidentService.createIncident({
+        title,
+        description,
+        type,
+        location,
+        date: new Date().toISOString(),
+      });
+      
+      if (newIncident) {
+        toast.success('Incident submitted successfully!', { id: 'create-incident' });
+        refreshIncidentTable(); // Trigger refresh of incident table
+        return true;
+      } else {
+        handleError(null, 'Failed to submit incident.');
+        return false;
+      }
+    } catch (err) {
+      handleError(err, 'An error occurred while submitting the incident.');
+      return false;
+    } finally {
+      setIncidentFormLoading(false);
     }
   };
 
@@ -104,8 +148,9 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
 
   return (
     <Tabs value={activeTab} className="tw-w-full">
-      <TabsList className="tw-grid tw-w-full tw-grid-cols-4 tw-mb-6 tw-hidden">
-        <TabsTrigger value="posts" aria-label="Posts tab">Posts</TabsTrigger>
+      <TabsList className="tw-grid tw-w-full tw-grid-cols-5"> {/* Updated grid-cols */}
+        <TabsTrigger value="posts" aria-label="Scanner Posts tab">Scanner Posts</TabsTrigger> {/* Renamed */}
+        <TabsTrigger value="incidents" aria-label="Incidents tab">Incidents</TabsTrigger> {/* New tab */}
         <TabsTrigger value="analytics" aria-label="Analytics tab">Analytics</TabsTrigger>
         <TabsTrigger value="settings" aria-label="Settings tab">Settings</TabsTrigger>
         <TabsTrigger value="notifications" aria-label="Notifications tab">Notifications</TabsTrigger>
@@ -114,7 +159,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
       <TabsContent value="posts" className="tw-space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Create New Post</CardTitle>
+            <CardTitle>Create New Scanner Post</CardTitle>
             <CardDescription>Share updates with your subscribers</CardDescription>
           </CardHeader>
           <CardContent>
@@ -126,11 +171,34 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Manage Posts</CardTitle>
+            <CardTitle>Manage Scanner Posts</CardTitle>
             <CardDescription>View, edit, or delete existing posts</CardDescription>
           </CardHeader>
           <CardContent>
             <AdminPostTable onPostUpdated={refreshPostTable} /> 
+          </CardContent>
+        </Card>
+      </TabsContent>
+      <TabsContent value="incidents" className="tw-space-y-8"> {/* New TabsContent */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Submit New Incident</CardTitle>
+            <CardDescription>Report a new incident for the scanner feed</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <IncidentForm
+              onSubmit={handleCreateIncident}
+              isLoading={incidentFormLoading}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Manage Incidents</CardTitle>
+            <CardDescription>View, edit, or delete existing incidents</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AdminIncidentTable onIncidentUpdated={refreshIncidentTable} />
           </CardContent>
         </Card>
       </TabsContent>

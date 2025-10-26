@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 
 const incidentFormSchema = z.object({
-  type: z.string().min(1, { message: 'Incident type is required.' }).max(100, { message: 'Incident type too long.' }), // Added max length
+  type: z.string().min(1, { message: 'Incident type is required.' }).max(100, { message: 'Incident type too long.' }),
   location: z.string().min(1, { message: 'Location is required.' }).max(200, { message: 'Location too long.' }),
   description: z.string().min(10, { message: 'Incident details must be at least 10 characters.' }).max(1000, { message: 'Description too long.' }),
 });
@@ -19,21 +19,34 @@ type IncidentFormValues = z.infer<typeof incidentFormSchema>;
 interface IncidentFormProps {
   onSubmit: (type: string, location: string, description: string) => Promise<boolean>;
   isLoading: boolean;
+  initialIncident?: { // New prop for initial values when editing
+    type: string;
+    location: string;
+    description: string;
+  };
 }
 
-const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading }) => {
+const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initialIncident }) => {
   const form = useForm<IncidentFormValues>({
     resolver: zodResolver(incidentFormSchema),
     defaultValues: {
-      type: '',
-      location: '',
-      description: '',
+      type: initialIncident?.type || '',
+      location: initialIncident?.location || '',
+      description: initialIncident?.description || '',
     },
   });
 
+  useEffect(() => {
+    if (initialIncident) {
+      form.reset(initialIncident);
+    } else {
+      form.reset({ type: '', location: '', description: '' });
+    }
+  }, [initialIncident, form]);
+
   const handleSubmit = async (values: IncidentFormValues) => {
     const success = await onSubmit(values.type, values.location, values.description);
-    if (success) {
+    if (success && !initialIncident) { // Only reset if it's a new incident, not an edit
       form.reset();
     }
   };
@@ -84,7 +97,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading }) => {
 
       <Button type="submit" disabled={isLoading} className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground">
         {isLoading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
-        Submit Incident
+        {initialIncident ? 'Update Incident' : 'Submit Incident'}
       </Button>
     </form>
   );

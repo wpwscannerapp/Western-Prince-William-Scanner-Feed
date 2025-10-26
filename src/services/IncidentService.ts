@@ -111,4 +111,62 @@ export const IncidentService = {
       clearTimeout(timeoutId);
     }
   },
+
+  async updateIncident(id: string, updates: Partial<Omit<Incident, 'id' | 'created_at'>>): Promise<Incident | null> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
+
+    try {
+      const { data, error } = await supabase
+        .from('incidents')
+        .update({ ...updates, date: new Date().toISOString() }) // Update date to current time on edit
+        .eq('id', id)
+        .abortSignal(controller.signal)
+        .select()
+        .single();
+
+      if (error) {
+        logSupabaseError('updateIncident', error);
+        return null;
+      }
+      return data as Incident;
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        handleError(new Error('Request timed out'), 'Updating incident timed out.');
+      } else {
+        logSupabaseError('updateIncident', err);
+      }
+      return null;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  },
+
+  async deleteIncident(id: string): Promise<boolean> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
+
+    try {
+      const { error } = await supabase
+        .from('incidents')
+        .delete()
+        .eq('id', id)
+        .abortSignal(controller.signal);
+
+      if (error) {
+        logSupabaseError('deleteIncident', error);
+        return false;
+      }
+      return true;
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        handleError(new Error('Request timed out'), 'Deleting incident timed out.');
+      } else {
+        logSupabaseError('deleteIncident', err);
+      }
+      return false;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  },
 };

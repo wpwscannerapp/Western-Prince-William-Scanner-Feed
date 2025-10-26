@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Newspaper, Settings, BellRing, Menu, Phone } from 'lucide-react'; // Added Phone icon
+import { LayoutDashboard, Newspaper, Settings, BellRing, Menu, Phone, Siren } from 'lucide-react'; // Added Siren icon
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
@@ -13,11 +13,12 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, onTabChange }) =
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const navItems = [
-    { name: 'Posts', icon: Newspaper, tab: 'posts' },
+    { name: 'Scanner Posts', icon: Newspaper, tab: 'posts' }, // Renamed
+    { name: 'Incidents', icon: Siren, tab: 'incidents' }, // New nav item
     { name: 'Analytics', icon: LayoutDashboard, tab: 'analytics' },
     { name: 'Settings', icon: Settings, tab: 'settings' },
     { name: 'Notifications', icon: BellRing, tab: 'notifications' },
-    { name: 'Contact', icon: Phone, tab: 'contact' }, // New nav item
+    { name: 'Contact', icon: Phone, tab: 'contact' },
   ];
 
   const handleTabClick = (tab: string) => {
