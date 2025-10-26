@@ -13,7 +13,7 @@ import { Incident, IncidentService } from '@/services/IncidentService';
 import { format } from 'date-fns';
 import { Edit, Trash2, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'; // Import DialogFooter
 import IncidentForm from './IncidentForm';
 
 interface AdminIncidentTableProps {
@@ -72,7 +72,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
   };
 
   const handleUpdateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => {
-    console.log('AdminIncidentTable: handleUpdateIncident called.'); // Added log
+    console.log('AdminIncidentTable: handleUpdateIncident called.');
     if (!editingIncident) return false;
 
     setIsSubmitting(true);
@@ -84,7 +84,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
         type,
         location,
         description,
-        date: editingIncident.date, // Keep original date or update if needed
+        date: editingIncident.date,
       }, imageFile, currentImageUrl, latitude, longitude);
       
       if (updatedIncident) {
@@ -227,6 +227,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
               <DialogTitle>Edit Incident</DialogTitle>
             </DialogHeader>
             <IncidentForm
+              formId="edit-incident-form" // Assign a unique ID to the form
               onSubmit={handleUpdateIncident}
               isLoading={isSubmitting}
               initialIncident={{
@@ -238,6 +239,17 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
                 longitude: editingIncident.longitude,
               }}
             />
+            <DialogFooter>
+              <Button 
+                type="submit" 
+                form="edit-incident-form" // Link button to the form by ID
+                disabled={isSubmitting} 
+                className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground"
+              >
+                {isSubmitting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
+                Update Incident
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}

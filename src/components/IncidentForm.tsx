@@ -6,15 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Image as ImageIcon, XCircle, MapPin } from 'lucide-react';
-import { geocodeAddress } from '@/utils/geocoding'; // Import geocoding utility
+import { Image as ImageIcon, XCircle, MapPin } from 'lucide-react'; // Removed Loader2
+import { geocodeAddress } from '@/utils/geocoding';
 import { toast } from 'sonner';
 
 const incidentFormSchema = z.object({
   type: z.string().min(1, { message: 'Incident type is required.' }).max(100, { message: 'Incident type too long.' }),
   location: z.string().min(1, { message: 'Location is required.' }).max(200, { message: 'Location too long.' }),
   description: z.string().min(10, { message: 'Incident details must be at least 10 characters.' }).max(1000, { message: 'Description too long.' }),
-  image: z.any().optional(), // File object or null
+  image: z.any().optional(),
 });
 
 type IncidentFormValues = z.infer<typeof incidentFormSchema>;
@@ -27,12 +27,13 @@ interface IncidentFormProps {
     location: string;
     description: string;
     image_url?: string;
-    latitude?: number; // New: initial latitude
-    longitude?: number; // New: initial longitude
+    latitude?: number;
+    longitude?: number;
   };
+  formId?: string;
 }
 
-const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initialIncident }) => {
+const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initialIncident, formId }) => {
   const form = useForm<IncidentFormValues>({
     resolver: zodResolver(incidentFormSchema),
     defaultValues: {
@@ -55,7 +56,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         type: initialIncident.type,
         location: initialIncident.location,
         description: initialIncident.description,
-        image: undefined, // Clear file input on edit
+        image: undefined,
       });
       setImagePreview(initialIncident.image_url || undefined);
       setImageFile(null);
@@ -63,7 +64,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         setGeocodedLocation({
           latitude: initialIncident.latitude,
           longitude: initialIncident.longitude,
-          display_name: initialIncident.location, // Use provided location as display name
+          display_name: initialIncident.location,
         });
       } else {
         setGeocodedLocation(null);
@@ -101,14 +102,13 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
   };
 
   const handleSubmit = async (values: IncidentFormValues) => {
-    console.log('IncidentForm: Internal handleSubmit triggered.'); // Existing log
-    console.log('IncidentForm: Form validation errors:', form.formState.errors); // New log for errors
+    console.log('IncidentForm: Internal handleSubmit triggered.');
+    console.log('IncidentForm: Form validation errors:', form.formState.errors);
 
     setIsGeocoding(true);
     let latitude: number | undefined = initialIncident?.latitude;
     let longitude: number | undefined = initialIncident?.longitude;
 
-    // Only geocode if location has changed or if it's a new incident without coordinates
     if (values.location !== initialIncident?.location || (!initialIncident?.latitude && !initialIncident?.longitude)) {
       const geoResult = await geocodeAddress(values.location);
       if (geoResult) {
@@ -123,7 +123,6 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         setGeocodedLocation(null);
       }
     } else if (initialIncident?.latitude && initialIncident?.longitude) {
-      // If location hasn't changed and initial incident has coordinates, keep them
       setGeocodedLocation({
         latitude: initialIncident.latitude,
         longitude: initialIncident.longitude,
@@ -133,7 +132,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
     setIsGeocoding(false);
 
     const success = await onSubmit(values.type, values.location, values.description, imageFile, initialIncident?.image_url, latitude, longitude);
-    if (success && !initialIncident) { // Only reset if it's a new incident, not an edit
+    if (success && !initialIncident) {
       form.reset();
       setImagePreview(undefined);
       setImageFile(null);
@@ -145,7 +144,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
   };
 
   return (
-    <form onSubmit={form.handleSubmit(handleSubmit)} className="tw-space-y-6 tw-p-4 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm">
+    <form id={formId} onSubmit={form.handleSubmit(handleSubmit)} className="tw-space-y-6 tw-p-4 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm">
       <div>
         <Label htmlFor="incident-type" className="tw-mb-2 tw-block">Incident Type</Label>
         <Input
@@ -223,11 +222,6 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
           </div>
         )}
       </div>
-
-      <Button type="submit" disabled={isLoading || isGeocoding} className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground">
-        {(isLoading || isGeocoding) && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
-        {initialIncident ? 'Update Incident' : 'Submit Incident'}
-      </Button>
     </form>
   );
 };
