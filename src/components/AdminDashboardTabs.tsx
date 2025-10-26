@@ -81,13 +81,13 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
 
     try {
       const title = `${type} at ${location}`;
-      const newIncident = await IncidentService.createIncident({
+      const newIncident = await IncidentService.createIncident({ // <-- TypeScript compiler error here
         title,
         description,
         type,
         location,
         date: new Date().toISOString(),
-      });
+      }, null); // Pass null for imageFile
       
       if (newIncident) {
         toast.success('Incident submitted successfully!', { id: 'create-incident' });

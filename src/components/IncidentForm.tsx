@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -6,23 +6,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Image as ImageIcon, XCircle } from 'lucide-react';
 
 const incidentFormSchema = z.object({
   type: z.string().min(1, { message: 'Incident type is required.' }).max(100, { message: 'Incident type too long.' }),
   location: z.string().min(1, { message: 'Location is required.' }).max(200, { message: 'Location too long.' }),
   description: z.string().min(10, { message: 'Incident details must be at least 10 characters.' }).max(1000, { message: 'Description too long.' }),
+  image: z.any().optional(), // File object or null
 });
 
 type IncidentFormValues = z.infer<typeof incidentFormSchema>;
 
 interface IncidentFormProps {
-  onSubmit: (type: string, location: string, description: string) => Promise<boolean>;
+  onSubmit: (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined) => Promise<boolean>;
   isLoading: boolean;
-  initialIncident?: { // New prop for initial values when editing
+  initialIncident?: {
     type: string;
     location: string;
     description: string;
+    image_url?: string; // Added image_url for initial values
   };
 }
 
@@ -33,21 +35,64 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
       type: initialIncident?.type || '',
       location: initialIncident?.location || '',
       description: initialIncident?.description || '',
+      image: undefined,
     },
   });
 
+  const [imagePreview, setImagePreview] = useState<string | undefined>(initialIncident?.image_url || undefined);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (initialIncident) {
-      form.reset(initialIncident);
+      form.reset({
+        type: initialIncident.type,
+        location: initialIncident.location,
+        description: initialIncident.description,
+        image: undefined, // Clear file input on edit
+      });
+      setImagePreview(initialIncident.image_url || undefined);
+      setImageFile(null);
     } else {
-      form.reset({ type: '', location: '', description: '' });
+      form.reset({
+        type: '',
+        location: '',
+        description: '',
+        image: undefined,
+      });
+      setImagePreview(undefined);
+      setImageFile(null);
     }
   }, [initialIncident, form]);
 
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    } else {
+      setImageFile(null);
+      setImagePreview(undefined);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(undefined);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async (values: IncidentFormValues) => {
-    const success = await onSubmit(values.type, values.location, values.description);
+    const success = await onSubmit(values.type, values.location, values.description, imageFile, initialIncident?.image_url);
     if (success && !initialIncident) { // Only reset if it's a new incident, not an edit
       form.reset();
+      setImagePreview(undefined);
+      setImageFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -92,6 +137,37 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         />
         {form.formState.errors.description && (
           <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.description.message}</p>
+        )}
+      </div>
+
+      <div>
+        <Label htmlFor="image-upload" className="tw-flex tw-items-center tw-gap-2 tw-cursor-pointer tw-mb-2 tw-block">
+          <ImageIcon className="tw-h-4 tw-w-4" /> Upload Image (Optional)
+        </Label>
+        <Input
+          id="image-upload"
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+          className="tw-block tw-w-full tw-text-sm tw-text-muted-foreground file:tw-mr-4 file:tw-py-2 file:tw-px-4 file:tw-rounded-full file:tw-border-0 file:tw-text-sm file:tw-font-semibold file:tw-bg-primary file:tw-text-primary-foreground hover:file:tw-bg-primary/90"
+          disabled={isLoading}
+          ref={fileInputRef}
+        />
+        {imagePreview && (
+          <div className="tw-relative tw-mt-4 tw-w-32 tw-h-32 tw-rounded-md tw-overflow-hidden">
+            <img src={imagePreview} alt="Image preview" className="tw-w-full tw-h-full tw-object-cover" />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="tw-absolute tw-top-1 tw-right-1 tw-h-6 tw-w-6 tw-rounded-full tw-bg-background/70 hover:tw-bg-background"
+              onClick={handleRemoveImage}
+              disabled={isLoading}
+            >
+              <XCircle className="tw-h-4 tw-w-4 tw-text-destructive" />
+              <span className="tw-sr-only">Remove image</span>
+            </Button>
+          </div>
         )}
       </div>
 

@@ -80,13 +80,13 @@ const IncidentsPage: React.FC = () => {
 
     try {
       const title = `${type} at ${location}`; // Generate title from type and location
-      const newIncident = await IncidentService.createIncident({
+      const newIncident = await IncidentService.createIncident({ // <-- TypeScript compiler error here
         title,
         description,
         type,
         location,
         date: new Date().toISOString(), // Set current date/time
-      });
+      }, null); // Pass null for imageFile
       
       if (newIncident) {
         toast.success('Incident submitted successfully!', { id: 'create-incident' });
@@ -119,9 +119,12 @@ const IncidentsPage: React.FC = () => {
 
   if (isError) {
     return (
-      <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-12">
-        <p className="tw-text-destructive tw-mb-4">Error: {error?.message || 'An unexpected error occurred.'}</p>
-        <Button onClick={handleRetry}>Retry</Button>
+      <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
+        <div className="tw-text-center">
+          <h1 className="tw-text-2xl tw-font-bold tw-text-destructive tw-mb-4">Error Loading Archive</h1>
+          <p className="tw-text-muted-foreground">{error?.message || 'An unexpected error occurred.'}</p>
+          <Button onClick={handleRetry}>Retry</Button>
+        </div>
       </div>
     );
   }

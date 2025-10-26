@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
+import { StorageService } from './StorageService'; // Import StorageService
 
 export interface Incident {
   id: string;
@@ -9,6 +10,7 @@ export interface Incident {
   type: string;
   location: string;
   date: string;
+  image_url?: string; // Added image_url
   created_at: string;
 }
 
@@ -83,14 +85,20 @@ export const IncidentService = {
     }
   },
 
-  async createIncident(incident: Omit<Incident, 'id' | 'created_at'>): Promise<Incident | null> {
+  async createIncident(incident: Omit<Incident, 'id' | 'created_at' | 'image_url'>, imageFile: File | null): Promise<Incident | null> {
+    let imageUrl: string | null = null; // Changed type to string | null
+    if (imageFile) {
+      imageUrl = await StorageService.uploadIncidentImage(imageFile);
+      if (!imageUrl) return null;
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
       const { data, error } = await supabase
         .from('incidents')
-        .insert(incident)
+        .insert({ ...incident, image_url: imageUrl })
         .abortSignal(controller.signal)
         .select()
         .single();
@@ -112,14 +120,29 @@ export const IncidentService = {
     }
   },
 
-  async updateIncident(id: string, updates: Partial<Omit<Incident, 'id' | 'created_at'>>): Promise<Incident | null> {
+  async updateIncident(id: string, updates: Partial<Omit<Incident, 'id' | 'created_at'>>, imageFile: File | null, currentImageUrl: string | undefined): Promise<Incident | null> {
+    let imageUrl: string | undefined = currentImageUrl;
+
+    if (imageFile) {
+      const newImageUrl = await StorageService.uploadIncidentImage(imageFile);
+      if (!newImageUrl) return null;
+      if (currentImageUrl) {
+        await StorageService.deleteIncidentImage(currentImageUrl);
+      }
+      imageUrl = newImageUrl;
+    } else if (currentImageUrl && !imageFile) {
+      // If currentImageUrl exists but no new file is provided and image is explicitly removed
+      await StorageService.deleteIncidentImage(currentImageUrl);
+      imageUrl = undefined;
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
       const { data, error } = await supabase
         .from('incidents')
-        .update({ ...updates, date: new Date().toISOString() }) // Update date to current time on edit
+        .update({ ...updates, image_url: imageUrl, date: new Date().toISOString() }) // Update date to current time on edit
         .eq('id', id)
         .abortSignal(controller.signal)
         .select()
@@ -142,7 +165,11 @@ export const IncidentService = {
     }
   },
 
-  async deleteIncident(id: string): Promise<boolean> {
+  async deleteIncident(id: string, imageUrl: string | undefined): Promise<boolean> {
+    if (imageUrl) {
+      await StorageService.deleteIncidentImage(imageUrl);
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 

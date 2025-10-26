@@ -9,13 +9,12 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Incident, IncidentService } from '@/services/IncidentService'; // Removed INCIDENTS_PER_PAGE
+import { Incident, IncidentService } from '@/services/IncidentService';
 import { format } from 'date-fns';
 import { Edit, Trash2, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import IncidentForm from './IncidentForm'; // Reusing the IncidentForm for editing
-// Removed import { handleError } from '@/utils/errorHandler';
+import IncidentForm from './IncidentForm';
 
 interface AdminIncidentTableProps {
   onIncidentUpdated: () => void;
@@ -48,11 +47,11 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
     fetchIncidents();
   }, []);
 
-  const handleDelete = async (incidentId: string) => {
+  const handleDelete = async (incidentId: string, imageUrl: string | undefined) => {
     if (window.confirm('Are you sure you want to delete this incident?')) {
       try {
         toast.loading('Deleting incident...', { id: 'delete-incident' });
-        const success = await IncidentService.deleteIncident(incidentId);
+        const success = await IncidentService.deleteIncident(incidentId, imageUrl);
         if (success) {
           toast.success('Incident deleted successfully!', { id: 'delete-incident' });
           fetchIncidents();
@@ -72,7 +71,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
     setIsEditDialogOpen(true);
   };
 
-  const handleUpdateIncident = async (type: string, location: string, description: string) => {
+  const handleUpdateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined) => {
     if (!editingIncident) return false;
 
     setIsSubmitting(true);
@@ -85,7 +84,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
         location,
         description,
         date: editingIncident.date, // Keep original date or update if needed
-      });
+      }, imageFile, currentImageUrl);
       
       if (updatedIncident) {
         toast.success('Incident updated successfully!', { id: 'update-incident' });
@@ -154,13 +153,14 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
                 <TableHead className="tw-whitespace-nowrap">Type</TableHead>
                 <TableHead className="tw-whitespace-nowrap">Location</TableHead>
                 <TableHead className="tw-min-w-[200px]">Description</TableHead>
+                <TableHead className="tw-whitespace-nowrap">Image</TableHead> {/* New Image column */}
                 <TableHead className="tw-text-right tw-whitespace-nowrap">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredIncidents.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="tw-h-24 tw-text-center tw-text-muted-foreground">
+                  <TableCell colSpan={7} className="tw-h-24 tw-text-center tw-text-muted-foreground"> {/* Updated colspan */}
                     {searchTerm ? 'No incidents match your search.' : 'No incidents found.'}
                   </TableCell>
                 </TableRow>
@@ -174,6 +174,21 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
                     <TableCell className="tw-whitespace-nowrap">{incident.type}</TableCell>
                     <TableCell className="tw-whitespace-nowrap">{incident.location}</TableCell>
                     <TableCell className="tw-max-w-xs tw-truncate">{incident.description}</TableCell>
+                    <TableCell>
+                      {incident.image_url ? (
+                        <img 
+                          src={incident.image_url} 
+                          alt="Incident" 
+                          className="tw-h-10 tw-w-10 tw-object-cover tw-rounded-md" 
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.parentElement!.innerHTML = '<span class="tw-text-muted-foreground">Image</span>';
+                          }}
+                        />
+                      ) : (
+                        <span className="tw-text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                     <TableCell className="tw-text-right tw-whitespace-nowrap">
                       <div className="tw-flex tw-justify-end tw-gap-1">
                         <Button 
@@ -188,7 +203,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          onClick={() => handleDelete(incident.id)}
+                          onClick={() => handleDelete(incident.id, incident.image_url)}
                           className="tw-h-8 tw-w-8"
                         >
                           <Trash2 className="tw-h-4 tw-w-4 tw-text-destructive" />
@@ -213,11 +228,11 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
             <IncidentForm
               onSubmit={handleUpdateIncident}
               isLoading={isSubmitting}
-              // Pass initial values to the form for editing
               initialIncident={{
                 type: editingIncident.type,
                 location: editingIncident.location,
                 description: editingIncident.description,
+                image_url: editingIncident.image_url, // Pass image_url for editing
               }}
             />
           </DialogContent>

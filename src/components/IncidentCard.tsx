@@ -27,6 +27,19 @@ const IncidentCard: React.FC<IncidentCardProps> = ({ incident }) => {
           <Tag className="tw-h-4 tw-w-4 tw-text-secondary" />
           <span className="tw-font-medium">{incident.type}</span>
         </p>
+        {incident.image_url && (
+          <img
+            src={incident.image_url}
+            alt="Incident image"
+            className="tw-w-full tw-max-h-80 tw-object-cover tw-rounded-md tw-mb-4 tw-border tw-border-border"
+            loading="lazy"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              // Optionally show a broken image icon or text
+            }}
+          />
+        )}
         <p className="tw-flex tw-items-start tw-gap-2 tw-text-sm tw-text-muted-foreground tw-whitespace-pre-wrap">
           <FileText className="tw-h-4 tw-w-4 tw-flex-shrink-0" />
           {incident.description}

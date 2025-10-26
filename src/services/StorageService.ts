@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const POST_IMAGES_BUCKET = 'post_images'; // Name of your Supabase Storage bucket
+const INCIDENT_IMAGES_BUCKET = 'incident_images'; // New bucket for incident images
 const MAX_IMAGE_SIZE_MB = 2; // Max file size in MB
 const MAX_IMAGE_DIMENSION = 1200; // Max width/height for resized images
 const JPEG_QUALITY = 0.8; // JPEG compression quality
@@ -79,7 +80,7 @@ export const StorageService = {
     });
   },
 
-  async uploadImage(file: File): Promise<string | null> {
+  async _uploadToBucket(file: File, bucketName: string): Promise<string | null> {
     if (!file) return null;
 
     const processedFile = await this.resizeAndCompressImage(file);
@@ -91,51 +92,69 @@ export const StorageService = {
 
     try {
       const { data: _data, error } = await supabase.storage
-        .from(POST_IMAGES_BUCKET)
+        .from(bucketName)
         .upload(filePath, processedFile, {
           cacheControl: '3600',
           upsert: false,
         });
 
       if (error) {
-        console.error('Error uploading image:', error);
+        console.error(`Error uploading image to ${bucketName}:`, error);
         toast.error(`Image upload failed: ${error.message}`);
         return null;
       }
 
       // Get public URL
       const { data: publicUrlData } = supabase.storage
-        .from(POST_IMAGES_BUCKET)
+        .from(bucketName)
         .getPublicUrl(filePath);
 
       return publicUrlData.publicUrl;
     } catch (error: any) {
-      console.error('Unexpected error during image upload:', error);
+      console.error(`Unexpected error during image upload to ${bucketName}:`, error);
       toast.error(`An unexpected error occurred: ${error.message}`);
       return null;
     }
   },
 
-  async deleteImage(imageUrl: string): Promise<boolean> {
+  async _deleteFromBucket(imageUrl: string, bucketName: string): Promise<boolean> {
     if (!imageUrl) return false;
 
     try {
       const urlParts = imageUrl.split('/');
       const fileName = urlParts[urlParts.length - 1];
       const { error } = await supabase.storage
-        .from(POST_IMAGES_BUCKET)
+        .from(bucketName)
         .remove([fileName]);
 
       if (error) {
-        console.error('Error deleting image:', error);
+        console.error(`Error deleting image from ${bucketName}:`, error);
         toast.error(`Image deletion failed: ${error.message}`);
         return false;
       }
       return true;
     } catch (error: any) {
-      console.error('Unexpected error during image deletion:', error);
+      console.error(`Unexpected error during image deletion from ${bucketName}:`, error);
       toast.error(`An unexpected error occurred: ${error.message}`);
       return false;
     }
-  }
+  },
+
+  // Post image specific methods
+  async uploadImage(file: File): Promise<string | null> {
+    return this._uploadToBucket(file, POST_IMAGES_BUCKET);
+  },
+
+  async deleteImage(imageUrl: string): Promise<boolean> {
+    return this._deleteFromBucket(imageUrl, POST_IMAGES_BUCKET);
+  },
+
+  // Incident image specific methods
+  async uploadIncidentImage(file: File): Promise<string | null> {
+    return this._uploadToBucket(file, INCIDENT_IMAGES_BUCKET);
+  },
+
+  async deleteIncidentImage(imageUrl: string): Promise<boolean> {
+    return this._deleteFromBucket(imageUrl, INCIDENT_IMAGES_BUCKET);
+  },
 };
