@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import path from 'path';
-import { VitePWA } from 'vite-plugin-pwa'; // Import VitePWA
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ command }) => {
   // Ensure VITE_SUPABASE_URL is available for Workbox configuration
@@ -14,13 +14,13 @@ export default defineConfig(({ command }) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
+        filename: 'service-worker.js', // Explicitly set the service worker filename
         workbox: {
           clientsClaim: true,
           skipWaiting: true,
           // Cache static assets
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
-          // Explicitly set service worker destination filename for build
-          swDest: 'dist/service-worker.js', 
+          // swDest: 'dist/service-worker.js', // Removed: filename handles this
           runtimeCaching: [
             {
               // Cache assets served from the same origin (e.g., bundled JS/CSS, public folder images)
