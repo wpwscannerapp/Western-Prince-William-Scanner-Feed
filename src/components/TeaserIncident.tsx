@@ -1,10 +1,13 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 
 const TeaserIncident = () => {
   return (
     <Card className="tw-w-full tw-max-w-md tw-bg-card tw-border-border tw-shadow-lg">
       <CardHeader>
-        <CardTitle className="tw-text-primary dark:tw-text-primary-foreground">Sample Incident Update</CardTitle>
+        {/* Directly using h2 for proper heading hierarchy and applying CardTitle styling */}
+        <h2 className="tw-text-2xl tw-font-semibold tw-leading-none tw-tracking-tight tw-text-primary dark:tw-text-primary-foreground">
+          Sample Incident Update
+        </h2>
         <CardDescription className="tw-text-muted-foreground dark:tw-text-foreground">A glimpse of what you're missing!</CardDescription>
       </CardHeader>
       <CardContent>
