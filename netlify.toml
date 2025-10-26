@@ -1,8 +1,12 @@
+# Netlify Build Configuration
 [build]
-  command = "npm run build"
   publish = "dist"
+  command = "vite build"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Netlify Image CDN Configuration
+# This enables automatic image optimization for images served directly from your Netlify deploy.
+# For images hosted on external services like Supabase Storage, this feature will not apply automatically.
+[images]
+  # You can add specific configurations here if needed, e.g.,
+  # remote_images = ["https://*.supabase.co"] # This would allow proxying, but requires more setup.
+  # For now, we'll enable the default behavior.
