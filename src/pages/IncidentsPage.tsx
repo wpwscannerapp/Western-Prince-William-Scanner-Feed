@@ -1,27 +1,24 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import PostCard from '@/components/PostCard';
+import React, { useState, useCallback, useRef } from 'react';
+import IncidentCard from '@/components/IncidentCard'; // Changed from PostCard
 import SubscribeOverlay from '@/components/SubscribeOverlay';
-import PostForm from '@/components/PostForm';
-import { Post, PostService } from '@/services/PostService';
+import IncidentForm from '@/components/IncidentForm'; // Changed from PostForm
+import { Incident, IncidentService, INCIDENTS_PER_PAGE } from '@/services/IncidentService'; // Changed from Post and PostService
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, ArrowUp, MessageCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Loader2, Info } from 'lucide-react'; // Changed from ArrowUp, MessageCircle
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useIsSubscribed } from '@/hooks/useIsSubscribed';
 import { handleError } from '@/utils/errorHandler';
-// Removed unused import: import SkeletonLoader from '@/components/SkeletonLoader';
 import { useNavigate } from 'react-router-dom';
-import { useInfiniteQuery, useQueryClient, InfiniteData } from '@tanstack/react-query'; // Import InfiniteData
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 
 const IncidentsPage: React.FC = () => {
   const { user } = useAuth();
   const { isAdmin, loading: isAdminLoading } = useIsAdmin();
   const { isSubscribed, loading: isSubscribedLoading } = useIsSubscribed();
-  const [newPostsAvailable, setNewPostsAvailable] = useState(false);
-  const [postFormLoading, setPostFormLoading] = useState(false);
-  const queryClient = useQueryClient(); // Initialize queryClient
+  const [incidentFormLoading, setIncidentFormLoading] = useState(false); // Renamed from postFormLoading
+  const queryClient = useQueryClient();
   const observer = useRef<IntersectionObserver | null>(null);
   const navigate = useNavigate();
 
@@ -33,27 +30,26 @@ const IncidentsPage: React.FC = () => {
     isLoading,
     isError,
     error,
-    refetch, // Add refetch from useInfiniteQuery
-  } = useInfiniteQuery<Post[], Error>({
-    queryKey: ['posts'],
+    refetch,
+  } = useInfiniteQuery<Incident[], Error>({ // Changed type to Incident[]
+    queryKey: ['incidents'], // Changed query key
     queryFn: async ({ pageParam = 0 }) => {
-      // Cast pageParam to number
-      const fetchedPosts = await PostService.fetchPosts(pageParam as number, PostService.POSTS_PER_PAGE);
-      return fetchedPosts;
+      const fetchedIncidents = await IncidentService.fetchIncidents(pageParam as number); // Changed to IncidentService
+      return fetchedIncidents;
     },
     getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.length < PostService.POSTS_PER_PAGE) {
-        return undefined; // No more pages
+      if (lastPage.length < INCIDENTS_PER_PAGE) { // Changed to INCIDENTS_PER_PAGE
+        return undefined;
       }
-      return allPages.flat().length; // Offset for the next page
+      return allPages.flat().length;
     },
-    staleTime: 1000 * 60, // Cache for 1 minute
+    staleTime: 1000 * 60,
     initialPageParam: 0,
   });
 
-  const posts = data?.pages.flat() || [];
+  const incidents = data?.pages.flat() || []; // Renamed from posts
 
-  const lastPostRef = useCallback(
+  const lastIncidentRef = useCallback( // Renamed from lastPostRef
     (node: HTMLDivElement) => {
       if (isLoading || isFetchingNextPage || !hasNextPage) return;
       if (observer.current) observer.current.disconnect();
@@ -70,64 +66,46 @@ const IncidentsPage: React.FC = () => {
     [isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]
   );
 
-  useEffect(() => {
-    const channel = supabase
-      .channel('public:posts')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, (payload) => {
-        const newPost = payload.new as Post;
-        // Type oldData as InfiniteData<Post[]>
-        queryClient.setQueryData<InfiniteData<Post[]>>(['posts'], (oldData) => {
-          if (!oldData) return { pages: [[newPost]], pageParams: [0] };
-          const firstPage = oldData.pages[0];
-          if (firstPage.some((p: Post) => p.id === newPost.id)) return oldData; // Prevent duplicates
-          setNewPostsAvailable(true);
-          return {
-            ...oldData,
-            pages: [[newPost, ...firstPage], ...oldData.pages.slice(1)],
-          };
-        });
-      })
-      .subscribe();
+  // Removed real-time subscription for 'posts' as this page now handles 'incidents'
+  // and 'alerts' are handled on the HomePage.
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setNewPostsAvailable(false);
-  };
-
-  const handleCreatePost = async (text: string, imageFile: File | null) => {
+  const handleCreateIncident = async (type: string, location: string, description: string) => { // Renamed and updated parameters
     if (!user) {
-      toast.error('You must be logged in to create a post.');
+      toast.error('You must be logged in to create an incident.');
       return false;
     }
 
-    setPostFormLoading(true);
+    setIncidentFormLoading(true);
+    toast.loading('Submitting incident...', { id: 'create-incident' });
+
     try {
-      toast.loading('Creating post...', { id: 'create-post' });
-      const newPost = await PostService.createPost(text, imageFile, user.id);
+      const title = `${type} at ${location}`; // Generate title from type and location
+      const newIncident = await IncidentService.createIncident({
+        title,
+        description,
+        type,
+        location,
+        date: new Date().toISOString(), // Set current date/time
+      });
       
-      if (newPost) {
-        toast.success('Post created successfully!', { id: 'create-post' });
-        queryClient.invalidateQueries({ queryKey: ['posts'] }); // Invalidate to refetch and show new post
+      if (newIncident) {
+        toast.success('Incident submitted successfully!', { id: 'create-incident' });
+        queryClient.invalidateQueries({ queryKey: ['incidents'] }); // Invalidate to refetch and show new incident
         return true;
       } else {
-        handleError(null, 'Failed to create post.');
+        handleError(null, 'Failed to submit incident.');
         return false;
       }
     } catch (err) {
-      handleError(err, 'An error occurred while creating the post.');
+      handleError(err, 'An error occurred while submitting the incident.');
       return false;
     } finally {
-      setPostFormLoading(false);
+      setIncidentFormLoading(false);
     }
   };
 
   const handleRetry = () => {
-    refetch(); // Refetch all pages on retry
+    refetch();
   };
 
   if (isAdminLoading || isSubscribedLoading || isLoading) {
@@ -160,19 +138,19 @@ const IncidentsPage: React.FC = () => {
 
       {isAdmin && (
         <div className="tw-bg-background tw-p-4 tw-shadow-md tw-mb-8 tw-rounded-lg">
-          <h2 className="tw-text-2xl tw-font-semibold tw-text-foreground tw-mb-4">Create New Post</h2>
-          <PostForm
-            onSubmit={handleCreatePost}
-            isLoading={postFormLoading}
+          <h2 className="tw-text-2xl tw-font-semibold tw-text-foreground tw-mb-4">Submit New Incident</h2>
+          <IncidentForm
+            onSubmit={handleCreateIncident}
+            isLoading={incidentFormLoading}
           />
         </div>
       )}
 
       <div className={`tw-space-y-6 ${!isSubscribed && !isAdmin ? 'tw-relative' : ''}`} aria-live="polite">
         <div className={!isSubscribed && !isAdmin ? 'tw-blur-sm tw-pointer-events-none' : ''}>
-          {posts.length === 0 && !isLoading && (
+          {incidents.length === 0 && !isLoading && (
             <div className="tw-text-center tw-py-12 tw-col-span-full">
-              <MessageCircle className="tw-h-12 tw-w-12 tw-text-muted-foreground tw-mx-auto tw-mb-4" aria-hidden="true" />
+              <Info className="tw-h-12 tw-w-12 tw-text-muted-foreground tw-mx-auto tw-mb-4" aria-hidden="true" />
               <p className="tw-text-muted-foreground tw-mb-4 tw-text-lg">No incidents available yet. Check back soon!</p>
               {isAdmin && (
                 <Button onClick={handleRetry} variant="outline">
@@ -182,9 +160,9 @@ const IncidentsPage: React.FC = () => {
             </div>
           )}
           
-          {posts.map((post, index) => (
-            <div key={post.id} ref={index === posts.length - 1 ? lastPostRef : null} className="tw-transition tw-duration-300 hover:tw-shadow-lg">
-              <PostCard post={post} />
+          {incidents.map((incident, index) => ( // Changed to incidents.map and IncidentCard
+            <div key={incident.id} ref={index === incidents.length - 1 ? lastIncidentRef : null} className="tw-transition tw-duration-300 hover:tw-shadow-lg">
+              <IncidentCard incident={incident} />
             </div>
           ))}
           
@@ -195,24 +173,14 @@ const IncidentsPage: React.FC = () => {
             </div>
           )}
           
-          {!hasNextPage && !isLoading && posts.length > 0 && (
+          {!hasNextPage && !isLoading && incidents.length > 0 && (
             <p className="tw-text-center tw-text-muted-foreground tw-py-4 tw-col-span-full">You've reached the end of the feed.</p>
           )}
         </div>
         {!isSubscribed && !isAdmin && <SubscribeOverlay />}
       </div>
 
-      {newPostsAvailable && (
-        <Button
-          onClick={scrollToTop}
-          className="tw-fixed tw-bottom-6 tw-right-6 tw-rounded-full tw-shadow-lg tw-p-3 tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground tw-animate-bounce"
-          size="icon"
-          aria-label="Scroll to new posts"
-        >
-          <ArrowUp className="tw-h-5 tw-w-5" />
-          <span className="tw-sr-only">Scroll to new posts</span>
-        </Button>
-      )}
+      {/* Removed newPostsAvailable button as this page now displays incidents, not posts */}
     </div>
   );
 };

@@ -1,0 +1,103 @@
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2 } from 'lucide-react';
+
+const incidentTypes = ['Fire', 'Crime', 'Accident', 'Medical', 'Other'];
+
+const incidentFormSchema = z.object({
+  type: z.string().min(1, { message: 'Incident type is required.' }),
+  location: z.string().min(1, { message: 'Location is required.' }).max(200, { message: 'Location too long.' }),
+  description: z.string().min(10, { message: 'Incident details must be at least 10 characters.' }).max(1000, { message: 'Description too long.' }),
+});
+
+type IncidentFormValues = z.infer<typeof incidentFormSchema>;
+
+interface IncidentFormProps {
+  onSubmit: (type: string, location: string, description: string) => Promise<boolean>;
+  isLoading: boolean;
+}
+
+const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading }) => {
+  const form = useForm<IncidentFormValues>({
+    resolver: zodResolver(incidentFormSchema),
+    defaultValues: {
+      type: '',
+      location: '',
+      description: '',
+    },
+  });
+
+  const handleSubmit = async (values: IncidentFormValues) => {
+    const success = await onSubmit(values.type, values.location, values.description);
+    if (success) {
+      form.reset();
+    }
+  };
+
+  return (
+    <form onSubmit={form.handleSubmit(handleSubmit)} className="tw-space-y-6 tw-p-4 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm">
+      <div>
+        <Label htmlFor="incident-type" className="tw-mb-2 tw-block">Incident Type</Label>
+        <Select
+          value={form.watch('type')}
+          onValueChange={(value) => form.setValue('type', value)}
+          disabled={isLoading}
+        >
+          <SelectTrigger id="incident-type" className="tw-w-full">
+            <SelectValue placeholder="Select incident type" />
+          </SelectTrigger>
+          <SelectContent>
+            {incidentTypes.map(type => (
+              <SelectItem key={type} value={type}>{type}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {form.formState.errors.type && (
+          <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.type.message}</p>
+        )}
+      </div>
+
+      <div>
+        <Label htmlFor="incident-location" className="tw-mb-2 tw-block">Location</Label>
+        <Input
+          id="incident-location"
+          placeholder="e.g., 123 Main St, Gainesville"
+          {...form.register('location')}
+          className="tw-bg-input tw-text-foreground"
+          disabled={isLoading}
+        />
+        {form.formState.errors.location && (
+          <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.location.message}</p>
+        )}
+      </div>
+
+      <div>
+        <Label htmlFor="incident-description" className="tw-mb-2 tw-block">Incident Details</Label>
+        <Textarea
+          id="incident-description"
+          placeholder="Provide a detailed description of the incident..."
+          {...form.register('description')}
+          className="tw-min-h-[100px] tw-bg-input tw-text-foreground"
+          disabled={isLoading}
+        />
+        {form.formState.errors.description && (
+          <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.description.message}</p>
+        )}
+      </div>
+
+      <Button type="submit" disabled={isLoading} className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground">
+        {isLoading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
+        Submit Incident
+      </Button>
+    </form>
+  );
+};
+
+export default IncidentForm;
