@@ -138,47 +138,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             authTimeoutRef.current = null;
           }
 
-          // Synchronous state updates
+          // Set authReady and loading states immediately as the initial auth check is complete.
+          // This ensures the UI can react quickly without waiting for background async tasks.
+          if (!authReady) { // Ensure it's only set once
+            setAuthReady(true);
+            console.log(`AuthContext: AuthReady set to true after first onAuthStateChange.`);
+          }
+          setLoading(false); // Always set loading to false once auth state is determined
+          console.log('AuthContext: Setting main loading state to false after initial synchronous state updates.');
+
+          // Synchronous state updates for session and user
           setSession(currentSession);
           setUser(currentSession?.user || null);
           setError(null);
 
-          // Await profile and session handling for SIGNED_IN and INITIAL_SESSION
-          if (currentSession && (_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION')) {
-            console.log('AuthContext: Awaiting async session/profile handling for SIGNED_IN or INITIAL_SESSION...');
-            await handleSessionCreation(currentSession);
-            console.log('AuthContext: Async session/profile handling complete.');
-          } else if (_event === 'SIGNED_OUT') {
-            console.log('AuthContext: Starting async session deletion handling in background for SIGNED_OUT...');
-            // For SIGNED_OUT, we don't need to await as it shouldn't block the UI
-            void handleSessionDeletion(userRef.current?.id).catch(e => {
-              console.error('AuthContext: Error during background session deletion:', (e as Error).message);
-            });
-            console.log('AuthContext: Async session deletion handling initiated.');
-          }
-
-          if (!authReady) { // Only set if not already true
-            setAuthReady(true);
-            console.log(`AuthContext: AuthReady set to true after first onAuthStateChange.`);
-          }
-
           // Update isExplicitlySignedIn based on event
           if (_event === 'SIGNED_IN') {
-            setIsExplicitlySignedIn(true); // Set to true on explicit sign-in
+            setIsExplicitlySignedIn(true);
             console.log(`AuthContext: Event SIGNED_IN, isExplicitlySignedIn set to true.`);
           } else if (_event === 'SIGNED_OUT') {
             setIsExplicitlySignedIn(false);
             console.log(`AuthContext: Event SIGNED_OUT, isExplicitlySignedIn set to false.`);
           } else {
-            // For INITIAL_SESSION and other events, keep the current state of isExplicitlySignedIn
             console.log(`AuthContext: Event ${_event}, isExplicitlySignedIn state unchanged (current value: ${isExplicitlySignedIn}).`);
           }
-          
-          // Set loading to false immediately after all synchronous state updates.
-          // The background tasks will not block this.
-          setLoading(false);
-          console.log('AuthContext: Setting main loading state to false after initial synchronous state updates.');
-          console.log(`AuthContext: IMMEDIATE STATE AFTER SYNC UPDATES - authReady: ${authReady}, loading: ${loading}, isExplicitlySignedIn: ${isExplicitlySignedIn}`); // <-- NEW LOG
+
+          // Await profile and session handling for SIGNED_IN and INITIAL_SESSION
+          // These can run in the background and should not block authReady/loading
+          if (currentSession && (_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION')) {
+            console.log('AuthContext: Initiating async session/profile handling in background...');
+            void handleSessionCreation(currentSession).catch(e => {
+              console.error('AuthContext: Error during background session/profile handling:', (e as Error).message);
+            });
+            console.log('AuthContext: Async session/profile handling initiated.');
+          } else if (_event === 'SIGNED_OUT') {
+            console.log('AuthContext: Starting async session deletion handling in background for SIGNED_OUT...');
+            void handleSessionDeletion(userRef.current?.id).catch(e => {
+              console.error('AuthContext: Error during background session deletion:', (e as Error).message);
+            });
+            console.log('AuthContext: Async session deletion handling initiated.');
+          }
           
           console.log('AuthContext: Main onAuthStateChange handler finished.');
           console.log(`AuthContext: State AFTER handler - authReady: ${authReady}, loading: ${loading}, isExplicitlySignedIn: ${isExplicitlySignedIn}`);
