@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Info } from 'lucide-react';
@@ -8,12 +8,27 @@ import { handleError } from '@/utils/errorHandler';
 import IncidentSearchForm from '@/components/IncidentSearchForm';
 import IncidentCard from '@/components/IncidentCard';
 import SkeletonLoader from '@/components/SkeletonLoader';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
+import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin
+import { useIsSubscribed } from '@/hooks/useIsSubscribed'; // Import useIsSubscribed
+import SubscribeOverlay from '@/components/SubscribeOverlay'; // Import SubscribeOverlay
 
 const IncidentArchivePage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [filters, setFilters] = useState<IncidentFilter>({});
   const observer = useRef<IntersectionObserver | null>(null);
+
+  const { user, loading: authLoading } = useAuth(); // Get user and authLoading
+  const { isAdmin, loading: isAdminLoading } = useIsAdmin(); // Get isAdmin and isAdminLoading
+  const { isSubscribed, loading: isSubscribedLoading } = useIsSubscribed(); // Get isSubscribed and isSubscribedLoading
+
+  // Redirect unauthenticated users to the auth page
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth', { replace: true });
+    }
+  }, [authLoading, user, navigate]);
 
   const {
     data,
@@ -39,6 +54,7 @@ const IncidentArchivePage: React.FC = () => {
     },
     staleTime: 1000 * 60,
     initialPageParam: 0,
+    enabled: !!user && !authLoading, // Only enable query if user is authenticated
   });
 
   const incidents = data?.pages.flat() || [];
@@ -67,6 +83,16 @@ const IncidentArchivePage: React.FC = () => {
     [isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]
   );
 
+  // If auth is still loading, or user is not present, or subscription/admin status is loading, show a loading state
+  if (authLoading || !user || isAdminLoading || isSubscribedLoading || isLoading) {
+    return (
+      <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
+        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+        <p className="tw-ml-2">Loading incident archive...</p>
+      </div>
+    );
+  }
+
   if (isError) {
     handleError(error, 'Failed to load incident archive.');
     return (
@@ -90,34 +116,39 @@ const IncidentArchivePage: React.FC = () => {
         Search and filter past incidents by keywords, type, location, and date.
       </p>
 
-      <IncidentSearchForm onFilterChange={handleFilterChange} initialFilters={filters} />
+      <div className={`tw-space-y-6 ${!isSubscribed && !isAdmin ? 'tw-relative' : ''}`} aria-live="polite">
+        <div className={!isSubscribed && !isAdmin ? 'tw-blur-sm tw-pointer-events-none' : ''}>
+          <IncidentSearchForm onFilterChange={handleFilterChange} initialFilters={filters} />
 
-      <div className="tw-mt-8 tw-space-y-6">
-        {(isLoading && !isFetchingNextPage) ? (
-          <SkeletonLoader count={3} className="tw-col-span-full" />
-        ) : incidents.length === 0 ? (
-          <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-12 tw-text-muted-foreground">
-            <Info className="tw-h-12 tw-w-12 tw-mb-4" />
-            <p className="tw-text-lg">No incidents found matching your criteria.</p>
+          <div className="tw-mt-8 tw-space-y-6">
+            {(isLoading && !isFetchingNextPage) ? (
+              <SkeletonLoader count={3} className="tw-col-span-full" />
+            ) : incidents.length === 0 ? (
+              <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-12 tw-text-muted-foreground">
+                <Info className="tw-h-12 tw-w-12 tw-mb-4" />
+                <p className="tw-text-lg">No incidents found matching your criteria.</p>
+              </div>
+            ) : (
+              incidents.map((incident, index) => (
+                <div key={incident.id} ref={index === incidents.length - 1 ? lastIncidentRef : null}>
+                  <IncidentCard incident={incident} />
+                </div>
+              ))
+            )}
+
+            {isFetchingNextPage && (
+              <div className="tw-flex tw-justify-center tw-items-center tw-py-8 tw-gap-2 tw-text-muted-foreground">
+                <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
+                <span>Loading more incidents...</span>
+              </div>
+            )}
+
+            {!hasNextPage && !isLoading && incidents.length > 0 && (
+              <p className="tw-text-center tw-text-muted-foreground tw-py-4">You've reached the end of the archive.</p>
+            )}
           </div>
-        ) : (
-          incidents.map((incident, index) => (
-            <div key={incident.id} ref={index === incidents.length - 1 ? lastIncidentRef : null}>
-              <IncidentCard incident={incident} />
-            </div>
-          ))
-        )}
-
-        {isFetchingNextPage && (
-          <div className="tw-flex tw-justify-center tw-items-center tw-py-8 tw-gap-2 tw-text-muted-foreground">
-            <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
-            <span>Loading more incidents...</span>
-          </div>
-        )}
-
-        {!hasNextPage && !isLoading && incidents.length > 0 && (
-          <p className="tw-text-center tw-text-muted-foreground tw-py-4">You've reached the end of the archive.</p>
-        )}
+        </div>
+        {!isSubscribed && !isAdmin && <SubscribeOverlay />}
       </div>
     </div>
   );
