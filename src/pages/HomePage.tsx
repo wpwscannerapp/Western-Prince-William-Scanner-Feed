@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { Loader2, AlertCircle, Map, List } from 'lucide-react'; // Removed User, CreditCard, LogIn icons
+import { Loader2, AlertCircle, Map, List } from 'lucide-react';
 import IncidentMap from '@/components/IncidentMap';
 import { useQuery } from '@tanstack/react-query';
 import { NotificationService, Alert } from '@/services/NotificationService';
@@ -143,11 +143,11 @@ const HomePage: React.FC = () => {
           icon="/Logo.png"
         />
 
-        {/* Anonymous Report Tile */}
+        {/* Feedback & Suggestions Tile */}
         <Tile
-          title="Report Incident"
-          description="Submit an anonymous incident report."
-          to="/home/report-incident"
+          title="Feedback & Suggestions"
+          description="Share your thoughts and ideas."
+          to="/home/feedback"
           icon="/Logo.png"
         />
 

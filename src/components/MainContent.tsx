@@ -11,7 +11,8 @@ import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
 import ContactUsPage from '@/pages/ContactUsPage';
 import IncidentArchivePage from '@/pages/IncidentArchivePage';
-import AnonymousReportPage from '@/pages/AnonymousReportPage';
+import AnonymousReportPage from '@/pages/AnonymousReportPage'; // Keep for now, will delete later
+import FeedbackPage from '@/pages/FeedbackPage'; // New import
 import AuthPage from '@/pages/AuthPage';
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
@@ -28,7 +29,7 @@ const MainContent: React.FC = () => {
 
   return (
     <>
-      <div className="tw-min-h-screen tw-bg-background tw-text-foreground"> {/* Removed tw-pt-16 as there's no top nav */}
+      <div className="tw-min-h-screen tw-bg-background tw-text-foreground">
         <Routes>
           <Route path="/" element={<Index />} /> 
 
@@ -46,7 +47,8 @@ const MainContent: React.FC = () => {
             <Route path="home/incidents" element={<IncidentsPage />} />
             <Route path="home/contact-us" element={<ContactUsPage />} />
             <Route path="home/archive" element={<IncidentArchivePage />} />
-            <Route path="home/report-incident" element={<AnonymousReportPage />} />
+            <Route path="home/report-incident" element={<AnonymousReportPage />} /> {/* Keep for now */}
+            <Route path="home/feedback" element={<FeedbackPage />} /> {/* New route */}
             <Route path="profile" element={<ProfilePage />} />
             <Route path="admin" element={<AdminPage />} />
             <Route path="posts/:postId" element={<PostDetailPage />} />
