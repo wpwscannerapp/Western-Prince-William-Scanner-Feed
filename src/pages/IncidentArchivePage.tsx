@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Info } from 'lucide-react'; // Removed unused 'Archive' import
+import { Loader2, Info } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { IncidentService, Incident, IncidentFilter, INCIDENTS_PER_PAGE } from '@/services/IncidentService';
 import { handleError } from '@/utils/errorHandler';
@@ -17,31 +17,40 @@ const IncidentArchivePage: React.FC = () => {
   const [hasMore, setHasMore] = useState(true);
   const observer = useRef<IntersectionObserver | null>(null);
 
+  console.log('IncidentArchivePage: Current filters:', filters);
+  console.log('IncidentArchivePage: Current page:', page);
+
   const { data, isLoading, isFetching, isError, error } = useQuery<Incident[], Error>({
     queryKey: ['incidents', page, filters],
-    queryFn: () => IncidentService.fetchIncidents(page, filters),
+    queryFn: () => {
+      console.log('IncidentArchivePage: Fetching incidents with page', page, 'and filters', filters);
+      return IncidentService.fetchIncidents(page, filters);
+    },
     staleTime: 1000 * 60, // Cache for 1 minute
-    placeholderData: (previousData) => previousData ?? [], // Replaced keepPreviousData with placeholderData
+    placeholderData: (previousData) => previousData ?? [],
   });
 
   useEffect(() => {
+    console.log('IncidentArchivePage: useQuery data changed. Data:', data, 'isLoading:', isLoading, 'isFetching:', isFetching);
     if (data) {
       if (page === 0) {
         setAllIncidents(data);
       } else {
         setAllIncidents(prev => {
-          const newIncidents = (data as Incident[]).filter( // Explicitly cast data and type newItem
+          const newIncidents = (data as Incident[]).filter(
             (newItem: Incident) => !prev.some(existingItem => existingItem.id === newItem.id)
           );
           return [...prev, ...newIncidents];
         });
       }
       setHasMore(data.length === INCIDENTS_PER_PAGE);
+      console.log('IncidentArchivePage: Updated allIncidents:', allIncidents.length, 'Has more:', hasMore);
     }
-  }, [data, page]);
+  }, [data, page]); // Removed allIncidents from dependency array to prevent infinite loop
 
   // Reset page and incidents when filters change
   const handleFilterChange = useCallback((newFilters: IncidentFilter) => {
+    console.log('IncidentArchivePage: Filter change detected. New filters:', newFilters);
     setFilters(newFilters);
     setPage(0); // Reset to first page on filter change
     setAllIncidents([]); // Clear incidents to show loading state for new filters
@@ -55,6 +64,7 @@ const IncidentArchivePage: React.FC = () => {
       observer.current = new IntersectionObserver(
         entries => {
           if (entries[0].isIntersecting && hasMore) {
+            console.log('IncidentArchivePage: IntersectionObserver triggered, fetching next page.');
             setPage(prev => prev + 1);
           }
         },

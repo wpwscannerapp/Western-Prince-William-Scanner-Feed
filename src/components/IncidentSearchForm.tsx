@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import useDebounce from '@/hooks/useDebounce';
 import { IncidentFilter } from '@/services/IncidentService';
-// Removed unused 'DateRange' import
 
 const incidentFilterSchema = z.object({
   searchTerm: z.string().optional(),
@@ -86,7 +85,7 @@ const IncidentSearchForm: React.FC<IncidentSearchFormProps> = ({ onFilterChange,
             <SelectTrigger id="type-filter" className="tw-w-full">
               <SelectValue placeholder="Filter by Type" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="tw-z-50"> {/* Added tw-z-50 */}
               <SelectItem value="all">All Types</SelectItem>
               {incidentTypes.map(t => (
                 <SelectItem key={t} value={t}>{t}</SelectItem>
@@ -132,7 +131,7 @@ const IncidentSearchForm: React.FC<IncidentSearchFormProps> = ({ onFilterChange,
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="tw-w-auto tw-p-0" align="start">
+            <PopoverContent className="tw-w-auto tw-p-0 tw-z-50" align="start"> {/* Added tw-z-50 */}
               <Calendar
                 initialFocus
                 mode="range"

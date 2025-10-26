@@ -1,25 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { Loader2, AlertCircle, Map, List, User, CreditCard, LogIn } from 'lucide-react'; // Added User, CreditCard, LogIn icons
+import { Loader2, AlertCircle, Map, List } from 'lucide-react'; // Removed User, CreditCard, LogIn icons
 import IncidentMap from '@/components/IncidentMap';
 import { useQuery } from '@tanstack/react-query';
 import { NotificationService, Alert } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth'; // Import useAuth
+import { useAuth } from '@/hooks/useAuth';
 
 const HomePage: React.FC = () => {
-  const { user, loading: authLoading } = useAuth(); // Get user and auth loading state
+  const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('list'); // State for map/list view
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
 
-  // Fetch alerts for the map
   const { data: alerts, isLoading: isLoadingAlerts, isError: isAlertsError, error: alertsError } = useQuery<Alert[], Error>({
     queryKey: ['alerts'],
     queryFn: () => NotificationService.fetchAlerts(),
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
 
   useEffect(() => {
@@ -49,7 +48,7 @@ const HomePage: React.FC = () => {
     );
   }
 
-  if (isAdminLoading || authLoading) { // Include authLoading in overall loading state
+  if (isAdminLoading || authLoading) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
         <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
@@ -160,7 +159,7 @@ const HomePage: React.FC = () => {
               title="Profile"
               description="Manage your personal settings."
               to="/profile"
-              icon="/Logo.png" // You might want a specific icon for profile
+              icon="/Logo.png"
             />
             {/* Admin Dashboard Tile (Conditional) */}
             {isAdmin && (
@@ -179,14 +178,14 @@ const HomePage: React.FC = () => {
               title="Subscribe"
               description="Unlock premium features."
               to="/subscribe"
-              icon="/Logo.png" // You might want a specific icon for subscribe
+              icon="/Logo.png"
             />
             {/* Login / Sign Up Tile */}
             <Tile
               title="Login / Sign Up"
               description="Access your account or create a new one."
               to="/auth"
-              icon="/Logo.png" // You might want a specific icon for login/signup
+              icon="/Logo.png"
             />
           </>
         )}
