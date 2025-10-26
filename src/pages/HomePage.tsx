@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { Loader2, AlertCircle, Map, List } from 'lucide-react';
+import { Loader2, AlertCircle, Map, List, LogOut } from 'lucide-react'; // Added LogOut icon
 import IncidentMap from '@/components/IncidentMap';
 import { useQuery } from '@tanstack/react-query';
 import { NotificationService, Alert } from '@/services/NotificationService';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 
 const HomePage: React.FC = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth(); // Destructure signOut
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
   const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
 
@@ -28,6 +28,11 @@ const HomePage: React.FC = () => {
   }, [isAlertsError, alertsError]);
 
   console.log('HomePage: Rendered with', { isAdmin, isAdminLoading, isAdminError });
+
+  const handleLogout = async () => {
+    await signOut();
+    // The AuthProvider will handle navigation to /auth after signOut
+  };
 
   if (isAdminError) {
     return (
@@ -59,6 +64,14 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-6xl">
+      <div className="tw-flex tw-justify-end tw-mb-4"> {/* Added for logout button */}
+        {user && (
+          <Button onClick={handleLogout} variant="outline" className="tw-button">
+            <LogOut className="tw-mr-2 tw-h-4 tw-w-4" /> Logout
+          </Button>
+        )}
+      </div>
+
       <div className="tw-mb-8">
         <div className="tw-flex tw-justify-between tw-items-center tw-mb-4">
           <h2 className="tw-text-2xl tw-font-bold tw-text-foreground">Real-time Alerts</h2>
