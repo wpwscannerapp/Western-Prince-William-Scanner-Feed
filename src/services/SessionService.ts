@@ -25,7 +25,7 @@ export interface UserSession {
 const sessionsStore = getStore('user_sessions', {
   siteID: import.meta.env.NETLIFY_SITE_ID as string,
   token: import.meta.env.NETLIFY_API_TOKEN as string,
-});
+} as any); // Cast options object to any to resolve TS2554
 
 const logBlobError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
@@ -101,7 +101,7 @@ export const SessionService = {
 
       for (const blob of blobs) {
         // Using 'as any' to bypass TypeScript type definition issues with @netlify/blobs.
-        const blobData = await (sessionsStore as any).getJson<BlobSessionData>(blob.key);
+        const blobData = await (sessionsStore as any).getJson(blob.key) as BlobSessionData; // Removed type argument, added cast to result
         if (blobData && blobData.userId === userId) {
           deletePromises.push(sessionsStore.delete(blob.key));
         }
@@ -126,7 +126,7 @@ export const SessionService = {
 
       for (const blob of blobs) {
         // Using 'as any' to bypass TypeScript type definition issues with @netlify/blobs.
-        const blobData = await (sessionsStore as any).getJson<BlobSessionData>(blob.key);
+        const blobData = await (sessionsStore as any).getJson(blob.key) as BlobSessionData; // Removed type argument, added cast to result
         if (blobData && blobData.userId === userId && new Date(blobData.expiresAt) > now) {
           count++;
         }
@@ -149,7 +149,7 @@ export const SessionService = {
 
       for (const blob of blobs) {
         // Using 'as any' to bypass TypeScript type definition issues with @netlify/blobs.
-        const blobData = await (sessionsStore as any).getJson<BlobSessionData>(blob.key);
+        const blobData = await (sessionsStore as any).getJson(blob.key) as BlobSessionData; // Removed type argument, added cast to result
         if (blobData && blobData.userId === userId) {
           userSessions.push({ key: blob.key, data: blobData });
         }
@@ -173,7 +173,7 @@ export const SessionService = {
   async isValidSession(userId: string, sessionId: string): Promise<boolean> {
     try {
       // Using 'as any' to bypass TypeScript type definition issues with @netlify/blobs.
-      const blobData = await (sessionsStore as any).getJson<BlobSessionData>(sessionId);
+      const blobData = await (sessionsStore as any).getJson(sessionId) as BlobSessionData; // Removed type argument, added cast to result
       const isValid = blobData !== null && blobData.userId === userId && new Date(blobData.expiresAt) > new Date();
       AnalyticsService.trackEvent({ name: 'session_validated', properties: { userId, sessionId, isValid } });
       return isValid;
