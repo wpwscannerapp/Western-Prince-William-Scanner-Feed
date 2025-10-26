@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { CalendarDays, MapPin, Tag, FileText, Heart, MessageCircle, Loader2, Shield } from 'lucide-react';
 import { Incident } from '@/services/IncidentService';
@@ -11,10 +11,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import IncidentMap from './IncidentMap';
+// import IncidentMap from './IncidentMap'; // Removed direct import
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
+
+// Lazy load IncidentMap
+const LazyIncidentMap = React.lazy(() => import('./IncidentMap'));
 
 interface IncidentCardProps {
   incident: Incident;
@@ -174,15 +177,17 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
         )}
         {incident.latitude && incident.longitude && (
           <div className="tw-w-full tw-h-64 tw-rounded-md tw-overflow-hidden tw-mb-4">
-            <IncidentMap alerts={[{
-              id: incident.id,
-              title: incident.title,
-              description: incident.description,
-              type: incident.type,
-              latitude: incident.latitude,
-              longitude: incident.longitude,
-              created_at: incident.created_at,
-            }]} />
+            <Suspense fallback={<div className="tw-h-full tw-w-full tw-flex tw-items-center tw-justify-center tw-bg-muted"><Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" aria-label="Loading map" /></div>}>
+              <LazyIncidentMap alerts={[{
+                id: incident.id,
+                title: incident.title,
+                description: incident.description,
+                type: incident.type,
+                latitude: incident.latitude,
+                longitude: incident.longitude,
+                created_at: incident.created_at,
+              }]} />
+            </Suspense>
           </div>
         )}
         <p className="tw-flex tw-items-start tw-gap-2 tw-text-sm tw-text-muted-foreground tw-whitespace-pre-wrap">

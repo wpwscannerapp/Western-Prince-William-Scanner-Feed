@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -16,9 +16,12 @@ import { ChromePicker } from 'react-color';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, RotateCcw, Eye } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import LayoutEditor, { LayoutComponent } from './LayoutEditor';
+import { LayoutComponent } from './LayoutEditor'; // Added import for LayoutComponent
 import { SettingsService, AppSettings } from '@/services/SettingsService';
 import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
+
+// Lazy load LayoutEditor
+const LazyLayoutEditor = React.lazy(() => import('./LayoutEditor'));
 
 const settingsSchema = z.object({
   primary_color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid hex color'),
@@ -281,7 +284,9 @@ const AppSettingsForm: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="layout" className="tw-space-y-6 tw-mt-4">
-            <LayoutEditor layout={watchLayout || []} onLayoutChange={(newLayout) => form.setValue('layout', newLayout as LayoutComponent[])} />
+            <Suspense fallback={<div className="tw-min-h-[300px] tw-flex tw-items-center tw-justify-center tw-bg-muted/20 tw-rounded-lg"><Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" aria-label="Loading layout editor" /></div>}>
+              <LazyLayoutEditor layout={watchLayout || []} onLayoutChange={(newLayout) => form.setValue('layout', newLayout as LayoutComponent[])} />
+            </Suspense>
             {form.formState.errors.layout && (
               <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.layout.message}</p>
             )}
@@ -344,7 +349,7 @@ const AppSettingsForm: React.FC = () => {
               <div className="tw-flex tw-items-center tw-gap-2">
                 <span className="tw-sm">Secondary Color:</span>
                 <div className="tw-h-6 tw-w-6 tw-rounded-full tw-border" style={{ backgroundColor: form.watch('secondary_color') }}></div>
-                <span className="tw-text-sm tw-text-muted-foreground">{form.watch('secondary_color')}</span>
+                <span className="tw-sm tw-text-muted-foreground">{form.watch('secondary_color')}</span>
               </div>
             </div>
             {form.watch('logo_url') && (
