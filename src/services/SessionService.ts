@@ -33,7 +33,7 @@ export const SessionService = {
   async createSession(session: Session, sessionId: string): Promise<UserSession | null> {
     if (!session.user || !session.expires_in) {
       handleError(null, 'Invalid session data provided for creation.');
-      AnalyticsService.trackEvent({ name: 'create_session_failed', properties: { reason: 'invalid_session_data' } });
+      AnalyticsService.trackEvent({ name: 'create_session_failed', properties: { reason: 'invalid_session_data' });
       return null;
     }
 
@@ -49,8 +49,8 @@ export const SessionService = {
 
     try {
       // Set the blob with the sessionId as key and blobData as value
-      // The expireIn is in seconds for Netlify Blobs
-      await sessionsStore.setJSON(sessionId, blobData, { expireIn: session.expires_in });
+      // The ttl is in milliseconds for Netlify Blobs
+      await sessionsStore.setJSON(sessionId, blobData, { ttl: session.expires_in * 1000 });
 
       AnalyticsService.trackEvent({ name: 'session_created_or_updated', properties: { userId: session.user.id, sessionId } });
       return {
@@ -95,7 +95,7 @@ export const SessionService = {
       const deletePromises: Promise<void>[] = [];
 
       for (const blob of blobs) {
-        const blobData = await sessionsStore.getJSON<BlobSessionData>(blob.key);
+        const blobData = await sessionsStore.getJson<BlobSessionData>(blob.key);
         if (blobData && blobData.userId === userId) {
           deletePromises.push(sessionsStore.delete(blob.key));
         }
@@ -119,7 +119,7 @@ export const SessionService = {
       const now = new Date();
 
       for (const blob of blobs) {
-        const blobData = await sessionsStore.getJSON<BlobSessionData>(blob.key);
+        const blobData = await sessionsStore.getJson<BlobSessionData>(blob.key);
         if (blobData && blobData.userId === userId && new Date(blobData.expiresAt) > now) {
           count++;
         }
@@ -141,7 +141,7 @@ export const SessionService = {
       const userSessions: { key: string; data: BlobSessionData }[] = [];
 
       for (const blob of blobs) {
-        const blobData = await sessionsStore.getJSON<BlobSessionData>(blob.key);
+        const blobData = await sessionsStore.getJson<BlobSessionData>(blob.key);
         if (blobData && blobData.userId === userId) {
           userSessions.push({ key: blob.key, data: blobData });
         }
@@ -164,7 +164,7 @@ export const SessionService = {
 
   async isValidSession(userId: string, sessionId: string): Promise<boolean> {
     try {
-      const blobData = await sessionsStore.getJSON<BlobSessionData>(sessionId);
+      const blobData = await sessionsStore.getJson<BlobSessionData>(sessionId);
       const isValid = blobData !== null && blobData.userId === userId && new Date(blobData.expiresAt) > new Date();
       AnalyticsService.trackEvent({ name: 'session_validated', properties: { userId, sessionId, isValid } });
       return isValid;
