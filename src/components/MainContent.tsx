@@ -5,7 +5,7 @@ import { useAppSettings } from '@/hooks/useAppSettings';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import Index from '@/pages/Index';
-import { lazyLoad } from '@/lib/lazyLoad'; // Import lazyLoad utility
+import { lazyLoad } from '@/lib/lazyLoad.tsx'; // Import lazyLoad utility
 import { Loader2 } from 'lucide-react'; // For a simple fallback
 
 // Define a common loading fallback for pages
