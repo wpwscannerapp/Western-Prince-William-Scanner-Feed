@@ -42,7 +42,7 @@ export const IncidentService = {
     try {
       let query = supabase
         .from('incidents')
-        .select('*')
+        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at') // Explicitly select columns, excluding search_vector
         .abortSignal(controller.signal);
 
       // Apply filters
@@ -96,7 +96,7 @@ export const IncidentService = {
     try {
       const { data, error } = await supabase
         .from('incidents')
-        .select('*')
+        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at') // Explicitly select columns, excluding search_vector
         .eq('id', incidentId)
         .abortSignal(controller.signal)
         .single();
@@ -313,7 +313,7 @@ export const IncidentService = {
     try {
       const { data, error } = await supabase
         .from('incidents')
-        .select('*')
+        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at') // Explicitly select columns, excluding search_vector
         .lt('date', currentIncidentTimestamp)
         .order('date', { ascending: false })
         .limit(1)
