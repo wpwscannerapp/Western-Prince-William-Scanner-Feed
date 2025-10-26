@@ -1,12 +1,15 @@
+"use client";
+
 import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Edit, Trash2, Save, X } from 'lucide-react';
-import { Comment, CommentService } from '@/services/CommentService'; // Updated import
+import { Comment, CommentService } from '@/services/CommentService';
 import { useAuth } from '@/hooks/useAuth';
 import { formatPostTimestamp } from '@/lib/utils';
 import { toast } from 'sonner';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 interface CommentCardProps {
   comment: Comment;
@@ -25,22 +28,26 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
   const handleEdit = async () => {
     if (editedContent.trim() === '') {
       toast.error('Comment cannot be empty.');
+      AnalyticsService.trackEvent({ name: 'edit_comment_failed', properties: { commentId: comment.id, reason: 'empty_content' } });
       return;
     }
     setIsLoading(true);
     try {
       toast.loading('Updating comment...', { id: 'update-comment' });
-      const updatedComment = await CommentService.updateComment(comment.id, editedContent); // Using CommentService
+      const updatedComment = await CommentService.updateComment(comment.id, editedContent);
       
       if (updatedComment) {
         toast.success('Comment updated!', { id: 'update-comment' });
         onCommentUpdated(updatedComment);
         setIsEditing(false);
+        AnalyticsService.trackEvent({ name: 'comment_edited', properties: { commentId: comment.id, userId: user?.id } });
       } else {
         toast.error('Failed to update comment.', { id: 'update-comment' });
+        AnalyticsService.trackEvent({ name: 'edit_comment_failed', properties: { commentId: comment.id, userId: user?.id, reason: 'db_update_failed' } });
       }
     } catch (err) {
       toast.error('An error occurred while updating the comment.', { id: 'update-comment' });
+      AnalyticsService.trackEvent({ name: 'edit_comment_failed', properties: { commentId: comment.id, userId: user?.id, reason: 'unexpected_error', error: (err as Error).message } });
     } finally {
       setIsLoading(false);
     }
@@ -51,16 +58,19 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
       setIsLoading(true);
       try {
         toast.loading('Deleting comment...', { id: 'delete-comment' });
-        const success = await CommentService.deleteComment(comment.id); // Using CommentService
+        const success = await CommentService.deleteComment(comment.id);
         
         if (success) {
           toast.success('Comment deleted!', { id: 'delete-comment' });
           onCommentDeleted(comment.id);
+          AnalyticsService.trackEvent({ name: 'comment_deleted', properties: { commentId: comment.id, userId: user?.id } });
         } else {
           toast.error('Failed to delete comment.', { id: 'delete-comment' });
+          AnalyticsService.trackEvent({ name: 'delete_comment_failed', properties: { commentId: comment.id, userId: user?.id, reason: 'db_delete_failed' } });
         }
       } catch (err) {
         toast.error('An error occurred while deleting the comment.', { id: 'delete-comment' });
+        AnalyticsService.trackEvent({ name: 'delete_comment_failed', properties: { commentId: comment.id, userId: user?.id, reason: 'unexpected_error', error: (err as Error).message } });
       } finally {
         setIsLoading(false);
       }
@@ -71,6 +81,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
     setEditedContent(comment.content);
     setIsEditing(false);
     setError(null);
+    AnalyticsService.trackEvent({ name: 'edit_comment_cancelled', properties: { commentId: comment.id, userId: user?.id } });
   };
 
   const displayName = comment.username || 'Anonymous';
@@ -91,9 +102,9 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
   }
 
   return (
-    <div className="tw-flex tw-gap-3 tw-p-4 tw-bg-background tw-rounded-lg tw-border tw-border-border">
+    <div className="tw-flex tw-gap-3 tw-p-4 tw-bg-background tw-rounded-lg tw-border tw-border-border" aria-label={`Comment by ${displayName}`}>
       <Avatar className="tw-h-8 tw-w-8">
-        <AvatarImage src={displayAvatar} alt={displayName} />
+        <AvatarImage src={displayAvatar} alt={`${displayName}'s avatar`} />
         <AvatarFallback className="tw-bg-secondary tw-text-secondary-foreground">
           {avatarFallback}
         </AvatarFallback>
@@ -112,14 +123,15 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
               onChange={(e) => setEditedContent(e.target.value)}
               className="tw-w-full tw-min-h-[60px]"
               disabled={isLoading}
+              aria-label="Edit comment content"
             />
             <div className="tw-flex tw-justify-end tw-gap-2">
               <Button variant="ghost" size="sm" onClick={handleCancelEdit} disabled={isLoading}>
-                <X className="tw-h-4 tw-w-4 tw-mr-1" /> Cancel
+                <X className="tw-h-4 tw-w-4 tw-mr-1" aria-hidden="true" /> Cancel
               </Button>
               <Button size="sm" onClick={handleEdit} disabled={isLoading}>
-                {isLoading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
-                <Save className="tw-h-4 tw-w-4 tw-mr-1" /> Save
+                {isLoading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
+                <Save className="tw-h-4 tw-w-4 tw-mr-1" aria-hidden="true" /> Save
               </Button>
             </div>
           </div>
@@ -128,11 +140,11 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
         )}
         {isOwner && !isEditing && (
           <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-2">
-            <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} disabled={isLoading}>
-              <Edit className="tw-h-4 tw-w-4 tw-mr-1" /> Edit
+            <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} disabled={isLoading} aria-label="Edit comment">
+              <Edit className="tw-h-4 tw-w-4 tw-mr-1" aria-hidden="true" /> Edit
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleDelete} disabled={isLoading} className="tw-text-destructive hover:tw-text-destructive/80">
-              <Trash2 className="tw-h-4 tw-w-4 tw-mr-1" /> Delete
+            <Button variant="ghost" size="sm" onClick={handleDelete} disabled={isLoading} className="tw-text-destructive hover:tw-text-destructive/80" aria-label="Delete comment">
+              <Trash2 className="tw-h-4 tw-w-4 tw-mr-1" aria-hidden="true" /> Delete
             </Button>
           </div>
         )}

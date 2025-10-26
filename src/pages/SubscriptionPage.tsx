@@ -1,13 +1,16 @@
+"use client";
+
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Lock, Loader2 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom'; // Import Link
+import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { StripeClient } from '@/integrations/stripe/client';
 import { useIsSubscribed } from '@/hooks/useIsSubscribed';
 import { handleError } from '@/utils/errorHandler';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 const SubscriptionPage = () => {
   const navigate = useNavigate();
@@ -26,6 +29,7 @@ const SubscriptionPage = () => {
     if (!user || !user.email) {
       handleError(null, 'You must be logged in to start a free trial.');
       navigate('/auth');
+      AnalyticsService.trackEvent({ name: 'start_free_trial_failed', properties: { reason: 'not_logged_in' } });
       return;
     }
 
@@ -38,20 +42,24 @@ const SubscriptionPage = () => {
         handleError(null, 'Stripe price ID is not configured. Please contact support.');
         toast.dismiss('sub-loading');
         setIsLoading(false);
+        AnalyticsService.trackEvent({ name: 'start_free_trial_failed', properties: { reason: 'missing_price_id' } });
         return;
       }
 
       const checkoutUrl = await StripeClient.createCheckoutSession(priceId, user.id, user.email);
 
       if (checkoutUrl) {
+        AnalyticsService.trackEvent({ name: 'start_free_trial_initiated', properties: { userId: user.id, priceId } });
         window.location.href = checkoutUrl;
       } else {
         handleError(null, 'Failed to initiate Stripe checkout. Please try again.');
         toast.dismiss('sub-loading');
+        AnalyticsService.trackEvent({ name: 'start_free_trial_failed', properties: { reason: 'no_checkout_url' } });
       }
     } catch (err: any) {
       handleError(err, 'An unexpected error occurred during subscription.');
       toast.dismiss('sub-loading');
+      AnalyticsService.trackEvent({ name: 'start_free_trial_failed', properties: { reason: 'unexpected_error', error: err.message } });
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +68,7 @@ const SubscriptionPage = () => {
   if (authLoading || isSubscribedLoading || (isSubscribed && !authLoading && !isSubscribedLoading)) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
-        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" aria-label="Checking subscription status" />
         <p className="tw-ml-2">Checking subscription status...</p>
       </div>
     );
@@ -84,10 +92,10 @@ const SubscriptionPage = () => {
               </CardHeader>
               <CardContent className="tw-text-left">
                 <ul className="tw-space-y-2 tw-text-foreground">
-                  <li className="tw-flex tw-items-center"><CheckCircle className="tw-h-4 tw-w-4 tw-text-primary tw-mr-2" /> Full post access</li>
-                  <li className="tw-flex tw-items-center"><CheckCircle className="tw-h-4 tw-w-4 tw-text-primary tw-mr-2" /> Ad-free experience</li>
-                  <li className="tw-flex tw-items-center"><CheckCircle className="tw-h-4 tw-w-4 tw-text-primary tw-mr-2" /> Real-time push notifications</li>
-                  <li className="tw-flex tw-items-center"><CheckCircle className="tw-h-4 tw-w-4 tw-text-primary tw-mr-2" /> Exclusive posts</li>
+                  <li className="tw-flex tw-items-center"><CheckCircle className="tw-h-4 tw-w-4 tw-text-primary tw-mr-2" aria-hidden="true" /> Full post access</li>
+                  <li className="tw-flex tw-items-center"><CheckCircle className="tw-h-4 tw-w-4 tw-text-primary tw-mr-2" aria-hidden="true" /> Ad-free experience</li>
+                  <li className="tw-flex tw-items-center"><CheckCircle className="tw-h-4 tw-w-4 tw-text-primary tw-mr-2" aria-hidden="true" /> Real-time push notifications</li>
+                  <li className="tw-flex tw-items-center"><CheckCircle className="tw-h-4 tw-w-4 tw-text-primary tw-mr-2" aria-hidden="true" /> Exclusive posts</li>
                 </ul>
               </CardContent>
             </Card>
@@ -102,7 +110,7 @@ const SubscriptionPage = () => {
 
           <div className="tw-bg-muted tw-p-4 tw-rounded-md tw-text-muted-foreground tw-text-sm">
             <p className="tw-mb-2">
-              <Lock className="tw-inline-block tw-h-4 tw-w-4 tw-mr-1" /> Secure payment via Stripe.
+              <Lock className="tw-inline-block tw-h-4 tw-w-4 tw-mr-1" aria-hidden="true" /> Secure payment via Stripe.
             </p>
             <p>
               You will be redirected to Stripe to complete your subscription.
@@ -115,7 +123,7 @@ const SubscriptionPage = () => {
             disabled={isLoading}
             aria-label="Start free trial subscription"
           >
-            {isLoading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
+            {isLoading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
             Start Free Trial
           </Button>
 
@@ -124,7 +132,7 @@ const SubscriptionPage = () => {
           </p>
           {/* Trust Signals */}
           <p className="tw-text-sm tw-text-muted-foreground tw-flex tw-items-center tw-justify-center">
-            <Lock className="tw-h-4 tw-w-4 tw-mr-1" /> Secure payments via Stripe — Join over <span className="tw-font-bold tw-text-primary tw-mx-1">20,000</span> scanner fans!
+            <Lock className="tw-h-4 tw-w-4 tw-mr-1" aria-hidden="true" /> Secure payments via Stripe — Join over <span className="tw-font-bold tw-text-primary tw-mx-1">20,000</span> scanner fans!
           </p>
         </CardContent>
       </Card>

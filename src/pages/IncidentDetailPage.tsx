@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Incident, IncidentService } from '@/services/IncidentService';
@@ -11,6 +13,7 @@ import CommentCard from '@/components/CommentCard';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 const IncidentDetailPage: React.FC = () => {
   const { incidentId } = useParams<{ incidentId: string }>();
@@ -22,7 +25,6 @@ const IncidentDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [previousIncident, setPreviousIncident] = useState<Incident | null>(null);
   
-  // Comment states
   const [comments, setComments] = useState<Comment[]>([]);
   const [newCommentContent, setNewCommentContent] = useState('');
   const [isCommenting, setIsCommenting] = useState(false);
@@ -32,6 +34,7 @@ const IncidentDetailPage: React.FC = () => {
     if (!incidentId) {
       setError('Incident ID is missing.');
       setLoading(false);
+      AnalyticsService.trackEvent({ name: 'incident_detail_load_failed', properties: { reason: 'missing_id' } });
       return;
     }
 
@@ -43,11 +46,14 @@ const IncidentDetailPage: React.FC = () => {
         setIncident(fetchedIncident);
         const fetchedPreviousIncident = await IncidentService.fetchPreviousIncident(fetchedIncident.date);
         setPreviousIncident(fetchedPreviousIncident);
+        AnalyticsService.trackEvent({ name: 'incident_detail_loaded', properties: { incidentId } });
       } else {
         setError(handleError(null, 'Failed to load incident or incident not found.'));
+        AnalyticsService.trackEvent({ name: 'incident_detail_load_failed', properties: { incidentId, reason: 'not_found' } });
       }
     } catch (err) {
       setError(handleError(err, 'An unexpected error occurred while loading the incident.'));
+      AnalyticsService.trackEvent({ name: 'incident_detail_load_failed', properties: { incidentId, reason: 'unexpected_error', error: (err as Error).message } });
     } finally {
       setLoading(false);
     }
@@ -59,8 +65,10 @@ const IncidentDetailPage: React.FC = () => {
     try {
       const fetchedComments = await CommentService.fetchComments(incidentId);
       setComments(fetchedComments);
+      AnalyticsService.trackEvent({ name: 'comments_loaded', properties: { incidentId, count: fetchedComments.length } });
     } catch (err) {
       setError(handleError(err, 'Failed to load comments. Please try again.'));
+      AnalyticsService.trackEvent({ name: 'comments_load_failed', properties: { incidentId, error: (err as Error).message } });
     } finally {
       setLoadingComments(false);
     }
@@ -74,6 +82,7 @@ const IncidentDetailPage: React.FC = () => {
       .channel(`public:comments:incident_id=eq.${incidentId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: `incident_id=eq.${incidentId}` }, () => {
         fetchCommentsForIncident();
+        AnalyticsService.trackEvent({ name: 'comments_realtime_update_received', properties: { incidentId } });
       })
       .subscribe();
 
@@ -85,14 +94,17 @@ const IncidentDetailPage: React.FC = () => {
   const handleAddComment = async () => {
     if (!user) {
       handleError(null, 'You must be logged in to comment.');
+      AnalyticsService.trackEvent({ name: 'add_comment_attempt_failed', properties: { reason: 'not_logged_in' } });
       return;
     }
     if (newCommentContent.trim() === '') {
       handleError(null, 'Comment cannot be empty.');
+      AnalyticsService.trackEvent({ name: 'add_comment_attempt_failed', properties: { reason: 'empty_content' } });
       return;
     }
     if (!incidentId) {
       handleError(null, 'Incident ID is missing for commenting.');
+      AnalyticsService.trackEvent({ name: 'add_comment_attempt_failed', properties: { reason: 'missing_incident_id' } });
       return;
     }
 
@@ -104,11 +116,14 @@ const IncidentDetailPage: React.FC = () => {
       if (newComment) {
         toast.success('Comment added!', { id: 'add-comment' });
         setNewCommentContent('');
+        AnalyticsService.trackEvent({ name: 'comment_added_from_detail', properties: { incidentId, userId: user.id } });
       } else {
         handleError(null, 'Failed to add comment.', { id: 'add-comment' });
+        AnalyticsService.trackEvent({ name: 'add_comment_failed_from_detail', properties: { incidentId, userId: user.id } });
       }
     } catch (err) {
       handleError(err, 'An error occurred while adding the comment.', { id: 'add-comment' });
+      AnalyticsService.trackEvent({ name: 'add_comment_error_from_detail', properties: { incidentId, userId: user.id, error: (err as Error).message } });
     } finally {
       setIsCommenting(false);
     }
@@ -116,10 +131,12 @@ const IncidentDetailPage: React.FC = () => {
 
   const handleCommentUpdated = (updatedComment: Comment) => {
     setComments(prev => prev.map(c => (c.id === updatedComment.id ? updatedComment : c)));
+    AnalyticsService.trackEvent({ name: 'comment_updated_in_detail', properties: { commentId: updatedComment.id, incidentId } });
   };
 
   const handleCommentDeleted = (commentId: string) => {
     setComments(prev => prev.filter(c => c.id !== commentId));
+    AnalyticsService.trackEvent({ name: 'comment_deleted_in_detail', properties: { commentId, incidentId } });
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -132,7 +149,7 @@ const IncidentDetailPage: React.FC = () => {
   if (loading) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
-        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" aria-label="Loading incident details" />
         <p className="tw-ml-2">Loading incident...</p>
       </div>
     );
@@ -181,7 +198,7 @@ const IncidentDetailPage: React.FC = () => {
 
       <div className="tw-mt-8 tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-md">
         <h2 className="tw-text-2xl tw-font-semibold tw-mb-4 tw-text-foreground tw-flex tw-items-center tw-gap-2">
-          <MessageCircle className="tw-h-6 tw-w-6" /> Comments ({comments.length})
+          <MessageCircle className="tw-h-6 tw-w-6" aria-hidden="true" /> Comments ({comments.length})
         </h2>
         <div className="tw-flex tw-gap-2 tw-mb-6">
           <Input
@@ -191,16 +208,17 @@ const IncidentDetailPage: React.FC = () => {
             onKeyDown={handleKeyDown}
             disabled={isCommenting || !user}
             className="tw-flex-1 tw-input"
+            aria-label="New comment content"
           />
           <Button onClick={handleAddComment} disabled={isCommenting || !user} className="tw-button">
-            {isCommenting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
+            {isCommenting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
             Comment
           </Button>
         </div>
 
         {loadingComments ? (
           <div className="tw-flex tw-justify-center tw-py-4">
-            <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
+            <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" aria-label="Loading comments" />
             <span className="tw-ml-2 tw-text-muted-foreground">Loading comments...</span>
           </div>
         ) : (

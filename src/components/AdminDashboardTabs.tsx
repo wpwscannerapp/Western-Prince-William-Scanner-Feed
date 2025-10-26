@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +16,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { handleError } from '@/utils/errorHandler';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 interface AdminDashboardTabsProps {
   activeTab: string;
@@ -32,11 +35,15 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
 
   const refreshIncidentTable = useCallback(() => {
     // This function will be passed to AdminIncidentTable to trigger its internal refresh
+    // No direct action needed here, as AdminIncidentTable will handle its own refresh.
+    // This callback is primarily to satisfy the prop requirement and potentially log an event.
+    AnalyticsService.trackEvent({ name: 'admin_incident_table_refresh_requested' });
   }, []);
 
   const handleCreateIncident = async (type: string, location: string, description: string, imageFile: File | null, _currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => {
     if (!user) {
       toast.error('You must be logged in to create an incident.');
+      AnalyticsService.trackEvent({ name: 'admin_create_incident_attempt_failed', properties: { reason: 'not_logged_in' } });
       return false;
     }
 
@@ -51,18 +58,21 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
         type,
         location,
         date: new Date().toISOString(),
-      }, imageFile, latitude, longitude, user.id); // Pass user.id as adminId
+      }, imageFile, latitude, longitude, user.id);
       
       if (newIncident) {
         toast.success('Incident submitted successfully!', { id: 'create-incident' });
-        refreshIncidentTable();
+        refreshIncidentTable(); // Trigger refresh in AdminIncidentTable
+        AnalyticsService.trackEvent({ name: 'admin_incident_created', properties: { incidentId: newIncident.id, type, location } });
         return true;
       } else {
         handleError(null, 'Failed to submit incident.');
+        AnalyticsService.trackEvent({ name: 'admin_create_incident_failed', properties: { type, location } });
         return false;
       }
     } catch (err) {
       handleError(err, 'An error occurred while submitting the incident.');
+      AnalyticsService.trackEvent({ name: 'admin_create_incident_error', properties: { type, location, error: (err as Error).message } });
       return false;
     } finally {
       setIncidentFormLoading(false);
@@ -80,6 +90,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
 
       if (error) {
         handleError(error, 'Failed to fetch subscription data.');
+        AnalyticsService.trackEvent({ name: 'fetch_subscription_data_failed', properties: { error: error.message } });
         throw error;
       }
 
@@ -95,6 +106,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
       }));
 
       setSubscriptionData(chartData);
+      AnalyticsService.trackEvent({ name: 'subscription_data_fetched', properties: { count: chartData.length } });
     } catch (error) {
       setAnalyticsError(handleError(error, 'Failed to load subscription analytics.'));
     }
@@ -103,11 +115,13 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
   useEffect(() => {
     if (activeTab === 'analytics') {
       fetchSubscriptionData();
+      AnalyticsService.trackEvent({ name: 'admin_analytics_tab_viewed' });
     }
   }, [activeTab]);
 
   const handleRetryAnalytics = () => {
     fetchSubscriptionData();
+    AnalyticsService.trackEvent({ name: 'admin_analytics_retry_fetch' });
   };
 
   return (
@@ -166,6 +180,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
                       left: 20,
                       bottom: 5,
                     }}
+                    aria-label="Subscription growth chart"
                   >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
@@ -186,8 +201,8 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
                 <div className="tw-space-y-4">
                   <div>
                     <div className="tw-flex tw-justify-between tw-mb-1">
-                      <span className="tw-text-sm tw-font-medium">Likes</span>
-                      <span className="tw-text-sm tw-font-medium">1,240</span>
+                      <span className="tw-sm tw-font-medium">Likes</span>
+                      <span className="tw-sm tw-font-medium">1,240</span>
                     </div>
                     <div className="tw-w-full tw-bg-secondary tw-rounded-full tw-h-2">
                       <div className="tw-bg-primary tw-h-2 tw-rounded-full" style={{ width: '75%' }}></div>
@@ -195,8 +210,8 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
                   </div>
                   <div>
                     <div className="tw-flex tw-justify-between tw-mb-1">
-                      <span className="tw-text-sm tw-font-medium">Comments</span>
-                      <span className="tw-text-sm tw-font-medium">856</span>
+                      <span className="tw-sm tw-font-medium">Comments</span>
+                      <span className="tw-sm tw-font-medium">856</span>
                     </div>
                     <div className="tw-w-full tw-bg-secondary tw-rounded-full tw-h-2">
                       <div className="tw-bg-primary tw-h-2 tw-rounded-full" style={{ width: '55%' }}></div>

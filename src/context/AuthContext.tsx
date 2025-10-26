@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { AuthChangeEvent, Session, User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,6 +10,7 @@ import { ProfileService } from '@/services/ProfileService';
 import { handleError as globalHandleError } from '@/utils/errorHandler';
 import { useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from './auth-context-definition';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -15,7 +18,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AuthError | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const [isExplicitlySignedIn, setIsExplicitlySignedIn] = useState(false); // Default to false
+  const [isExplicitlySignedIn, setIsExplicitlySignedIn] = useState(false);
   const isMountedRef = useRef(true);
   const userRef = useRef<User | null>(null);
   const queryClient = useQueryClient();
@@ -71,8 +74,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       await SessionService.createSession(currentSession, currentSessionId);
+      AnalyticsService.trackEvent({ name: 'session_created', properties: { userId: currentSession.user.id } });
     } catch (err) {
       console.error('AuthContext: Error during session management (non-critical for global auth state):', (err as Error).message);
+      AnalyticsService.trackEvent({ name: 'session_creation_failed', properties: { userId: currentSession.user.id, error: (err as Error).message } });
     }
   }, []);
 
@@ -87,6 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await SessionService.deleteAllSessionsForUser(userIdToDelete);
     }
     queryClient.invalidateQueries({ queryKey: ['profile', userIdToDelete] });
+    AnalyticsService.trackEvent({ name: 'session_deleted', properties: { userId: userIdToDelete } });
   }, [queryClient]);
 
   useEffect(() => {
@@ -94,7 +100,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isMountedRef.current && !authReady) {
         setAuthReady(true);
         setLoading(false);
-        setError(new AuthError('Authentication initialization timed out.'));
+        const timeoutError = new AuthError('Authentication initialization timed out.');
+        setError(timeoutError);
+        globalHandleError(timeoutError, 'Authentication initialization timed out.');
+        AnalyticsService.trackEvent({ name: 'auth_init_timeout' });
       }
     }, AUTH_INITIALIZATION_TIMEOUT);
 
@@ -117,8 +126,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (_event === 'SIGNED_IN') {
             setIsExplicitlySignedIn(true);
+            AnalyticsService.trackEvent({ name: 'auth_state_signed_in', properties: { userId: currentSession?.user?.id } });
           } else if (_event === 'SIGNED_OUT') {
             setIsExplicitlySignedIn(false);
+            AnalyticsService.trackEvent({ name: 'auth_state_signed_out', properties: { userId: userRef.current?.id } });
           }
 
           if (currentSession && (_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION')) {
@@ -169,7 +180,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: authError };
       }
       toast.success('Logged in successfully!');
-      setIsExplicitlySignedIn(true); // Set to true ONLY on explicit sign-in
+      setIsExplicitlySignedIn(true);
       return { data };
     } finally {
       setLoading(false);
@@ -189,7 +200,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: authError };
       }
       toast.success('Logged out successfully!');
-      setIsExplicitlySignedIn(false); // Set to false on sign-out
+      setIsExplicitlySignedIn(false);
       return { success: true };
     } catch (e: any) {
       handleError(e, e.message || 'An unexpected error occurred during logout.');

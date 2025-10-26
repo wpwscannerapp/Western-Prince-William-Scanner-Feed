@@ -1,8 +1,11 @@
+"use client";
+
 import React, { useEffect, useState, useRef } from 'react';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { NotificationService } from '@/services/NotificationService';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { ProfilePageContext } from './ProfilePageContext';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useAppSettings();
@@ -19,7 +22,10 @@ const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const timeoutPromise = new Promise<boolean>(resolve => {
       timeoutId = setTimeout(() => {
-        console.warn('AppSettingsContext.tsx: Web Push initialization timed out (from timeout promise).');
+        if (import.meta.env.DEV) {
+          console.warn('AppSettingsContext.tsx: Web Push initialization timed out (from timeout promise).');
+        }
+        AnalyticsService.trackEvent({ name: 'web_push_init_timeout' });
         resolve(false);
       }, SUPABASE_API_TIMEOUT);
     });
@@ -35,7 +41,9 @@ const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setIsWebPushInitialized(success);
     if (!success) {
-      console.error('AppSettingsContext.tsx: Web Push readiness check failed.');
+      if (import.meta.env.DEV) {
+        console.error('AppSettingsContext.tsx: Web Push readiness check failed.');
+      }
     }
   };
 

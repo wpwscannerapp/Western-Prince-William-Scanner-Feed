@@ -1,6 +1,9 @@
+"use client";
+
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
+import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsService
 
 export interface Profile {
   id: string;
@@ -15,6 +18,9 @@ export interface Profile {
 
 const logSupabaseError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
+  if (import.meta.env.DEV) {
+    console.error(`Supabase Error in ${functionName}:`, error);
+  }
 };
 
 export class ProfileService {
@@ -22,7 +28,9 @@ export class ProfileService {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-      console.error(`ProfileService: ensureProfileExists for ${userId} timed out after ${SUPABASE_API_TIMEOUT}ms.`);
+      if (import.meta.env.DEV) {
+        console.error(`ProfileService: ensureProfileExists for ${userId} timed out after ${SUPABASE_API_TIMEOUT}ms.`);
+      }
     }, SUPABASE_API_TIMEOUT);
 
     try {
@@ -50,24 +58,31 @@ export class ProfileService {
 
           if (insertError) {
             if (insertError.code === '23505') { // Unique constraint violation, means profile was created concurrently
+              AnalyticsService.trackEvent({ name: 'profile_ensure_exists_concurrent_insert', properties: { userId } });
               return true;
             }
             logSupabaseError('ensureProfileExists - insert', insertError);
-            throw insertError; // Throw error
+            AnalyticsService.trackEvent({ name: 'profile_ensure_exists_insert_failed', properties: { userId, error: insertError.message } });
+            throw insertError;
           }
+          AnalyticsService.trackEvent({ name: 'profile_created_on_ensure', properties: { userId } });
           return true;
         }
         logSupabaseError('ensureProfileExists - select', selectError);
-        throw selectError; // Throw error
+        AnalyticsService.trackEvent({ name: 'profile_ensure_exists_select_failed', properties: { userId, error: selectError.message } });
+        throw selectError;
       }
+      AnalyticsService.trackEvent({ name: 'profile_exists_checked', properties: { userId } });
       return true;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Ensuring profile existence timed out.');
-        throw new Error('Ensuring profile existence timed out.'); // Re-throw for upstream
+        AnalyticsService.trackEvent({ name: 'profile_ensure_exists_timeout', properties: { userId } });
+        throw new Error('Ensuring profile existence timed out.');
       } else {
         logSupabaseError('ensureProfileExists', err);
-        throw err; // Re-throw original error
+        AnalyticsService.trackEvent({ name: 'profile_ensure_exists_unexpected_error', properties: { userId, error: err.message } });
+        throw err;
       }
     } finally {
       clearTimeout(timeoutId);
@@ -78,7 +93,9 @@ export class ProfileService {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-      console.error(`ProfileService: fetchProfile for ${userId} timed out after ${SUPABASE_API_TIMEOUT}ms.`);
+      if (import.meta.env.DEV) {
+        console.error(`ProfileService: fetchProfile for ${userId} timed out after ${SUPABASE_API_TIMEOUT}ms.`);
+      }
     }, SUPABASE_API_TIMEOUT);
 
     try {
@@ -91,21 +108,25 @@ export class ProfileService {
 
       if (error) {
         logSupabaseError('fetchProfile', error);
+        AnalyticsService.trackEvent({ name: 'fetch_profile_failed', properties: { userId, error: error.message } });
         throw error;
       }
       if (!data) {
+        AnalyticsService.trackEvent({ name: 'fetch_profile_not_found', properties: { userId } });
         return null;
       }
+      AnalyticsService.trackEvent({ name: 'profile_fetched', properties: { userId, role: data.role, subscription_status: data.subscription_status } });
       return data as Profile;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching profile timed out.');
-        throw new Error('Fetching profile timed out.'); // Re-throw for upstream
+        AnalyticsService.trackEvent({ name: 'fetch_profile_timeout', properties: { userId } });
+        throw new Error('Fetching profile timed out.');
       } else {
-        // Log the specific Supabase error code if available
         const errorMessage = err.code ? `Supabase Error (${err.code}): ${err.message}` : err.message;
         handleError(err, `Failed to fetch profile: ${errorMessage}`);
-        throw err; // Re-throw original error
+        AnalyticsService.trackEvent({ name: 'fetch_profile_unexpected_error', properties: { userId, error: err.message } });
+        throw err;
       }
     } finally {
       clearTimeout(timeoutId);
@@ -119,7 +140,9 @@ export class ProfileService {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-      console.error(`ProfileService: updateProfile for ${userId} timed out after ${SUPABASE_API_TIMEOUT}ms.`);
+      if (import.meta.env.DEV) {
+        console.error(`ProfileService: updateProfile for ${userId} timed out after ${SUPABASE_API_TIMEOUT}ms.`);
+      }
     }, SUPABASE_API_TIMEOUT);
 
     try {
@@ -133,16 +156,20 @@ export class ProfileService {
 
       if (error) {
         logSupabaseError('updateProfile', error);
-        throw error; // Throw error
+        AnalyticsService.trackEvent({ name: 'update_profile_failed', properties: { userId, updates: Object.keys(updates), error: error.message } });
+        throw error;
       }
+      AnalyticsService.trackEvent({ name: 'profile_updated', properties: { userId, updates: Object.keys(updates) } });
       return data as Profile;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Updating profile timed out.');
-        throw new Error('Updating profile timed out.'); // Re-throw for upstream
+        AnalyticsService.trackEvent({ name: 'update_profile_timeout', properties: { userId } });
+        throw new Error('Updating profile timed out.');
       } else {
         logSupabaseError('updateProfile', err);
-        throw err; // Re-throw original error
+        AnalyticsService.trackEvent({ name: 'update_profile_unexpected_error', properties: { userId, error: err.message } });
+        throw err;
       }
     } finally {
       clearTimeout(timeoutId);

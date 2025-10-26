@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import { useForm, useFieldArray, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,12 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleError } from '@/utils/errorHandler';
-import { SettingsService, ContactCard } from '@/services/SettingsService'; // Import ContactCard
+import { SettingsService, ContactCard } from '@/services/SettingsService';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import ContactCardForm from './ContactCardForm'; // Import the new ContactCardForm
+import ContactCardForm from './ContactCardForm';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 const contactCardSchema = z.object({
-  id: z.string().optional(), // For internal use with react-hook-form field array
+  id: z.string().optional(),
   name: z.string().min(1, { message: 'Name is required.' }).max(100, { message: 'Name too long.' }),
   title: z.string().max(100, { message: 'Title too long.' }).optional().or(z.literal('')),
   email: z.string().email({ message: 'Invalid email address.' }).optional().or(z.literal('')),
@@ -50,14 +53,16 @@ const ContactSettingsForm: React.FC = () => {
     try {
       const settings = await SettingsService.getContactSettings();
       if (settings && settings.contact_cards.length > 0) {
-        // Add a temporary 'id' for react-hook-form's useFieldArray if not present
         const cardsWithIds = settings.contact_cards.map(card => ({ ...card, id: card.id || crypto.randomUUID() }));
         reset({ contact_cards: cardsWithIds });
+        AnalyticsService.trackEvent({ name: 'contact_settings_form_loaded', properties: { count: cardsWithIds.length } });
       } else {
-        reset({ contact_cards: [{ id: crypto.randomUUID(), name: '', title: '', email: '', phone: '' }] }); // Start with one empty card
+        reset({ contact_cards: [{ id: crypto.randomUUID(), name: '', title: '', email: '', phone: '' }] });
+        AnalyticsService.trackEvent({ name: 'contact_settings_form_loaded_empty' });
       }
     } catch (err) {
       handleError(err, 'Failed to load contact settings.');
+      AnalyticsService.trackEvent({ name: 'contact_settings_form_load_failed', properties: { error: (err as Error).message } });
     } finally {
       setIsLoading(false);
     }
@@ -74,18 +79,19 @@ const ContactSettingsForm: React.FC = () => {
     try {
       toast.loading('Saving contact settings...', { id: 'save-contact-settings' });
       
-      // Filter out the temporary 'id' before saving to DB if it's not part of your DB schema
       const cardsToSave = values.contact_cards.map(({ id, ...rest }) => rest) as ContactCard[];
 
       const success = await SettingsService.updateContactSettings(cardsToSave);
       if (success) {
         toast.success('Contact settings saved successfully!', { id: 'save-contact-settings' });
-        fetchContactSettings(); // Re-fetch to ensure UI is consistent with saved data
+        fetchContactSettings();
+        AnalyticsService.trackEvent({ name: 'contact_settings_saved', properties: { count: cardsToSave.length } });
       } else {
         throw new Error('Failed to update contact settings in database.');
       }
     } catch (err) {
       handleError(err, 'Failed to save contact settings.');
+      AnalyticsService.trackEvent({ name: 'contact_settings_save_failed', properties: { error: (err as Error).message } });
     } finally {
       setIsSaving(false);
     }
@@ -95,7 +101,7 @@ const ContactSettingsForm: React.FC = () => {
     return (
       <Card className="tw-bg-card tw-border-border tw-shadow-lg">
         <CardContent className="tw-py-8 tw-text-center">
-          <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary tw-mx-auto" />
+          <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary tw-mx-auto" aria-label="Loading contact settings" />
           <p className="tw-mt-2 tw-text-muted-foreground">Loading contact settings...</p>
         </CardContent>
       </Card>
@@ -123,7 +129,7 @@ const ContactSettingsForm: React.FC = () => {
           <form onSubmit={handleSubmit(onSubmit)} className="tw-space-y-6">
             <div>
               <Label className="tw-mb-2 tw-block">Contact Cards</Label>
-              <div className="tw-space-y-4">
+              <div className="tw-space-y-4" role="list" aria-label="List of contact cards">
                 {fields.length === 0 && (
                   <p className="tw-text-muted-foreground tw-text-center tw-py-4">No contact cards added yet.</p>
                 )}
@@ -140,16 +146,20 @@ const ContactSettingsForm: React.FC = () => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => append({ id: crypto.randomUUID(), name: '', title: '', email: '', phone: '' })}
+                onClick={() => {
+                  append({ id: crypto.randomUUID(), name: '', title: '', email: '', phone: '' });
+                  AnalyticsService.trackEvent({ name: 'contact_card_added' });
+                }}
                 className="tw-mt-4 tw-w-full"
                 disabled={isSaving}
+                aria-label="Add new contact card"
               >
-                <PlusCircle className="tw-mr-2 tw-h-4 tw-w-4" /> Add Contact Card
+                <PlusCircle className="tw-mr-2 tw-h-4 tw-w-4" aria-hidden="true" /> Add Contact Card
               </Button>
             </div>
 
-            <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isSaving}>
-              {isSaving && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
+            <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isSaving} aria-label="Save contact settings">
+              {isSaving && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
               Save Contact Settings
             </Button>
           </form>

@@ -1,3 +1,5 @@
+"use client";
+
 import { toast, type ExternalToast } from 'sonner';
 
 export const handleError = (error: any, defaultMessage: string = 'An unexpected error occurred.', options?: ExternalToast) => {
@@ -6,6 +8,8 @@ export const handleError = (error: any, defaultMessage: string = 'An unexpected 
   const message = actualError.message; // Use the message from the actualError
 
   toast.error(message, options);
-  console.error('Application Error (handled):', actualError); // Log the actual Error object
+  if (import.meta.env.DEV) { // Only log to console in development
+    console.error('Application Error (handled):', actualError); // Log the actual Error object
+  }
   return message;
 };

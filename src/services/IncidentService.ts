@@ -1,8 +1,11 @@
+"use client";
+
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
-import { StorageService } from './StorageService'; // Import StorageService
-import { NotificationService } from './NotificationService'; // Import NotificationService
+import { StorageService } from './StorageService';
+import { NotificationService } from './NotificationService';
+import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsService
 
 export interface Incident {
   id: string;
@@ -14,7 +17,7 @@ export interface Incident {
   image_url?: string;
   latitude?: number;
   longitude?: number;
-  admin_id?: string; // Added admin_id
+  admin_id?: string;
   created_at: string;
 }
 
@@ -22,14 +25,17 @@ export interface IncidentFilter {
   searchTerm?: string;
   type?: string;
   location?: string;
-  startDate?: string; // YYYY-MM-DD
-  endDate?: string;   // YYYY-MM-DD
+  startDate?: string;
+  endDate?: string;
 }
 
 export const INCIDENTS_PER_PAGE = 10;
 
 const logSupabaseError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
+  if (import.meta.env.DEV) {
+    console.error(`Supabase Error in ${functionName}:`, error);
+  }
 };
 
 export const IncidentService = {
@@ -42,12 +48,10 @@ export const IncidentService = {
     try {
       let query = supabase
         .from('incidents')
-        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at') // Explicitly select columns, excluding search_vector
+        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at')
         .abortSignal(controller.signal);
 
-      // Apply filters
       if (filters.searchTerm) {
-        // Use websearch_to_tsquery for more flexible search syntax
         query = query.textSearch('search_vector', filters.searchTerm, {
           type: 'websearch',
           config: 'english',
@@ -63,25 +67,29 @@ export const IncidentService = {
         query = query.gte('date', filters.startDate);
       }
       if (filters.endDate) {
-        query = query.lte('date', filters.endDate + 'T23:59:59.999Z'); // End of day
+        query = query.lte('date', filters.endDate + 'T23:59:59.999Z');
       }
 
       query = query
         .order('date', { ascending: false })
-        .range(offset, offset + INCIDENTS_PER_PAGE - 1); // Use INCIDENTS_PER_PAGE for limit
+        .range(offset, offset + INCIDENTS_PER_PAGE - 1);
 
       const { data, error } = await query;
 
       if (error) {
         logSupabaseError('fetchIncidents', error);
+        AnalyticsService.trackEvent({ name: 'fetch_incidents_failed', properties: { offset, filters, error: error.message } });
         return [];
       }
+      AnalyticsService.trackEvent({ name: 'incidents_fetched', properties: { offset, filters, count: data.length } });
       return data as Incident[];
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching incidents timed out.');
+        AnalyticsService.trackEvent({ name: 'fetch_incidents_timeout', properties: { offset, filters } });
       } else {
         logSupabaseError('fetchIncidents', err);
+        AnalyticsService.trackEvent({ name: 'fetch_incidents_unexpected_error', properties: { offset, filters, error: err.message } });
       }
       return [];
     } finally {
@@ -96,24 +104,29 @@ export const IncidentService = {
     try {
       const { data, error } = await supabase
         .from('incidents')
-        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at') // Explicitly select columns, excluding search_vector
+        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at')
         .eq('id', incidentId)
         .abortSignal(controller.signal)
         .single();
 
       if (error) {
         if (error.code === 'PGRST116') {
+          AnalyticsService.trackEvent({ name: 'fetch_single_incident_not_found', properties: { incidentId } });
           return null;
         }
         logSupabaseError('fetchSingleIncident', error);
+        AnalyticsService.trackEvent({ name: 'fetch_single_incident_failed', properties: { incidentId, error: error.message } });
         return null;
       }
+      AnalyticsService.trackEvent({ name: 'single_incident_fetched', properties: { incidentId } });
       return data as Incident;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching single incident timed out.');
+        AnalyticsService.trackEvent({ name: 'fetch_single_incident_timeout', properties: { incidentId } });
       } else {
         logSupabaseError('fetchSingleIncident', err);
+        AnalyticsService.trackEvent({ name: 'fetch_single_incident_unexpected_error', properties: { incidentId, error: err.message } });
       }
       return null;
     } finally {
@@ -135,14 +148,18 @@ export const IncidentService = {
 
       if (error) {
         logSupabaseError('fetchNewIncidents', error);
+        AnalyticsService.trackEvent({ name: 'fetch_new_incidents_failed', properties: { lastTimestamp, error: error.message } });
         return [];
       }
+      AnalyticsService.trackEvent({ name: 'new_incidents_fetched', properties: { lastTimestamp, count: data.length } });
       return data as Incident[];
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching new incidents timed out.');
+        AnalyticsService.trackEvent({ name: 'fetch_new_incidents_timeout', properties: { lastTimestamp } });
       } else {
         logSupabaseError('fetchNewIncidents', err);
+        AnalyticsService.trackEvent({ name: 'fetch_new_incidents_unexpected_error', properties: { lastTimestamp, error: err.message } });
       }
       return [];
     } finally {
@@ -154,7 +171,10 @@ export const IncidentService = {
     let imageUrl: string | null = null;
     if (imageFile) {
       imageUrl = await StorageService.uploadIncidentImage(imageFile);
-      if (!imageUrl) return null;
+      if (!imageUrl) {
+        AnalyticsService.trackEvent({ name: 'create_incident_image_upload_failed', properties: { adminId, type: incident.type } });
+        return null;
+      }
     }
 
     const controller = new AbortController();
@@ -170,26 +190,29 @@ export const IncidentService = {
 
       if (error) {
         logSupabaseError('createIncident', error);
+        AnalyticsService.trackEvent({ name: 'create_incident_failed', properties: { adminId, type: incident.type, error: error.message } });
         return null;
       }
 
-      // If incident created successfully, also create an alert
       if (data) {
         await NotificationService.createAlert({
           title: data.title,
           description: data.description,
-          type: data.type, // Use incident type for alert
-          latitude: data.latitude || 0, // Default to 0 if not available
-          longitude: data.longitude || 0, // Default to 0 if not available
+          type: data.type,
+          latitude: data.latitude || 0,
+          longitude: data.longitude || 0,
         });
+        AnalyticsService.trackEvent({ name: 'incident_created', properties: { incidentId: data.id, adminId, type: data.type } });
       }
 
       return data as Incident;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Creating incident timed out.');
+        AnalyticsService.trackEvent({ name: 'create_incident_timeout', properties: { adminId, type: incident.type } });
       } else {
         logSupabaseError('createIncident', err);
+        AnalyticsService.trackEvent({ name: 'create_incident_unexpected_error', properties: { adminId, type: incident.type, error: err.message } });
       }
       return null;
     } finally {
@@ -202,13 +225,15 @@ export const IncidentService = {
 
     if (imageFile) {
       const newImageUrl = await StorageService.uploadIncidentImage(imageFile);
-      if (!newImageUrl) return null;
+      if (!newImageUrl) {
+        AnalyticsService.trackEvent({ name: 'update_incident_image_upload_failed', properties: { incidentId: id } });
+        return null;
+      }
       if (currentImageUrl) {
         await StorageService.deleteIncidentImage(currentImageUrl);
       }
       imageUrl = newImageUrl;
     } else if (currentImageUrl && !imageFile) {
-      // If currentImageUrl exists but no new file is provided and image is explicitly removed
       await StorageService.deleteIncidentImage(currentImageUrl);
       imageUrl = undefined;
     }
@@ -219,7 +244,7 @@ export const IncidentService = {
     try {
       const { data, error } = await supabase
         .from('incidents')
-        .update({ ...updates, image_url: imageUrl, latitude, longitude, date: new Date().toISOString() }) // Update date to current time on edit
+        .update({ ...updates, image_url: imageUrl, latitude, longitude, date: new Date().toISOString() })
         .eq('id', id)
         .abortSignal(controller.signal)
         .select()
@@ -227,14 +252,18 @@ export const IncidentService = {
 
       if (error) {
         logSupabaseError('updateIncident', error);
+        AnalyticsService.trackEvent({ name: 'update_incident_failed', properties: { incidentId: id, updates: Object.keys(updates), error: error.message } });
         return null;
       }
+      AnalyticsService.trackEvent({ name: 'incident_updated', properties: { incidentId: id, updates: Object.keys(updates) } });
       return data as Incident;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Updating incident timed out.');
+        AnalyticsService.trackEvent({ name: 'update_incident_timeout', properties: { incidentId: id } });
       } else {
         logSupabaseError('updateIncident', err);
+        AnalyticsService.trackEvent({ name: 'update_incident_unexpected_error', properties: { incidentId: id, error: err.message } });
       }
       return null;
     } finally {
@@ -259,14 +288,18 @@ export const IncidentService = {
 
       if (error) {
         logSupabaseError('deleteIncident', error);
+        AnalyticsService.trackEvent({ name: 'delete_incident_failed', properties: { incidentId: id, error: error.message } });
         return false;
       }
+      AnalyticsService.trackEvent({ name: 'incident_deleted', properties: { incidentId: id } });
       return true;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Deleting incident timed out.');
+        AnalyticsService.trackEvent({ name: 'delete_incident_timeout', properties: { incidentId: id } });
       } else {
         logSupabaseError('deleteIncident', err);
+        AnalyticsService.trackEvent({ name: 'delete_incident_unexpected_error', properties: { incidentId: id, error: err.message } });
       }
       return false;
     } finally {
@@ -287,14 +320,18 @@ export const IncidentService = {
 
       if (error) {
         logSupabaseError('fetchSubscriberCount', error);
+        AnalyticsService.trackEvent({ name: 'fetch_subscriber_count_failed', properties: { error: error.message } });
         return 0;
       }
+      AnalyticsService.trackEvent({ name: 'subscriber_count_fetched', properties: { count: count || 0 } });
       return count || 0;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching subscriber count timed out.');
+        AnalyticsService.trackEvent({ name: 'fetch_subscriber_count_timeout' });
       } else {
         logSupabaseError('fetchSubscriberCount', err);
+        AnalyticsService.trackEvent({ name: 'fetch_subscriber_count_unexpected_error', properties: { error: err.message } });
       }
       return 0;
     } finally {
@@ -309,7 +346,7 @@ export const IncidentService = {
     try {
       const { data, error } = await supabase
         .from('incidents')
-        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at') // Explicitly select columns, excluding search_vector
+        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at')
         .lt('date', currentIncidentTimestamp)
         .order('date', { ascending: false })
         .limit(1)
@@ -318,17 +355,22 @@ export const IncidentService = {
 
       if (error) {
         if (error.code === 'PGRST116') {
+          AnalyticsService.trackEvent({ name: 'fetch_previous_incident_not_found', properties: { currentIncidentTimestamp } });
           return null;
         }
         logSupabaseError('fetchPreviousIncident', error);
+        AnalyticsService.trackEvent({ name: 'fetch_previous_incident_failed', properties: { currentIncidentTimestamp, error: error.message } });
         return null;
       }
+      AnalyticsService.trackEvent({ name: 'previous_incident_fetched', properties: { incidentId: data.id } });
       return data as Incident;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching previous incident timed out.');
+        AnalyticsService.trackEvent({ name: 'fetch_previous_incident_timeout', properties: { currentIncidentTimestamp } });
       } else {
         logSupabaseError('fetchPreviousIncident', err);
+        AnalyticsService.trackEvent({ name: 'fetch_previous_incident_unexpected_error', properties: { currentIncidentTimestamp, error: err.message } });
       }
       return null;
     } finally {

@@ -1,17 +1,19 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { Loader2, AlertCircle, Map, List, LogOut } from 'lucide-react'; // Added LogOut icon
+import { Loader2, AlertCircle, Map, List } from 'lucide-react';
 import IncidentMap from '@/components/IncidentMap';
 import { useQuery } from '@tanstack/react-query';
 import { NotificationService, Alert } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 
 const HomePage: React.FC = () => {
-  const { user, loading: authLoading, signOut } = useAuth(); // Destructure signOut
+  const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
   const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
 
@@ -27,15 +29,10 @@ const HomePage: React.FC = () => {
     }
   }, [isAlertsError, alertsError]);
 
-  const handleLogout = async () => {
-    await signOut();
-    // The AuthProvider will handle navigation to /auth after signOut
-  };
-
   if (isAdminError) {
     return (
       <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
-        <AlertCircle className="tw-h-12 tw-w-12 tw-text-destructive tw-mb-4" />
+        <AlertCircle className="tw-h-12 tw-w-12 tw-text-destructive tw-mb-4" aria-hidden="true" />
         <h1 className="tw-2xl tw-font-bold tw-text-destructive tw-mb-4">Error Loading Permissions</h1>
         <p className="tw-text-muted-foreground">{isAdminError}</p>
         <button
@@ -54,7 +51,7 @@ const HomePage: React.FC = () => {
   if (isAdminLoading || authLoading) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
-        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" aria-label="Loading user permissions" />
         <p className="tw-ml-2">Loading user permissions...</p>
       </div>
     );
@@ -62,14 +59,6 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-6xl">
-      <div className="tw-flex tw-justify-end tw-mb-4"> {/* Added for logout button */}
-        {user && (
-          <Button onClick={handleLogout} variant="outline" className="tw-button">
-            <LogOut className="tw-mr-2 tw-h-4 tw-w-4" /> Logout
-          </Button>
-        )}
-      </div>
-
       <div className="tw-mb-8">
         <div className="tw-flex tw-justify-between tw-items-center tw-mb-4">
           <h2 className="tw-text-2xl tw-font-bold tw-text-foreground">Real-time Alerts</h2>
@@ -96,7 +85,7 @@ const HomePage: React.FC = () => {
         {isLoadingAlerts ? (
           <Card className="tw-bg-card tw-border-border tw-shadow-md">
             <CardContent className="tw-flex tw-items-center tw-justify-center tw-py-8">
-              <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
+              <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" aria-label="Loading alerts" />
               <span className="tw-ml-2 tw-text-muted-foreground">Loading alerts...</span>
             </CardContent>
           </Card>

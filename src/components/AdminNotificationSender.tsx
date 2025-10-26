@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,9 +11,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
-import { NotificationService } from '@/services/NotificationService'; // Import NotificationService
+import { NotificationService } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
-import { useAuth } from '@/hooks/useAuth'; // Import useAuth to get user ID
+import { useAuth } from '@/hooks/useAuth';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 const notificationSchema = z.object({
   title: z.string().min(1, { message: 'Notification title is required.' }).max(100, { message: 'Title too long.' }),
@@ -22,7 +25,7 @@ const notificationSchema = z.object({
 type NotificationFormValues = z.infer<typeof notificationSchema>;
 
 const AdminNotificationSender: React.FC = () => {
-  const { user } = useAuth(); // Get the current user
+  const { user } = useAuth();
   const form = useForm<NotificationFormValues>({
     resolver: zodResolver(notificationSchema),
     defaultValues: {
@@ -37,6 +40,7 @@ const AdminNotificationSender: React.FC = () => {
   const onSubmit = async (values: NotificationFormValues) => {
     if (!user) {
       handleError(null, 'You must be logged in to send notifications.');
+      AnalyticsService.trackEvent({ name: 'send_notification_failed', properties: { reason: 'not_logged_in' } });
       return;
     }
 
@@ -44,26 +48,28 @@ const AdminNotificationSender: React.FC = () => {
     toast.loading('Creating alert...', { id: 'send-notification' });
 
     try {
-      // Create an alert in the 'alerts' table.
-      // This will trigger the Supabase function which calls the Netlify function.
       const newAlert = await NotificationService.createAlert({
         title: values.title,
         description: values.body,
-        type: 'Admin Broadcast', // Default type for admin-sent notifications
-        latitude: 0, // Default latitude, consider making this configurable or optional
-        longitude: 0, // Default longitude, consider making this configurable or optional
+        type: 'Admin Broadcast',
+        latitude: 0,
+        longitude: 0,
       });
 
       if (newAlert) {
         toast.success('Alert created and notifications queued!', { id: 'send-notification' });
         form.reset();
+        AnalyticsService.trackEvent({ name: 'notification_sent', properties: { title: values.title, userId: user.id } });
       } else {
         throw new Error('Failed to create alert in database.');
       }
 
     } catch (err: any) {
-      console.error('Unexpected error sending notifications:', err);
+      if (import.meta.env.DEV) {
+        console.error('Unexpected error sending notifications:', err);
+      }
       handleError(err, `An unexpected error occurred: ${err.message}`, { id: 'send-notification' });
+      AnalyticsService.trackEvent({ name: 'send_notification_failed', properties: { title: values.title, userId: user.id, error: err.message } });
     } finally {
       setIsLoading(false);
     }
@@ -87,9 +93,11 @@ const AdminNotificationSender: React.FC = () => {
               {...form.register('title')}
               className="tw-bg-input tw-text-foreground"
               disabled={isLoading}
+              aria-invalid={form.formState.errors.title ? "true" : "false"}
+              aria-describedby={form.formState.errors.title ? "title-error" : undefined}
             />
             {form.formState.errors.title && (
-              <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.title.message}</p>
+              <p id="title-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.title.message}</p>
             )}
           </div>
 
@@ -101,9 +109,11 @@ const AdminNotificationSender: React.FC = () => {
               {...form.register('body')}
               className="tw-min-h-[100px] tw-bg-input tw-text-foreground"
               disabled={isLoading}
+              aria-invalid={form.formState.errors.body ? "true" : "false"}
+              aria-describedby={form.formState.errors.body ? "body-error" : undefined}
             />
             {form.formState.errors.body && (
-              <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.body.message}</p>
+              <p id="body-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.body.message}</p>
             )}
           </div>
 
@@ -116,15 +126,17 @@ const AdminNotificationSender: React.FC = () => {
               {...form.register('url')}
               className="tw-bg-input tw-text-foreground"
               disabled={isLoading}
+              aria-invalid={form.formState.errors.url ? "true" : "false"}
+              aria-describedby={form.formState.errors.url ? "url-error" : undefined}
             />
             {form.formState.errors.url && (
-              <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.url.message}</p>
+              <p id="url-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.url.message}</p>
             )}
           </div>
 
           <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isLoading}>
-            {isLoading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
-            <Send className="tw-mr-2 tw-h-4 tw-w-4" /> Create Alert & Queue Notifications
+            {isLoading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
+            <Send className="tw-mr-2 tw-h-4 tw-w-4" aria-hidden="true" /> Create Alert & Queue Notifications
           </Button>
         </form>
       </CardContent>

@@ -1,10 +1,13 @@
+"use client";
+
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client'; // Import supabase directly
+import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { useLocation } from 'react-router-dom';
-import { SUPABASE_API_TIMEOUT } from '@/config'; // Import SUPABASE_API_TIMEOUT
+import { SUPABASE_API_TIMEOUT } from '@/config';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 interface UseAdminResult {
   isAdmin: boolean;
@@ -27,7 +30,6 @@ export function useIsAdmin(): UseAdminResult {
   }, []);
 
   const isOnAuthPage = location.pathname === '/auth' || location.pathname === '/auth/login' || location.pathname === '/auth/signup';
-  // The query is enabled only if a user is present, auth is ready, auth is NOT loading, and not on an auth page.
   const queryEnabled = !!user && authReady && !authLoading && !isOnAuthPage;
   
   const { data: roleData, isLoading: isRoleQueryLoading, isError: isRoleQueryError, error: roleQueryError } = useQuery<{ role: string } | null, Error>({
@@ -37,11 +39,13 @@ export function useIsAdmin(): UseAdminResult {
         return null;
       }
       
-      // ProfileService.ensureProfileExists is now handled by AuthContext, so we can directly query.
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-        console.error(`useIsAdmin: Role fetch for ${user.id} timed out after ${SUPABASE_API_TIMEOUT}ms.`);
+        if (import.meta.env.DEV) {
+          console.error(`useIsAdmin: Role fetch for ${user.id} timed out after ${SUPABASE_API_TIMEOUT}ms.`);
+        }
+        AnalyticsService.trackEvent({ name: 'fetch_admin_role_timeout', properties: { userId: user.id } });
       }, SUPABASE_API_TIMEOUT);
 
       try {
@@ -53,17 +57,20 @@ export function useIsAdmin(): UseAdminResult {
           .single();
 
         if (supabaseError) {
-          if (supabaseError.code === 'PGRST116') { // No rows found
+          if (supabaseError.code === 'PGRST116') {
+            AnalyticsService.trackEvent({ name: 'fetch_admin_role_profile_not_found', properties: { userId: user.id } });
             return null;
           }
           throw supabaseError;
         }
+        AnalyticsService.trackEvent({ name: 'admin_role_fetched', properties: { userId: user.id, role: data.role } });
         return data as { role: string };
       } catch (err: any) {
         if (err.name === 'AbortError') {
           throw new Error('Fetching user role timed out.');
         }
-        throw err; // Re-throw other errors
+        AnalyticsService.trackEvent({ name: 'fetch_admin_role_failed', properties: { userId: user.id, error: err.message } });
+        throw err;
       } finally {
         clearTimeout(timeoutId);
       }
@@ -77,7 +84,6 @@ export function useIsAdmin(): UseAdminResult {
   useEffect(() => {
     if (!isMountedRef.current) return;
 
-    // If on an auth page, or auth is not ready/still loading, ensure isAdmin is false and no error.
     if (isOnAuthPage || !authReady || authLoading) {
       if (isAdmin || error) {
         setIsAdmin(false);
@@ -86,7 +92,6 @@ export function useIsAdmin(): UseAdminResult {
       return;
     }
 
-    // If query is not enabled for other reasons (e.g., no user after initial auth check), also reset.
     if (!queryEnabled) {
       if (isAdmin || error) {
         setIsAdmin(false);
@@ -95,17 +100,15 @@ export function useIsAdmin(): UseAdminResult {
       return;
     }
 
-    // Handle query errors
     if (isRoleQueryError) {
       setError(handleError(roleQueryError, 'Failed to load admin role.'));
       setIsAdmin(false);
       return;
     }
 
-    // Once role query is not loading and no error, determine admin status
     if (!isRoleQueryLoading) {
       const newIsAdminStatus = roleData?.role === 'admin';
-      if (newIsAdminStatus !== isAdmin) { // Only update if status has changed
+      if (newIsAdminStatus !== isAdmin) {
         setIsAdmin(newIsAdminStatus);
       }
       setError(null);

@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,9 +18,8 @@ import { Loader2, RotateCcw, Eye } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import LayoutEditor, { LayoutComponent } from './LayoutEditor';
 import { SettingsService, AppSettings } from '@/services/SettingsService';
-// Removed hexToHsl import as it's no longer used directly here
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
-// Extend schema with layout
 const settingsSchema = z.object({
   primary_color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid hex color'),
   secondary_color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid hex color'),
@@ -68,13 +69,14 @@ const AppSettingsForm: React.FC = () => {
           layout: currentSettings.layout || [],
         };
         form.reset(formValues);
-        // Removed direct style application here
       }
 
       const history = await SettingsService.fetchSettingsHistory();
       setVersionHistory(history || []);
+      AnalyticsService.trackEvent({ name: 'app_settings_form_loaded', properties: { historyCount: history?.length || 0 } });
     } catch (err) {
       handleError(err, 'Failed to load app settings or history.');
+      AnalyticsService.trackEvent({ name: 'app_settings_form_load_failed', properties: { error: (err as Error).message } });
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +92,7 @@ const AppSettingsForm: React.FC = () => {
     return (
       <Card className="tw-bg-card tw-border-border tw-shadow-lg">
         <CardContent className="tw-py-8 tw-text-center">
-          <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary tw-mx-auto" />
+          <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary tw-mx-auto" aria-label="Loading application settings" />
           <p className="tw-mt-2 tw-text-muted-foreground">Loading settings...</p>
         </CardContent>
       </Card>
@@ -128,16 +130,15 @@ const AppSettingsForm: React.FC = () => {
       if (!historySuccess) console.warn('Failed to save settings to history.');
 
       toast.success('Settings saved successfully!', { id: 'save-settings' });
-      // Removed direct style application here. useAppSettings will handle it.
-      fetchSettingsAndHistory(); // Re-fetch to update history and trigger useAppSettings
+      AnalyticsService.trackEvent({ name: 'app_settings_saved', properties: { primaryColor: values.primary_color, fontFamily: values.font_family } });
+      fetchSettingsAndHistory();
     } catch (err) {
       handleError(err, 'Failed to save settings.');
+      AnalyticsService.trackEvent({ name: 'app_settings_save_failed', properties: { error: (err as Error).message } });
     } finally {
       setIsSaving(false);
     }
   };
-
-  // Removed applyStyles function as it's no longer needed here
 
   const handleRevert = async (historyId: string) => {
     setIsSaving(true);
@@ -159,11 +160,12 @@ const AppSettingsForm: React.FC = () => {
         layout: historyEntry.settings.layout || [],
       };
       form.reset(formValues);
-      // Removed direct style application here. useAppSettings will handle it.
       toast.success('Reverted to previous settings!', { id: 'revert-settings' });
-      fetchSettingsAndHistory(); // Re-fetch to update history and trigger useAppSettings
+      AnalyticsService.trackEvent({ name: 'app_settings_reverted', properties: { historyId } });
+      fetchSettingsAndHistory();
     } catch (err) {
       handleError(err, 'Failed to revert settings.');
+      AnalyticsService.trackEvent({ name: 'app_settings_revert_failed', properties: { historyId, error: (err as Error).message } });
     } finally {
       setIsSaving(false);
     }
@@ -180,11 +182,11 @@ const AppSettingsForm: React.FC = () => {
       <CardContent>
         <Tabs defaultValue="theme">
           <TabsList className="tw-grid tw-w-full tw-grid-cols-5">
-            <TabsTrigger value="theme">Theme</TabsTrigger>
-            <TabsTrigger value="branding">Branding</TabsTrigger>
-            <TabsTrigger value="custom">Custom CSS</TabsTrigger>
-            <TabsTrigger value="layout">Layout</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
+            <TabsTrigger value="theme" aria-label="Theme settings tab">Theme</TabsTrigger>
+            <TabsTrigger value="branding" aria-label="Branding settings tab">Branding</TabsTrigger>
+            <TabsTrigger value="custom" aria-label="Custom CSS tab">Custom CSS</TabsTrigger>
+            <TabsTrigger value="layout" aria-label="Layout editor tab">Layout</TabsTrigger>
+            <TabsTrigger value="history" aria-label="Version history tab">History</TabsTrigger>
           </TabsList>
           
           <TabsContent value="theme" className="tw-space-y-6 tw-mt-4">
@@ -195,6 +197,7 @@ const AppSettingsForm: React.FC = () => {
                 onChange={(color: { hex: string }) => form.setValue('primary_color', color.hex)}
                 disableAlpha
                 className="tw-mt-2"
+                aria-label="Primary color picker"
               />
               {form.formState.errors.primary_color && (
                 <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.primary_color.message}</p>
@@ -207,6 +210,7 @@ const AppSettingsForm: React.FC = () => {
                 onChange={(color: { hex: string }) => form.setValue('secondary_color', color.hex)}
                 disableAlpha
                 className="tw-mt-2"
+                aria-label="Secondary color picker"
               />
               {form.formState.errors.secondary_color && (
                 <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.secondary_color.message}</p>
@@ -219,9 +223,11 @@ const AppSettingsForm: React.FC = () => {
                 placeholder="e.g., Inter, sans-serif"
                 {...form.register('font_family')}
                 className="tw-bg-input tw-text-foreground"
+                aria-invalid={form.formState.errors.font_family ? "true" : "false"}
+                aria-describedby={form.formState.errors.font_family ? "font-family-error" : undefined}
               />
               {form.formState.errors.font_family && (
-                <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.font_family.message}</p>
+                <p id="font-family-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.font_family.message}</p>
               )}
             </div>
           </TabsContent>
@@ -234,9 +240,11 @@ const AppSettingsForm: React.FC = () => {
                 placeholder="https://example.com/logo.png"
                 {...form.register('logo_url')}
                 className="tw-bg-input tw-text-foreground"
+                aria-invalid={form.formState.errors.logo_url ? "true" : "false"}
+                aria-describedby={form.formState.errors.logo_url ? "logo-url-error" : undefined}
               />
               {form.formState.errors.logo_url && (
-                <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.logo_url.message}</p>
+                <p id="logo-url-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.logo_url.message}</p>
               )}
             </div>
             <div>
@@ -246,9 +254,11 @@ const AppSettingsForm: React.FC = () => {
                 placeholder="https://example.com/favicon.ico"
                 {...form.register('favicon_url')}
                 className="tw-bg-input tw-text-foreground"
+                aria-invalid={form.formState.errors.favicon_url ? "true" : "false"}
+                aria-describedby={form.formState.errors.favicon_url ? "favicon-url-error" : undefined}
               />
               {form.formState.errors.favicon_url && (
-                <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.favicon_url.message}</p>
+                <p id="favicon-url-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.favicon_url.message}</p>
               )}
             </div>
           </TabsContent>
@@ -261,9 +271,11 @@ const AppSettingsForm: React.FC = () => {
                 placeholder="body { background-color: #f0f0f0; }"
                 {...form.register('custom_css')}
                 className="tw-min-h-[150px] tw-bg-input tw-text-foreground"
+                aria-invalid={form.formState.errors.custom_css ? "true" : "false"}
+                aria-describedby={form.formState.errors.custom_css ? "custom-css-error" : undefined}
               />
               {form.formState.errors.custom_css && (
-                <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.custom_css.message}</p>
+                <p id="custom-css-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.custom_css.message}</p>
               )}
             </div>
           </TabsContent>
@@ -279,12 +291,12 @@ const AppSettingsForm: React.FC = () => {
             {versionHistory.length === 0 ? (
               <p className="tw-text-muted-foreground">No version history available.</p>
             ) : (
-              <div className="tw-space-y-2">
+              <div className="tw-space-y-2" role="list" aria-label="Settings version history">
                 {versionHistory.map((entry) => (
-                  <div key={entry.id} className="tw-flex tw-justify-between tw-items-center tw-py-2 tw-px-3 tw-bg-muted/30 tw-rounded-md tw-border tw-border-border">
+                  <div key={entry.id} className="tw-flex tw-justify-between tw-items-center tw-py-2 tw-px-3 tw-bg-muted/30 tw-rounded-md tw-border tw-border-border" role="listitem">
                     <span className="tw-text-sm tw-text-foreground">{new Date(entry.created_at).toLocaleString()}</span>
-                    <Button onClick={() => handleRevert(entry.id)} variant="outline" size="sm" disabled={isSaving}>
-                      <RotateCcw className="tw-mr-2 tw-h-4 tw-w-4" /> Revert
+                    <Button onClick={() => handleRevert(entry.id)} variant="outline" size="sm" disabled={isSaving} aria-label={`Revert to settings from ${new Date(entry.created_at).toLocaleString()}`}>
+                      <RotateCcw className="tw-mr-2 tw-h-4 tw-w-4" aria-hidden="true" /> Revert
                     </Button>
                   </div>
                 ))}
@@ -293,11 +305,11 @@ const AppSettingsForm: React.FC = () => {
           </TabsContent>
         </Tabs>
         <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-6">
-          <Button onClick={() => setPreviewOpen(true)} variant="outline" disabled={isSaving}>
-            <Eye className="tw-mr-2 tw-h-4 tw-w-4" /> Preview Changes
+          <Button onClick={() => setPreviewOpen(true)} variant="outline" disabled={isSaving} aria-label="Preview changes">
+            <Eye className="tw-mr-2 tw-h-4 tw-w-4" aria-hidden="true" /> Preview Changes
           </Button>
-          <Button onClick={form.handleSubmit(onSubmit)} disabled={isSaving}>
-            {isSaving && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
+          <Button onClick={form.handleSubmit(onSubmit)} disabled={isSaving} aria-label="Save settings">
+            {isSaving && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
             Save Settings
           </Button>
         </div>
@@ -330,9 +342,9 @@ const AppSettingsForm: React.FC = () => {
                 <span className="tw-text-sm tw-text-muted-foreground">{form.watch('primary_color')}</span>
               </div>
               <div className="tw-flex tw-items-center tw-gap-2">
-                <span className="tw-text-sm">Secondary Color:</span>
+                <span className="tw-sm">Secondary Color:</span>
                 <div className="tw-h-6 tw-w-6 tw-rounded-full tw-border" style={{ backgroundColor: form.watch('secondary_color') }}></div>
-                <span className="tw-text-sm tw-text-muted-foreground">{form.watch('secondary_color')}</span>
+                <span className="tw-sm tw-text-muted-foreground">{form.watch('secondary_color')}</span>
               </div>
             </div>
             {form.watch('logo_url') && (

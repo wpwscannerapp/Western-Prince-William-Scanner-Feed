@@ -1,7 +1,14 @@
+"use client";
+
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { ProfileService } from '@/services/ProfileService';
 import { Session } from '@supabase/supabase-js';
+
+/**
+ * @file This file contains functions for testing Supabase session and profile queries.
+ * It is intended for development and debugging purposes only and should not be used in production.
+ */
 
 export async function testGetSession() {
   let timeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
@@ -47,7 +54,7 @@ export async function testProfileQuery(session: Session | null) {
   }
 
   try {
-    const profile = await ProfileService.fetchProfile(session.user.id); // Removed session parameter
+    const profile = await ProfileService.fetchProfile(session.user.id);
     if (profile) {
       handleError(null, `Profile fetched successfully for ${profile.username || profile.first_name || session.user.email}. Role: ${profile.role}`, { duration: 5000 });
     } else {

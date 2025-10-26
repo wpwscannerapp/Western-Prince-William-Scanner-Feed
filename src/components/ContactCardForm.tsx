@@ -1,15 +1,17 @@
+"use client";
+
 import { useFormContext, FieldPath, FieldValues } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
-import { ContactCard } from '@/services/SettingsService'; // Import the ContactCard interface
+import { ContactCard } from '@/services/SettingsService';
 
 interface ContactCardFormProps<TFieldValues extends FieldValues = FieldValues> {
   index: number;
   remove: (index: number) => void;
   isLoading: boolean;
-  fieldPrefix: FieldPath<TFieldValues>; // Prefix for field names, e.g., 'contact_cards.0'
+  fieldPrefix: FieldPath<TFieldValues>;
 }
 
 const ContactCardForm = <TFieldValues extends FieldValues = FieldValues>({
@@ -29,7 +31,7 @@ const ContactCardForm = <TFieldValues extends FieldValues = FieldValues>({
   const phoneError = errors[getFieldName('phone')]?.message as string | undefined;
 
   return (
-    <div className="tw-p-4 tw-border tw-rounded-md tw-bg-muted/20 tw-space-y-3">
+    <div className="tw-p-4 tw-border tw-rounded-md tw-bg-muted/20 tw-space-y-3" aria-labelledby={`contact-card-title-${index}`}>
       <div className="tw-flex tw-justify-end">
         <Button
           type="button"
@@ -39,7 +41,7 @@ const ContactCardForm = <TFieldValues extends FieldValues = FieldValues>({
           disabled={isLoading}
           aria-label={`Remove contact card ${index + 1}`}
         >
-          <Trash2 className="tw-h-4 tw-w-4" />
+          <Trash2 className="tw-h-4 tw-w-4" aria-hidden="true" />
         </Button>
       </div>
       <div>
@@ -50,8 +52,10 @@ const ContactCardForm = <TFieldValues extends FieldValues = FieldValues>({
           {...register(getFieldName('name'))}
           className="tw-input"
           disabled={isLoading}
+          aria-invalid={nameError ? "true" : "false"}
+          aria-describedby={nameError ? `name-error-${index}` : undefined}
         />
-        {nameError && <p className="tw-text-destructive tw-text-sm tw-mt-1">{nameError}</p>}
+        {nameError && <p id={`name-error-${index}`} className="tw-text-destructive tw-text-sm tw-mt-1">{nameError}</p>}
       </div>
       <div>
         <Label htmlFor={getFieldName('title')} className="tw-mb-1 tw-block">Title</Label>
@@ -61,8 +65,10 @@ const ContactCardForm = <TFieldValues extends FieldValues = FieldValues>({
           {...register(getFieldName('title'))}
           className="tw-input"
           disabled={isLoading}
+          aria-invalid={titleError ? "true" : "false"}
+          aria-describedby={titleError ? `title-error-${index}` : undefined}
         />
-        {titleError && <p className="tw-text-destructive tw-text-sm tw-mt-1">{titleError}</p>}
+        {titleError && <p id={`title-error-${index}`} className="tw-text-destructive tw-text-sm tw-mt-1">{titleError}</p>}
       </div>
       <div>
         <Label htmlFor={getFieldName('email')} className="tw-mb-1 tw-block">Email</Label>
@@ -73,8 +79,10 @@ const ContactCardForm = <TFieldValues extends FieldValues = FieldValues>({
           {...register(getFieldName('email'))}
           className="tw-input"
           disabled={isLoading}
+          aria-invalid={emailError ? "true" : "false"}
+          aria-describedby={emailError ? `email-error-${index}` : undefined}
         />
-        {emailError && <p className="tw-text-destructive tw-text-sm tw-mt-1">{emailError}</p>}
+        {emailError && <p id={`email-error-${index}`} className="tw-text-destructive tw-text-sm tw-mt-1">{emailError}</p>}
       </div>
       <div>
         <Label htmlFor={getFieldName('phone')} className="tw-mb-1 tw-block">Phone Number</Label>
@@ -84,8 +92,10 @@ const ContactCardForm = <TFieldValues extends FieldValues = FieldValues>({
           {...register(getFieldName('phone'))}
           className="tw-input"
           disabled={isLoading}
+          aria-invalid={phoneError ? "true" : "false"}
+          aria-describedby={phoneError ? `phone-error-${index}` : undefined}
         />
-        {phoneError && <p className="tw-text-destructive tw-text-sm tw-mt-1">{phoneError}</p>}
+        {phoneError && <p id={`phone-error-${index}`} className="tw-text-destructive tw-text-sm tw-mt-1">{phoneError}</p>}
       </div>
     </div>
   );

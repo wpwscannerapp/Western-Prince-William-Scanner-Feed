@@ -1,6 +1,9 @@
+"use client";
+
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
+import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsService
 
 const logSupabaseError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
@@ -19,17 +22,22 @@ export const LikeService = {
 
       if (error) {
         if (error.code === '23505') { // Unique constraint violation, means already liked
+          AnalyticsService.trackEvent({ name: 'like_already_exists', properties: { incidentId, userId } });
           return true;
         }
         logSupabaseError('addLike', error);
+        AnalyticsService.trackEvent({ name: 'add_like_failed', properties: { incidentId, userId, error: error.message } });
         return false;
       }
+      AnalyticsService.trackEvent({ name: 'like_added', properties: { incidentId, userId } });
       return true;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Adding like timed out.');
+        AnalyticsService.trackEvent({ name: 'add_like_failed', properties: { incidentId, userId, error: 'timeout' } });
       } else {
         logSupabaseError('addLike', err);
+        AnalyticsService.trackEvent({ name: 'add_like_failed', properties: { incidentId, userId, error: err.message } });
       }
       return false;
     } finally {
@@ -51,14 +59,18 @@ export const LikeService = {
 
       if (error) {
         logSupabaseError('removeLike', error);
+        AnalyticsService.trackEvent({ name: 'remove_like_failed', properties: { incidentId, userId, error: error.message } });
         return false;
       }
+      AnalyticsService.trackEvent({ name: 'like_removed', properties: { incidentId, userId } });
       return true;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Removing like timed out.');
+        AnalyticsService.trackEvent({ name: 'remove_like_failed', properties: { incidentId, userId, error: 'timeout' } });
       } else {
         logSupabaseError('removeLike', err);
+        AnalyticsService.trackEvent({ name: 'remove_like_failed', properties: { incidentId, userId, error: err.message } });
       }
       return false;
     } finally {

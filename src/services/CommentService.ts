@@ -1,6 +1,9 @@
+"use client";
+
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
+import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsService
 
 export interface Comment {
   id: string;
@@ -40,8 +43,10 @@ export const CommentService = {
 
       if (error) {
         logSupabaseError('addComment', error);
+        AnalyticsService.trackEvent({ name: 'add_comment_failed', properties: { incidentId, userId, error: error.message } });
         return null;
       }
+      AnalyticsService.trackEvent({ name: 'comment_added', properties: { incidentId, userId } });
       const profileData = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
       return {
         id: data.id,
@@ -56,8 +61,10 @@ export const CommentService = {
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Adding comment timed out.');
+        AnalyticsService.trackEvent({ name: 'add_comment_failed', properties: { incidentId, userId, error: 'timeout' } });
       } else {
         logSupabaseError('addComment', err);
+        AnalyticsService.trackEvent({ name: 'add_comment_failed', properties: { incidentId, userId, error: err.message } });
       }
       return null;
     } finally {
@@ -137,8 +144,10 @@ export const CommentService = {
 
       if (error) {
         logSupabaseError('updateComment', error);
+        AnalyticsService.trackEvent({ name: 'update_comment_failed', properties: { commentId, error: error.message } });
         return null;
       }
+      AnalyticsService.trackEvent({ name: 'comment_updated', properties: { commentId } });
       const profileData = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
       return {
         id: data.id,
@@ -153,8 +162,10 @@ export const CommentService = {
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Updating comment timed out.');
+        AnalyticsService.trackEvent({ name: 'update_comment_failed', properties: { commentId, error: 'timeout' } });
       } else {
         logSupabaseError('updateComment', err);
+        AnalyticsService.trackEvent({ name: 'update_comment_failed', properties: { commentId, error: err.message } });
       }
       return null;
     } finally {
@@ -175,14 +186,18 @@ export const CommentService = {
 
       if (error) {
         logSupabaseError('deleteComment', error);
+        AnalyticsService.trackEvent({ name: 'delete_comment_failed', properties: { commentId, error: error.message } });
         return false;
       }
+      AnalyticsService.trackEvent({ name: 'comment_deleted', properties: { commentId } });
       return true;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Deleting comment timed out.');
+        AnalyticsService.trackEvent({ name: 'delete_comment_failed', properties: { commentId, error: 'timeout' } });
       } else {
         logSupabaseError('deleteComment', err);
+        AnalyticsService.trackEvent({ name: 'delete_comment_failed', properties: { commentId, error: err.message } });
       }
       return false;
     } finally {

@@ -1,6 +1,9 @@
+"use client";
+
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from '@/components/ui/button';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 const NotFound = () => {
   const location = useLocation();
@@ -14,6 +17,7 @@ const NotFound = () => {
         location.pathname,
       );
     }
+    AnalyticsService.trackEvent({ name: 'page_not_found', properties: { path: location.pathname } });
   }, [location.pathname]);
 
   return (

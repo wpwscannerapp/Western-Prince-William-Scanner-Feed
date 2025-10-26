@@ -1,8 +1,11 @@
+"use client";
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Settings, BellRing, Menu, Phone, Siren } from 'lucide-react'; // Removed Newspaper icon
+import { LayoutDashboard, Settings, BellRing, Menu, Phone, Siren } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -13,7 +16,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, onTabChange }) =
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const navItems = [
-    { name: 'Incidents', icon: Siren, tab: 'incidents' }, // Unified Incidents tab
+    { name: 'Incidents', icon: Siren, tab: 'incidents' },
     { name: 'Analytics', icon: LayoutDashboard, tab: 'analytics' },
     { name: 'Settings', icon: Settings, tab: 'settings' },
     { name: 'Notifications', icon: BellRing, tab: 'notifications' },
@@ -22,13 +25,14 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, onTabChange }) =
 
   const handleTabClick = (tab: string) => {
     onTabChange(tab);
-    setIsSheetOpen(false); // Close the sheet on tab change
+    setIsSheetOpen(false);
+    AnalyticsService.trackEvent({ name: 'admin_sidebar_tab_clicked', properties: { tabName: tab } });
   };
 
   const sidebarContent = (
     <div className="tw-flex tw-flex-col tw-h-full tw-p-4">
       <h2 className="tw-text-xl tw-font-bold tw-mb-6 tw-text-sidebar-foreground">Admin Menu</h2>
-      <nav className="tw-space-y-2 tw-flex-1">
+      <nav className="tw-space-y-2 tw-flex-1" aria-label="Admin navigation">
         {navItems.map((item) => (
           <Button
             key={item.tab}
@@ -40,7 +44,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, onTabChange }) =
             )}
             aria-label={`Go to ${item.name} section`}
           >
-            <item.icon className="tw-h-5 tw-w-5 tw-mr-3" />
+            <item.icon className="tw-h-5 tw-w-5 tw-mr-3" aria-hidden="true" />
             {item.name}
           </Button>
         ))}
@@ -50,12 +54,11 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, onTabChange }) =
 
   return (
     <>
-      {/* Mobile Sidebar (Sheet) */}
       <div className="md:tw-hidden tw-p-4 tw-border-b tw-border-border tw-bg-card">
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="tw-text-muted-foreground">
-              <Menu className="tw-h-6 tw-w-6" />
+            <Button variant="outline" size="icon" className="tw-text-muted-foreground" aria-label="Open admin menu">
+              <Menu className="tw-h-6 tw-w-6" aria-hidden="true" />
               <span className="tw-sr-only">Open admin menu</span>
             </Button>
           </SheetTrigger>
@@ -65,7 +68,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, onTabChange }) =
         </Sheet>
       </div>
 
-      {/* Desktop Sidebar */}
       <aside className="tw-hidden md:tw-flex tw-w-64 tw-bg-sidebar tw-shadow-lg tw-flex-col tw-border-r tw-border-sidebar-border">
         {sidebarContent}
       </aside>

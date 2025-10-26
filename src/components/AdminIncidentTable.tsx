@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -13,8 +15,9 @@ import { Incident, IncidentService } from '@/services/IncidentService';
 import { format } from 'date-fns';
 import { Edit, Trash2, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'; // Import DialogFooter
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import IncidentForm from './IncidentForm';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 interface AdminIncidentTableProps {
   onIncidentUpdated: () => void;
@@ -35,8 +38,10 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
     try {
       const fetchedIncidents = await IncidentService.fetchIncidents(0);
       setIncidents(fetchedIncidents);
+      AnalyticsService.trackEvent({ name: 'admin_incident_table_loaded', properties: { count: fetchedIncidents.length } });
     } catch (err) {
       setError('Failed to load incidents. Please try again.');
+      AnalyticsService.trackEvent({ name: 'admin_incident_table_load_failed', properties: { error: (err as Error).message } });
     } finally {
       setLoading(false);
     }
@@ -55,11 +60,14 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
           toast.success('Incident deleted successfully!', { id: 'delete-incident' });
           fetchIncidents();
           onIncidentUpdated();
+          AnalyticsService.trackEvent({ name: 'admin_incident_deleted', properties: { incidentId } });
         } else {
           toast.error('Failed to delete incident.', { id: 'delete-incident' });
+          AnalyticsService.trackEvent({ name: 'admin_incident_delete_failed', properties: { incidentId } });
         }
       } catch (err) {
         toast.error('An error occurred while deleting the incident.', { id: 'delete-incident' });
+        AnalyticsService.trackEvent({ name: 'admin_incident_delete_error', properties: { incidentId, error: (err as Error).message } });
       }
     }
   };
@@ -67,6 +75,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
   const handleEdit = (incident: Incident) => {
     setEditingIncident(incident);
     setIsEditDialogOpen(true);
+    AnalyticsService.trackEvent({ name: 'admin_incident_edit_opened', properties: { incidentId: incident.id } });
   };
 
   const handleUpdateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => {
@@ -90,13 +99,16 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
         setEditingIncident(null);
         fetchIncidents();
         onIncidentUpdated();
+        AnalyticsService.trackEvent({ name: 'admin_incident_updated', properties: { incidentId: updatedIncident.id } });
         return true;
       } else {
         toast.error('Failed to update incident.', { id: 'update-incident' });
+        AnalyticsService.trackEvent({ name: 'admin_incident_update_failed', properties: { incidentId: editingIncident.id } });
         return false;
       }
     } catch (err) {
       toast.error('An error occurred while updating the incident.', { id: 'update-incident' });
+      AnalyticsService.trackEvent({ name: 'admin_incident_update_error', properties: { incidentId: editingIncident.id, error: (err as Error).message } });
       return false;
     } finally {
       setIsSubmitting(false);
@@ -113,6 +125,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
   const handleRetry = () => {
     setError(null);
     fetchIncidents();
+    AnalyticsService.trackEvent({ name: 'admin_incident_table_retry_fetch' });
   };
 
   if (error) {
@@ -127,18 +140,19 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
   return (
     <div className="tw-space-y-4">
       <div className="tw-relative tw-w-full">
-        <Search className="tw-absolute tw-left-3 tw-top-1/2 tw-transform -tw-translate-y-1/2 tw-h-4 tw-w-4 tw-text-muted-foreground" />
+        <Search className="tw-absolute tw-left-3 tw-top-1/2 tw-transform -tw-translate-y-1/2 tw-h-4 tw-w-4 tw-text-muted-foreground" aria-hidden="true" />
         <Input
           placeholder="Search incidents..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="tw-pl-10 tw-w-full"
+          aria-label="Search incidents"
         />
       </div>
 
       {loading ? (
         <div className="tw-flex tw-justify-center tw-items-center tw-py-8">
-          <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+          <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" aria-label="Loading incidents" />
         </div>
       ) : (
         <div className="tw-border tw-rounded-md tw-overflow-x-auto">
@@ -175,11 +189,12 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
                       {incident.image_url ? (
                         <img 
                           src={incident.image_url} 
-                          alt="Incident" 
+                          alt={`Incident image for ${incident.title}`}
                           className="tw-h-10 tw-w-10 tw-object-cover tw-rounded-md" 
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.parentElement!.innerHTML = '<span class="tw-text-muted-foreground">Image</span>';
+                            AnalyticsService.trackEvent({ name: 'admin_incident_image_load_failed', properties: { incidentId: incident.id, imageUrl: incident.image_url } });
                           }}
                         />
                       ) : (
@@ -193,8 +208,9 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
                           size="icon" 
                           onClick={() => handleEdit(incident)}
                           className="tw-h-8 tw-w-8"
+                          aria-label={`Edit incident ${incident.title}`}
                         >
-                          <Edit className="tw-h-4 tw-w-4" />
+                          <Edit className="tw-h-4 tw-w-4" aria-hidden="true" />
                           <span className="tw-sr-only">Edit</span>
                         </Button>
                         <Button 
@@ -202,8 +218,9 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
                           size="icon" 
                           onClick={() => handleDelete(incident.id, incident.image_url)}
                           className="tw-h-8 tw-w-8"
+                          aria-label={`Delete incident ${incident.title}`}
                         >
-                          <Trash2 className="tw-h-4 tw-w-4 tw-text-destructive" />
+                          <Trash2 className="tw-h-4 tw-w-4 tw-text-destructive" aria-hidden="true" />
                           <span className="tw-sr-only">Delete</span>
                         </Button>
                       </div>
@@ -223,7 +240,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
               <DialogTitle>Edit Incident</DialogTitle>
             </DialogHeader>
             <IncidentForm
-              formId="edit-incident-form" // Assign a unique ID to the form
+              formId="edit-incident-form"
               onSubmit={handleUpdateIncident}
               isLoading={isSubmitting}
               initialIncident={{
@@ -238,11 +255,11 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
             <DialogFooter>
               <Button 
                 type="submit" 
-                form="edit-incident-form" // Link button to the form by ID
+                form="edit-incident-form"
                 disabled={isSubmitting} 
                 className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground"
               >
-                {isSubmitting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
+                {isSubmitting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
                 Update Incident
               </Button>
             </DialogFooter>

@@ -1,8 +1,10 @@
+"use client";
+
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
+import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsService
 
-// Define the structure of a native PushSubscription object
 export interface PushSubscription {
   endpoint: string;
   expirationTime: number | null;
@@ -14,12 +16,12 @@ export interface PushSubscription {
 
 export interface UserNotificationSettings {
   user_id: string;
-  push_subscription: PushSubscription | null; // Changed from onesignal_player_id
+  push_subscription: PushSubscription | null;
   enabled: boolean;
-  receive_all_alerts: boolean; // New: User wants to receive all alerts
-  preferred_start_time: string | null; // New: e.g., '09:00:00'
-  preferred_end_time: string | null; // New: e.g., '17:00:00'
-  preferred_days: string[]; // New: e.g., ['Monday', 'Wednesday', 'Friday']
+  receive_all_alerts: boolean;
+  preferred_start_time: string | null;
+  preferred_end_time: string | null;
+  preferred_days: string[];
   updated_at: string;
 }
 
@@ -35,6 +37,9 @@ export interface Alert {
 
 const logSupabaseError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
+  if (import.meta.env.DEV) {
+    console.error(`Supabase Error in ${functionName}:`, error);
+  }
 };
 
 export const NotificationService = {
@@ -43,19 +48,23 @@ export const NotificationService = {
 
     if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
       handleError(null, 'Invalid VAPID Public Key configuration. Push notifications will not work.');
+      AnalyticsService.trackEvent({ name: 'web_push_init_failed', properties: { reason: 'invalid_vapid_key' } });
       return false;
     }
 
     if (!('serviceWorker' in navigator)) {
       handleError(null, 'Push notifications are not supported by your browser.');
+      AnalyticsService.trackEvent({ name: 'web_push_init_failed', properties: { reason: 'service_worker_not_supported' } });
       return false;
     }
 
     try {
       await navigator.serviceWorker.register('/service-worker.js');
+      AnalyticsService.trackEvent({ name: 'web_push_service_worker_registered' });
       return true;
     } catch (err: any) {
       handleError(err, 'Failed to register service worker for push notifications.');
+      AnalyticsService.trackEvent({ name: 'web_push_service_worker_registration_failed', properties: { error: err.message } });
       return false;
     }
   },
@@ -65,11 +74,13 @@ export const NotificationService = {
 
     if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
       handleError(null, 'VAPID Public Key is missing or invalid. Cannot subscribe.');
+      AnalyticsService.trackEvent({ name: 'push_subscribe_failed', properties: { reason: 'invalid_vapid_key' } });
       return null;
     }
 
     if (Notification.permission !== 'granted') {
       handleError(null, 'Notification permission not granted. Please allow notifications to subscribe.');
+      AnalyticsService.trackEvent({ name: 'push_subscribe_failed', properties: { reason: 'permission_not_granted' } });
       return null;
     }
 
@@ -83,16 +94,18 @@ export const NotificationService = {
           applicationServerKey: NotificationService.urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
         });
       }
-
+      AnalyticsService.trackEvent({ name: 'push_subscribed', properties: { endpoint: subscription.endpoint } });
       return subscription.toJSON() as PushSubscription;
     } catch (err: any) {
       handleError(err, 'Failed to subscribe to push notifications. Please ensure your VAPID keys are correct and try again.');
+      AnalyticsService.trackEvent({ name: 'push_subscribe_unexpected_error', properties: { error: err.message } });
       return null;
     }
   },
 
   async unsubscribeWebPush(userId: string): Promise<boolean> {
     if (!('serviceWorker' in navigator)) {
+      AnalyticsService.trackEvent({ name: 'push_unsubscribe_skipped', properties: { reason: 'service_worker_not_supported' } });
       return false;
     }
 
@@ -106,16 +119,20 @@ export const NotificationService = {
           push_subscription: null,
           enabled: false,
         });
+        AnalyticsService.trackEvent({ name: 'push_unsubscribed', properties: { userId } });
         return true;
       } else {
+        // If no subscription found, but DB still thinks there is one, update DB
         await NotificationService.updateUserNotificationSettings(userId, {
           push_subscription: null,
           enabled: false,
         });
+        AnalyticsService.trackEvent({ name: 'push_unsubscribed_no_active_sub', properties: { userId } });
         return true;
       }
     } catch (err: any) {
       handleError(err, 'Failed to unsubscribe from push notifications.');
+      AnalyticsService.trackEvent({ name: 'push_unsubscribe_failed', properties: { userId, error: err.message } });
       return false;
     }
   },
@@ -134,17 +151,23 @@ export const NotificationService = {
 
       if (error) {
         if (error.code === 'PGRST116') {
+          AnalyticsService.trackEvent({ name: 'fetch_notification_settings_not_found', properties: { userId } });
           return null;
         }
         logSupabaseError('getUserNotificationSettings', error);
+        AnalyticsService.trackEvent({ name: 'fetch_notification_settings_failed', properties: { userId, error: error.message } });
         return null;
       }
-      return (data && data.length > 0) ? data[0] as UserNotificationSettings : null;
+      const settings = (data && data.length > 0) ? data[0] as UserNotificationSettings : null;
+      AnalyticsService.trackEvent({ name: 'notification_settings_fetched', properties: { userId, enabled: settings?.enabled } });
+      return settings;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching notification settings timed out.');
+        AnalyticsService.trackEvent({ name: 'fetch_notification_settings_timeout', properties: { userId } });
       } else {
         logSupabaseError('getUserNotificationSettings', err);
+        AnalyticsService.trackEvent({ name: 'fetch_notification_settings_unexpected_error', properties: { userId, error: err.message } });
       }
       return null;
     } finally {
@@ -174,14 +197,18 @@ export const NotificationService = {
 
       if (error) {
         logSupabaseError('updateUserNotificationSettings', error);
+        AnalyticsService.trackEvent({ name: 'update_notification_settings_failed', properties: { userId, updates: Object.keys(updates), error: error.message } });
         return null;
       }
+      AnalyticsService.trackEvent({ name: 'notification_settings_updated', properties: { userId, enabled: data?.enabled } });
       return data as UserNotificationSettings;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Updating notification settings timed out.');
+        AnalyticsService.trackEvent({ name: 'update_notification_settings_timeout', properties: { userId } });
       } else {
         logSupabaseError('updateUserNotificationSettings', err);
+        AnalyticsService.trackEvent({ name: 'update_notification_settings_unexpected_error', properties: { userId, error: err.message } });
       }
       return null;
     } finally {
@@ -203,14 +230,18 @@ export const NotificationService = {
 
       if (error) {
         logSupabaseError('createAlert', error);
+        AnalyticsService.trackEvent({ name: 'create_alert_failed', properties: { type: alert.type, error: error.message } });
         return null;
       }
+      AnalyticsService.trackEvent({ name: 'alert_created', properties: { alertId: data.id, type: data.type } });
       return data as Alert;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Creating alert timed out.');
+        AnalyticsService.trackEvent({ name: 'create_alert_timeout', properties: { type: alert.type } });
       } else {
         logSupabaseError('createAlert', err);
+        AnalyticsService.trackEvent({ name: 'create_alert_unexpected_error', properties: { type: alert.type, error: err.message } });
       }
       return null;
     } finally {
@@ -218,7 +249,6 @@ export const NotificationService = {
     }
   },
 
-  // New method to fetch alerts for the map
   async fetchAlerts(): Promise<Alert[]> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
@@ -228,19 +258,23 @@ export const NotificationService = {
         .from('alerts')
         .select('id, title, type, latitude, longitude, description, created_at')
         .order('created_at', { ascending: false })
-        .limit(50) // Fetch a reasonable number of recent alerts
+        .limit(50)
         .abortSignal(controller.signal);
 
       if (error) {
         logSupabaseError('fetchAlerts', error);
+        AnalyticsService.trackEvent({ name: 'fetch_alerts_failed', properties: { error: error.message } });
         return [];
       }
+      AnalyticsService.trackEvent({ name: 'alerts_fetched', properties: { count: data.length } });
       return data as Alert[];
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching alerts for map timed out.');
+        AnalyticsService.trackEvent({ name: 'fetch_alerts_timeout' });
       } else {
         logSupabaseError('fetchAlerts', err);
+        AnalyticsService.trackEvent({ name: 'fetch_alerts_unexpected_error', properties: { error: err.message } });
       }
       return [];
     } finally {

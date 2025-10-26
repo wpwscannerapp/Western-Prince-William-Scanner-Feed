@@ -1,4 +1,6 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react'; // Added useEffect
+"use client";
+
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import IncidentCard from '@/components/IncidentCard';
 import SubscribeOverlay from '@/components/SubscribeOverlay';
 import IncidentForm from '@/components/IncidentForm';
@@ -12,6 +14,7 @@ import { useIsSubscribed } from '@/hooks/useIsSubscribed';
 import { handleError } from '@/utils/errorHandler';
 import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 const IncidentsPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -22,10 +25,10 @@ const IncidentsPage: React.FC = () => {
   const observer = useRef<IntersectionObserver | null>(null);
   const navigate = useNavigate();
 
-  // Redirect unauthenticated users to the auth page
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth', { replace: true });
+      AnalyticsService.trackEvent({ name: 'incidents_page_redirect', properties: { reason: 'unauthenticated' } });
     }
   }, [authLoading, user, navigate]);
 
@@ -52,7 +55,7 @@ const IncidentsPage: React.FC = () => {
     },
     staleTime: 1000 * 60,
     initialPageParam: 0,
-    enabled: !!user && !authLoading, // Only enable query if user is authenticated
+    enabled: !!user && !authLoading,
   });
 
   const incidents = data?.pages.flat() || [];
@@ -65,6 +68,7 @@ const IncidentsPage: React.FC = () => {
         entries => {
           if (entries[0].isIntersecting && hasNextPage) {
             fetchNextPage();
+            AnalyticsService.trackEvent({ name: 'incidents_feed_scrolled_to_end' });
           }
         },
         { threshold: 0.1 }
@@ -77,6 +81,7 @@ const IncidentsPage: React.FC = () => {
   const handleCreateIncident = async (type: string, location: string, description: string, imageFile: File | null, _currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => {
     if (!user) {
       toast.error('You must be logged in to create an incident.');
+      AnalyticsService.trackEvent({ name: 'create_incident_attempt_failed', properties: { reason: 'not_logged_in' } });
       return false;
     }
 
@@ -91,18 +96,21 @@ const IncidentsPage: React.FC = () => {
         type,
         location,
         date: new Date().toISOString(),
-      }, imageFile, latitude, longitude, user.id); // Pass user.id as adminId
+      }, imageFile, latitude, longitude, user.id);
       
       if (newIncident) {
         toast.success('Incident submitted successfully!', { id: 'create-incident' });
         queryClient.invalidateQueries({ queryKey: ['incidents'] });
+        AnalyticsService.trackEvent({ name: 'incident_created_from_feed', properties: { incidentId: newIncident.id, type, location } });
         return true;
       } else {
         handleError(null, 'Failed to submit incident.');
+        AnalyticsService.trackEvent({ name: 'create_incident_failed_from_feed', properties: { type, location } });
         return false;
       }
     } catch (err) {
       handleError(err, 'An error occurred while submitting the incident.');
+      AnalyticsService.trackEvent({ name: 'create_incident_error_from_feed', properties: { type, location, error: (err as Error).message } });
       return false;
     } finally {
       setIncidentFormLoading(false);
@@ -111,23 +119,24 @@ const IncidentsPage: React.FC = () => {
 
   const handleRetry = () => {
     refetch();
+    AnalyticsService.trackEvent({ name: 'incidents_page_retry_fetch' });
   };
 
-  // If auth is still loading, or user is not present, show a loading state
   if (authLoading || !user || isAdminLoading || isSubscribedLoading || isLoading) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
-        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" aria-label="Loading incidents" />
         <p className="tw-ml-2">Loading incidents...</p>
       </div>
     );
   }
 
   if (isError) {
+    AnalyticsService.trackEvent({ name: 'incidents_page_load_failed', properties: { error: error?.message } });
     return (
       <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
         <div className="tw-text-center">
-          <h1 className="tw-text-2xl tw-font-bold tw-text-destructive tw-mb-4">Error Loading Archive</h1>
+          <h1 className="tw-text-2xl tw-font-bold tw-text-destructive tw-mb-4">Error Loading Incidents</h1>
           <p className="tw-text-muted-foreground">{error?.message || 'An unexpected error occurred.'}</p>
           <Button onClick={handleRetry}>Retry</Button>
         </div>
@@ -177,7 +186,7 @@ const IncidentsPage: React.FC = () => {
           
           {isFetchingNextPage && (
             <div className="tw-flex tw-justify-center tw-items-center tw-py-8 tw-gap-2 tw-text-muted-foreground tw-col-span-full">
-              <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
+              <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" aria-label="Loading more incidents" />
               <span>Loading more incidents...</span>
             </div>
           )}

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -10,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -44,7 +47,10 @@ const LoginPage: React.FC = () => {
     try {
       const { error } = await signIn(values.email, values.password);
       if (!error) {
+        AnalyticsService.trackEvent({ name: 'user_signed_in', properties: { email: values.email } });
         // Navigation handled by useEffect
+      } else {
+        AnalyticsService.trackEvent({ name: 'sign_in_failed', properties: { email: values.email, error: error.message } });
       }
     } finally {
       setIsSubmitting(false);
@@ -61,7 +67,10 @@ const LoginPage: React.FC = () => {
     try {
       const { success } = await forgotPassword(email);
       if (success) {
+        AnalyticsService.trackEvent({ name: 'forgot_password_email_sent', properties: { email } });
         setShowForgotPasswordInput(false); // Hide input after sending email
+      } else {
+        AnalyticsService.trackEvent({ name: 'forgot_password_failed', properties: { email } });
       }
     } finally {
       setIsSubmitting(false);
@@ -71,7 +80,7 @@ const LoginPage: React.FC = () => {
   if (authLoading || user) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
-        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" aria-label="Loading authentication" />
         <p className="tw-ml-2">Loading authentication...</p>
       </div>
     );
@@ -96,9 +105,11 @@ const LoginPage: React.FC = () => {
                 className="tw-bg-input tw-text-foreground"
                 autoComplete="email"
                 disabled={isSubmitting}
+                aria-invalid={form.formState.errors.email ? "true" : "false"}
+                aria-describedby={form.formState.errors.email ? "email-error" : undefined}
               />
               {form.formState.errors.email && (
-                <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.email.message}</p>
+                <p id="email-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.email.message}</p>
               )}
             </div>
             
@@ -113,21 +124,23 @@ const LoginPage: React.FC = () => {
                   className="tw-bg-input tw-text-foreground"
                   autoComplete="current-password"
                   disabled={isSubmitting}
+                  aria-invalid={form.formState.errors.password ? "true" : "false"}
+                  aria-describedby={form.formState.errors.password ? "password-error" : undefined}
                 />
                 {form.formState.errors.password && (
-                  <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.password.message}</p>
+                  <p id="password-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.password.message}</p>
                 )}
               </div>
             )}
 
             {showForgotPasswordInput ? (
-              <Button type="button" onClick={handleForgotPasswordSubmit} className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
+              <Button type="button" onClick={handleForgotPasswordSubmit} className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground tw-button" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
                 Send Reset Email
               </Button>
             ) : (
-              <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
+              <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground tw-button" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
                 Login
               </Button>
             )}

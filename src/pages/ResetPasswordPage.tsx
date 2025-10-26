@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -11,7 +13,8 @@ import { Loader2, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { handleError } from '@/utils/errorHandler';
-import { SUPABASE_API_TIMEOUT } from '@/config'; // Import from config.ts
+import { SUPABASE_API_TIMEOUT } from '@/config';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 const resetPasswordSchema = z.object({
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
@@ -40,20 +43,18 @@ const ResetPasswordPage = () => {
 
   useEffect(() => {
     const parseHashParams = () => {
-      const hash = window.location.hash.substring(1); // Remove '#'
+      const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
       const accessToken = params.get('access_token');
       const refreshToken = params.get('refresh_token');
       setTokens({ accessToken, refreshToken });
 
-      // Clear hash from URL after parsing to prevent re-processing on refresh
       if (accessToken || refreshToken) {
         window.history.replaceState(null, '', window.location.pathname + window.location.search);
       }
     };
 
     parseHashParams();
-    // Add a listener for hash changes if the user navigates within the app
     window.addEventListener('hashchange', parseHashParams);
     return () => window.removeEventListener('hashchange', parseHashParams);
   }, []);
@@ -78,6 +79,7 @@ const ResetPasswordPage = () => {
     if (!accessToken || !refreshToken) {
       handleError(null, 'Invalid reset link. Missing access or refresh token. Please request a new password reset.');
       setLoading(false);
+      AnalyticsService.trackEvent({ name: 'password_reset_failed', properties: { reason: 'missing_tokens' } });
       return;
     }
 
@@ -85,7 +87,8 @@ const ResetPasswordPage = () => {
     const timeoutId = setTimeout(() => {
       controller.abort();
       handleError(null, 'Password reset request timed out. Please try again.');
-    }, SUPABASE_API_TIMEOUT); // Use constant from config.ts
+      AnalyticsService.trackEvent({ name: 'password_reset_failed', properties: { reason: 'timeout' } });
+    }, SUPABASE_API_TIMEOUT);
 
     try {
       const { error: sessionError } = await supabase.auth.setSession({
@@ -96,6 +99,7 @@ const ResetPasswordPage = () => {
       if (sessionError) {
         handleError(sessionError, 'Invalid or expired reset link. Please request a new password reset.');
         setLoading(false);
+        AnalyticsService.trackEvent({ name: 'password_reset_failed', properties: { reason: 'invalid_session', error: sessionError.message } });
         return;
       }
 
@@ -106,16 +110,19 @@ const ResetPasswordPage = () => {
       if (error) {
         handleError(error, 'Failed to reset password.');
         setLoading(false);
+        AnalyticsService.trackEvent({ name: 'password_reset_failed', properties: { reason: 'update_user_failed', error: error.message } });
         return;
       }
 
       toast.success('Password reset successfully!');
       setResetComplete(true);
+      AnalyticsService.trackEvent({ name: 'password_reset_success' });
     } catch (err: any) {
       if (err.name === 'AbortError') {
         // Timeout already handled by the setTimeout callback
       } else {
         handleError(err, 'An unexpected error occurred during password reset.');
+        AnalyticsService.trackEvent({ name: 'password_reset_failed', properties: { reason: 'unexpected_error', error: err.message } });
       }
     } finally {
       clearTimeout(timeoutId);
@@ -163,6 +170,7 @@ const ResetPasswordPage = () => {
                 {...form.register('password')}
                 className="tw-bg-input tw-text-foreground tw-input"
                 aria-describedby={form.formState.errors.password ? "password-error" : undefined}
+                aria-invalid={form.formState.errors.password ? "true" : "false"}
               />
               {form.watch('password') && (
                 <p className={`tw-text-sm tw-mt-1 ${getPasswordStrength(form.watch('password')) === 'Strong' ? 'tw-text-primary' : getPasswordStrength(form.watch('password')) === 'Moderate' ? 'tw-text-accent' : 'tw-text-destructive'}`}>
@@ -183,6 +191,7 @@ const ResetPasswordPage = () => {
                 {...form.register('confirmPassword')}
                 className="tw-bg-input tw-text-foreground tw-input"
                 aria-describedby={form.formState.errors.confirmPassword ? "confirm-password-error" : undefined}
+                aria-invalid={form.formState.errors.confirmPassword ? "true" : "false"}
               />
               {form.formState.errors.confirmPassword && (
                 <p id="confirm-password-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.confirmPassword.message}</p>
@@ -190,7 +199,7 @@ const ResetPasswordPage = () => {
             </div>
 
             <Button type="submit" className="tw-w-full tw-button" disabled={loading}>
-              {loading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
+              {loading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
               Reset Password
             </Button>
           </form>

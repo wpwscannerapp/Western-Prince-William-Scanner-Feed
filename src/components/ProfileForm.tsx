@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,6 +16,7 @@ import { StorageService } from '@/services/StorageService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import useDebounce from '@/hooks/useDebounce';
 import { supabase } from '@/integrations/supabase/client';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 const profileSchema = z.object({
   first_name: z.string().max(50, { message: 'First name too long.' }).optional().or(z.literal('')),
@@ -24,7 +27,7 @@ const profileSchema = z.object({
     .max(20, { message: 'Username must be at most 20 characters.' })
     .regex(/^[a-zA-Z0-9_]+$/, { message: 'Username can only contain letters, numbers, and underscores.' })
     .optional()
-    .or(z.literal('')), // Allow empty string for optional username
+    .or(z.literal('')),
   avatar: z.any().optional(),
 });
 
@@ -39,7 +42,6 @@ const ProfileForm: React.FC = () => {
     queryKey: ['profile', user?.id],
     queryFn: async () => {
       if (!user) return null;
-      // ProfileService.ensureProfileExists is now handled by AuthContext, so we can directly fetch.
       return ProfileService.fetchProfile(user.id);
     },
     enabled: !!user,
@@ -50,12 +52,15 @@ const ProfileForm: React.FC = () => {
     onSuccess: () => {
       toast.success('Profile updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+      AnalyticsService.trackEvent({ name: 'profile_form_updated', properties: { userId: user?.id } });
     },
     onError: (error) => {
       if (error.message.includes('duplicate key value violates unique constraint "profiles_username_key"')) {
         toast.error('Username already taken. Please choose another.');
+        AnalyticsService.trackEvent({ name: 'profile_form_update_failed', properties: { userId: user?.id, reason: 'username_taken' } });
       } else {
         toast.error(`Failed to update profile: ${error.message}`);
+        AnalyticsService.trackEvent({ name: 'profile_form_update_failed', properties: { userId: user?.id, reason: 'unexpected_error', error: error.message } });
       }
     },
   });
@@ -76,7 +81,7 @@ const ProfileForm: React.FC = () => {
   const [usernameStatus, setUsernameStatus] = useState<'checking' | 'available' | 'taken' | null>(null);
 
   const currentUsernameValue = form.watch('username');
-  const debouncedUsername = useDebounce(currentUsernameValue, 500); // Debounce for 500ms
+  const debouncedUsername = useDebounce(currentUsernameValue, 500);
 
   useEffect(() => {
     if (profile) {
@@ -90,13 +95,12 @@ const ProfileForm: React.FC = () => {
     }
   }, [profile, form]);
 
-  // Function to check username availability
   const checkUsernameAvailability = async (username: string) => {
     if (!username || username.length < 3) {
       setUsernameStatus(null);
       return;
     }
-    if (username === profile?.username) { // If it's the current user's username, it's implicitly available
+    if (username === profile?.username) {
       setUsernameStatus(null);
       return;
     }
@@ -107,32 +111,35 @@ const ProfileForm: React.FC = () => {
         .from('profiles')
         .select('id')
         .eq('username', username)
-        .neq('id', user?.id) // Exclude current user's profile
+        .neq('id', user?.id)
         .limit(1);
 
       if (error) {
-        setUsernameStatus(null); // Reset status on error
+        setUsernameStatus(null);
+        AnalyticsService.trackEvent({ name: 'username_check_failed', properties: { username, error: error.message } });
         return;
       }
 
       if (data && data.length > 0) {
         setUsernameStatus('taken');
+        AnalyticsService.trackEvent({ name: 'username_checked', properties: { username, status: 'taken' } });
       } else {
         setUsernameStatus('available');
+        AnalyticsService.trackEvent({ name: 'username_checked', properties: { username, status: 'available' } });
       }
     } catch (err) {
-      setUsernameStatus(null); // Reset status on unexpected error
+      setUsernameStatus(null);
+      AnalyticsService.trackEvent({ name: 'username_check_unexpected_error', properties: { username, error: (err as Error).message } });
     }
   };
 
-  // Effect to trigger username availability check
   useEffect(() => {
     if (debouncedUsername !== undefined && debouncedUsername !== profile?.username) {
       checkUsernameAvailability(debouncedUsername);
     } else if (debouncedUsername === profile?.username) {
-      setUsernameStatus(null); // Reset status if it's the user's current username
+      setUsernameStatus(null);
     } else {
-      setUsernameStatus(null); // Clear status if input is empty or invalid length
+      setUsernameStatus(null);
     }
   }, [debouncedUsername, profile?.username, user?.id]);
 
@@ -142,9 +149,11 @@ const ProfileForm: React.FC = () => {
     if (file) {
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
+      AnalyticsService.trackEvent({ name: 'avatar_image_selected', properties: { fileName: file.name, fileSize: file.size } });
     } else {
       setImageFile(null);
       setImagePreview(profile?.avatar_url || null);
+      AnalyticsService.trackEvent({ name: 'avatar_image_selection_cleared' });
     }
   };
 
@@ -154,16 +163,19 @@ const ProfileForm: React.FC = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    AnalyticsService.trackEvent({ name: 'avatar_image_removed_from_preview' });
   };
 
   const onSubmit = async (values: ProfileFormValues) => {
     if (!user) {
       toast.error('You must be logged in to update your profile.');
+      AnalyticsService.trackEvent({ name: 'profile_update_attempt_failed', properties: { reason: 'not_logged_in' } });
       return;
     }
 
     if (usernameStatus === 'taken' || usernameStatus === 'checking') {
       toast.error('Please resolve username issues before saving.');
+      AnalyticsService.trackEvent({ name: 'profile_update_attempt_failed', properties: { reason: 'username_issue', usernameStatus } });
       return;
     }
 
@@ -176,12 +188,14 @@ const ProfileForm: React.FC = () => {
       if (newAvatarUrl) {
         if (profile?.avatar_url) {
           await StorageService.deleteImage(profile.avatar_url);
+          AnalyticsService.trackEvent({ name: 'old_avatar_deleted', properties: { userId: user.id } });
         }
         avatarUrl = newAvatarUrl;
         toast.success('Avatar uploaded!', { id: 'avatar-upload' });
       } else {
         toast.error('Failed to upload avatar.', { id: 'avatar-upload' });
         setIsUploading(false);
+        AnalyticsService.trackEvent({ name: 'avatar_upload_failed', properties: { userId: user.id } });
         return;
       }
       setIsUploading(false);
@@ -192,9 +206,11 @@ const ProfileForm: React.FC = () => {
       if (success) {
         avatarUrl = null;
         toast.success('Avatar removed!', { id: 'avatar-remove' });
+        AnalyticsService.trackEvent({ name: 'avatar_removed', properties: { userId: user.id } });
       } else {
         toast.error('Failed to remove avatar.', { id: 'avatar-remove' });
         setIsUploading(false);
+        AnalyticsService.trackEvent({ name: 'avatar_remove_failed', properties: { userId: user.id } });
         return;
       }
       setIsUploading(false);
@@ -215,7 +231,7 @@ const ProfileForm: React.FC = () => {
   if (isProfileLoading) {
     return (
       <div className="tw-flex tw-justify-center tw-items-center tw-py-8">
-        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" aria-label="Loading profile data" />
         <span className="tw-ml-2 tw-text-muted-foreground">Loading profile...</span>
       </div>
     );
@@ -238,11 +254,11 @@ const ProfileForm: React.FC = () => {
           <Avatar className="tw-h-24 tw-w-24 tw-border-2 tw-border-primary">
             <AvatarImage src={imagePreview || undefined} alt="User Avatar" />
             <AvatarFallback className="tw-bg-primary tw-text-primary-foreground tw-text-xl">
-              {profile?.first_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || <User className="tw-h-12 tw-w-12" />}
+              {profile?.first_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || <User className="tw-h-12 tw-w-12" aria-hidden="true" />}
             </AvatarFallback>
           </Avatar>
           <Label htmlFor="avatar-upload" className="tw-absolute tw-inset-0 tw-flex tw-items-center tw-justify-center tw-bg-black/50 tw-opacity-0 group-hover:tw-opacity-100 tw-transition-opacity tw-cursor-pointer tw-rounded-full">
-            <Camera className="tw-h-6 tw-w-6 tw-text-white" />
+            <Camera className="tw-h-6 tw-w-6 tw-text-white" aria-hidden="true" />
             <span className="tw-sr-only">Change avatar</span>
           </Label>
           <Input
@@ -265,7 +281,7 @@ const ProfileForm: React.FC = () => {
               disabled={isSubmitDisabled}
               aria-label="Remove avatar image"
             >
-              <XCircle className="tw-h-4 tw-w-4 tw-text-destructive" />
+              <XCircle className="tw-h-4 tw-w-4 tw-text-destructive" aria-hidden="true" />
               <span className="tw-sr-only">Remove avatar</span>
             </Button>
           )}
@@ -309,9 +325,9 @@ const ProfileForm: React.FC = () => {
       <div>
         <div className="tw-flex tw-items-center tw-gap-2 tw-mb-2">
           <Label htmlFor="username">Username</Label>
-          {usernameStatus === 'checking' && <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin tw-text-muted-foreground" />}
-          {usernameStatus === 'available' && <CheckCircle2 className="tw-h-4 tw-w-4 tw-text-green-500" />}
-          {usernameStatus === 'taken' && <XCircleIcon className="tw-h-4 tw-w-4 tw-text-destructive" />}
+          {usernameStatus === 'checking' && <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin tw-text-muted-foreground" aria-label="Checking username availability" />}
+          {usernameStatus === 'available' && <CheckCircle2 className="tw-h-4 tw-w-4 tw-text-green-500" aria-label="Username available" />}
+          {usernameStatus === 'taken' && <XCircleIcon className="tw-h-4 tw-w-4 tw-text-destructive" aria-label="Username taken" />}
         </div>
         <Input
           id="username"
@@ -352,7 +368,7 @@ const ProfileForm: React.FC = () => {
         className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground tw-button" 
         disabled={isSubmitDisabled}
       >
-        {(updateProfileMutation.isPending || isUploading) && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}
+        {(updateProfileMutation.isPending || isUploading) && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
         Save Changes
       </Button>
     </form>

@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Image as ImageIcon, XCircle, MapPin } from 'lucide-react'; // Removed Loader2
+import { Image as ImageIcon, XCircle, MapPin } from 'lucide-react';
 import { geocodeAddress } from '@/utils/geocoding';
 import { toast } from 'sonner';
+import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 const incidentFormSchema = z.object({
   type: z.string().min(1, { message: 'Incident type is required.' }).max(100, { message: 'Incident type too long.' }),
@@ -113,11 +116,13 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         longitude = geoResult.longitude;
         setGeocodedLocation(geoResult);
         toast.success('Location geocoded successfully!');
+        AnalyticsService.trackEvent({ name: 'location_geocoded', properties: { address: values.location, success: true } });
       } else {
         toast.error('Failed to geocode location. Incident will be submitted without map coordinates.');
         latitude = undefined;
         longitude = undefined;
         setGeocodedLocation(null);
+        AnalyticsService.trackEvent({ name: 'location_geocoded', properties: { address: values.location, success: false } });
       }
     } else if (initialIncident?.latitude && initialIncident?.longitude) {
       setGeocodedLocation({
@@ -129,14 +134,25 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
     setIsGeocoding(false);
 
     const success = await onSubmit(values.type, values.location, values.description, imageFile, initialIncident?.image_url, latitude, longitude);
-    if (success && !initialIncident) {
-      form.reset();
-      setImagePreview(undefined);
-      setImageFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+    if (success) {
+      AnalyticsService.trackEvent({ 
+        name: initialIncident ? 'incident_updated' : 'incident_created', 
+        properties: { type: values.type, location: values.location, hasImage: !!imageFile || !!initialIncident?.image_url } 
+      });
+      if (!initialIncident) {
+        form.reset();
+        setImagePreview(undefined);
+        setImageFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        setGeocodedLocation(null);
       }
-      setGeocodedLocation(null);
+    } else {
+      AnalyticsService.trackEvent({ 
+        name: initialIncident ? 'incident_update_failed' : 'incident_create_failed', 
+        properties: { type: values.type, location: values.location, hasImage: !!imageFile || !!initialIncident?.image_url } 
+      });
     }
   };
 
@@ -150,9 +166,11 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
           {...form.register('type')}
           className="tw-bg-input tw-text-foreground"
           disabled={isLoading || isGeocoding}
+          aria-invalid={form.formState.errors.type ? "true" : "false"}
+          aria-describedby={form.formState.errors.type ? "incident-type-error" : undefined}
         />
         {form.formState.errors.type && (
-          <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.type.message}</p>
+          <p id="incident-type-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.type.message}</p>
         )}
       </div>
 
@@ -164,13 +182,15 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
           {...form.register('location')}
           className="tw-bg-input tw-text-foreground"
           disabled={isLoading || isGeocoding}
+          aria-invalid={form.formState.errors.location ? "true" : "false"}
+          aria-describedby={form.formState.errors.location ? "incident-location-error" : undefined}
         />
         {form.formState.errors.location && (
-          <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.location.message}</p>
+          <p id="incident-location-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.location.message}</p>
         )}
         {geocodedLocation && (
           <p className="tw-text-sm tw-text-muted-foreground tw-mt-1 tw-flex tw-items-center tw-gap-1">
-            <MapPin className="tw-h-4 tw-w-4" /> Geocoded: {geocodedLocation.display_name} ({geocodedLocation.latitude.toFixed(4)}, {geocodedLocation.longitude.toFixed(4)})
+            <MapPin className="tw-h-4 tw-w-4" aria-hidden="true" /> Geocoded: {geocodedLocation.display_name} ({geocodedLocation.latitude.toFixed(4)}, {geocodedLocation.longitude.toFixed(4)})
           </p>
         )}
       </div>
@@ -183,15 +203,17 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
           {...form.register('description')}
           className="tw-min-h-[100px] tw-bg-input tw-text-foreground"
           disabled={isLoading || isGeocoding}
+          aria-invalid={form.formState.errors.description ? "true" : "false"}
+          aria-describedby={form.formState.errors.description ? "incident-description-error" : undefined}
         />
         {form.formState.errors.description && (
-          <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.description.message}</p>
+          <p id="incident-description-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.description.message}</p>
         )}
       </div>
 
       <div>
         <Label htmlFor="image-upload" className="tw-flex tw-items-center tw-gap-2 tw-cursor-pointer tw-mb-2 tw-block">
-          <ImageIcon className="tw-h-4 tw-w-4" /> Upload Image (Optional)
+          <ImageIcon className="tw-h-4 tw-w-4" aria-hidden="true" /> Upload Image (Optional)
         </Label>
         <Input
           id="image-upload"
@@ -201,6 +223,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
           className="tw-block tw-w-full tw-text-sm tw-text-muted-foreground file:tw-mr-4 file:tw-py-2 file:tw-px-4 file:tw-rounded-full file:tw-border-0 file:tw-text-sm file:tw-font-semibold file:tw-bg-primary file:tw-text-primary-foreground hover:file:tw-bg-primary/90"
           disabled={isLoading || isGeocoding}
           ref={fileInputRef}
+          aria-label="Upload incident image"
         />
         {imagePreview && (
           <div className="tw-relative tw-mt-4 tw-w-32 tw-h-32 tw-rounded-md tw-overflow-hidden">
@@ -213,7 +236,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
               onClick={handleRemoveImage}
               disabled={isLoading || isGeocoding}
             >
-              <XCircle className="tw-h-4 tw-w-4 tw-text-destructive" />
+              <XCircle className="tw-h-4 tw-w-4 tw-text-destructive" aria-hidden="true" />
               <span className="tw-sr-only">Remove image</span>
             </Button>
           </div>
