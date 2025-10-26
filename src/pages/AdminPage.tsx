@@ -7,30 +7,32 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import AdminDashboardTabs from '@/components/AdminDashboardTabs';
 import AdminSidebar from '@/components/AdminSidebar';
 import AdminDebugInfo from '@/components/AdminDebugInfo'; // Import the new debug component
-import { useQueryClient } from '@tanstack/react-query'; // Import useQueryClient
+// import { useQueryClient } from '@tanstack/react-query'; // Remove this import
 
 const AdminPage = () => {
   const { user, loading: authLoading } = useAuth();
-  const { isAdmin, loading: isAdminLoading } = useIsAdmin();
+  const { isAdmin, loading: isAdminLoading } = useIsAdmin(); // isAdminLoading here is the overallLoading from useIsAdmin
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('incidents'); // Default to 'incidents' tab
-  const queryClient = useQueryClient(); // Initialize queryClient
+  // const queryClient = useQueryClient(); // Remove this initialization
 
   useEffect(() => {
-    // Invalidate the userRole query when AdminPage mounts to ensure fresh admin status check
-    if (user) {
-      console.log('AdminPage: Invalidating userRole query for user:', user.id);
-      queryClient.invalidateQueries({ queryKey: ['userRole', user.id] });
-    }
+    // Removed: Invalidate the userRole query when AdminPage mounts to ensure fresh admin status check
+    // if (user) {
+    //   console.log('AdminPage: Invalidating userRole query for user:', user.id);
+    //   queryClient.invalidateQueries({ queryKey: ['userRole', user.id] });
+    // }
+
+    console.log('AdminPage useEffect check:', { authLoading, isAdminLoading, isAdmin, user: user?.id });
 
     // Only redirect if not loading and user is definitively not an admin
     if (!authLoading && !isAdminLoading && !isAdmin) {
       toast.error('Access Denied: You must be an administrator to view this page.');
       navigate('/home', { replace: true }); // Redirect to home page
     }
-  }, [authLoading, isAdminLoading, isAdmin, navigate, user, queryClient]); // Added user and queryClient to dependencies
+  }, [authLoading, isAdminLoading, isAdmin, navigate, user]); // Removed queryClient from dependencies
 
-  if (authLoading || isAdminLoading) {
+  if (authLoading || isAdminLoading) { // This is the overall loading state
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
         <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
