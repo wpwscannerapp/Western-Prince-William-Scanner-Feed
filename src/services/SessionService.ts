@@ -20,7 +20,12 @@ export interface UserSession {
   expires_at: string;
 }
 
-const sessionsStore = getStore('user_sessions');
+// Initialize the sessionsStore with explicit siteID and token from environment variables
+// These environment variables must be set in your .env file or Netlify build settings.
+const sessionsStore = getStore('user_sessions', {
+  siteID: import.meta.env.NETLIFY_SITE_ID as string,
+  token: import.meta.env.NETLIFY_API_TOKEN as string,
+});
 
 const logBlobError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
