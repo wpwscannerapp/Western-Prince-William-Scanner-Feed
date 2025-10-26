@@ -69,7 +69,7 @@ const IncidentsPage: React.FC = () => {
   // Removed real-time subscription for 'posts' as this page now handles 'incidents'
   // and 'alerts' are handled on the HomePage.
 
-  const handleCreateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => {
+  const handleCreateIncident = async (type: string, location: string, description: string, imageFile: File | null, latitude: number | undefined, longitude: number | undefined) => {
     if (!user) {
       toast.error('You must be logged in to create an incident.');
       return false;
