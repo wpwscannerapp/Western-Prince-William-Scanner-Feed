@@ -33,7 +33,7 @@ export const SessionService = {
   async createSession(session: Session, sessionId: string): Promise<UserSession | null> {
     if (!session.user || !session.expires_in) {
       handleError(null, 'Invalid session data provided for creation.');
-      AnalyticsService.trackEvent({ name: 'create_session_failed', properties: { reason: 'invalid_session_data' });
+      AnalyticsService.trackEvent({ name: 'create_session_failed', properties: { reason: 'invalid_session_data' } });
       return null;
     }
 
