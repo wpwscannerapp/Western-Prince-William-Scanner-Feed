@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Info } from 'lucide-react';
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'; // Import useInfiniteQuery and useQueryClient
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { IncidentService, Incident, IncidentFilter, INCIDENTS_PER_PAGE } from '@/services/IncidentService';
 import { handleError } from '@/utils/errorHandler';
 import IncidentSearchForm from '@/components/IncidentSearchForm';
@@ -11,7 +11,7 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 
 const IncidentArchivePage: React.FC = () => {
   const navigate = useNavigate();
-  const queryClient = useQueryClient(); // Initialize queryClient
+  const queryClient = useQueryClient();
   const [filters, setFilters] = useState<IncidentFilter>({});
   const observer = useRef<IntersectionObserver | null>(null);
 
@@ -23,9 +23,9 @@ const IncidentArchivePage: React.FC = () => {
     isLoading,
     isError,
     error,
-    refetch, // Add refetch from useInfiniteQuery
+    refetch,
   } = useInfiniteQuery<Incident[], Error>({
-    queryKey: ['incidents', filters], // Filters are now part of the query key
+    queryKey: ['incidents', filters],
     queryFn: async ({ pageParam = 0 }) => {
       console.log('IncidentArchivePage: Fetching incidents with offset', pageParam, 'and filters', filters);
       const fetchedIncidents = await IncidentService.fetchIncidents(pageParam as number, filters);
@@ -33,22 +33,19 @@ const IncidentArchivePage: React.FC = () => {
     },
     getNextPageParam: (lastPage, allPages) => {
       if (lastPage.length < INCIDENTS_PER_PAGE) {
-        return undefined; // No more pages
+        return undefined;
       }
-      // Calculate the next offset based on the total number of items fetched so far
       return allPages.flat().length;
     },
-    staleTime: 1000 * 60, // Cache for 1 minute
+    staleTime: 1000 * 60,
     initialPageParam: 0,
   });
 
-  const incidents = data?.pages.flat() || []; // Flatten all pages into a single array
+  const incidents = data?.pages.flat() || [];
 
-  // Reset query when filters change
   const handleFilterChange = useCallback((newFilters: IncidentFilter) => {
     console.log('IncidentArchivePage: Filter change detected. New filters:', newFilters);
     setFilters(newFilters);
-    // Invalidate and refetch the query to apply new filters from the first page
     queryClient.invalidateQueries({ queryKey: ['incidents'] });
   }, [queryClient]);
 
@@ -96,7 +93,7 @@ const IncidentArchivePage: React.FC = () => {
       <IncidentSearchForm onFilterChange={handleFilterChange} initialFilters={filters} />
 
       <div className="tw-mt-8 tw-space-y-6">
-        {(isLoading && !isFetchingNextPage) ? ( // Show initial loading skeleton
+        {(isLoading && !isFetchingNextPage) ? (
           <SkeletonLoader count={3} className="tw-col-span-full" />
         ) : incidents.length === 0 ? (
           <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-12 tw-text-muted-foreground">
@@ -111,14 +108,14 @@ const IncidentArchivePage: React.FC = () => {
           ))
         )}
 
-        {isFetchingNextPage && ( // Show loading indicator for fetching more pages
+        {isFetchingNextPage && (
           <div className="tw-flex tw-justify-center tw-items-center tw-py-8 tw-gap-2 tw-text-muted-foreground">
             <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
             <span>Loading more incidents...</span>
           </div>
         )}
 
-        {!hasNextPage && !isLoading && incidents.length > 0 && ( // Message when all incidents are loaded
+        {!hasNextPage && !isLoading && incidents.length > 0 && (
           <p className="tw-text-center tw-text-muted-foreground tw-py-4">You've reached the end of the archive.</p>
         )}
       </div>
