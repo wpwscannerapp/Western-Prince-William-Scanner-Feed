@@ -125,15 +125,12 @@ export function useIsAdmin(): UseAdminResult {
 
     // Once role query is not loading and no error, determine admin status
     if (!isRoleQueryLoading) {
-      if (roleData && roleData.role) {
-        console.log('useIsAdmin: Role data available, role:', roleData.role);
-        setIsAdmin(roleData.role === 'admin');
-        setError(null);
-      } else {
-        console.warn('useIsAdmin: Role data is missing or role is undefined after query completed.');
-        setIsAdmin(false);
-        setError('User role data incomplete.');
+      const newIsAdminStatus = roleData?.role === 'admin';
+      if (newIsAdminStatus !== isAdmin) { // Only update if status has changed
+        console.log(`useIsAdmin: Setting isAdmin to ${newIsAdminStatus} for user ${user?.id}. Role: ${roleData?.role}`);
+        setIsAdmin(newIsAdminStatus);
       }
+      setError(null);
     }
   }, [authReady, isRoleQueryLoading, isRoleQueryError, roleQueryError, roleData, user, authLoading, queryEnabled, isOnAuthPage, isAdmin, error]);
 
