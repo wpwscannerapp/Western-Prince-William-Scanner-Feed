@@ -66,7 +66,7 @@ const IncidentsPage: React.FC = () => {
     [isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]
   );
 
-  const handleCreateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => {
+  const handleCreateIncident = async (type: string, location: string, description: string, imageFile: File | null, _currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => {
     if (!user) {
       toast.error('You must be logged in to create an incident.');
       return false;
