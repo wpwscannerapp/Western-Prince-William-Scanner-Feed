@@ -6,13 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 
-const incidentTypes = ['Fire', 'Crime', 'Accident', 'Medical', 'Other'];
-
 const incidentFormSchema = z.object({
-  type: z.string().min(1, { message: 'Incident type is required.' }),
+  type: z.string().min(1, { message: 'Incident type is required.' }).max(100, { message: 'Incident type too long.' }), // Added max length
   location: z.string().min(1, { message: 'Location is required.' }).max(200, { message: 'Location too long.' }),
   description: z.string().min(10, { message: 'Incident details must be at least 10 characters.' }).max(1000, { message: 'Description too long.' }),
 });
@@ -45,20 +42,13 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading }) => {
     <form onSubmit={form.handleSubmit(handleSubmit)} className="tw-space-y-6 tw-p-4 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm">
       <div>
         <Label htmlFor="incident-type" className="tw-mb-2 tw-block">Incident Type</Label>
-        <Select
-          value={form.watch('type')}
-          onValueChange={(value) => form.setValue('type', value)}
+        <Input
+          id="incident-type"
+          placeholder="e.g., Structure Fire, Traffic Accident"
+          {...form.register('type')}
+          className="tw-bg-input tw-text-foreground"
           disabled={isLoading}
-        >
-          <SelectTrigger id="incident-type" className="tw-w-full">
-            <SelectValue placeholder="Select incident type" />
-          </SelectTrigger>
-          <SelectContent>
-            {incidentTypes.map(type => (
-              <SelectItem key={type} value={type}>{type}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        />
         {form.formState.errors.type && (
           <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.type.message}</p>
         )}
