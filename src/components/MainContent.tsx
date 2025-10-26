@@ -11,7 +11,7 @@ import AdminPage from '@/pages/AdminPage';
 import PostDetailPage from '@/pages/PostDetailPage';
 import ContactUsPage from '@/pages/ContactUsPage';
 import IncidentArchivePage from '@/pages/IncidentArchivePage';
-import FeedbackPage from '@/pages/FeedbackPage'; // New import
+import FeedbackPage from '@/pages/FeedbackPage';
 import AuthPage from '@/pages/AuthPage';
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
@@ -19,7 +19,7 @@ import SubscriptionPage from '@/pages/SubscriptionPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import TermsOfServicePage from '@/pages/TermsOfServicePage';
 import NotFound from '@/pages/NotFound';
-import { Button } from '@/components/ui/button';
+// Removed Button import as it's no longer needed for the floating feedback button
 import Index from '@/pages/Index';
 
 const MainContent: React.FC = () => {
@@ -46,8 +46,7 @@ const MainContent: React.FC = () => {
             <Route path="home/incidents" element={<IncidentsPage />} />
             <Route path="home/contact-us" element={<ContactUsPage />} />
             <Route path="home/archive" element={<IncidentArchivePage />} />
-            {/* Removed the route for AnonymousReportPage */}
-            <Route path="home/feedback" element={<FeedbackPage />} /> {/* New route */}
+            <Route path="home/feedback" element={<FeedbackPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="admin" element={<AdminPage />} />
             <Route path="posts/:postId" element={<PostDetailPage />} />
@@ -58,15 +57,7 @@ const MainContent: React.FC = () => {
         </Routes>
       </div>
 
-      {/* Floating Feedback Button */}
-      <Button
-        variant="outline"
-        className="tw-fixed tw-bottom-4 tw-right-4 tw-rounded-full tw-shadow-lg tw-button tw-z-50"
-        onClick={() => window.open('mailto:support@example.com')}
-        aria-label="Send feedback"
-      >
-        Feedback
-      </Button>
+      {/* Removed Floating Feedback Button */}
     </>
   );
 };
