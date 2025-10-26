@@ -16,13 +16,18 @@ const Tile: React.FC<TileProps> = ({ title, description, to, icon }) => {
     navigate(to);
   };
 
+  // Use Netlify Image CDN for local paths to optimize image size
+  const optimizedIconSrc = icon.startsWith('/') 
+    ? `/.netlify/images?url=${encodeURIComponent(icon)}&w=48&h=48&fit=contain&fm=auto` 
+    : icon;
+
   return (
     <Card 
       className="tw-bg-card tw-border-border tw-shadow-lg tw-h-full tw-flex tw-flex-col tw-cursor-pointer hover:tw-shadow-xl hover:tw-border-primary tw-transition-all tw-duration-200"
       onClick={handleClick}
     >
       <CardHeader className="tw-flex tw-flex-col tw-items-center tw-text-center tw-pb-2">
-        <img src={icon} alt={`${title} icon`} className="tw-h-12 tw-w-12 tw-mb-3" />
+        <img src={optimizedIconSrc} alt={`${title} icon`} className="tw-h-12 tw-w-12 tw-mb-3" />
         <CardTitle className="tw-text-xl tw-font-bold tw-text-foreground">{title}</CardTitle>
         {description && <CardDescription className="tw-text-muted-foreground">{description}</CardDescription>}
       </CardHeader>

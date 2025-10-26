@@ -43,7 +43,12 @@ const AuthPage = () => {
     <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-primary/10 tw-to-background tw-text-foreground tw-p-4">
       {/* Branded Hero Section */}
       <div className="tw-relative tw-z-20 tw-text-center tw-mb-8 tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-xl">
-        <img src="/Logo.png" alt="WPW Scanner Logo" className="tw-h-16 tw-mx-auto tw-mb-4" aria-hidden="true" />
+        <img 
+          src="/.netlify/images?url=/Logo.png&w=64&h=64&fit=contain&fm=auto" 
+          alt="WPW Scanner Logo" 
+          className="tw-h-16 tw-mx-auto tw-mb-4" 
+          aria-hidden="true" 
+        />
         <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-text-foreground tw-mb-4">{APP_NAME}</h1>
         <p className="tw-text-lg tw-text-muted-foreground tw-mb-6">{APP_DESCRIPTION}</p>
         <div className="tw-flex tw-flex-col sm:tw-flex-row tw-gap-4 tw-justify-center">
