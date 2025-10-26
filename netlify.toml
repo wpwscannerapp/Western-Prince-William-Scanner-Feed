@@ -1,2 +1,5 @@
 [images]
   remote_images = ["https://wvvxkwvliogulfqmkaqb.supabase.co/storage/v1/object/public/"]
+
+[functions]
+  directory = "netlify/functions"
