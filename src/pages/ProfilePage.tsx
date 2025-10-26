@@ -9,18 +9,34 @@ import { handleError } from '@/utils/errorHandler';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useProfilePageContext } from '@/context/ProfilePageContext';
+import { useIsSubscribed } from '@/hooks/useIsSubscribed'; // Import useIsSubscribed
+import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin
+import SubscribeOverlay from '@/components/SubscribeOverlay'; // Import SubscribeOverlay
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const ProfilePage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const isWebPushInitialized = useProfilePageContext();
+  const { isSubscribed, loading: isSubscribedLoading } = useIsSubscribed(); // Get subscription status
+  const { isAdmin, loading: isAdminLoading } = useIsAdmin(); // Get admin status
+  const navigate = useNavigate();
+
+  // Redirect unauthenticated users to the auth page
+  // This is already handled by ProtectedRoute, but adding it here for explicit clarity
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth', { replace: true });
+    }
+  }, [authLoading, user, navigate]);
 
   const { isLoading: isProfileLoading, isError: isProfileError, error: profileError } = useQuery<Profile | null, Error>({
     queryKey: ['profile', user?.id],
-    queryFn: () => user ? ProfileService.fetchProfile(user.id) : Promise.resolve(null), // ProfileService.ensureProfileExists is now handled by AuthContext
-    enabled: !!user,
+    queryFn: () => user ? ProfileService.fetchProfile(user.id) : Promise.resolve(null),
+    enabled: !!user && !authLoading, // Only enable query if user is authenticated
   });
 
-  if (isProfileLoading) {
+  // Overall loading state for the page
+  if (authLoading || !user || isProfileLoading || isSubscribedLoading || isAdminLoading) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
         <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
@@ -48,18 +64,23 @@ const ProfilePage: React.FC = () => {
           <CardDescription className="tw-text-muted-foreground">{PROFILE_DESCRIPTION}</CardDescription>
         </CardHeader>
         <CardContent className="tw-p-6">
-          <Tabs defaultValue="profile-details" className="tw-w-full">
-            <TabsList className="tw-grid tw-w-full tw-grid-cols-2">
-              <TabsTrigger value="profile-details">Profile Details</TabsTrigger>
-              <TabsTrigger value="notification-settings">Notifications</TabsTrigger>
-            </TabsList>
-            <TabsContent value="profile-details" className="tw-mt-6">
-              <ProfileForm />
-            </TabsContent>
-            <TabsContent value="notification-settings" className="tw-mt-6">
-              <NotificationSettingsForm isWebPushInitialized={isWebPushInitialized} />
-            </TabsContent>
-          </Tabs>
+          <div className={`tw-space-y-6 ${!isSubscribed && !isAdmin ? 'tw-relative' : ''}`} aria-live="polite">
+            <div className={!isSubscribed && !isAdmin ? 'tw-blur-sm tw-pointer-events-none' : ''}>
+              <Tabs defaultValue="profile-details" className="tw-w-full">
+                <TabsList className="tw-grid tw-w-full tw-grid-cols-2">
+                  <TabsTrigger value="profile-details">Profile Details</TabsTrigger>
+                  <TabsTrigger value="notification-settings">Notifications</TabsTrigger>
+                </TabsList>
+                <TabsContent value="profile-details" className="tw-mt-6">
+                  <ProfileForm />
+                </TabsContent>
+                <TabsContent value="notification-settings" className="tw-mt-6">
+                  <NotificationSettingsForm isWebPushInitialized={isWebPushInitialized} />
+                </TabsContent>
+              </Tabs>
+            </div>
+            {!isSubscribed && !isAdmin && <SubscribeOverlay />}
+          </div>
         </CardContent>
       </Card>
     </div>
