@@ -72,6 +72,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
   };
 
   const handleUpdateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => {
+    console.log('AdminIncidentTable: handleUpdateIncident called.'); // Added log
     if (!editingIncident) return false;
 
     setIsSubmitting(true);
