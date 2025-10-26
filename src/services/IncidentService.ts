@@ -217,6 +217,7 @@ export const IncidentService = {
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
+      console.log(`IncidentService: Attempting to update incident ${id} with payload:`, { ...updates, image_url: imageUrl, latitude, longitude, date: new Date().toISOString() });
       const { data, error } = await supabase
         .from('incidents')
         .update({ ...updates, image_url: imageUrl, latitude, longitude, date: new Date().toISOString() }) // Update date to current time on edit
@@ -226,11 +227,14 @@ export const IncidentService = {
         .single();
 
       if (error) {
+        console.error(`IncidentService: Supabase error during updateIncident for ID ${id}:`, error); // Detailed error log
         logSupabaseError('updateIncident', error);
         return null;
       }
+      console.log(`IncidentService: Successfully updated incident ${id}. Data:`, data);
       return data as Incident;
     } catch (err: any) {
+      console.error(`IncidentService: Caught unexpected error during updateIncident for ID ${id}:`, err); // Detailed error log
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Updating incident timed out.');
       } else {
