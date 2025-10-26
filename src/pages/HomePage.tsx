@@ -119,9 +119,9 @@ const HomePage: React.FC = () => {
       </div>
 
       <div className="tw-grid tw-grid-cols-2 sm:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-6">
-        {/* Incidents Tile */}
+        {/* Incidents Feed Tile */}
         <Tile
-          title="Incidents"
+          title="Incidents Feed"
           description="Real-time scanner updates."
           to="/home/incidents"
           icon="/Logo.png"
@@ -165,7 +165,7 @@ const HomePage: React.FC = () => {
             {isAdmin && (
               <Tile
                 title="Admin Dashboard"
-                description="Manage posts, settings, and users."
+                description="Manage incidents, settings, and users."
                 to="/admin"
                 icon="/Logo.png"
               />

@@ -1,10 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-const TeaserPost = () => {
+const TeaserIncident = () => {
   return (
     <Card className="tw-w-full tw-max-w-md tw-bg-card tw-border-border tw-shadow-lg">
       <CardHeader>
-        <CardTitle className="tw-text-primary">Sample Scanner Update</CardTitle>
+        <CardTitle className="tw-text-primary">Sample Incident Update</CardTitle>
         <CardDescription className="tw-text-muted-foreground">A glimpse of what you're missing!</CardDescription>
       </CardHeader>
       <CardContent>
@@ -25,4 +25,4 @@ const TeaserPost = () => {
   );
 };
 
-export default TeaserPost;
+export default TeaserIncident;

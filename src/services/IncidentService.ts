@@ -10,9 +10,10 @@ export interface Incident {
   type: string;
   location: string;
   date: string;
-  image_url?: string; // Added image_url
-  latitude?: number; // New: latitude for map
-  longitude?: number; // New: longitude for map
+  image_url?: string;
+  latitude?: number;
+  longitude?: number;
+  admin_id?: string; // Added admin_id
   created_at: string;
 }
 
@@ -87,7 +88,68 @@ export const IncidentService = {
     }
   },
 
-  async createIncident(incident: Omit<Incident, 'id' | 'created_at' | 'image_url'>, imageFile: File | null, latitude: number | undefined, longitude: number | undefined): Promise<Incident | null> {
+  async fetchSingleIncident(incidentId: string): Promise<Incident | null> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
+
+    try {
+      const { data, error } = await supabase
+        .from('incidents')
+        .select('*')
+        .eq('id', incidentId)
+        .abortSignal(controller.signal)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null;
+        }
+        logSupabaseError('fetchSingleIncident', error);
+        return null;
+      }
+      return data as Incident;
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        handleError(new Error('Request timed out'), 'Fetching single incident timed out.');
+      } else {
+        logSupabaseError('fetchSingleIncident', err);
+      }
+      return null;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  },
+
+  async fetchNewIncidents(lastTimestamp: string): Promise<Incident[]> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
+
+    try {
+      const { data, error } = await supabase
+        .from('incidents')
+        .select('*')
+        .gt('date', lastTimestamp)
+        .abortSignal(controller.signal)
+        .order('date', { ascending: false });
+
+      if (error) {
+        logSupabaseError('fetchNewIncidents', error);
+        return [];
+      }
+      return data as Incident[];
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        handleError(new Error('Request timed out'), 'Fetching new incidents timed out.');
+      } else {
+        logSupabaseError('fetchNewIncidents', err);
+      }
+      return [];
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  },
+
+  async createIncident(incident: Omit<Incident, 'id' | 'created_at' | 'image_url'>, imageFile: File | null, latitude: number | undefined, longitude: number | undefined, adminId: string): Promise<Incident | null> {
     let imageUrl: string | null = null;
     if (imageFile) {
       imageUrl = await StorageService.uploadIncidentImage(imageFile);
@@ -100,7 +162,7 @@ export const IncidentService = {
     try {
       const { data, error } = await supabase
         .from('incidents')
-        .insert({ ...incident, image_url: imageUrl, latitude, longitude })
+        .insert({ ...incident, image_url: imageUrl, latitude, longitude, admin_id: adminId })
         .abortSignal(controller.signal)
         .select()
         .single();
@@ -122,7 +184,7 @@ export const IncidentService = {
     }
   },
 
-  async updateIncident(id: string, updates: Partial<Omit<Incident, 'id' | 'created_at'>>, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined): Promise<Incident | null> {
+  async updateIncident(id: string, updates: Partial<Omit<Incident, 'id' | 'created_at' | 'admin_id'>>, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined): Promise<Incident | null> {
     let imageUrl: string | undefined = currentImageUrl;
 
     if (imageFile) {
@@ -194,6 +256,68 @@ export const IncidentService = {
         logSupabaseError('deleteIncident', err);
       }
       return false;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  },
+
+  async fetchSubscriberCount(): Promise<number> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
+
+    try {
+      const { count, error } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact' })
+        .in('subscription_status', ['trialing', 'active'])
+        .abortSignal(controller.signal);
+
+      if (error) {
+        logSupabaseError('fetchSubscriberCount', error);
+        return 0;
+      }
+      return count || 0;
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        handleError(new Error('Request timed out'), 'Fetching subscriber count timed out.');
+      } else {
+        logSupabaseError('fetchSubscriberCount', err);
+      }
+      return 0;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  },
+
+  async fetchPreviousIncident(currentIncidentTimestamp: string): Promise<Incident | null> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
+
+    try {
+      const { data, error } = await supabase
+        .from('incidents')
+        .select('*')
+        .lt('date', currentIncidentTimestamp)
+        .order('date', { ascending: false })
+        .limit(1)
+        .abortSignal(controller.signal)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null;
+        }
+        logSupabaseError('fetchPreviousIncident', error);
+        return null;
+      }
+      return data as Incident;
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        handleError(new Error('Request timed out'), 'Fetching previous incident timed out.');
+      } else {
+        logSupabaseError('fetchPreviousIncident', err);
+      }
+      return null;
     } finally {
       clearTimeout(timeoutId);
     }

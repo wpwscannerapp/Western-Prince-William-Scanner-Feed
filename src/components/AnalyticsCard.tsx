@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Loader2 } from 'lucide-react';
-import { PostService } from '@/services/PostService';
+import { IncidentService } from '@/services/IncidentService';
 import { toast } from 'sonner';
 
 const AnalyticsCard: React.FC = () => {
@@ -10,7 +10,7 @@ const AnalyticsCard: React.FC = () => {
 
   const fetchSubscriberData = async () => {
     setLoading(true);
-    const count = await PostService.fetchSubscriberCount();
+    const count = await IncidentService.fetchSubscriberCount();
     if (count !== null) {
       setSubscriberCount(count);
     } else {

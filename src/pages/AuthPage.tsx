@@ -1,4 +1,4 @@
-import TeaserPost from '@/components/TeaserPost';
+import TeaserIncident from '@/components/TeaserIncident';
 import { useAuth } from '@/hooks/useAuth';
 import { APP_NAME, APP_DESCRIPTION } from '@/lib/constants';
 import { handleError } from '@/utils/errorHandler';
@@ -57,10 +57,10 @@ const AuthPage = () => {
         </div>
       </div>
       <div className="tw-relative tw-z-10 tw-flex tw-flex-col md:tw-flex-row tw-items-center tw-justify-center tw-gap-8 tw-w-full tw-max-w-5xl tw-px-4 sm:tw-px-6">
-        {/* Conditional TeaserPost with hover effect */}
+        {/* Conditional TeaserIncident with hover effect */}
         {!user && ( // Only show teaser if no user is present (even restored session)
           <div className="tw-w-full md:tw-w-1/2 tw-max-w-md tw-transition tw-duration-300 hover:tw-scale-105">
-            <TeaserPost />
+            <TeaserIncident />
           </div>
         )}
       </div>

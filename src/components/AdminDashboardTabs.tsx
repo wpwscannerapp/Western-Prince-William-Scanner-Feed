@@ -1,15 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import PostForm from '@/components/PostForm';
-import AdminPostTable from '@/components/AdminPostTable';
 import AnalyticsCard from '@/components/AnalyticsCard';
 import AppSettingsForm from '@/components/AppSettingsForm';
 import AdminNotificationSender from '@/components/AdminNotificationSender';
 import ContactSettingsForm from '@/components/ContactSettingsForm';
 import IncidentForm from '@/components/IncidentForm';
 import AdminIncidentTable from '@/components/AdminIncidentTable';
-import { PostService } from '@/services/PostService';
 import { IncidentService } from '@/services/IncidentService';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -29,46 +26,13 @@ interface SubscriptionData {
 
 const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) => {
   const { user } = useAuth();
-  const [postFormLoading, setPostFormLoading] = React.useState(false);
   const [incidentFormLoading, setIncidentFormLoading] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData[]>([]);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
-  const refreshPostTable = useCallback(() => {
-    // This function will be passed to AdminPostTable to trigger its internal refresh
-    // AdminPostTable will manage its own data fetching.
-  }, []);
-
   const refreshIncidentTable = useCallback(() => {
     // This function will be passed to AdminIncidentTable to trigger its internal refresh
   }, []);
-
-  const handleCreatePost = async (text: string, imageFile: File | null) => {
-    if (!user) {
-      handleError(null, 'You must be logged in to create a post.');
-      return false;
-    }
-
-    setPostFormLoading(true);
-    try {
-      toast.loading('Creating post...', { id: 'create-post' });
-      const newPost = await PostService.createPost(text, imageFile, user.id);
-      
-      if (newPost) {
-        toast.success('Post created successfully!', { id: 'create-post' });
-        refreshPostTable();
-        return true;
-      } else {
-        handleError(null, 'Failed to create post.');
-        return false;
-      }
-    } catch (err: any) {
-      handleError(err, 'An error occurred while creating the post.');
-      return false;
-    } finally {
-      setPostFormLoading(false);
-    }
-  };
 
   const handleCreateIncident = async (type: string, location: string, description: string, imageFile: File | null, _currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => {
     if (!user) {
@@ -87,7 +51,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
         type,
         location,
         date: new Date().toISOString(),
-      }, imageFile, latitude, longitude);
+      }, imageFile, latitude, longitude, user.id); // Pass user.id as adminId
       
       if (newIncident) {
         toast.success('Incident submitted successfully!', { id: 'create-incident' });
@@ -149,36 +113,12 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
   return (
     <Tabs value={activeTab} className="tw-w-full">
       <TabsList className="tw-grid tw-w-full tw-grid-cols-5">
-        <TabsTrigger value="posts" aria-label="Scanner Posts tab">Scanner Posts</TabsTrigger>
         <TabsTrigger value="incidents" aria-label="Incidents tab">Incidents</TabsTrigger>
         <TabsTrigger value="analytics" aria-label="Analytics tab">Analytics</TabsTrigger>
         <TabsTrigger value="settings" aria-label="Settings tab">Settings</TabsTrigger>
         <TabsTrigger value="notifications" aria-label="Notifications tab">Notifications</TabsTrigger>
         <TabsTrigger value="contact" aria-label="Contact tab">Contact</TabsTrigger>
       </TabsList>
-      <TabsContent value="posts" className="tw-space-y-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Create New Scanner Post</CardTitle>
-            <CardDescription>Share updates with your subscribers</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <PostForm
-              onSubmit={handleCreatePost}
-              isLoading={postFormLoading}
-            />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Manage Scanner Posts</CardTitle>
-            <CardDescription>View, edit, or delete existing posts</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AdminPostTable onPostUpdated={refreshPostTable} />
-          </CardContent>
-        </Card>
-      </TabsContent>
       <TabsContent value="incidents" className="tw-space-y-8">
         <Card>
           <CardHeader>

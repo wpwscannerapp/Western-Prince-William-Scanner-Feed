@@ -8,7 +8,7 @@ import HomePage from '@/pages/HomePage';
 import IncidentsPage from '@/pages/IncidentsPage';
 import ProfilePage from '@/pages/ProfilePage';
 import AdminPage from '@/pages/AdminPage';
-import PostDetailPage from '@/pages/PostDetailPage';
+import IncidentDetailPage from '@/pages/IncidentDetailPage'; // Updated import
 import ContactUsPage from '@/pages/ContactUsPage';
 import IncidentArchivePage from '@/pages/IncidentArchivePage';
 import FeedbackPage from '@/pages/FeedbackPage';
@@ -19,7 +19,6 @@ import SubscriptionPage from '@/pages/SubscriptionPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import TermsOfServicePage from '@/pages/TermsOfServicePage';
 import NotFound from '@/pages/NotFound';
-// Removed Button import as it's no longer needed for the floating feedback button
 import Index from '@/pages/Index';
 
 const MainContent: React.FC = () => {
@@ -49,15 +48,13 @@ const MainContent: React.FC = () => {
             <Route path="home/feedback" element={<FeedbackPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="admin" element={<AdminPage />} />
-            <Route path="posts/:postId" element={<PostDetailPage />} />
+            <Route path="incidents/:incidentId" element={<IncidentDetailPage />} /> {/* Updated route path */}
           </Route>
 
           {/* Catch-all for 404 - ensure it's after all other specific routes */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
-
-      {/* Removed Floating Feedback Button */}
     </>
   );
 };

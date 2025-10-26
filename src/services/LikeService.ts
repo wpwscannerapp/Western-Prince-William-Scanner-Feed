@@ -7,14 +7,14 @@ const logSupabaseError = (functionName: string, error: any) => {
 };
 
 export const LikeService = {
-  async addLike(postId: string, userId: string): Promise<boolean> {
+  async addLike(incidentId: string, userId: string): Promise<boolean> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
       const { error } = await supabase
         .from('likes')
-        .insert({ post_id: postId, user_id: userId })
+        .insert({ incident_id: incidentId, user_id: userId })
         .abortSignal(controller.signal);
 
       if (error) {
@@ -37,7 +37,7 @@ export const LikeService = {
     }
   },
 
-  async removeLike(postId: string, userId: string): Promise<boolean> {
+  async removeLike(incidentId: string, userId: string): Promise<boolean> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -45,7 +45,7 @@ export const LikeService = {
       const { error } = await supabase
         .from('likes')
         .delete()
-        .eq('post_id', postId)
+        .eq('incident_id', incidentId)
         .eq('user_id', userId)
         .abortSignal(controller.signal);
 
@@ -66,7 +66,7 @@ export const LikeService = {
     }
   },
 
-  async fetchLikesCount(postId: string): Promise<number> {
+  async fetchLikesCount(incidentId: string): Promise<number> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -74,7 +74,7 @@ export const LikeService = {
       const { count, error } = await supabase
         .from('likes')
         .select('id', { count: 'exact' })
-        .eq('post_id', postId)
+        .eq('incident_id', incidentId)
         .abortSignal(controller.signal);
 
       if (error) {
@@ -94,7 +94,7 @@ export const LikeService = {
     }
   },
 
-  async hasUserLiked(postId: string, userId: string): Promise<boolean> {
+  async hasUserLiked(incidentId: string, userId: string): Promise<boolean> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -102,7 +102,7 @@ export const LikeService = {
       const { data, error } = await supabase
         .from('likes')
         .select('id')
-        .eq('post_id', postId)
+        .eq('incident_id', incidentId)
         .eq('user_id', userId)
         .limit(1)
         .abortSignal(controller.signal);

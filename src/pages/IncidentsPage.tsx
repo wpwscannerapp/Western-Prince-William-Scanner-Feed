@@ -83,7 +83,7 @@ const IncidentsPage: React.FC = () => {
         type,
         location,
         date: new Date().toISOString(),
-      }, imageFile, latitude, longitude);
+      }, imageFile, latitude, longitude, user.id); // Pass user.id as adminId
       
       if (newIncident) {
         toast.success('Incident submitted successfully!', { id: 'create-incident' });

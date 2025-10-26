@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Post, PostService } from '@/services/PostService'; // Only PostService for post data
-import { Comment, CommentService } from '@/services/CommentService'; // New import for CommentService and Comment interface
-import PostCard from '@/components/PostCard';
+import { Incident, IncidentService } from '@/services/IncidentService';
+import { Comment, CommentService } from '@/services/CommentService';
+import IncidentCard from '@/components/IncidentCard';
 import { Loader2, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { handleError } from '@/utils/errorHandler';
@@ -12,15 +12,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
-const PostDetailPage: React.FC = () => {
-  const { postId } = useParams<{ postId: string }>();
+const IncidentDetailPage: React.FC = () => {
+  const { incidentId } = useParams<{ incidentId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [post, setPost] = useState<Post | null>(null);
+  const [incident, setIncident] = useState<Incident | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [previousPost, setPreviousPost] = useState<Post | null>(null);
+  const [previousIncident, setPreviousIncident] = useState<Incident | null>(null);
   
   // Comment states
   const [comments, setComments] = useState<Comment[]>([]);
@@ -28,9 +28,9 @@ const PostDetailPage: React.FC = () => {
   const [isCommenting, setIsCommenting] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
 
-  const fetchSinglePost = useCallback(async () => {
-    if (!postId) {
-      setError('Post ID is missing.');
+  const fetchSingleIncident = useCallback(async () => {
+    if (!incidentId) {
+      setError('Incident ID is missing.');
       setLoading(false);
       return;
     }
@@ -38,49 +38,49 @@ const PostDetailPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const fetchedPost = await PostService.fetchSinglePost(postId); // Using PostService
-      if (fetchedPost) {
-        setPost(fetchedPost);
-        const fetchedPreviousPost = await PostService.fetchPreviousPost(fetchedPost.timestamp); // Using PostService
-        setPreviousPost(fetchedPreviousPost);
+      const fetchedIncident = await IncidentService.fetchSingleIncident(incidentId);
+      if (fetchedIncident) {
+        setIncident(fetchedIncident);
+        const fetchedPreviousIncident = await IncidentService.fetchPreviousIncident(fetchedIncident.date);
+        setPreviousIncident(fetchedPreviousIncident);
       } else {
-        setError(handleError(null, 'Failed to load post or post not found.'));
+        setError(handleError(null, 'Failed to load incident or incident not found.'));
       }
     } catch (err) {
-      setError(handleError(err, 'An unexpected error occurred while loading the post.'));
+      setError(handleError(err, 'An unexpected error occurred while loading the incident.'));
     } finally {
       setLoading(false);
     }
-  }, [postId]);
+  }, [incidentId]);
 
-  const fetchCommentsForPost = useCallback(async () => {
-    if (!postId) return;
+  const fetchCommentsForIncident = useCallback(async () => {
+    if (!incidentId) return;
     setLoadingComments(true);
     try {
-      const fetchedComments = await CommentService.fetchComments(postId); // Using CommentService
+      const fetchedComments = await CommentService.fetchComments(incidentId);
       setComments(fetchedComments);
     } catch (err) {
       setError(handleError(err, 'Failed to load comments. Please try again.'));
     } finally {
       setLoadingComments(false);
     }
-  }, [postId]);
+  }, [incidentId]);
 
   useEffect(() => {
-    fetchSinglePost();
-    fetchCommentsForPost();
+    fetchSingleIncident();
+    fetchCommentsForIncident();
 
     const commentsChannel = supabase
-      .channel(`public:comments:post_id=eq.${postId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: `post_id=eq.${postId}` }, () => {
-        fetchCommentsForPost();
+      .channel(`public:comments:incident_id=eq.${incidentId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: `incident_id=eq.${incidentId}` }, () => {
+        fetchCommentsForIncident();
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(commentsChannel);
     };
-  }, [fetchSinglePost, fetchCommentsForPost, postId]);
+  }, [fetchSingleIncident, fetchCommentsForIncident, incidentId]);
 
   const handleAddComment = async () => {
     if (!user) {
@@ -91,15 +91,15 @@ const PostDetailPage: React.FC = () => {
       handleError(null, 'Comment cannot be empty.');
       return;
     }
-    if (!postId) {
-      handleError(null, 'Post ID is missing for commenting.');
+    if (!incidentId) {
+      handleError(null, 'Incident ID is missing for commenting.');
       return;
     }
 
     setIsCommenting(true);
     try {
       toast.loading('Adding comment...', { id: 'add-comment' });
-      const newComment = await CommentService.addComment(postId, user.id, newCommentContent); // Using CommentService
+      const newComment = await CommentService.addComment(incidentId, user.id, newCommentContent);
       
       if (newComment) {
         toast.success('Comment added!', { id: 'add-comment' });
@@ -133,17 +133,17 @@ const PostDetailPage: React.FC = () => {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
         <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
-        <p className="tw-ml-2">Loading post...</p>
+        <p className="tw-ml-2">Loading incident...</p>
       </div>
     );
   }
 
-  if (!post && !loading && !error) {
+  if (!incident && !loading && !error) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
         <div className="tw-text-center">
-          <h1 className="tw-text-2xl tw-font-bold tw-text-foreground tw-mb-4">Post Not Found</h1>
-          <p className="tw-text-muted-foreground">The post you are looking for does not exist or has been removed.</p>
+          <h1 className="tw-text-2xl tw-font-bold tw-text-foreground tw-mb-4">Incident Not Found</h1>
+          <p className="tw-text-muted-foreground">The incident you are looking for does not exist or has been removed.</p>
           <Button onClick={() => navigate('/home')} className="tw-mt-4 tw-button">Go to Home Page</Button>
         </div>
       </div>
@@ -157,7 +157,7 @@ const PostDetailPage: React.FC = () => {
           <h1 className="tw-text-2xl tw-font-bold tw-text-destructive tw-mb-4">Error</h1>
           <p className="tw-text-muted-foreground">{error}</p>
           <div className="tw-flex tw-justify-center tw-gap-2 tw-mt-4">
-            <Button onClick={fetchSinglePost} className="tw-button">Retry</Button>
+            <Button onClick={fetchSingleIncident} className="tw-button">Retry</Button>
             <Button onClick={() => navigate('/home')} variant="outline" className="tw-button">Go to Home Page</Button>
           </div>
         </div>
@@ -165,7 +165,7 @@ const PostDetailPage: React.FC = () => {
     );
   }
 
-  if (!post) {
+  if (!incident) {
     return null;
   }
 
@@ -174,9 +174,9 @@ const PostDetailPage: React.FC = () => {
       <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
         Back to Home Page
       </Button>
-      <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground tw-text-center">Post Detail</h1>
-      <div className="tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-md" aria-labelledby={`post-title-${post.id}`}>
-        <PostCard post={post} /> 
+      <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground tw-text-center">Incident Detail</h1>
+      <div className="tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-md" aria-labelledby={`incident-title-${incident.id}`}>
+        <IncidentCard incident={incident} /> 
       </div>
 
       <div className="tw-mt-8 tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-md">
@@ -221,11 +221,11 @@ const PostDetailPage: React.FC = () => {
         )}
       </div>
 
-      {previousPost && (
+      {previousIncident && (
         <div className="tw-mt-8">
-          <h2 className="tw-text-2xl tw-font-semibold tw-mb-4 tw-text-foreground">Previous Post</h2>
+          <h2 className="tw-text-2xl tw-font-semibold tw-mb-4 tw-text-foreground">Previous Incident</h2>
           <div className="tw-grid tw-grid-cols-1">
-            <PostCard post={previousPost} />
+            <IncidentCard incident={previousIncident} />
           </div>
         </div>
       )}
@@ -233,4 +233,4 @@ const PostDetailPage: React.FC = () => {
   );
 };
 
-export default PostDetailPage;
+export default IncidentDetailPage;

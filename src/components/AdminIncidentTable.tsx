@@ -153,14 +153,14 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
                 <TableHead className="tw-whitespace-nowrap">Type</TableHead>
                 <TableHead className="tw-whitespace-nowrap">Location</TableHead>
                 <TableHead className="tw-min-w-[200px]">Description</TableHead>
-                <TableHead className="tw-whitespace-nowrap">Image</TableHead> {/* New Image column */}
+                <TableHead className="tw-whitespace-nowrap">Image</TableHead>
                 <TableHead className="tw-text-right tw-whitespace-nowrap">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredIncidents.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="tw-h-24 tw-text-center tw-text-muted-foreground"> {/* Updated colspan */}
+                  <TableCell colSpan={7} className="tw-h-24 tw-text-center tw-text-muted-foreground">
                     {searchTerm ? 'No incidents match your search.' : 'No incidents found.'}
                   </TableCell>
                 </TableRow>
@@ -233,8 +233,8 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
                 location: editingIncident.location,
                 description: editingIncident.description,
                 image_url: editingIncident.image_url,
-                latitude: editingIncident.latitude, // Pass latitude
-                longitude: editingIncident.longitude, // Pass longitude
+                latitude: editingIncident.latitude,
+                longitude: editingIncident.longitude,
               }}
             />
           </DialogContent>

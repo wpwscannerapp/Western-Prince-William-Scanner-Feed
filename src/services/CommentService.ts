@@ -4,7 +4,7 @@ import { SUPABASE_API_TIMEOUT } from '@/config';
 
 export interface Comment {
   id: string;
-  post_id: string;
+  incident_id: string;
   user_id: string;
   content: string;
   created_at: string;
@@ -18,18 +18,18 @@ const logSupabaseError = (functionName: string, error: any) => {
 };
 
 export const CommentService = {
-  async addComment(postId: string, userId: string, content: string): Promise<Comment | null> {
+  async addComment(incidentId: string, userId: string, content: string): Promise<Comment | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
       const { data, error } = await supabase
         .from('comments')
-        .insert({ post_id: postId, user_id: userId, content })
+        .insert({ incident_id: incidentId, user_id: userId, content })
         .abortSignal(controller.signal)
         .select(`
           id,
-          post_id,
+          incident_id,
           user_id,
           content,
           created_at,
@@ -45,7 +45,7 @@ export const CommentService = {
       const profileData = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
       return {
         id: data.id,
-        post_id: data.post_id,
+        incident_id: data.incident_id,
         user_id: data.user_id,
         content: data.content,
         created_at: data.created_at,
@@ -65,7 +65,7 @@ export const CommentService = {
     }
   },
 
-  async fetchComments(postId: string): Promise<Comment[]> {
+  async fetchComments(incidentId: string): Promise<Comment[]> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -74,14 +74,14 @@ export const CommentService = {
         .from('comments')
         .select(`
           id,
-          post_id,
+          incident_id,
           user_id,
           content,
           created_at,
           updated_at,
           profiles (username, avatar_url)
         `)
-        .eq('post_id', postId)
+        .eq('incident_id', incidentId)
         .abortSignal(controller.signal)
         .order('created_at', { ascending: true });
 
@@ -93,7 +93,7 @@ export const CommentService = {
         const profileData = Array.isArray(comment.profiles) ? comment.profiles[0] : comment.profiles;
         return {
           id: comment.id,
-          post_id: comment.post_id,
+          incident_id: comment.incident_id,
           user_id: comment.user_id,
           content: comment.content,
           created_at: comment.created_at,
@@ -126,7 +126,7 @@ export const CommentService = {
         .abortSignal(controller.signal)
         .select(`
           id,
-          post_id,
+          incident_id,
           user_id,
           content,
           created_at,
@@ -142,7 +142,7 @@ export const CommentService = {
       const profileData = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
       return {
         id: data.id,
-        post_id: data.post_id,
+        incident_id: data.incident_id,
         user_id: data.user_id,
         content: data.content,
         created_at: data.created_at,

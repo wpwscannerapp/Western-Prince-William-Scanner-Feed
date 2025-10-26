@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Newspaper, Settings, BellRing, Menu, Phone, Siren } from 'lucide-react'; // Added Siren icon
+import { LayoutDashboard, Settings, BellRing, Menu, Phone, Siren } from 'lucide-react'; // Removed Newspaper icon
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
@@ -13,8 +13,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, onTabChange }) =
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const navItems = [
-    { name: 'Scanner Posts', icon: Newspaper, tab: 'posts' }, // Renamed
-    { name: 'Incidents', icon: Siren, tab: 'incidents' }, // New nav item
+    { name: 'Incidents', icon: Siren, tab: 'incidents' }, // Unified Incidents tab
     { name: 'Analytics', icon: LayoutDashboard, tab: 'analytics' },
     { name: 'Settings', icon: Settings, tab: 'settings' },
     { name: 'Notifications', icon: BellRing, tab: 'notifications' },
