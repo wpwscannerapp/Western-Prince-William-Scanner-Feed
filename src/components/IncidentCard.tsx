@@ -160,7 +160,7 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
         </p>
         {incident.image_url && (
           <img
-            src={incident.image_url}
+            src={`/.netlify/images?url=${encodeURIComponent(incident.image_url)}&w=800&h=600&fit=cover&fm=auto`}
             alt={`Image for incident: ${incident.title}`}
             className="tw-w-full tw-max-h-80 tw-object-cover tw-rounded-md tw-mb-4 tw-border tw-border-border"
             loading="lazy"

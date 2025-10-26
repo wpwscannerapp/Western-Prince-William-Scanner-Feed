@@ -252,7 +252,10 @@ const ProfileForm: React.FC = () => {
       <div className="tw-flex tw-flex-col tw-items-center tw-gap-4">
         <div className="tw-relative tw-group">
           <Avatar className="tw-h-24 tw-w-24 tw-border-2 tw-border-primary">
-            <AvatarImage src={imagePreview || undefined} alt="User Avatar" />
+            <AvatarImage 
+              src={imagePreview ? `/.netlify/images?url=${encodeURIComponent(imagePreview)}&w=96&h=96&fit=cover&fm=auto` : undefined} 
+              alt="User Avatar" 
+            />
             <AvatarFallback className="tw-bg-primary tw-text-primary-foreground tw-text-xl">
               {profile?.first_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || <User className="tw-h-12 tw-w-12" aria-hidden="true" />}
             </AvatarFallback>
