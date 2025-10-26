@@ -42,7 +42,6 @@ const IncidentArchivePage: React.FC = () => {
   } = useInfiniteQuery<Incident[], Error>({
     queryKey: ['incidents', filters],
     queryFn: async ({ pageParam = 0 }) => {
-      console.log('IncidentArchivePage: Fetching incidents with offset', pageParam, 'and filters', filters);
       const fetchedIncidents = await IncidentService.fetchIncidents(pageParam as number, filters);
       return fetchedIncidents;
     },
@@ -60,7 +59,6 @@ const IncidentArchivePage: React.FC = () => {
   const incidents = data?.pages.flat() || [];
 
   const handleFilterChange = useCallback((newFilters: IncidentFilter) => {
-    console.log('IncidentArchivePage: Filter change detected. New filters:', newFilters);
     setFilters(newFilters);
     queryClient.invalidateQueries({ queryKey: ['incidents'] });
   }, [queryClient]);
@@ -72,7 +70,6 @@ const IncidentArchivePage: React.FC = () => {
       observer.current = new IntersectionObserver(
         entries => {
           if (entries[0].isIntersecting && hasNextPage) {
-            console.log('IncidentArchivePage: IntersectionObserver triggered, fetching next page.');
             fetchNextPage();
           }
         },

@@ -102,9 +102,6 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
   };
 
   const handleSubmit = async (values: IncidentFormValues) => {
-    console.log('IncidentForm: Internal handleSubmit triggered.');
-    console.log('IncidentForm: Form validation errors:', form.formState.errors);
-
     setIsGeocoding(true);
     let latitude: number | undefined = initialIncident?.latitude;
     let longitude: number | undefined = initialIncident?.longitude;

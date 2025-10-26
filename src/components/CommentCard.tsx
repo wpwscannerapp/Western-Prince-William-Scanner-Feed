@@ -40,7 +40,6 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
         toast.error('Failed to update comment.', { id: 'update-comment' });
       }
     } catch (err) {
-      console.error('Error updating comment:', err);
       toast.error('An error occurred while updating the comment.', { id: 'update-comment' });
     } finally {
       setIsLoading(false);
@@ -61,7 +60,6 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
           toast.error('Failed to delete comment.', { id: 'delete-comment' });
         }
       } catch (err) {
-        console.error('Error deleting comment:', err);
         toast.error('An error occurred while deleting the comment.', { id: 'delete-comment' });
       } finally {
         setIsLoading(false);
@@ -126,7 +124,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
             </div>
           </div>
         ) : (
-          <p className="tw-text-sm tw-text-foreground tw-whitespace-pre-wrap tw-leading-relaxed">{comment.content}</p>
+          <p className="tw-text-sm tw-text-foreground tw-whitespace-pre-wrap tw-leading-relaxed">{editedContent}</p>
         )}
         {isOwner && !isEditing && (
           <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-2">

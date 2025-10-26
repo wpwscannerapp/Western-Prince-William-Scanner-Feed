@@ -111,7 +111,6 @@ const ProfileForm: React.FC = () => {
         .limit(1);
 
       if (error) {
-        console.error('Error checking username availability:', error);
         setUsernameStatus(null); // Reset status on error
         return;
       }
@@ -122,7 +121,6 @@ const ProfileForm: React.FC = () => {
         setUsernameStatus('available');
       }
     } catch (err) {
-      console.error('Unexpected error checking username availability:', err);
       setUsernameStatus(null); // Reset status on unexpected error
     }
   };

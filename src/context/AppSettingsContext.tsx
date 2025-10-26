@@ -6,9 +6,6 @@ import { ProfilePageContext } from './ProfilePageContext';
 
 const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useAppSettings();
-  // Removed useAuth hook call as it was causing context order issues.
-  // The logic for handling user logout can be placed in components that are guaranteed
-  // to be rendered within both AuthProvider and AppSettingsProvider.
   const [isWebPushInitialized, setIsWebPushInitialized] = useState(false);
   const webPushInitAttemptedRef = useRef(false);
 
@@ -45,8 +42,6 @@ const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     initializeWebPushSDK();
   }, []);
-
-  // Removed useEffect that depended on user and authLoading as it's no longer needed here.
 
   return (
     <ProfilePageContext.Provider value={isWebPushInitialized}>

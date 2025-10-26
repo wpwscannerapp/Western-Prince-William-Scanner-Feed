@@ -27,8 +27,6 @@ const HomePage: React.FC = () => {
     }
   }, [isAlertsError, alertsError]);
 
-  console.log('HomePage: Rendered with', { isAdmin, isAdminLoading, isAdminError });
-
   const handleLogout = async () => {
     await signOut();
     // The AuthProvider will handle navigation to /auth after signOut

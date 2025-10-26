@@ -38,7 +38,6 @@ export const SettingsService = {
 
       if (error) {
         if (error.code === 'PGRST116') { // No rows found, return default structure
-          console.warn('No app_settings found, returning default structure.');
           return {
             id: 'default', // Placeholder ID
             primary_color: '#2196F3',

@@ -36,7 +36,6 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
       const fetchedIncidents = await IncidentService.fetchIncidents(0);
       setIncidents(fetchedIncidents);
     } catch (err) {
-      console.error('Error fetching incidents:', err);
       setError('Failed to load incidents. Please try again.');
     } finally {
       setLoading(false);
@@ -60,7 +59,6 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
           toast.error('Failed to delete incident.', { id: 'delete-incident' });
         }
       } catch (err) {
-        console.error('Error deleting incident:', err);
         toast.error('An error occurred while deleting the incident.', { id: 'delete-incident' });
       }
     }
@@ -72,7 +70,6 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
   };
 
   const handleUpdateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => {
-    console.log('AdminIncidentTable: handleUpdateIncident called.');
     if (!editingIncident) return false;
 
     setIsSubmitting(true);
@@ -99,7 +96,6 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
         return false;
       }
     } catch (err) {
-      console.error('Error updating incident:', err);
       toast.error('An error occurred while updating the incident.', { id: 'update-incident' });
       return false;
     } finally {

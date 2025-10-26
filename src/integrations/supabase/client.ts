@@ -23,7 +23,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 if (import.meta.env.DEV) {
   console.log('Supabase Client Init: Using URL:', supabaseUrl);
   console.log('Supabase Client Init: Using Anon Key (first 10 chars):', supabaseAnonKey.substring(0, 10) + '...');
-  console.log('Supabase Client Object:', supabase); // <-- NEW LOG
   supabase.auth.getSession().then(({ error }) => {
     if (error) {
       console.error(`Supabase Auth Init Failed: ${error.message}`);

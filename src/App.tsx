@@ -10,14 +10,12 @@ import MainContent from './components/MainContent';
 const queryClient = new QueryClient();
 
 const App = () => {
-  console.log('App: Component is rendering.');
-
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Sonner />
-          <BrowserRouter> {/* Removed future prop */}
+          <BrowserRouter>
             <AuthProvider>
               <AppSettingsProvider>
                 {/* Render MainContent which contains all routes */}

@@ -13,7 +13,6 @@ const AuthPage = () => {
   useEffect(() => {
     // Redirect if user is present and auth is not loading, regardless of explicit sign-in
     if (!loading && user) { 
-      console.log('AuthPage: User session present, redirecting to /home.');
       navigate('/home', { replace: true });
     }
   }, [user, loading, navigate]);

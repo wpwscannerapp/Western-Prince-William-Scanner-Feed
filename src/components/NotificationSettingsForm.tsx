@@ -96,14 +96,12 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'alerts' }, (payload) => {
         // This callback is for UI updates, not for sending push notifications (that's handled by Netlify function)
         // You could add a toast here to show a new alert has been received in the app
-        console.log('New alert received via real-time:', payload.new);
         toast.info(`New Alert: ${payload.new.title}`, {
           description: payload.new.description,
           duration: 5000,
         });
       })
       .subscribe((status) => {
-        console.log('Supabase alerts channel status:', status);
         if (status === 'SUBSCRIBED') {
           setAlertRealtimeStatus('active');
           toast.success('Real-time alerts connection active!', { id: 'alert-rt-status', duration: 3000 });
@@ -112,7 +110,6 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
           toast.error('Real-time alerts connection failed. Please refresh.', { id: 'alert-rt-status', duration: 5000 });
         } else if (status === 'CLOSED') {
           setAlertRealtimeStatus('failed');
-          toast.warning('Real-time alerts connection closed.', { id: 'alert-rt-status', duration: 3000 });
         } else if (status === 'UNSUBSCRIBED') {
           setAlertRealtimeStatus('failed');
         }
