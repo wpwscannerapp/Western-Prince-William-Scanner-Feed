@@ -45,8 +45,8 @@ const handler: Handler = async (event: HandlerEvent) => {
         const blobData: BlobSessionData = { userId, expiresAt, createdAt: new Date().toISOString() };
         const ttlInSeconds = Math.max(1, expiresIn); // Ensure TTL is at least 1 second
         console.log(`createSession: Setting blob for sessionId: ${sessionId}, userId: ${userId}, TTL: ${ttlInSeconds}s`);
-        // Corrected: Use expireInSeconds property in options object
-        await sessionsStore.setJSON(sessionId, blobData, { expireInSeconds: ttlInSeconds }); 
+        // Corrected: Use 'ttl' property for expiration
+        await sessionsStore.setJSON(sessionId, blobData, { ttl: ttlInSeconds }); 
         console.log(`createSession: Blob set successfully for sessionId: ${sessionId}`);
         return { statusCode: 200, body: JSON.stringify({ success: true }) };
       }
