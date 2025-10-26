@@ -34,7 +34,7 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
-      const { data, error: selectError } = await supabase
+      const { error: selectError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', userId)

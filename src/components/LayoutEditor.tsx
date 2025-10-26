@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from 'react';
-import { DragDropContext, Droppable, Draggable, DraggableProvided } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { GripVertical, Monitor, Tablet, Smartphone } from 'lucide-react';
@@ -72,7 +72,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ layout = [], onLayoutChange
     index: number;
   }) => (
     <Draggable draggableId={component.id} index={index}>
-      {(provided: DraggableProvided, snapshot: import('react-beautiful-dnd').DraggableStateSnapshot) => {
+      {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => {
         const { onTransitionEnd, ...draggablePropsWithoutTransitionEnd } = provided.draggableProps;
         return (
           <div
@@ -121,7 +121,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ layout = [], onLayoutChange
                 <div {...provided.droppableProps} ref={provided.innerRef} className="tw-flex tw-flex-wrap tw-gap-2 tw-p-4 tw-border tw-rounded-lg tw-bg-gray-100 tw-bg-opacity-20 tw-min-h-[100px]" aria-label="Component palette">
                   {sampleComponents.map((comp, index) => (
                     <Draggable key={`palette-${comp.id}`} draggableId={`palette-${comp.id}`} index={index}>
-                      {(provided: DraggableProvided) => {
+                      {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => {
                         const { onTransitionEnd, ...draggablePropsWithoutTransitionEnd } = provided.draggableProps;
                         return (
                           <Card

@@ -82,7 +82,7 @@ define(['./workbox-bfb10adf'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "index.html",
-    "revision": "0.9s1rlac1k38"
+    "revision": "0.lv04o2j2ln"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
@@ -97,13 +97,7 @@ define(['./workbox-bfb10adf'], (function (workbox) { 'use strict';
       maxAgeSeconds: 604800
     })]
   }), 'GET');
-  // Dynamically get SUPABASE_URL from environment variables
-  const SUPABASE_URL = self.location.origin; // Fallback, but should be replaced by Vite's env var
-  // This regex needs to be dynamically generated based on the actual Supabase URL
-  // For development, this might be 'http://localhost:54321' or similar.
-  // In production, it will be your deployed Supabase URL.
-  // The VitePWA plugin should handle this replacement during build.
-  workbox.registerRoute(new RegExp(`^${SUPABASE_URL}/rest/v1/incidents`), new workbox.StaleWhileRevalidate({
+  workbox.registerRoute(/^undefined\/rest\/v1\/incidents/, new workbox.StaleWhileRevalidate({
     "cacheName": "supabase-incidents-api-cache",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 50,
@@ -112,7 +106,7 @@ define(['./workbox-bfb10adf'], (function (workbox) { 'use strict';
       statuses: [0, 200]
     })]
   }), 'GET');
-  workbox.registerRoute(new RegExp(`^${SUPABASE_URL}/storage/v1/object/public/post_images/`), new workbox.CacheFirst({
+  workbox.registerRoute(/^undefined\/storage\/v1\/object\/public\/post_images\//, new workbox.CacheFirst({
     "cacheName": "supabase-post-images-cache",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 100,
@@ -123,3 +117,4 @@ define(['./workbox-bfb10adf'], (function (workbox) { 'use strict';
   }), 'GET');
 
 }));
+//# sourceMappingURL=sw.js.map

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { SPLASH_DURATION } from '@/config';
 
@@ -7,7 +7,6 @@ const Index: React.FC = () => {
   const { user, authReady } = useAuth();
   const [minimumSplashDurationPassed, setMinimumSplashDurationPassed] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     const splashDuration = SPLASH_DURATION || 3000;
