@@ -8,6 +8,7 @@ export default defineConfig(({ command }) => {
   const supabaseUrl = process.env.VITE_SUPABASE_URL; 
 
   return {
+    base: '/', // Explicitly set base to root
     plugins: [
       react(),
       VitePWA({
@@ -18,6 +19,8 @@ export default defineConfig(({ command }) => {
           skipWaiting: true,
           // Cache static assets
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+          // Explicitly set service worker destination filename for build
+          swDest: 'dist/service-worker.js', 
           runtimeCaching: [
             {
               // Cache assets served from the same origin (e.g., bundled JS/CSS, public folder images)
@@ -64,6 +67,11 @@ export default defineConfig(({ command }) => {
               },
             },
           ],
+        },
+        devOptions: {
+          enabled: true, // Ensure PWA is enabled in development
+          type: 'module', // Use module type for dev service worker
+          navigateFallback: 'index.html', // Fallback for SPA
         },
         // Embed manifest.json content directly
         manifest: {
