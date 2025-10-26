@@ -1,17 +1,33 @@
 "use client";
 
-import { supabase } from '@/integrations/supabase/client';
+import { getStore } from '@netlify/blobs';
 import { handleError } from '@/utils/errorHandler';
 import { Session } from '@supabase/supabase-js';
 import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsService
 
+// Define the structure of a session stored in Netlify Blobs
+export interface BlobSessionData {
+  userId: string;
+  expiresAt: string; // ISO string
+  createdAt: string; // ISO string
+}
+
 export interface UserSession {
-  id: string;
+  id: string; // This will be the sessionId
   user_id: string;
   session_id: string;
   created_at: string;
   expires_at: string;
 }
+
+const sessionsStore = getStore('user_sessions');
+
+const logBlobError = (functionName: string, error: any) => {
+  handleError(error, `Error in ${functionName}`);
+  if (import.meta.env.DEV) {
+    console.error(`Netlify Blobs Error in ${functionName}:`, error);
+  }
+};
 
 export const SessionService = {
   async createSession(session: Session, sessionId: string): Promise<UserSession | null> {
@@ -20,26 +36,32 @@ export const SessionService = {
       AnalyticsService.trackEvent({ name: 'create_session_failed', properties: { reason: 'invalid_session_data' } });
       return null;
     }
-    const expiresAt = new Date(Date.now() + session.expires_in * 1000).toISOString();
-    try {
-      const { data, error } = await supabase
-        .from('user_sessions')
-        .upsert(
-          { user_id: session.user.id, session_id: sessionId, expires_at: expiresAt },
-          { onConflict: 'session_id' }
-        )
-        .select()
-        .single();
 
-      if (error) {
-        handleError(error, `Failed to create or update user session: ${error.message}`);
-        AnalyticsService.trackEvent({ name: 'create_session_failed', properties: { userId: session.user.id, error: error.message } });
-        return null;
-      }
+    const expiresAtDate = new Date(Date.now() + session.expires_in * 1000);
+    const expiresAtISO = expiresAtDate.toISOString();
+    const createdAtISO = new Date().toISOString();
+
+    const blobData: BlobSessionData = {
+      userId: session.user.id,
+      expiresAt: expiresAtISO,
+      createdAt: createdAtISO,
+    };
+
+    try {
+      // Set the blob with the sessionId as key and blobData as value
+      // The ttl is in milliseconds, so session.expires_in is already in seconds
+      await sessionsStore.setJSON(sessionId, blobData, { ttl: session.expires_in * 1000 });
+
       AnalyticsService.trackEvent({ name: 'session_created_or_updated', properties: { userId: session.user.id, sessionId } });
-      return data as UserSession;
+      return {
+        id: sessionId,
+        user_id: session.user.id,
+        session_id: sessionId,
+        created_at: createdAtISO,
+        expires_at: expiresAtISO,
+      };
     } catch (err) {
-      handleError(err, 'An unexpected error occurred while creating user session.');
+      logBlobError('createSession', err);
       AnalyticsService.trackEvent({ name: 'create_session_unexpected_error', properties: { userId: session.user.id, error: (err as Error).message } });
       return null;
     }
@@ -48,126 +70,93 @@ export const SessionService = {
   async deleteSession(userId: string | undefined, sessionId: string): Promise<boolean> {
     if (!userId) {
       if (import.meta.env.DEV) {
-        console.warn('SessionService: No user ID provided for session deletion, skipping database deletion.');
+        console.warn('SessionService: No user ID provided for session deletion, skipping blob deletion.');
       }
       AnalyticsService.trackEvent({ name: 'delete_session_skipped', properties: { sessionId, reason: 'no_user_id' } });
       return true;
     }
 
     try {
-      const { error } = await supabase
-        .from('user_sessions')
-        .delete()
-        .eq('session_id', sessionId)
-        .eq('user_id', userId);
-
-      if (error) {
-        handleError(error, 'Failed to delete user session.');
-        AnalyticsService.trackEvent({ name: 'delete_session_failed', properties: { userId, sessionId, error: error.message } });
-        return false;
-      }
+      await sessionsStore.delete(sessionId);
       AnalyticsService.trackEvent({ name: 'session_deleted', properties: { userId, sessionId } });
       return true;
     } catch (err) {
-      handleError(err, 'An unexpected error occurred while deleting user session.');
+      logBlobError('deleteSession', err);
       AnalyticsService.trackEvent({ name: 'delete_session_unexpected_error', properties: { userId, sessionId, error: (err as Error).message } });
       return false;
     }
   },
 
+  // NOTE: This operation can be inefficient for a large number of sessions
+  // as it requires listing all keys and fetching each blob.
   async deleteAllSessionsForUser(userId: string): Promise<boolean> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || user.id !== userId) {
-      if (import.meta.env.DEV) {
-        console.warn('SessionService: No authenticated user or user mismatch, skipping database all sessions deletion.');
-      }
-      AnalyticsService.trackEvent({ name: 'delete_all_sessions_skipped', properties: { targetUserId: userId, reason: 'auth_mismatch' } });
-      return true;
-    }
-
     try {
-      const { error } = await supabase
-        .from('user_sessions')
-        .delete()
-        .eq('user_id', userId);
+      const { keys } = await sessionsStore.list();
+      const deletePromises: Promise<void>[] = [];
 
-      if (error) {
-        handleError(error, 'Failed to delete all user sessions.');
-        AnalyticsService.trackEvent({ name: 'delete_all_sessions_failed', properties: { userId, error: error.message } });
-        return false;
+      for (const key of keys) {
+        const blobData = await sessionsStore.getJSON<BlobSessionData>(key.key);
+        if (blobData && blobData.userId === userId) {
+          deletePromises.push(sessionsStore.delete(key.key));
+        }
       }
-      AnalyticsService.trackEvent({ name: 'all_sessions_deleted', properties: { userId } });
+      await Promise.all(deletePromises);
+      AnalyticsService.trackEvent({ name: 'all_sessions_deleted', properties: { userId, count: deletePromises.length } });
       return true;
     } catch (err) {
-      handleError(err, 'An unexpected error occurred while deleting all user sessions.');
+      logBlobError('deleteAllSessionsForUser', err);
       AnalyticsService.trackEvent({ name: 'delete_all_sessions_unexpected_error', properties: { userId, error: (err as Error).message } });
       return false;
     }
   },
 
+  // NOTE: This operation can be inefficient for a large number of sessions
+  // as it requires listing all keys and fetching each blob.
   async countActiveSessions(userId: string): Promise<number> {
     try {
-      const { count, error } = await supabase
-        .from('user_sessions')
-        .select('id', { count: 'exact' })
-        .eq('user_id', userId)
-        .gt('expires_at', new Date().toISOString());
+      const { keys } = await sessionsStore.list();
+      let count = 0;
+      const now = new Date();
 
-      if (error) {
-        handleError(error, 'Failed to count active sessions.');
-        AnalyticsService.trackEvent({ name: 'count_active_sessions_failed', properties: { userId, error: error.message } });
-        return 0;
+      for (const key of keys) {
+        const blobData = await sessionsStore.getJSON<BlobSessionData>(key.key);
+        if (blobData && blobData.userId === userId && new Date(blobData.expiresAt) > now) {
+          count++;
+        }
       }
-      return count || 0;
+      AnalyticsService.trackEvent({ name: 'count_active_sessions_fetched', properties: { userId, count } });
+      return count;
     } catch (err) {
-      handleError(err, 'An unexpected error occurred while counting active sessions.');
+      logBlobError('countActiveSessions', err);
       AnalyticsService.trackEvent({ name: 'count_active_sessions_unexpected_error', properties: { userId, error: (err as Error).message } });
       return 0;
     }
   },
 
+  // NOTE: This operation can be inefficient for a large number of sessions
+  // as it requires listing all keys and fetching each blob.
   async deleteOldestSessions(userId: string, limit: number): Promise<boolean> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || user.id !== userId) {
-      if (import.meta.env.DEV) {
-        console.warn('SessionService: No authenticated user or user mismatch, skipping database oldest sessions deletion.');
-      }
-      AnalyticsService.trackEvent({ name: 'delete_oldest_sessions_skipped', properties: { targetUserId: userId, reason: 'auth_mismatch' } });
-      return true;
-    }
-
     try {
-      const { data: sessions, error: fetchError } = await supabase
-        .from('user_sessions')
-        .select('id, created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: true });
+      const { keys } = await sessionsStore.list();
+      const userSessions: { key: string; data: BlobSessionData }[] = [];
 
-      if (fetchError) {
-        handleError(fetchError, 'Failed to fetch sessions for deletion.');
-        AnalyticsService.trackEvent({ name: 'delete_oldest_sessions_fetch_failed', properties: { userId, error: fetchError.message } });
-        return false;
+      for (const key of keys) {
+        const blobData = await sessionsStore.getJSON<BlobSessionData>(key.key);
+        if (blobData && blobData.userId === userId) {
+          userSessions.push({ key: key.key, data: blobData });
+        }
       }
 
-      if (sessions && sessions.length >= limit) {
-        const sessionsToDelete = sessions.slice(0, sessions.length - limit + 1);
-        const idsToDelete = sessionsToDelete.map(s => s.id);
-
-        const { error: deleteError } = await supabase
-          .from('user_sessions')
-          .delete()
-          .in('id', idsToDelete);
-
-        if (deleteError) {
-          handleError(deleteError, 'Failed to delete oldest sessions.');
-          AnalyticsService.trackEvent({ name: 'delete_oldest_sessions_failed', properties: { userId, count: idsToDelete.length, error: deleteError.message } });
-          return false;
-        }
-        AnalyticsService.trackEvent({ name: 'oldest_sessions_deleted', properties: { userId, count: idsToDelete.length } });
+      if (userSessions.length >= limit) {
+        userSessions.sort((a, b) => new Date(a.data.createdAt).getTime() - new Date(b.data.createdAt).getTime());
+        const sessionsToDelete = userSessions.slice(0, userSessions.length - limit + 1);
+        const deletePromises = sessionsToDelete.map(s => sessionsStore.delete(s.key));
+        await Promise.all(deletePromises);
+        AnalyticsService.trackEvent({ name: 'oldest_sessions_deleted', properties: { userId, count: deletePromises.length } });
       }
       return true;
     } catch (err) {
-      handleError(err, 'An unexpected error occurred while deleting oldest sessions.');
+      logBlobError('deleteOldestSessions', err);
       AnalyticsService.trackEvent({ name: 'delete_oldest_sessions_unexpected_error', properties: { userId, error: (err as Error).message } });
       return false;
     }
@@ -175,24 +164,12 @@ export const SessionService = {
 
   async isValidSession(userId: string, sessionId: string): Promise<boolean> {
     try {
-      const { data, error } = await supabase
-        .from('user_sessions')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('session_id', sessionId)
-        .gt('expires_at', new Date().toISOString())
-        .limit(1);
-
-      if (error) {
-        handleError(error, 'Failed to validate session.');
-        AnalyticsService.trackEvent({ name: 'is_valid_session_failed', properties: { userId, sessionId, error: error.message } });
-        return false;
-      }
-      const isValid = data !== null && data.length > 0;
+      const blobData = await sessionsStore.getJSON<BlobSessionData>(sessionId);
+      const isValid = blobData !== null && blobData.userId === userId && new Date(blobData.expiresAt) > new Date();
       AnalyticsService.trackEvent({ name: 'session_validated', properties: { userId, sessionId, isValid } });
       return isValid;
     } catch (err) {
-      handleError(err, 'An unexpected error occurred while validating session.');
+      logBlobError('isValidSession', err);
       AnalyticsService.trackEvent({ name: 'is_valid_session_unexpected_error', properties: { userId, sessionId, error: (err as Error).message } });
       return false;
     }
