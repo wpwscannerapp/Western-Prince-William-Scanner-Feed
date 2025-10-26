@@ -143,6 +143,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(currentSession?.user || null);
           setError(null);
 
+          // Await profile and session handling for SIGNED_IN and INITIAL_SESSION
+          if (currentSession && (_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION')) {
+            console.log('AuthContext: Awaiting async session/profile handling for SIGNED_IN or INITIAL_SESSION...');
+            await handleSessionCreation(currentSession);
+            console.log('AuthContext: Async session/profile handling complete.');
+          } else if (_event === 'SIGNED_OUT') {
+            console.log('AuthContext: Starting async session deletion handling in background for SIGNED_OUT...');
+            // For SIGNED_OUT, we don't need to await as it shouldn't block the UI
+            void handleSessionDeletion(userRef.current?.id).catch(e => {
+              console.error('AuthContext: Error during background session deletion:', (e as Error).message);
+            });
+            console.log('AuthContext: Async session deletion handling initiated.');
+          }
+
           if (!authReady) { // Only set if not already true
             setAuthReady(true);
             console.log(`AuthContext: AuthReady set to true after first onAuthStateChange.`);
@@ -165,21 +179,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLoading(false);
           console.log('AuthContext: Setting main loading state to false after initial synchronous state updates.');
           console.log(`AuthContext: IMMEDIATE STATE AFTER SYNC UPDATES - authReady: ${authReady}, loading: ${loading}, isExplicitlySignedIn: ${isExplicitlySignedIn}`); // <-- NEW LOG
-
-          // Run session management tasks in the background (don't await here)
-          (async () => {
-            if (currentSession) {
-              console.log('AuthContext: Starting async session/profile handling in background...');
-              await handleSessionCreation(currentSession);
-              console.log('AuthContext: Async session/profile handling complete.');
-            } else {
-              console.log('AuthContext: Starting async session deletion handling in background...');
-              await handleSessionDeletion(userRef.current?.id);
-              console.log('AuthContext: Async session deletion handling complete.');
-            }
-          })().catch(e => {
-            console.error('AuthContext: Error during background session/profile handling:', (e as Error).message);
-          });
           
           console.log('AuthContext: Main onAuthStateChange handler finished.');
           console.log(`AuthContext: State AFTER handler - authReady: ${authReady}, loading: ${loading}, isExplicitlySignedIn: ${isExplicitlySignedIn}`);
@@ -195,7 +194,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authTimeoutRef.current = null;
       }
     };
-  }, []); // Empty dependency array to run only once on mount
+  }, [handleSessionCreation, handleSessionDeletion]); // Added handleSessionCreation and handleSessionDeletion to deps
 
   const signUp = async (email: string, password: string) => {
     setLoading(true);
