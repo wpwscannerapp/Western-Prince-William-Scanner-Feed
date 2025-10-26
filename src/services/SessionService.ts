@@ -1,7 +1,7 @@
 "use client";
 
 import { getStore } from '@netlify/blobs';
-import { handleError } from '@/utils/errorHandler';
+import { handleError } => '@/utils/errorHandler';
 import { Session } from '@supabase/supabase-js';
 import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsService
 
@@ -49,8 +49,8 @@ export const SessionService = {
 
     try {
       // Set the blob with the sessionId as key and blobData as value
-      // The ttl is in milliseconds, so session.expires_in is already in seconds
-      await sessionsStore.setJSON(sessionId, blobData, { ttl: session.expires_in * 1000 });
+      // The ttl is in seconds for Netlify Blobs
+      await sessionsStore.setJSON(sessionId, blobData, { ttl: session.expires_in });
 
       AnalyticsService.trackEvent({ name: 'session_created_or_updated', properties: { userId: session.user.id, sessionId } });
       return {
@@ -91,13 +91,13 @@ export const SessionService = {
   // as it requires listing all keys and fetching each blob.
   async deleteAllSessionsForUser(userId: string): Promise<boolean> {
     try {
-      const { keys } = await sessionsStore.list();
+      const { blobs } = await sessionsStore.list();
       const deletePromises: Promise<void>[] = [];
 
-      for (const key of keys) {
-        const blobData = await sessionsStore.getJSON<BlobSessionData>(key.key);
+      for (const blob of blobs) {
+        const blobData = await sessionsStore.getJson<BlobSessionData>(blob.key);
         if (blobData && blobData.userId === userId) {
-          deletePromises.push(sessionsStore.delete(key.key));
+          deletePromises.push(sessionsStore.delete(blob.key));
         }
       }
       await Promise.all(deletePromises);
@@ -114,12 +114,12 @@ export const SessionService = {
   // as it requires listing all keys and fetching each blob.
   async countActiveSessions(userId: string): Promise<number> {
     try {
-      const { keys } = await sessionsStore.list();
+      const { blobs } = await sessionsStore.list();
       let count = 0;
       const now = new Date();
 
-      for (const key of keys) {
-        const blobData = await sessionsStore.getJSON<BlobSessionData>(key.key);
+      for (const blob of blobs) {
+        const blobData = await sessionsStore.getJson<BlobSessionData>(blob.key);
         if (blobData && blobData.userId === userId && new Date(blobData.expiresAt) > now) {
           count++;
         }
@@ -137,13 +137,13 @@ export const SessionService = {
   // as it requires listing all keys and fetching each blob.
   async deleteOldestSessions(userId: string, limit: number): Promise<boolean> {
     try {
-      const { keys } = await sessionsStore.list();
+      const { blobs } = await sessionsStore.list();
       const userSessions: { key: string; data: BlobSessionData }[] = [];
 
-      for (const key of keys) {
-        const blobData = await sessionsStore.getJSON<BlobSessionData>(key.key);
+      for (const blob of blobs) {
+        const blobData = await sessionsStore.getJson<BlobSessionData>(blob.key);
         if (blobData && blobData.userId === userId) {
-          userSessions.push({ key: key.key, data: blobData });
+          userSessions.push({ key: blob.key, data: blobData });
         }
       }
 
@@ -164,7 +164,7 @@ export const SessionService = {
 
   async isValidSession(userId: string, sessionId: string): Promise<boolean> {
     try {
-      const blobData = await sessionsStore.getJSON<BlobSessionData>(sessionId);
+      const blobData = await sessionsStore.getJson<BlobSessionData>(sessionId);
       const isValid = blobData !== null && blobData.userId === userId && new Date(blobData.expiresAt) > new Date();
       AnalyticsService.trackEvent({ name: 'session_validated', properties: { userId, sessionId, isValid } });
       return isValid;
