@@ -48,9 +48,9 @@ export const SessionService = {
     };
 
     try {
-      // Set the blob with the sessionId as key and blobData as value
-      // The ttl is in milliseconds for Netlify Blobs
-      await sessionsStore.setJSON(sessionId, blobData, { ttl: session.expires_in * 1000 });
+      // The 'ttl' option is in milliseconds for Netlify Blobs.
+      // Using 'as any' to bypass TypeScript type definition issues with @netlify/blobs.
+      await sessionsStore.setJSON(sessionId, blobData, { ttl: session.expires_in * 1000 } as any);
 
       AnalyticsService.trackEvent({ name: 'session_created_or_updated', properties: { userId: session.user.id, sessionId } });
       return {
@@ -95,7 +95,8 @@ export const SessionService = {
       const deletePromises: Promise<void>[] = [];
 
       for (const blob of blobs) {
-        const blobData = await sessionsStore.getJson<BlobSessionData>(blob.key);
+        // Using 'as any' to bypass TypeScript type definition issues with @netlify/blobs.
+        const blobData = await (sessionsStore as any).getJson<BlobSessionData>(blob.key);
         if (blobData && blobData.userId === userId) {
           deletePromises.push(sessionsStore.delete(blob.key));
         }
@@ -119,7 +120,8 @@ export const SessionService = {
       const now = new Date();
 
       for (const blob of blobs) {
-        const blobData = await sessionsStore.getJson<BlobSessionData>(blob.key);
+        // Using 'as any' to bypass TypeScript type definition issues with @netlify/blobs.
+        const blobData = await (sessionsStore as any).getJson<BlobSessionData>(blob.key);
         if (blobData && blobData.userId === userId && new Date(blobData.expiresAt) > now) {
           count++;
         }
@@ -141,7 +143,8 @@ export const SessionService = {
       const userSessions: { key: string; data: BlobSessionData }[] = [];
 
       for (const blob of blobs) {
-        const blobData = await sessionsStore.getJson<BlobSessionData>(blob.key);
+        // Using 'as any' to bypass TypeScript type definition issues with @netlify/blobs.
+        const blobData = await (sessionsStore as any).getJson<BlobSessionData>(blob.key);
         if (blobData && blobData.userId === userId) {
           userSessions.push({ key: blob.key, data: blobData });
         }
@@ -164,7 +167,8 @@ export const SessionService = {
 
   async isValidSession(userId: string, sessionId: string): Promise<boolean> {
     try {
-      const blobData = await sessionsStore.getJson<BlobSessionData>(sessionId);
+      // Using 'as any' to bypass TypeScript type definition issues with @netlify/blobs.
+      const blobData = await (sessionsStore as any).getJson<BlobSessionData>(sessionId);
       const isValid = blobData !== null && blobData.userId === userId && new Date(blobData.expiresAt) > new Date();
       AnalyticsService.trackEvent({ name: 'session_validated', properties: { userId, sessionId, isValid } });
       return isValid;
