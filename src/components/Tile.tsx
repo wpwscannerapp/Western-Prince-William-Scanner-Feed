@@ -17,7 +17,9 @@ const Tile: React.FC<TileProps> = ({ title, description, to, icon }) => {
   };
 
   // Use Netlify Image CDN for local paths to optimize image size
-  const optimizedIconSrc = icon; // Reverted to direct path
+  const optimizedIconSrc = icon.startsWith('/') 
+    ? `/.netlify/images?url=${encodeURIComponent(icon)}&w=48&h=48&fit=contain&fm=auto` 
+    : icon;
 
   return (
     <Card 

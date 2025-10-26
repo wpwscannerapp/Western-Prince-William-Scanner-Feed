@@ -44,7 +44,7 @@ const AuthPage = () => {
       {/* Branded Hero Section */}
       <div className="tw-relative tw-z-20 tw-text-center tw-mb-8 tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-xl">
         <img 
-          src="/Logo.png" 
+          src="/.netlify/images?url=/Logo.png&w=64&h=64&fit=contain&fm=auto" 
           alt="WPW Scanner Logo" 
           className="tw-h-16 tw-mx-auto tw-mb-4" 
           aria-hidden="true" 
