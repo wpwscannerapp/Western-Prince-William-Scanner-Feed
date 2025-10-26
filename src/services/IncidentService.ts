@@ -11,6 +11,8 @@ export interface Incident {
   location: string;
   date: string;
   image_url?: string; // Added image_url
+  latitude?: number; // New: latitude for map
+  longitude?: number; // New: longitude for map
   created_at: string;
 }
 
@@ -85,8 +87,8 @@ export const IncidentService = {
     }
   },
 
-  async createIncident(incident: Omit<Incident, 'id' | 'created_at' | 'image_url'>, imageFile: File | null): Promise<Incident | null> {
-    let imageUrl: string | null = null; // Changed type to string | null
+  async createIncident(incident: Omit<Incident, 'id' | 'created_at' | 'image_url'>, imageFile: File | null, latitude: number | undefined, longitude: number | undefined): Promise<Incident | null> {
+    let imageUrl: string | null = null;
     if (imageFile) {
       imageUrl = await StorageService.uploadIncidentImage(imageFile);
       if (!imageUrl) return null;
@@ -98,7 +100,7 @@ export const IncidentService = {
     try {
       const { data, error } = await supabase
         .from('incidents')
-        .insert({ ...incident, image_url: imageUrl })
+        .insert({ ...incident, image_url: imageUrl, latitude, longitude })
         .abortSignal(controller.signal)
         .select()
         .single();
@@ -120,7 +122,7 @@ export const IncidentService = {
     }
   },
 
-  async updateIncident(id: string, updates: Partial<Omit<Incident, 'id' | 'created_at'>>, imageFile: File | null, currentImageUrl: string | undefined): Promise<Incident | null> {
+  async updateIncident(id: string, updates: Partial<Omit<Incident, 'id' | 'created_at'>>, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined): Promise<Incident | null> {
     let imageUrl: string | undefined = currentImageUrl;
 
     if (imageFile) {
@@ -142,7 +144,7 @@ export const IncidentService = {
     try {
       const { data, error } = await supabase
         .from('incidents')
-        .update({ ...updates, image_url: imageUrl, date: new Date().toISOString() }) // Update date to current time on edit
+        .update({ ...updates, image_url: imageUrl, latitude, longitude, date: new Date().toISOString() }) // Update date to current time on edit
         .eq('id', id)
         .abortSignal(controller.signal)
         .select()

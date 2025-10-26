@@ -69,7 +69,7 @@ const IncidentsPage: React.FC = () => {
   // Removed real-time subscription for 'posts' as this page now handles 'incidents'
   // and 'alerts' are handled on the HomePage.
 
-  const handleCreateIncident = async (type: string, location: string, description: string) => { // Renamed and updated parameters
+  const handleCreateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => {
     if (!user) {
       toast.error('You must be logged in to create an incident.');
       return false;
@@ -80,13 +80,13 @@ const IncidentsPage: React.FC = () => {
 
     try {
       const title = `${type} at ${location}`; // Generate title from type and location
-      const newIncident = await IncidentService.createIncident({ // <-- TypeScript compiler error here
+      const newIncident = await IncidentService.createIncident({
         title,
         description,
         type,
         location,
         date: new Date().toISOString(), // Set current date/time
-      }, null); // Pass null for imageFile
+      }, imageFile, latitude, longitude);
       
       if (newIncident) {
         toast.success('Incident submitted successfully!', { id: 'create-incident' });
@@ -141,7 +141,7 @@ const IncidentsPage: React.FC = () => {
 
       {isAdmin && (
         <div className="tw-bg-background tw-p-4 tw-shadow-md tw-mb-8 tw-rounded-lg">
-          <h2 className="tw-text-2xl tw-font-semibold tw-text-foreground tw-mb-4">Submit New Incident</h2>
+          <h2 className="tw-2xl tw-font-semibold tw-text-foreground tw-mb-4">Submit New Incident</h2>
           <IncidentForm
             onSubmit={handleCreateIncident}
             isLoading={incidentFormLoading}

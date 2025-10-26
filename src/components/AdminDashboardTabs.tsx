@@ -70,7 +70,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
     }
   };
 
-  const handleCreateIncident = async (type: string, location: string, description: string) => {
+  const handleCreateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => {
     if (!user) {
       toast.error('You must be logged in to create an incident.');
       return false;
@@ -81,13 +81,13 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
 
     try {
       const title = `${type} at ${location}`;
-      const newIncident = await IncidentService.createIncident({ // <-- TypeScript compiler error here
+      const newIncident = await IncidentService.createIncident({
         title,
         description,
         type,
         location,
         date: new Date().toISOString(),
-      }, null); // Pass null for imageFile
+      }, imageFile, latitude, longitude);
       
       if (newIncident) {
         toast.success('Incident submitted successfully!', { id: 'create-incident' });

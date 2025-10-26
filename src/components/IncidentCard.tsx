@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { CalendarDays, MapPin, Tag, FileText } from 'lucide-react';
 import { Incident } from '@/services/IncidentService';
 import { format } from 'date-fns';
+import IncidentMap from './IncidentMap'; // Import IncidentMap
 
 interface IncidentCardProps {
   incident: Incident;
@@ -12,7 +13,7 @@ const IncidentCard: React.FC<IncidentCardProps> = ({ incident }) => {
   return (
     <Card className="tw-bg-card tw-border-border tw-shadow-md tw-text-foreground tw-rounded-lg">
       <CardHeader className="tw-pb-2">
-        <CardTitle className="tw-text-xl tw-font-bold">{incident.title}</CardTitle>
+        <CardTitle className="tw-xl tw-font-bold">{incident.title}</CardTitle>
         <CardDescription className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-text-muted-foreground">
           <CalendarDays className="tw-h-4 tw-w-4" />
           {format(new Date(incident.date), 'MMM dd, yyyy, hh:mm a')}
@@ -39,6 +40,19 @@ const IncidentCard: React.FC<IncidentCardProps> = ({ incident }) => {
               // Optionally show a broken image icon or text
             }}
           />
+        )}
+        {incident.latitude && incident.longitude && (
+          <div className="tw-w-full tw-h-64 tw-rounded-md tw-overflow-hidden tw-mb-4">
+            <IncidentMap alerts={[{ // IncidentMap expects an array of alerts, so we adapt
+              id: incident.id,
+              title: incident.title,
+              description: incident.description,
+              type: incident.type,
+              latitude: incident.latitude,
+              longitude: incident.longitude,
+              created_at: incident.created_at,
+            }]} />
+          </div>
         )}
         <p className="tw-flex tw-items-start tw-gap-2 tw-text-sm tw-text-muted-foreground tw-whitespace-pre-wrap">
           <FileText className="tw-h-4 tw-w-4 tw-flex-shrink-0" />

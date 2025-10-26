@@ -71,7 +71,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
     setIsEditDialogOpen(true);
   };
 
-  const handleUpdateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined) => {
+  const handleUpdateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => {
     if (!editingIncident) return false;
 
     setIsSubmitting(true);
@@ -84,7 +84,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
         location,
         description,
         date: editingIncident.date, // Keep original date or update if needed
-      }, imageFile, currentImageUrl);
+      }, imageFile, currentImageUrl, latitude, longitude);
       
       if (updatedIncident) {
         toast.success('Incident updated successfully!', { id: 'update-incident' });
@@ -232,7 +232,9 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
                 type: editingIncident.type,
                 location: editingIncident.location,
                 description: editingIncident.description,
-                image_url: editingIncident.image_url, // Pass image_url for editing
+                image_url: editingIncident.image_url,
+                latitude: editingIncident.latitude, // Pass latitude
+                longitude: editingIncident.longitude, // Pass longitude
               }}
             />
           </DialogContent>
