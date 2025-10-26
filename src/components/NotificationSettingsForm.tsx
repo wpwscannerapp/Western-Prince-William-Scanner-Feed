@@ -5,26 +5,23 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, BellRing, MapPin, LocateFixed, CheckCircle2, XCircle, Info } from 'lucide-react';
+import { Loader2, BellRing, CheckCircle2, XCircle, Info, Clock, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { NotificationService, PushSubscription } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
 import { supabase } from '@/integrations/supabase/client'; // Import supabase for real-time
 
-const alertTypes = ['Fire', 'Police', 'Road Closure', 'Medical', 'Other'];
-const radiusOptions = [1, 5, 10, 25, 50]; // Miles
+const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 const notificationSettingsSchema = z.object({
   enabled: z.boolean(),
-  preferred_types: z.array(z.string()),
-  radius_miles: z.number().min(1).max(100),
-  manual_location_address: z.string().optional().nullable(),
-  latitude: z.number().optional().nullable(),
-  longitude: z.number().optional().nullable(),
+  receive_all_alerts: z.boolean(),
+  preferred_start_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid time format (HH:MM)').optional().or(z.literal('')),
+  preferred_end_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid time format (HH:MM)').optional().or(z.literal('')),
+  preferred_days: z.array(z.string()),
 });
 
 type NotificationSettingsFormValues = z.infer<typeof notificationSettingsSchema>;
@@ -37,24 +34,24 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isLocating, setIsLocating] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [alertRealtimeStatus, setAlertRealtimeStatus] = useState<'active' | 'failed' | 'connecting'>('connecting'); // New state for real-time status
 
   const form = useForm<NotificationSettingsFormValues>({
     resolver: zodResolver(notificationSettingsSchema),
     defaultValues: {
-      preferred_types: [],
-      radius_miles: 5,
-      manual_location_address: null,
-      latitude: null,
-      longitude: null,
+      enabled: false,
+      receive_all_alerts: true,
+      preferred_start_time: '',
+      preferred_end_time: '',
+      preferred_days: [],
     },
   });
 
   const { handleSubmit, reset, watch, setValue, getValues } = form;
   const enabled = watch('enabled');
-  const preferredTypes = watch('preferred_types');
+  const receiveAllAlerts = watch('receive_all_alerts');
+  const preferredDays = watch('preferred_days');
 
   const fetchSettings = useCallback(async () => {
     if (!user) return;
@@ -64,20 +61,18 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
       if (settings) {
         reset({
           enabled: settings.enabled ?? false,
-          preferred_types: settings.preferred_types ?? [],
-          radius_miles: settings.radius_miles ?? 5,
-          manual_location_address: settings.manual_location_address ?? null,
-          latitude: settings.latitude ?? null,
-          longitude: settings.longitude ?? null,
+          receive_all_alerts: settings.receive_all_alerts ?? true,
+          preferred_start_time: settings.preferred_start_time?.substring(0, 5) ?? '', // Format to HH:MM
+          preferred_end_time: settings.preferred_end_time?.substring(0, 5) ?? '', // Format to HH:MM
+          preferred_days: settings.preferred_days ?? [],
         });
       } else {
         reset({
           enabled: false,
-          preferred_types: [],
-          radius_miles: 5,
-          manual_location_address: null,
-          latitude: null,
-          longitude: null,
+          receive_all_alerts: true,
+          preferred_start_time: '',
+          preferred_end_time: '',
+          preferred_days: [],
         });
       }
       setNotificationPermission(Notification.permission);
@@ -172,12 +167,19 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
         ...values,
         enabled: notificationsEnabledInDb,
         push_subscription: pushSubscription,
+        // Ensure time values are stored as 'HH:MM:SS' for TIME WITH TIME ZONE
+        preferred_start_time: values.preferred_start_time ? `${values.preferred_start_time}:00` : null,
+        preferred_end_time: values.preferred_end_time ? `${values.preferred_end_time}:00` : null,
       });
 
       if (updatedSettings) {
         toast.success('Settings saved successfully!', { id: 'save-settings' });
         setNotificationPermission(Notification.permission);
-        reset(updatedSettings);
+        reset({
+          ...updatedSettings,
+          preferred_start_time: updatedSettings.preferred_start_time?.substring(0, 5) ?? '',
+          preferred_end_time: updatedSettings.preferred_end_time?.substring(0, 5) ?? '',
+        });
       } else {
         throw new Error('database_update_failed');
       }
@@ -197,35 +199,12 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
     }
   };
 
-  const handleToggleType = (type: string) => {
-    const currentTypes = getValues('preferred_types');
-    if (currentTypes.includes(type)) {
-      setValue('preferred_types', currentTypes.filter((t: string) => t !== type));
+  const handleToggleDay = (day: string) => {
+    const currentDays = getValues('preferred_days');
+    if (currentDays.includes(day)) {
+      setValue('preferred_days', currentDays.filter((d: string) => d !== day));
     } else {
-      setValue('preferred_types', [...currentTypes, type]);
-    }
-  };
-
-  const getCurrentLocation = async () => {
-    setIsLocating(true);
-    toast.loading('Getting current location...', { id: 'get-location' });
-    try {
-      if (!navigator.geolocation) {
-        throw new Error('Geolocation is not supported by your browser.');
-      }
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
-      });
-      setValue('latitude', position.coords.latitude);
-      setValue('longitude', position.coords.longitude);
-      setValue('manual_location_address', null);
-      toast.success('Location updated!', { id: 'get-location' });
-    } catch (err: any) {
-      handleError(err, 'Failed to get current location. Please enable location services or enter manually.');
-      setValue('latitude', null);
-      setValue('longitude', null);
-    } finally {
-      setIsLocating(false);
+      setValue('preferred_days', [...currentDays, day]);
     }
   };
 
@@ -250,7 +229,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
     }
   };
 
-  const isFormDisabled = isSaving || isLocating || !isWebPushInitialized;
+  const isFormDisabled = isSaving || !isWebPushInitialized;
 
   if (authLoading || isLoading || !isWebPushInitialized) {
     return (
@@ -345,72 +324,74 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
             )}
           </div>
 
-          <div>
-            <Label className="tw-mb-2 tw-block">Preferred Alert Types</Label>
-            <div className="tw-flex tw-flex-wrap tw-gap-2">
-              {alertTypes.map(type => (
-                <Button
-                  key={type}
-                  type="button"
-                  variant={preferredTypes.includes(type) ? 'default' : 'outline'}
-                  onClick={() => handleToggleType(type)}
-                  disabled={isFormDisabled || !enabled}
-                  className={preferredTypes.includes(type) ? 'tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground' : 'tw-text-muted-foreground hover:tw-text-primary'}
-                >
-                  {type}
-                </Button>
-              ))}
-            </div>
-            {form.formState.errors.preferred_types && (
-              <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.preferred_types.message}</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="radius_miles" className="tw-mb-2 tw-block">Alert Radius (miles)</Label>
-            <Select
-              value={watch('radius_miles').toString()}
-              onValueChange={(value) => setValue('radius_miles', parseInt(value, 10))}
+          <div className="tw-flex tw-items-center tw-justify-between">
+            <Label htmlFor="receive_all_alerts" className="tw-text-base">Receive All Alerts</Label>
+            <Switch
+              id="receive_all_alerts"
+              checked={receiveAllAlerts}
+              onCheckedChange={(checked) => setValue('receive_all_alerts', checked)}
               disabled={isFormDisabled || !enabled}
-            >
-              <SelectTrigger id="radius_miles" className="tw-w-full">
-                <SelectValue placeholder="Select radius" />
-              </SelectTrigger>
-              <SelectContent>
-                {radiusOptions.map(radius => (
-                  <SelectItem key={radius} value={radius.toString()}>{radius} miles</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {form.formState.errors.radius_miles && (
-              <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.radius_miles.message}</p>
-            )}
+            />
           </div>
-
-          <div>
-            <Label htmlFor="manual_location_address" className="tw-mb-2 tw-block">Location for Alerts</Label>
-            <div className="tw-flex tw-gap-2">
-              <Input
-                id="manual_location_address"
-                placeholder="Enter address or zip code (e.g., 20155)"
-                {...form.register('manual_location_address')}
-                disabled={isFormDisabled || isLocating || !enabled}
-                className="tw-flex-1"
-              />
-              <Button type="button" onClick={getCurrentLocation} disabled={isFormDisabled || isLocating || !enabled}>
-                {isLocating ? <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" /> : <LocateFixed className="tw-mr-2 tw-h-4 tw-w-4" />}
-                Use Current Location
-              </Button>
-            </div>
-            {watch('latitude') && watch('longitude') && (
-              <p className="tw-text-sm tw-text-muted-foreground tw-mt-1 tw-flex tw-items-center tw-gap-1">
-                <MapPin className="tw-h-4 tw-w-4" /> Location set: {watch('latitude')?.toFixed(4)}, {watch('longitude')?.toFixed(4)}
+          {!receiveAllAlerts && enabled && (
+            <div className="tw-space-y-4 tw-p-4 tw-border tw-rounded-md tw-bg-muted/20">
+              <p className="tw-text-sm tw-text-muted-foreground tw-flex tw-items-center tw-gap-1">
+                <Info className="tw-h-4 tw-w-4" /> Customize when you want to receive alerts.
               </p>
-            )}
-            {form.formState.errors.manual_location_address && (
-              <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.manual_location_address.message}</p>
-            )}
-          </div>
+              <div>
+                <Label htmlFor="preferred_start_time" className="tw-mb-2 tw-block tw-flex tw-items-center tw-gap-2">
+                  <Clock className="tw-h-4 tw-w-4" /> Start Time (UTC)
+                </Label>
+                <Input
+                  id="preferred_start_time"
+                  type="time"
+                  {...form.register('preferred_start_time')}
+                  className="tw-bg-input tw-text-foreground"
+                  disabled={isFormDisabled || !enabled || receiveAllAlerts}
+                />
+                {form.formState.errors.preferred_start_time && (
+                  <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.preferred_start_time.message}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="preferred_end_time" className="tw-mb-2 tw-block tw-flex tw-items-center tw-gap-2">
+                  <Clock className="tw-h-4 tw-w-4" /> End Time (UTC)
+                </Label>
+                <Input
+                  id="preferred_end_time"
+                  type="time"
+                  {...form.register('preferred_end_time')}
+                  className="tw-bg-input tw-text-foreground"
+                  disabled={isFormDisabled || !enabled || receiveAllAlerts}
+                />
+                {form.formState.errors.preferred_end_time && (
+                  <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.preferred_end_time.message}</p>
+                )}
+              </div>
+              <div>
+                <Label className="tw-mb-2 tw-block tw-flex tw-items-center tw-gap-2">
+                  <CalendarDays className="tw-h-4 tw-w-4" /> Preferred Days
+                </Label>
+                <div className="tw-flex tw-flex-wrap tw-gap-2">
+                  {daysOfWeek.map(day => (
+                    <Button
+                      key={day}
+                      type="button"
+                      variant={preferredDays.includes(day) ? 'default' : 'outline'}
+                      onClick={() => handleToggleDay(day)}
+                      disabled={isFormDisabled || !enabled || receiveAllAlerts}
+                      className={preferredDays.includes(day) ? 'tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground' : 'tw-text-muted-foreground hover:tw-text-primary'}
+                    >
+                      {day}
+                    </Button>
+                  ))}
+                </div>
+                {form.formState.errors.preferred_days && (
+                  <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.preferred_days.message}</p>
+                )}
+              </div>
+            </div>
+          )}
 
           <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isFormDisabled}>
             {isSaving && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" />}

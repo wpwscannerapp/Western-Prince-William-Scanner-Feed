@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { StorageService } from './StorageService'; // Import StorageService
+import { NotificationService } from './NotificationService'; // Import NotificationService
 
 export interface Incident {
   id: string;
@@ -171,6 +172,18 @@ export const IncidentService = {
         logSupabaseError('createIncident', error);
         return null;
       }
+
+      // If incident created successfully, also create an alert
+      if (data) {
+        await NotificationService.createAlert({
+          title: data.title,
+          description: data.description,
+          type: data.type, // Use incident type for alert
+          latitude: data.latitude || 0, // Default to 0 if not available
+          longitude: data.longitude || 0, // Default to 0 if not available
+        });
+      }
+
       return data as Incident;
     } catch (err: any) {
       if (err.name === 'AbortError') {

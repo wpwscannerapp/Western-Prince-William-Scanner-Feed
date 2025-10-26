@@ -1,6 +1,5 @@
-import type { Handler, HandlerEvent } from "@netlify/functions"; // Removed HandlerContext as it's unused
+import type { Handler, HandlerEvent } from "@netlify/functions";
 import { createClient } from '@supabase/supabase-js';
-import { haversineDistance } from './utils/haversineDistance'; // Utility for distance calculation
 import webPush from 'web-push'; // Import web-push library
 
 // Ensure these are set in Netlify Environment Variables
@@ -10,7 +9,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const VITE_APP_URL = process.env.VITE_APP_URL || 'http://localhost:8080'; // Fallback for app URL
 
-const handler: Handler = async (event: HandlerEvent) => { // Removed unused context parameter
+const handler: Handler = async (event: HandlerEvent) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
@@ -31,7 +30,7 @@ const handler: Handler = async (event: HandlerEvent) => { // Removed unused cont
     const payload = JSON.parse(event.body || '{}');
     const newAlert = payload.record; // Supabase trigger payload
 
-    if (!newAlert || !newAlert.id || !newAlert.type || !newAlert.latitude || !newAlert.longitude || !newAlert.description || !newAlert.title) {
+    if (!newAlert || !newAlert.id || !newAlert.description || !newAlert.title) {
       console.warn("Invalid alert payload received:", newAlert);
       return { statusCode: 400, body: "Invalid alert payload." };
     }
@@ -71,35 +70,60 @@ const handler: Handler = async (event: HandlerEvent) => { // Removed unused cont
       },
     });
 
+    const now = new Date();
+    const currentDayOfWeek = now.toLocaleString('en-US', { weekday: 'long' }); // e.g., "Monday"
+    const currentHour = now.getUTCHours();
+    const currentMinute = now.getUTCMinutes();
+    const currentTimeInMinutes = currentHour * 60 + currentMinute;
+
     for (const settings of userSettings) {
       if (!settings.push_subscription) {
         console.log(`User ${settings.user_id} has no push subscription.`);
         continue;
       }
 
-      // 1. Filter by preferred types
-      const alertType = newAlert.type.toLowerCase();
-      const preferredTypes = settings.preferred_types.map((t: string) => t.toLowerCase());
-      if (preferredTypes.length > 0 && !preferredTypes.includes(alertType)) {
-        console.log(`User ${settings.user_id} filtered out by type: ${newAlert.type}`);
-        continue;
-      }
+      // If user wants all alerts, send it
+      if (settings.receive_all_alerts) {
+        console.log(`User ${settings.user_id} receives all alerts.`);
+      } else {
+        // Otherwise, apply time and day filtering
+        const preferredDays = settings.preferred_days || [];
+        const preferredStartTime = settings.preferred_start_time; // Format 'HH:MM:SS'
+        const preferredEndTime = settings.preferred_end_time; // Format 'HH:MM:SS'
 
-      // 2. Filter by location and radius
-      if (settings.latitude && settings.longitude && settings.radius_miles) {
-        const distance = haversineDistance(
-          newAlert.latitude,
-          newAlert.longitude,
-          settings.latitude,
-          settings.longitude
-        ); // Distance in miles
-
-        if (distance > settings.radius_miles) {
-          console.log(`User ${settings.user_id} filtered out by distance: ${distance.toFixed(2)} miles (radius: ${settings.radius_miles})`);
+        // Check if current day is in preferred days
+        if (preferredDays.length > 0 && !preferredDays.includes(currentDayOfWeek)) {
+          console.log(`User ${settings.user_id} filtered out by day: ${currentDayOfWeek}`);
           continue;
         }
-      } else {
-        console.log(`User ${settings.user_id} has no location settings, sending notification.`);
+
+        // Check if current time is within preferred time range
+        if (preferredStartTime && preferredEndTime) {
+          const [startHour, startMinute] = preferredStartTime.split(':').map(Number);
+          const [endHour, endMinute] = preferredEndTime.split(':').map(Number);
+
+          const startTotalMinutes = startHour * 60 + startMinute;
+          const endTotalMinutes = endHour * 60 + endMinute;
+
+          let isWithinTime = false;
+          if (startTotalMinutes <= endTotalMinutes) {
+            // Normal time range (e.g., 09:00 to 17:00)
+            isWithinTime = currentTimeInMinutes >= startTotalMinutes && currentTimeInMinutes <= endTotalMinutes;
+          } else {
+            // Overnight time range (e.g., 22:00 to 06:00)
+            isWithinTime = currentTimeInMinutes >= startTotalMinutes || currentTimeInMinutes <= endTotalMinutes;
+          }
+
+          if (!isWithinTime) {
+            console.log(`User ${settings.user_id} filtered out by time: ${currentHour}:${currentMinute} UTC not within ${preferredStartTime}-${preferredEndTime} UTC`);
+            continue;
+          }
+        } else if (preferredStartTime || preferredEndTime) {
+          // If only one time is set, it's an incomplete setting, so we might skip or send.
+          // For now, if only one is set and receive_all_alerts is false, we'll skip.
+          console.log(`User ${settings.user_id} has incomplete time settings. Skipping.`);
+          continue;
+        }
       }
 
       // Send the push notification

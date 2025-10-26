@@ -16,11 +16,10 @@ export interface UserNotificationSettings {
   user_id: string;
   push_subscription: PushSubscription | null; // Changed from onesignal_player_id
   enabled: boolean;
-  preferred_types: string[];
-  radius_miles: number;
-  latitude: number | null;
-  longitude: number | null;
-  manual_location_address: string | null;
+  receive_all_alerts: boolean; // New: User wants to receive all alerts
+  preferred_start_time: string | null; // New: e.g., '09:00:00'
+  preferred_end_time: string | null; // New: e.g., '17:00:00'
+  preferred_days: string[]; // New: e.g., ['Monday', 'Wednesday', 'Friday']
   updated_at: string;
 }
 
