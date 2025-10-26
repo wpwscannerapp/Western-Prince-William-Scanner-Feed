@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react'; // Added useEffect import
 import ProfileForm from '@/components/ProfileForm';
 import NotificationSettingsForm from '@/components/NotificationSettingsForm';
 import { PROFILE_TITLE, PROFILE_DESCRIPTION } from '@/lib/constants';
