@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react'; // Added useEffect
 import IncidentCard from '@/components/IncidentCard';
 import SubscribeOverlay from '@/components/SubscribeOverlay';
 import IncidentForm from '@/components/IncidentForm';
@@ -14,13 +14,20 @@ import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 
 const IncidentsPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: isAdminLoading } = useIsAdmin();
   const { isSubscribed, loading: isSubscribedLoading } = useIsSubscribed();
   const [incidentFormLoading, setIncidentFormLoading] = useState(false);
   const queryClient = useQueryClient();
   const observer = useRef<IntersectionObserver | null>(null);
   const navigate = useNavigate();
+
+  // Redirect unauthenticated users to the auth page
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth', { replace: true });
+    }
+  }, [authLoading, user, navigate]);
 
   const {
     data,
@@ -45,6 +52,7 @@ const IncidentsPage: React.FC = () => {
     },
     staleTime: 1000 * 60,
     initialPageParam: 0,
+    enabled: !!user && !authLoading, // Only enable query if user is authenticated
   });
 
   const incidents = data?.pages.flat() || [];
@@ -105,7 +113,8 @@ const IncidentsPage: React.FC = () => {
     refetch();
   };
 
-  if (isAdminLoading || isSubscribedLoading || isLoading) {
+  // If auth is still loading, or user is not present, show a loading state
+  if (authLoading || !user || isAdminLoading || isSubscribedLoading || isLoading) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
         <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
