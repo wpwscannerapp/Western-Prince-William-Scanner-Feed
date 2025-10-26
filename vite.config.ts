@@ -98,6 +98,8 @@ export default defineConfig(({ command, mode }) => {
         '@': path.resolve(__dirname, './src'),
         // Add alias for leaflet to ensure it uses the minified dist file
         'leaflet': path.resolve(__dirname, 'node_modules/leaflet/dist/leaflet.js'),
+        // Explicitly alias leaflet-src.js to leaflet.js in case it's directly referenced
+        'leaflet/dist/leaflet-src.js': path.resolve(__dirname, 'node_modules/leaflet/dist/leaflet.js'),
       },
     },
     server: command === 'serve' ? {
