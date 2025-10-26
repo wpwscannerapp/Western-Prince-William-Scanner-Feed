@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Image as ImageIcon, XCircle, MapPin } from 'lucide-react';
+import { Image as ImageIcon, XCircle, MapPin, Loader2, Send } from 'lucide-react';
 import { geocodeAddress } from '@/utils/geocoding';
 import { toast } from 'sonner';
 import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
@@ -156,6 +156,8 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
     }
   };
 
+  const isFormDisabled = isLoading || isGeocoding;
+
   return (
     <form id={formId} onSubmit={form.handleSubmit(handleSubmit)} className="tw-space-y-6 tw-p-4 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm">
       <div>
@@ -165,7 +167,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
           placeholder="e.g., Structure Fire, Traffic Accident"
           {...form.register('type')}
           className="tw-bg-input tw-text-foreground"
-          disabled={isLoading || isGeocoding}
+          disabled={isFormDisabled}
           aria-invalid={form.formState.errors.type ? "true" : "false"}
           aria-describedby={form.formState.errors.type ? "incident-type-error" : undefined}
         />
@@ -181,7 +183,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
           placeholder="e.g., 123 Main St, Gainesville"
           {...form.register('location')}
           className="tw-bg-input tw-text-foreground"
-          disabled={isLoading || isGeocoding}
+          disabled={isFormDisabled}
           aria-invalid={form.formState.errors.location ? "true" : "false"}
           aria-describedby={form.formState.errors.location ? "incident-location-error" : undefined}
         />
@@ -202,7 +204,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
           placeholder="Provide a detailed description of the incident..."
           {...form.register('description')}
           className="tw-min-h-[100px] tw-bg-input tw-text-foreground"
-          disabled={isLoading || isGeocoding}
+          disabled={isFormDisabled}
           aria-invalid={form.formState.errors.description ? "true" : "false"}
           aria-describedby={form.formState.errors.description ? "incident-description-error" : undefined}
         />
@@ -221,7 +223,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
           accept="image/*"
           onChange={handleImageChange}
           className="tw-block tw-w-full tw-text-sm tw-text-muted-foreground file:tw-mr-4 file:tw-py-2 file:tw-px-4 file:tw-rounded-full file:tw-border-0 file:tw-text-sm file:tw-font-semibold file:tw-bg-primary file:tw-text-primary-foreground hover:file:tw-bg-primary/90"
-          disabled={isLoading || isGeocoding}
+          disabled={isFormDisabled}
           ref={fileInputRef}
           aria-label="Upload incident image"
         />
@@ -234,7 +236,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
               size="icon"
               className="tw-absolute tw-top-1 tw-right-1 tw-h-6 tw-w-6 tw-rounded-full tw-bg-background/70 hover:tw-bg-background"
               onClick={handleRemoveImage}
-              disabled={isLoading || isGeocoding}
+              disabled={isFormDisabled}
             >
               <XCircle className="tw-h-4 tw-w-4 tw-text-destructive" aria-hidden="true" />
               <span className="tw-sr-only">Remove image</span>
@@ -242,6 +244,10 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
           </div>
         )}
       </div>
+      <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isFormDisabled}>
+        {isFormDisabled && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
+        <Send className="tw-mr-2 tw-h-4 tw-w-4" aria-hidden="true" /> {initialIncident ? 'Update Incident' : 'Submit Incident'}
+      </Button>
     </form>
   );
 };
