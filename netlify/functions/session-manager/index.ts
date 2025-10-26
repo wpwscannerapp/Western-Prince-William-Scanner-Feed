@@ -44,8 +44,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         }
         const blobData: BlobSessionData = { userId, expiresAt, createdAt: new Date().toISOString() };
         console.log(`createSession: Setting blob for sessionId: ${sessionId}, userId: ${userId}, expiresAt: ${expiresAt}`);
-        // IMPORTANT: Netlify Blobs 'setJSON' uses 'expires' for expiration, not 'expiresAt' or 'ttl'.
-        await sessionsStore.setJSON(sessionId, blobData, { expires: expiresAt }); 
+        await sessionsStore.setJSON(sessionId, blobData); 
         console.log(`createSession: Blob set successfully for sessionId: ${sessionId}`);
         return { statusCode: 200, body: JSON.stringify({ success: true }) };
       }
