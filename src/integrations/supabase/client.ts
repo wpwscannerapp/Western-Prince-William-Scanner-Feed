@@ -19,6 +19,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   db: {
     schema: 'public',
   },
+  realtime: {
+    params: {
+      apikey: supabaseAnonKey, // Explicitly pass the anon key for Realtime
+    },
+  },
 });
 
 // Only log full anon key in development
