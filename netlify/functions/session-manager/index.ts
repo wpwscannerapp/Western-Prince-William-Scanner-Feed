@@ -37,14 +37,15 @@ const handler: Handler = async (event: HandlerEvent) => {
 
     switch (action) {
       case 'createSession': {
-        const { sessionId, userId, expiresAt } = payload; // expiresIn is not directly used in setJSON options, but kept for consistency with payload
-        if (!sessionId || !userId || !expiresAt) { // expiresIn is not strictly required for setJSON options
+        const { sessionId, userId, expiresAt } = payload;
+        if (!sessionId || !userId || !expiresAt) {
           console.error("Missing required fields for createSession:", payload);
           return { statusCode: 400, body: JSON.stringify({ error: "Missing required fields for createSession." }) };
         }
         const blobData: BlobSessionData = { userId, expiresAt, createdAt: new Date().toISOString() };
         console.log(`createSession: Setting blob for sessionId: ${sessionId}, userId: ${userId}, expiresAt: ${expiresAt}`);
-        await sessionsStore.setJSON(sessionId, blobData, { expiresAt }); // Use expiresAt directly
+        // IMPORTANT: Netlify Blobs 'setJSON' uses 'expires' for expiration, not 'expiresAt' or 'ttl'.
+        await sessionsStore.setJSON(sessionId, blobData, { expires: expiresAt }); 
         console.log(`createSession: Blob set successfully for sessionId: ${sessionId}`);
         return { statusCode: 200, body: JSON.stringify({ success: true }) };
       }
