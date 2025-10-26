@@ -1,7 +1,7 @@
 "use client";
 
 import { getStore } from '@netlify/blobs';
-import { handleError } => '@/utils/errorHandler';
+import { handleError } from '@/utils/errorHandler';
 import { Session } from '@supabase/supabase-js';
 import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsService
 
@@ -49,8 +49,8 @@ export const SessionService = {
 
     try {
       // Set the blob with the sessionId as key and blobData as value
-      // The ttl is in seconds for Netlify Blobs
-      await sessionsStore.setJSON(sessionId, blobData, { ttl: session.expires_in });
+      // The ttl is in milliseconds for Netlify Blobs
+      await sessionsStore.setJSON(sessionId, blobData, { ttl: session.expires_in * 1000 });
 
       AnalyticsService.trackEvent({ name: 'session_created_or_updated', properties: { userId: session.user.id, sessionId } });
       return {
