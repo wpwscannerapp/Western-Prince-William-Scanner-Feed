@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Info } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'; // Import useInfiniteQuery and useQueryClient
 import { IncidentService, Incident, IncidentFilter, INCIDENTS_PER_PAGE } from '@/services/IncidentService';
 import { handleError } from '@/utils/errorHandler';
 import IncidentSearchForm from '@/components/IncidentSearchForm';
@@ -11,68 +11,63 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 
 const IncidentArchivePage: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient(); // Initialize queryClient
   const [filters, setFilters] = useState<IncidentFilter>({});
-  const [page, setPage] = useState(0);
-  const [allIncidents, setAllIncidents] = useState<Incident[]>([]);
-  const [hasMore, setHasMore] = useState(true);
   const observer = useRef<IntersectionObserver | null>(null);
 
-  console.log('IncidentArchivePage: Current filters:', filters);
-  console.log('IncidentArchivePage: Current page:', page);
-
-  const { data, isLoading, isFetching, isError, error } = useQuery<Incident[], Error>({
-    queryKey: ['incidents', page, filters],
-    queryFn: () => {
-      console.log('IncidentArchivePage: Fetching incidents with page', page, 'and filters', filters);
-      return IncidentService.fetchIncidents(page, filters);
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+    error,
+    refetch, // Add refetch from useInfiniteQuery
+  } = useInfiniteQuery<Incident[], Error>({
+    queryKey: ['incidents', filters], // Filters are now part of the query key
+    queryFn: async ({ pageParam = 0 }) => {
+      console.log('IncidentArchivePage: Fetching incidents with offset', pageParam, 'and filters', filters);
+      const fetchedIncidents = await IncidentService.fetchIncidents(pageParam as number, filters);
+      return fetchedIncidents;
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < INCIDENTS_PER_PAGE) {
+        return undefined; // No more pages
+      }
+      // Calculate the next offset based on the total number of items fetched so far
+      return allPages.flat().length;
     },
     staleTime: 1000 * 60, // Cache for 1 minute
-    placeholderData: (previousData) => previousData ?? [],
+    initialPageParam: 0,
   });
 
-  useEffect(() => {
-    console.log('IncidentArchivePage: useQuery data changed. Data:', data, 'isLoading:', isLoading, 'isFetching:', isFetching);
-    if (data) {
-      if (page === 0) {
-        setAllIncidents(data);
-      } else {
-        setAllIncidents(prev => {
-          const newIncidents = (data as Incident[]).filter(
-            (newItem: Incident) => !prev.some(existingItem => existingItem.id === newItem.id)
-          );
-          return [...prev, ...newIncidents];
-        });
-      }
-      setHasMore(data.length === INCIDENTS_PER_PAGE);
-      console.log('IncidentArchivePage: Updated allIncidents:', allIncidents.length, 'Has more:', hasMore);
-    }
-  }, [data, page]); // Removed allIncidents from dependency array to prevent infinite loop
+  const incidents = data?.pages.flat() || []; // Flatten all pages into a single array
 
-  // Reset page and incidents when filters change
+  // Reset query when filters change
   const handleFilterChange = useCallback((newFilters: IncidentFilter) => {
     console.log('IncidentArchivePage: Filter change detected. New filters:', newFilters);
     setFilters(newFilters);
-    setPage(0); // Reset to first page on filter change
-    setAllIncidents([]); // Clear incidents to show loading state for new filters
-    setHasMore(true);
-  }, []);
+    // Invalidate and refetch the query to apply new filters from the first page
+    queryClient.invalidateQueries({ queryKey: ['incidents'] });
+  }, [queryClient]);
 
   const lastIncidentRef = useCallback(
     (node: HTMLDivElement) => {
-      if (isLoading || isFetching || !hasMore) return;
+      if (isLoading || isFetchingNextPage || !hasNextPage) return;
       if (observer.current) observer.current.disconnect();
       observer.current = new IntersectionObserver(
         entries => {
-          if (entries[0].isIntersecting && hasMore) {
+          if (entries[0].isIntersecting && hasNextPage) {
             console.log('IncidentArchivePage: IntersectionObserver triggered, fetching next page.');
-            setPage(prev => prev + 1);
+            fetchNextPage();
           }
         },
         { threshold: 0.1 }
       );
       if (node) observer.current.observe(node);
     },
-    [isLoading, isFetching, hasMore]
+    [isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]
   );
 
   if (isError) {
@@ -82,7 +77,7 @@ const IncidentArchivePage: React.FC = () => {
         <div className="tw-text-center">
           <h1 className="tw-text-2xl tw-font-bold tw-text-destructive tw-mb-4">Error Loading Archive</h1>
           <p className="tw-text-muted-foreground">{error?.message || 'An unexpected error occurred.'}</p>
-          <Button onClick={() => navigate('/home')} className="tw-mt-4 tw-button">Go to Home Page</Button>
+          <Button onClick={() => refetch()} className="tw-mt-4 tw-button">Retry</Button>
         </div>
       </div>
     );
@@ -101,29 +96,29 @@ const IncidentArchivePage: React.FC = () => {
       <IncidentSearchForm onFilterChange={handleFilterChange} initialFilters={filters} />
 
       <div className="tw-mt-8 tw-space-y-6">
-        {(isLoading && page === 0) || (isFetching && allIncidents.length === 0) ? (
+        {(isLoading && !isFetchingNextPage) ? ( // Show initial loading skeleton
           <SkeletonLoader count={3} className="tw-col-span-full" />
-        ) : allIncidents.length === 0 ? (
+        ) : incidents.length === 0 ? (
           <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-12 tw-text-muted-foreground">
             <Info className="tw-h-12 tw-w-12 tw-mb-4" />
             <p className="tw-text-lg">No incidents found matching your criteria.</p>
           </div>
         ) : (
-          allIncidents.map((incident, index) => (
-            <div key={incident.id} ref={index === allIncidents.length - 1 ? lastIncidentRef : null}>
+          incidents.map((incident, index) => (
+            <div key={incident.id} ref={index === incidents.length - 1 ? lastIncidentRef : null}>
               <IncidentCard incident={incident} />
             </div>
           ))
         )}
 
-        {(isFetching && allIncidents.length > 0) && (
+        {isFetchingNextPage && ( // Show loading indicator for fetching more pages
           <div className="tw-flex tw-justify-center tw-items-center tw-py-8 tw-gap-2 tw-text-muted-foreground">
             <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" />
             <span>Loading more incidents...</span>
           </div>
         )}
 
-        {!hasMore && !isFetching && allIncidents.length > 0 && (
+        {!hasNextPage && !isLoading && incidents.length > 0 && ( // Message when all incidents are loaded
           <p className="tw-text-center tw-text-muted-foreground tw-py-4">You've reached the end of the archive.</p>
         )}
       </div>

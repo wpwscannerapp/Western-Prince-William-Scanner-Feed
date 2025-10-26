@@ -29,7 +29,7 @@ const logSupabaseError = (functionName: string, error: any) => {
 export const IncidentService = {
   INCIDENTS_PER_PAGE,
 
-  async fetchIncidents(page: number = 0, filters: IncidentFilter = {}): Promise<Incident[]> {
+  async fetchIncidents(offset: number = 0, filters: IncidentFilter = {}): Promise<Incident[]> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -62,7 +62,7 @@ export const IncidentService = {
 
       query = query
         .order('date', { ascending: false })
-        .range(page * INCIDENTS_PER_PAGE, (page + 1) * INCIDENTS_PER_PAGE - 1);
+        .range(offset, offset + INCIDENTS_PER_PAGE - 1); // Use INCIDENTS_PER_PAGE for limit
 
       const { data, error } = await query;
 
