@@ -82,7 +82,7 @@ define(['./workbox-bfb10adf'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "index.html",
-    "revision": "0.mp5t5g8gtr8"
+    "revision": "0.o038kctal7g"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
@@ -97,7 +97,7 @@ define(['./workbox-bfb10adf'], (function (workbox) { 'use strict';
       maxAgeSeconds: 604800
     })]
   }), 'GET');
-  workbox.registerRoute(/^undefined\/rest\/v1\/incidents/, new workbox.StaleWhileRevalidate({
+  workbox.registerRoute(/^https:\/\/wvvxkwvliogulfqmkaqb.supabase.co\/rest\/v1\/incidents/, new workbox.StaleWhileRevalidate({
     "cacheName": "supabase-incidents-api-cache",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 50,
@@ -106,7 +106,7 @@ define(['./workbox-bfb10adf'], (function (workbox) { 'use strict';
       statuses: [0, 200]
     })]
   }), 'GET');
-  workbox.registerRoute(/^undefined\/storage\/v1\/object\/public\/post_images\//, new workbox.CacheFirst({
+  workbox.registerRoute(/^https:\/\/wvvxkwvliogulfqmkaqb.supabase.co\/storage\/v1\/object\/public\/post_images\//, new workbox.CacheFirst({
     "cacheName": "supabase-post-images-cache",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 100,
