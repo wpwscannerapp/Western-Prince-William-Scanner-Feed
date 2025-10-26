@@ -20,11 +20,19 @@ export interface UserSession {
   expires_at: string;
 }
 
+const netlifySiteID = import.meta.env.VITE_NETLIFY_SITE_ID;
+const netlifyApiToken = import.meta.env.VITE_NETLIFY_API_TOKEN;
+
+if (!netlifySiteID || !netlifyApiToken) {
+  console.error('Netlify Blobs configuration error: VITE_NETLIFY_SITE_ID or VITE_NETLIFY_API_TOKEN is missing.');
+  throw new Error('Netlify Blobs configuration missing. Please ensure VITE_NETLIFY_SITE_ID and VITE_NETLIFY_API_TOKEN are set in your .env file.');
+}
+
 // Initialize the sessionsStore with explicit siteID and token from environment variables
 // These environment variables must be set in your .env file or Netlify build settings.
 const sessionsStore = (getStore as any)('user_sessions', {
-  siteID: import.meta.env.VITE_NETLIFY_SITE_ID as string,
-  token: import.meta.env.VITE_NETLIFY_API_TOKEN as string,
+  siteID: netlifySiteID as string,
+  token: netlifyApiToken as string,
 });
 
 const logBlobError = (functionName: string, error: any) => {
