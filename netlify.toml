@@ -2,3 +2,6 @@
   command = "pnpm run build"
   publish = "dist"
   functions = "netlify/functions"
+
+[images]
+  remote_images = ["https://wvvxkwvliogulfqmkaqb.supabase.co"]
