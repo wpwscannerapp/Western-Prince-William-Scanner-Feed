@@ -1,6 +1,12 @@
+ignoredBuiltDependencies:
+  - '@parcel/watcher'
+  - protobufjs
+
 onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
+  - sharp
+
 public-hoist-pattern:
   - '@swc/core'
   - esbuild
