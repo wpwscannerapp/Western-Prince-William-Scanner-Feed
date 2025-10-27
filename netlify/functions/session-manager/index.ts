@@ -1,5 +1,6 @@
 import type { Handler, HandlerEvent } from "@netlify/functions";
 import { getStore } from '@netlify/blobs';
+import type { SetOptions } from '@netlify/blobs'; // Import SetOptions
 
 // These environment variables will be set as Netlify secrets
 const NETLIFY_SITE_ID = process.env.NETLIFY_SITE_ID;
@@ -44,8 +45,9 @@ const handler: Handler = async (event: HandlerEvent) => {
         }
         const blobData: BlobSessionData = { userId, expiresAt, createdAt: new Date().toISOString() };
         console.log(`createSession: Setting blob for sessionId: ${sessionId}, userId: ${userId}, expiresAt: ${expiresAt}, expiresIn: ${expiresIn}`);
-        // Corrected: Netlify Blobs 'setJSON' uses 'ttl' for expiration in seconds.
-        await sessionsStore.setJSON(sessionId, blobData, { ttl: expiresIn }); 
+        
+        const setOptions: SetOptions = { ttl: expiresIn }; // Explicitly type the options
+        await sessionsStore.setJSON(sessionId, blobData, setOptions); 
         console.log(`createSession: Blob set successfully for sessionId: ${sessionId}`);
         return { statusCode: 200, body: JSON.stringify({ success: true }) };
       }
