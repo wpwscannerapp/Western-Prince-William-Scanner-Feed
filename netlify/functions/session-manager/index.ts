@@ -1,6 +1,12 @@
 import type { Handler, HandlerEvent } from "@netlify/functions";
 import { getStore } from '@netlify/blobs';
-import type { SetOptions } from '@netlify/blobs'; // Import SetOptions
+// Removed import of SetOptions as it was causing type conflicts
+// import type { SetOptions } from '@netlify/blobs'; 
+
+// Define a local interface that correctly includes the 'ttl' property
+interface BlobSetOptions {
+  ttl?: number;
+}
 
 // These environment variables will be set as Netlify secrets
 const NETLIFY_SITE_ID = process.env.NETLIFY_SITE_ID;
@@ -46,7 +52,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         const blobData: BlobSessionData = { userId, expiresAt, createdAt: new Date().toISOString() };
         console.log(`createSession: Setting blob for sessionId: ${sessionId}, userId: ${userId}, expiresAt: ${expiresAt}, expiresIn: ${expiresIn}`);
         
-        const setOptions: SetOptions = { ttl: expiresIn }; // Explicitly type the options
+        const setOptions: BlobSetOptions = { ttl: expiresIn }; // Use the local BlobSetOptions interface
         await sessionsStore.setJSON(sessionId, blobData, setOptions); 
         console.log(`createSession: Blob set successfully for sessionId: ${sessionId}`);
         return { statusCode: 200, body: JSON.stringify({ success: true }) };
