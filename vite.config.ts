@@ -67,7 +67,7 @@ export default defineConfig(({ command, mode }) => {
           ],
         },
         devOptions: {
-          enabled: true,
+          enabled: false, // Set to false to disable service worker in development
           type: 'module',
           navigateFallback: 'index.html',
         },
