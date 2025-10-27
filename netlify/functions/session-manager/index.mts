@@ -1,4 +1,5 @@
 import { getStore } from '@netlify/blobs';
+import type { Handler } from "@netlify/functions"; // Import Handler type
 
 // Define the structure of a session stored in Netlify Blobs
 interface BlobSessionData {
@@ -9,11 +10,11 @@ interface BlobSessionData {
 
 const getCompositeKey = (userId: string, sessionId: string) => `${userId}_${sessionId}`;
 
-const handler = async (req: Request): Promise<Response> => {
+const handler: Handler = async (req) => { // Use Handler type for req
   console.log(`[Session Manager] Function invoked. HTTP Method: ${req.method}`);
 
-  if (req.method !== "POST") {
-    console.warn(`[Session Manager] Method Not Allowed: ${req.method}`);
+  if (req.httpMethod !== "POST") { // Use httpMethod from HandlerEvent
+    console.warn(`[Session Manager] Method Not Allowed: ${req.httpMethod}`);
     return new Response("Method Not Allowed", { status: 405 });
   }
 
@@ -29,7 +30,7 @@ const handler = async (req: Request): Promise<Response> => {
   let action: string;
   let payload: any;
   try {
-    ({ action, payload } = await req.json());
+    ({ action, payload } = JSON.parse(req.body || '{}')); // Parse req.body
     console.log(`[Session Manager] Action: ${action}, Payload:`, payload);
   } catch (jsonError: any) {
     console.error("[Session Manager] Failed to parse JSON payload:", jsonError.message);

@@ -1,4 +1,4 @@
-import type { Handler, HandlerEvent } from "@netlify/functions";
+import type { Handler, HandlerEvent, HandlerResponse } from "@netlify/functions";
 import { createClient } from '@supabase/supabase-js';
 import webPush from 'web-push'; // Import web-push library
 
@@ -9,7 +9,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const VITE_APP_URL = process.env.VITE_APP_URL || 'http://localhost:8080'; // Fallback for app URL
 
-const handler: Handler = async (event: HandlerEvent) => {
+const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
@@ -31,10 +31,10 @@ const handler: Handler = async (event: HandlerEvent) => {
     payload = JSON.parse(event.body || '{}');
   } catch (jsonError: any) {
     console.error("Failed to parse JSON payload:", jsonError.message);
-    return { statusCode: 400, body: JSON.stringify({ error: "Invalid JSON payload." }) };
+    return { statusCode: 400, body: JSON.stringify({ error: "Invalid JSON payload." }), headers: { 'Content-Type': 'application/json' } };
   }
   
-  try { // Corrected: Main logic wrapped in try-catch
+  try {
     const newAlert = payload.record; // Supabase trigger payload
 
     if (!newAlert || !newAlert.id || !newAlert.description || !newAlert.title) {
@@ -159,11 +159,11 @@ const handler: Handler = async (event: HandlerEvent) => {
     console.log(`Attempting to send notifications to ${notificationPromises.length} recipients.`);
     await Promise.allSettled(notificationPromises); // Use allSettled to wait for all promises to resolve/reject
 
-    return { statusCode: 200, body: JSON.stringify({ message: "Web Push notifications processed." }) };
+    return { statusCode: 200, body: JSON.stringify({ message: "Web Push notifications processed." }), headers: { 'Content-Type': 'application/json' } };
 
-  } catch (error: any) { // Corrected: Catch block for the main logic
+  } catch (error: any) {
     console.error("Function execution error:", error.message, error.stack);
-    return new Response(JSON.stringify({ error: error.message }), { statusCode: 500, headers: { 'Content-Type': 'application/json' } });
+    return { statusCode: 500, body: JSON.stringify({ error: error.message }), headers: { 'Content-Type': 'application/json' } };
   }
 };
 
