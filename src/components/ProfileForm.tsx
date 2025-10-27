@@ -248,13 +248,16 @@ const ProfileForm: React.FC = () => {
 
   const isSubmitDisabled = updateProfileMutation.isPending || isUploading || usernameStatus === 'checking' || usernameStatus === 'taken';
 
+  // Ensure imagePreview is not an empty string before passing to Netlify Image CDN
+  const avatarUrlForCDN = imagePreview && imagePreview.trim() !== '' ? imagePreview : undefined;
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="tw-space-y-6 tw-p-6 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm">
       <div className="tw-flex tw-flex-col tw-items-center tw-gap-4">
         <div className="tw-relative tw-group">
           <Avatar className="tw-h-24 tw-w-24 tw-border-2 tw-border-primary">
             <AvatarImage 
-              src={imagePreview ? `/.netlify/images?url=${encodeURIComponent(imagePreview)}&w=96&h=96&fit=cover&fm=auto` : undefined} 
+              src={avatarUrlForCDN ? `/.netlify/images?url=${encodeURIComponent(avatarUrlForCDN)}&w=96&h=96&fit=cover&fm=auto` : undefined} 
               alt="User Avatar" 
             />
             <AvatarFallback className="tw-bg-primary tw-text-primary-foreground tw-text-xl">

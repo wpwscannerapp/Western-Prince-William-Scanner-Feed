@@ -175,11 +175,14 @@ const AppSettingsForm: React.FC = () => {
   };
 
   const watchLayout = form.watch('layout');
+  // Ensure logoUrl is not an empty string before passing to Netlify Image CDN
+  const logoUrlForCDN = (form.watch('logo_url') || '').trim() !== '' ? form.watch('logo_url') : undefined;
+
 
   return (
     <Card className="tw-bg-card tw-border-border tw-shadow-lg">
       <CardHeader>
-        <CardTitle className="tw-text-xl tw-font-bold tw-text-foreground">Application Settings</CardTitle>
+        <CardTitle className="tw-xl tw-font-bold tw-text-foreground">Application Settings</CardTitle>
         <CardDescription className="tw-text-muted-foreground">Customize the look and feel and layout of your application.</CardDescription>
       </CardHeader>
       <CardContent>
@@ -352,11 +355,11 @@ const AppSettingsForm: React.FC = () => {
                 <span className="tw-sm tw-text-muted-foreground">{form.watch('secondary_color')}</span>
               </div>
             </div>
-            {form.watch('logo_url') && (
+            {logoUrlForCDN && (
               <div className="tw-mt-4">
                 <h3 className="tw-lg tw-font-semibold tw-mb-2">Logo Preview</h3>
                 <img 
-                  src={`/.netlify/images?url=${encodeURIComponent(form.watch('logo_url') || '')}&w=200&h=80&fit=contain&fm=auto`} 
+                  src={`/.netlify/images?url=${encodeURIComponent(logoUrlForCDN)}&w=200&h=80&fit=contain&fm=auto`} 
                   alt="Logo Preview" 
                   className="tw-max-h-20 tw-max-w-full tw-object-contain" 
                 />
