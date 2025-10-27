@@ -1,16 +1,6 @@
 import type { Handler, HandlerEvent } from "@netlify/functions";
 import { getStore } from '@netlify/blobs';
 // Removed import of SetOptions as it was causing type conflicts
-// import type { SetOptions } from '@netlify/blobs'; 
-
-// Define a local interface that correctly includes the 'ttl' property
-interface BlobSetOptions {
-  ttl?: number;
-}
-
-// These environment variables will be set as Netlify secrets
-const NETLIFY_SITE_ID = process.env.NETLIFY_SITE_ID;
-const NETLIFY_API_TOKEN = process.env.NETLIFY_API_TOKEN;
 
 // Define the structure of a session stored in Netlify Blobs
 interface BlobSessionData {
@@ -28,7 +18,11 @@ const handler: Handler = async (event: HandlerEvent) => {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  if (!NETLIFY_SITE_ID || !NETLIFY_API_TOKEN) {
+  // Access environment variables directly from process.env
+  const netlifySiteId = process.env.NETLIFY_SITE_ID;
+  const netlifyApiToken = process.env.NETLIFY_API_TOKEN;
+
+  if (!netlifySiteId || !netlifyApiToken) {
     console.error("Netlify Blobs configuration error: NETLIFY_SITE_ID or NETLIFY_API_TOKEN is missing in function environment.");
     return { statusCode: 500, body: JSON.stringify({ error: "Server configuration error: Netlify Blobs credentials missing." }) };
   }
@@ -52,7 +46,8 @@ const handler: Handler = async (event: HandlerEvent) => {
         const blobData: BlobSessionData = { userId, expiresAt, createdAt: new Date().toISOString() };
         console.log(`createSession: Setting blob for sessionId: ${sessionId}, userId: ${userId}, expiresAt: ${expiresAt}, expiresIn: ${expiresIn}`);
         
-        const setOptions: BlobSetOptions = { ttl: expiresIn }; // Use the local BlobSetOptions interface
+        // Cast to any to bypass the type check for 'ttl'
+        const setOptions = { ttl: expiresIn } as any; 
         await sessionsStore.setJSON(sessionId, blobData, setOptions); 
         console.log(`createSession: Blob set successfully for sessionId: ${sessionId}`);
         return { statusCode: 200, body: JSON.stringify({ success: true }) };
