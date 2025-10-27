@@ -91,6 +91,7 @@ const ProfileForm: React.FC = () => {
         username: profile.username || '',
         avatar: undefined,
       });
+      // Ensure imagePreview is null if avatar_url is an empty string
       setImagePreview(profile.avatar_url || null);
     }
   }, [profile, form]);

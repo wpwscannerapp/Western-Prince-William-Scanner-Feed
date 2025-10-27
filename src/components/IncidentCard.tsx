@@ -136,6 +136,9 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
     );
   }
 
+  // Ensure incident.image_url is not an empty string before passing to Netlify Image CDN
+  const imageUrlForCDN = incident.image_url && incident.image_url.trim() !== '' ? incident.image_url : undefined;
+
   return (
     <Card className="tw-w-full tw-bg-card tw-border-border tw-shadow-md tw-text-foreground tw-rounded-lg tw-cursor-pointer" onClick={handleIncidentClick}>
       <CardHeader className="tw-pb-2 tw-px-4 tw-pt-4">
@@ -161,9 +164,9 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
           <Tag className="tw-h-4 tw-w-4 tw-text-secondary" aria-hidden="true" />
           <span className="tw-font-medium">{incident.type}</span>
         </p>
-        {incident.image_url && (
+        {imageUrlForCDN && (
           <img
-            src={`/.netlify/images?url=${encodeURIComponent(incident.image_url)}&w=800&h=600&fit=cover&fm=auto`}
+            src={`/.netlify/images?url=${encodeURIComponent(imageUrlForCDN)}&w=800&h=600&fit=cover&fm=auto`}
             alt={`Image for incident: ${incident.title}`}
             className="tw-w-full tw-max-h-80 tw-object-cover tw-rounded-md tw-mb-4 tw-border tw-border-border"
             loading="lazy"
