@@ -83,6 +83,15 @@ const ProfileForm: React.FC = () => {
   const currentUsernameValue = form.watch('username');
   const debouncedUsername = useDebounce(currentUsernameValue, 500);
 
+  // Effect to revoke object URLs when component unmounts or image changes
+  useEffect(() => {
+    return () => {
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]); // Depend on imagePreview to revoke old URL when it changes
+
   useEffect(() => {
     if (profile) {
       form.reset({
@@ -92,6 +101,10 @@ const ProfileForm: React.FC = () => {
         avatar: undefined,
       });
       // Ensure imagePreview is null if avatar_url is an empty string
+      // Revoke old object URL if it exists and is a local one
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
       setImagePreview(profile.avatar_url || null);
     }
   }, [profile, form]);
@@ -148,10 +161,18 @@ const ProfileForm: React.FC = () => {
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Revoke previous object URL if it exists
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
       AnalyticsService.trackEvent({ name: 'avatar_image_selected', properties: { fileName: file.name, fileSize: file.size } });
     } else {
+      // Revoke current object URL if it exists
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
       setImageFile(null);
       setImagePreview(profile?.avatar_url || null);
       AnalyticsService.trackEvent({ name: 'avatar_image_selection_cleared' });
@@ -159,6 +180,10 @@ const ProfileForm: React.FC = () => {
   };
 
   const handleRemoveImage = () => {
+    // Revoke current object URL if it exists
+    if (imagePreview && imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreview);
+    }
     setImageFile(null);
     setImagePreview(null);
     if (fileInputRef.current) {
