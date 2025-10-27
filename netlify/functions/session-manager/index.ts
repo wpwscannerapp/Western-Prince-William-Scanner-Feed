@@ -1,6 +1,5 @@
 import type { Handler, HandlerEvent } from "@netlify/functions";
 import { getStore } from '@netlify/blobs';
-// Removed import of SetOptions as it was causing type conflicts
 
 // Define the structure of a session stored in Netlify Blobs
 interface BlobSessionData {
@@ -18,15 +17,6 @@ const handler: Handler = async (event: HandlerEvent) => {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  // Access environment variables directly from process.env
-  const netlifySiteId = process.env.NETLIFY_SITE_ID;
-  const netlifyApiToken = process.env.NETLIFY_API_TOKEN;
-
-  if (!netlifySiteId || !netlifyApiToken) {
-    console.error("Netlify Blobs configuration error: NETLIFY_SITE_ID or NETLIFY_API_TOKEN is missing in function environment.");
-    return { statusCode: 500, body: JSON.stringify({ error: "Server configuration error: Netlify Blobs credentials missing." }) };
-  }
-
   // Initialize store if not already initialized
   if (!sessionsStore) {
     sessionsStore = getStore('user_sessions');
@@ -38,17 +28,14 @@ const handler: Handler = async (event: HandlerEvent) => {
 
     switch (action) {
       case 'createSession': {
-        const { sessionId, userId, expiresAt, expiresIn } = payload; // Added expiresIn
-        if (!sessionId || !userId || !expiresAt || !expiresIn) { // Added expiresIn to validation
+        const { sessionId, userId, expiresAt } = payload;
+        if (!sessionId || !userId || !expiresAt) {
           console.error("Missing required fields for createSession:", payload);
           return { statusCode: 400, body: JSON.stringify({ error: "Missing required fields for createSession." }) };
         }
         const blobData: BlobSessionData = { userId, expiresAt, createdAt: new Date().toISOString() };
-        console.log(`createSession: Setting blob for sessionId: ${sessionId}, userId: ${userId}, expiresAt: ${expiresAt}, expiresIn: ${expiresIn}`);
-        
-        // Cast to any to bypass the type check for 'ttl'
-        const setOptions = { ttl: expiresIn } as any; 
-        await sessionsStore.setJSON(sessionId, blobData, setOptions); 
+        console.log(`createSession: Setting blob for sessionId: ${sessionId}, userId: ${userId}, expiresAt: ${expiresAt}`);
+        await sessionsStore.setJSON(sessionId, blobData, { expiresAt: expiresAt }); 
         console.log(`createSession: Blob set successfully for sessionId: ${sessionId}`);
         return { statusCode: 200, body: JSON.stringify({ success: true }) };
       }
