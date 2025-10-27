@@ -1,4 +1,4 @@
-import { Context, getStore } from '@netlify/blobs';
+import { getStore } from '@netlify/blobs';
 
 // Define the structure of a session stored in Netlify Blobs
 interface BlobSessionData {
@@ -7,7 +7,7 @@ interface BlobSessionData {
   createdAt: string; // ISO string
 }
 
-const handler = async (req: Request, context: Context): Promise<Response> => {
+const handler = async (req: Request): Promise<Response> => {
   console.log(`[Session Manager] Function invoked. HTTP Method: ${req.method}`);
 
   if (req.method !== "POST") {
@@ -37,13 +37,8 @@ const handler = async (req: Request, context: Context): Promise<Response> => {
         }
         const blobData: BlobSessionData = { userId, expiresAt, createdAt: new Date().toISOString() };
         
-        // Calculate TTL in seconds
-        const expiresAtDate = new Date(expiresAt);
-        const now = new Date();
-        const ttlSeconds = Math.max(0, Math.floor((expiresAtDate.getTime() - now.getTime()) / 1000));
-
-        console.log(`[Session Manager] createSession: Setting blob for sessionId: ${sessionId}, userId: ${userId}, expiresAt: ${expiresAt}, TTL: ${ttlSeconds}s`);
-        await sessionsStore.setJSON(sessionId, blobData, { ttl: ttlSeconds }); 
+        console.log(`[Session Manager] createSession: Setting blob for sessionId: ${sessionId}, userId: ${userId}, expiresAt: ${expiresAt}`);
+        await sessionsStore.setJSON(sessionId, blobData); 
         console.log(`[Session Manager] createSession: Blob set successfully for sessionId: ${sessionId}`);
         return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
       }
