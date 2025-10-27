@@ -7,6 +7,8 @@ interface BlobSessionData {
   createdAt: string; // ISO string
 }
 
+const getCompositeKey = (userId: string, sessionId: string) => `${userId}_${sessionId}`;
+
 const handler = async (req: Request): Promise<Response> => {
   console.log(`[Session Manager] Function invoked. HTTP Method: ${req.method}`);
 
@@ -36,21 +38,23 @@ const handler = async (req: Request): Promise<Response> => {
           return new Response(JSON.stringify({ error: "Missing required fields for createSession." }), { status: 400, headers: { 'Content-Type': 'application/json' } });
         }
         const blobData: BlobSessionData = { userId, expiresAt, createdAt: new Date().toISOString() };
+        const key = getCompositeKey(userId, sessionId);
         
-        console.log(`[Session Manager] createSession: Setting blob for sessionId: ${sessionId}, userId: ${userId}, expiresAt: ${expiresAt}`);
-        await sessionsStore.setJSON(sessionId, blobData); 
-        console.log(`[Session Manager] createSession: Blob set successfully for sessionId: ${sessionId}`);
+        console.log(`[Session Manager] createSession: Setting blob for key: ${key}`);
+        await sessionsStore.setJSON(key, blobData); 
+        console.log(`[Session Manager] createSession: Blob set successfully for key: ${key}`);
         return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
       }
       case 'deleteSession': {
-        const { sessionId } = payload;
-        if (!sessionId) {
-          console.error("[Session Manager] Missing sessionId for deleteSession:", payload);
-          return new Response(JSON.stringify({ error: "Missing sessionId for deleteSession." }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+        const { userId, sessionId } = payload; // Need userId here too
+        if (!userId || !sessionId) {
+          console.error("[Session Manager] Missing userId or sessionId for deleteSession:", payload);
+          return new Response(JSON.stringify({ error: "Missing userId or sessionId for deleteSession." }), { status: 400, headers: { 'Content-Type': 'application/json' } });
         }
-        console.log(`[Session Manager] deleteSession: Deleting blob for sessionId: ${sessionId}`);
-        await sessionsStore.delete(sessionId);
-        console.log(`[Session Manager] deleteSession: Blob deleted successfully for sessionId: ${sessionId}`);
+        const key = getCompositeKey(userId, sessionId);
+        console.log(`[Session Manager] deleteSession: Deleting blob for key: ${key}`);
+        await sessionsStore.delete(key);
+        console.log(`[Session Manager] deleteSession: Blob deleted successfully for key: ${key}`);
         return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
       }
       case 'deleteAllSessionsForUser': {
@@ -59,22 +63,12 @@ const handler = async (req: Request): Promise<Response> => {
           console.error("[Session Manager] Missing userId for deleteAllSessionsForUser:", payload);
           return new Response(JSON.stringify({ error: "Missing userId for deleteAllSessionsForUser." }), { status: 400, headers: { 'Content-Type': 'application/json' } });
         }
-        console.log(`[Session Manager] deleteAllSessionsForUser: Listing blobs to delete for userId: ${userId}`);
-        const { blobs } = await sessionsStore.list();
-        const deletePromises = [];
-        for (const blob of blobs) {
-          console.log(`[Session Manager] deleteAllSessionsForUser: Checking blob key: ${blob.key}`);
-          try {
-            const blobContent = await sessionsStore.get(blob.key);
-            const blobData = blobContent ? JSON.parse(new TextDecoder().decode(blobContent)) as BlobSessionData : null;
-            if (blobData && blobData.userId === userId) {
-              console.log(`[Session Manager] deleteAllSessionsForUser: Deleting blob key: ${blob.key} for userId: ${userId}`);
-              deletePromises.push(sessionsStore.delete(blob.key));
-            }
-          } catch (blobReadError: any) {
-            console.error(`[Session Manager] Error reading/parsing blob ${blob.key} for deleteAllSessionsForUser:`, blobReadError.message);
-          }
-        }
+        console.log(`[Session Manager] deleteAllSessionsForUser: Listing blobs with prefix: ${userId}_`);
+        const { blobs } = await sessionsStore.list({ prefix: userId + '_' }); // Use prefix filtering
+        const deletePromises = blobs.map(blob => {
+          console.log(`[Session Manager] deleteAllSessionsForUser: Deleting blob key: ${blob.key}`);
+          return sessionsStore.delete(blob.key);
+        });
         await Promise.all(deletePromises);
         console.log(`[Session Manager] deleteAllSessionsForUser: All matching blobs deleted for userId: ${userId}`);
         return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -85,16 +79,16 @@ const handler = async (req: Request): Promise<Response> => {
           console.error("[Session Manager] Missing userId for countActiveSessions:", payload);
           return new Response(JSON.stringify({ error: "Missing userId for countActiveSessions." }), { status: 400, headers: { 'Content-Type': 'application/json' } });
         }
-        console.log(`[Session Manager] countActiveSessions: Listing blobs to count for userId: ${userId}`);
-        const { blobs } = await sessionsStore.list();
+        console.log(`[Session Manager] countActiveSessions: Listing blobs with prefix: ${userId}_`);
+        const { blobs } = await sessionsStore.list({ prefix: userId + '_' });
         let count = 0;
         const now = new Date();
         for (const blob of blobs) {
-          console.log(`[Session Manager] countActiveSessions: Checking blob key: ${blob.key}`);
+          console.log(`[Session Manager] countActiveSessions: Getting blob content for key: ${blob.key}`);
           try {
             const blobContent = await sessionsStore.get(blob.key);
             const blobData = blobContent ? JSON.parse(new TextDecoder().decode(blobContent)) as BlobSessionData : null;
-            if (blobData && blobData.userId === userId && new Date(blobData.expiresAt) > now) {
+            if (blobData && new Date(blobData.expiresAt) > now) { // userId check is implicit with prefix
               count++;
             }
           } catch (blobReadError: any) {
@@ -110,16 +104,16 @@ const handler = async (req: Request): Promise<Response> => {
           console.error("[Session Manager] Missing userId or limit for deleteOldestSessions:", payload);
           return new Response(JSON.stringify({ error: "Missing userId or limit for deleteOldestSessions." }), { status: 400, headers: { 'Content-Type': 'application/json' } });
         }
-        console.log(`[Session Manager] deleteOldestSessions: Listing blobs to delete oldest for userId: ${userId}, limit: ${limit}`);
-        const { blobs } = await sessionsStore.list();
+        console.log(`[Session Manager] deleteOldestSessions: Listing blobs with prefix: ${userId}_`);
+        const { blobs } = await sessionsStore.list({ prefix: userId + '_' });
         const userSessions: { key: string; data: BlobSessionData }[] = [];
 
         for (const blob of blobs) {
-          console.log(`[Session Manager] deleteOldestSessions: Checking blob key: ${blob.key}`);
+          console.log(`[Session Manager] deleteOldestSessions: Getting blob content for key: ${blob.key}`);
           try {
             const blobContent = await sessionsStore.get(blob.key);
             const blobData = blobContent ? JSON.parse(new TextDecoder().decode(blobContent)) as BlobSessionData : null;
-            if (blobData && blobData.userId === userId) {
+            if (blobData) { // userId check is implicit with prefix
               userSessions.push({ key: blob.key, data: blobData });
             }
           } catch (blobReadError: any) {
@@ -127,9 +121,9 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
 
-        if (userSessions.length >= limit) {
+        if (userSessions.length > limit) { // Changed to > limit to delete if there are more than allowed
           userSessions.sort((a, b) => new Date(a.data.createdAt).getTime() - new Date(b.data.createdAt).getTime());
-          const sessionsToDelete = userSessions.slice(0, userSessions.length - limit + 1);
+          const sessionsToDelete = userSessions.slice(0, userSessions.length - limit); // Delete only the excess
           console.log(`[Session Manager] deleteOldestSessions: Deleting ${sessionsToDelete.length} oldest sessions.`);
           const deletePromises = sessionsToDelete.map(s => sessionsStore.delete(s.key));
           await Promise.all(deletePromises);
@@ -143,16 +137,17 @@ const handler = async (req: Request): Promise<Response> => {
           console.error("[Session Manager] Missing userId or sessionId for isValidSession:", payload);
           return new Response(JSON.stringify({ error: "Missing userId or sessionId for isValidSession." }), { status: 400, headers: { 'Content-Type': 'application/json' } });
         }
-        console.log(`[Session Manager] isValidSession: Getting blob for sessionId: ${sessionId}`);
+        const key = getCompositeKey(userId, sessionId);
+        console.log(`[Session Manager] isValidSession: Getting blob for key: ${key}`);
         let isValid = false;
         try {
-          const blobContent = await sessionsStore.get(sessionId);
+          const blobContent = await sessionsStore.get(key);
           const blobData = blobContent ? JSON.parse(new TextDecoder().decode(blobContent)) as BlobSessionData : null;
-          isValid = blobData !== null && blobData.userId === userId && new Date(blobData.expiresAt) > new Date();
+          isValid = blobData !== null && new Date(blobData.expiresAt) > new Date(); // userId check is implicit with composite key
         } catch (blobReadError: any) {
-          console.error(`[Session Manager] Error reading/parsing blob ${sessionId} for isValidSession:`, blobReadError.message);
+          console.error(`[Session Manager] Error reading/parsing blob ${key} for isValidSession:`, blobReadError.message);
         }
-        console.log(`[Session Manager] isValidSession: Session ${sessionId} is valid: ${isValid}`);
+        console.log(`[Session Manager] isValidSession: Session ${key} is valid: ${isValid}`);
         return new Response(JSON.stringify({ isValid }), { status: 200, headers: { 'Content-Type': 'application/json' } });
       }
       default:

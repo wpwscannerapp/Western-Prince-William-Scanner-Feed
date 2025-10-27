@@ -39,7 +39,7 @@ export const SessionService = {
           sessionId,
           userId: session.user.id,
           expiresAt: expiresAtISO,
-          expiresIn: session.expires_in,
+          // expiresIn: session.expires_in, // This expiresIn is not used in the function, but harmless
         },
       });
 
@@ -76,7 +76,7 @@ export const SessionService = {
     try {
       const { data, error } = await NetlifyClient.invoke<{ success: boolean }>('session-manager', {
         action: 'deleteSession',
-        payload: { sessionId },
+        payload: { userId, sessionId }, // Pass userId here
       });
 
       if (error || !data?.success) {
@@ -164,7 +164,7 @@ export const SessionService = {
     try {
       const { data, error } = await NetlifyClient.invoke<{ isValid: boolean }>('session-manager', {
         action: 'isValidSession',
-        payload: { userId, sessionId },
+        payload: { userId, sessionId }, // Pass userId here
       });
 
       if (error) {
