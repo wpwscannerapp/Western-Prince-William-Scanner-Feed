@@ -1,5 +1,5 @@
 import { getStore } from '@netlify/blobs';
-import type { Handler } from "@netlify/functions"; // Import Handler type
+import type { Handler, HandlerEvent, HandlerResponse } from "@netlify/functions"; // Import HandlerEvent and HandlerResponse types
 
 // Define the structure of a session stored in Netlify Blobs
 interface BlobSessionData {
@@ -10,12 +10,16 @@ interface BlobSessionData {
 
 const getCompositeKey = (userId: string, sessionId: string) => `${userId}_${sessionId}`;
 
-const handler: Handler = async (req) => { // Use Handler type for req
-  console.log(`[Session Manager] Function invoked. HTTP Method: ${req.method}`);
+const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => { // Use HandlerEvent type for event
+  console.log(`[Session Manager] Function invoked. HTTP Method: ${event.httpMethod}`);
 
-  if (req.httpMethod !== "POST") { // Use httpMethod from HandlerEvent
-    console.warn(`[Session Manager] Method Not Allowed: ${req.httpMethod}`);
-    return new Response("Method Not Allowed", { status: 405 });
+  if (event.httpMethod !== "POST") {
+    console.warn(`[Session Manager] Method Not Allowed: ${event.httpMethod}`);
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: "Method Not Allowed" }),
+      headers: { 'Content-Type': 'application/json' },
+    };
   }
 
   let sessionsStore: ReturnType<typeof getStore>;
@@ -24,17 +28,25 @@ const handler: Handler = async (req) => { // Use Handler type for req
     console.log("[Session Manager] Netlify Blobs store initialized.");
   } catch (initError: any) {
     console.error("[Session Manager] Error initializing Netlify Blobs store:", initError.message, initError.stack);
-    return new Response(JSON.stringify({ error: "Failed to initialize session store." }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Failed to initialize session store." }),
+      headers: { 'Content-Type': 'application/json' },
+    };
   }
 
   let action: string;
   let payload: any;
   try {
-    ({ action, payload } = JSON.parse(req.body || '{}')); // Parse req.body
+    ({ action, payload } = JSON.parse(event.body || '{}')); // Parse event.body
     console.log(`[Session Manager] Action: ${action}, Payload:`, payload);
   } catch (jsonError: any) {
     console.error("[Session Manager] Failed to parse JSON payload:", jsonError.message);
-    return new Response(JSON.stringify({ error: "Invalid JSON payload." }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Invalid JSON payload." }),
+      headers: { 'Content-Type': 'application/json' },
+    };
   }
 
   try {
@@ -43,7 +55,11 @@ const handler: Handler = async (req) => { // Use Handler type for req
         const { sessionId, userId, expiresAt } = payload;
         if (!sessionId || !userId || !expiresAt) {
           console.error("[Session Manager] Missing required fields for createSession:", payload);
-          return new Response(JSON.stringify({ error: "Missing required fields for createSession." }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ error: "Missing required fields for createSession." }),
+            headers: { 'Content-Type': 'application/json' },
+          };
         }
         const blobData: BlobSessionData = { userId, expiresAt, createdAt: new Date().toISOString() };
         const key = getCompositeKey(userId, sessionId);
@@ -51,41 +67,65 @@ const handler: Handler = async (req) => { // Use Handler type for req
         console.log(`[Session Manager] createSession: Setting blob for key: ${key}`);
         await sessionsStore.setJSON(key, blobData); 
         console.log(`[Session Manager] createSession: Blob set successfully for key: ${key}`);
-        return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ success: true }),
+          headers: { 'Content-Type': 'application/json' },
+        };
       }
       case 'deleteSession': {
-        const { userId, sessionId } = payload; // Need userId here too
+        const { userId, sessionId } = payload;
         if (!userId || !sessionId) {
           console.error("[Session Manager] Missing userId or sessionId for deleteSession:", payload);
-          return new Response(JSON.stringify({ error: "Missing userId or sessionId for deleteSession." }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ error: "Missing userId or sessionId for deleteSession." }),
+            headers: { 'Content-Type': 'application/json' },
+          };
         }
         const key = getCompositeKey(userId, sessionId);
         console.log(`[Session Manager] deleteSession: Deleting blob for key: ${key}`);
         await sessionsStore.delete(key);
         console.log(`[Session Manager] deleteSession: Blob deleted successfully for key: ${key}`);
-        return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ success: true }),
+          headers: { 'Content-Type': 'application/json' },
+        };
       }
       case 'deleteAllSessionsForUser': {
         const { userId } = payload;
         if (!userId) {
           console.error("[Session Manager] Missing userId for deleteAllSessionsForUser:", payload);
-          return new Response(JSON.stringify({ error: "Missing userId for deleteAllSessionsForUser." }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ error: "Missing userId for deleteAllSessionsForUser." }),
+            headers: { 'Content-Type': 'application/json' },
+          };
         }
         console.log(`[Session Manager] deleteAllSessionsForUser: Listing blobs with prefix: ${userId}_`);
-        const { blobs } = await sessionsStore.list({ prefix: userId + '_' }); // Use prefix filtering
+        const { blobs } = await sessionsStore.list({ prefix: userId + '_' });
         const deletePromises = blobs.map(blob => {
           console.log(`[Session Manager] deleteAllSessionsForUser: Deleting blob key: ${blob.key}`);
           return sessionsStore.delete(blob.key);
         });
         await Promise.all(deletePromises);
         console.log(`[Session Manager] deleteAllSessionsForUser: All matching blobs deleted for userId: ${userId}`);
-        return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ success: true }),
+          headers: { 'Content-Type': 'application/json' },
+        };
       }
       case 'countActiveSessions': {
         const { userId } = payload;
         if (!userId) {
           console.error("[Session Manager] Missing userId for countActiveSessions:", payload);
-          return new Response(JSON.stringify({ error: "Missing userId for countActiveSessions." }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ error: "Missing userId for countActiveSessions." }),
+            headers: { 'Content-Type': 'application/json' },
+          };
         }
         console.log(`[Session Manager] countActiveSessions: Listing blobs with prefix: ${userId}_`);
         const { blobs } = await sessionsStore.list({ prefix: userId + '_' });
@@ -96,7 +136,7 @@ const handler: Handler = async (req) => { // Use Handler type for req
           try {
             const blobContent = await sessionsStore.get(blob.key);
             const blobData = blobContent ? JSON.parse(new TextDecoder().decode(blobContent)) as BlobSessionData : null;
-            if (blobData && new Date(blobData.expiresAt) > now) { // userId check is implicit with prefix
+            if (blobData && new Date(blobData.expiresAt) > now) {
               count++;
             }
           } catch (blobReadError: any) {
@@ -104,13 +144,21 @@ const handler: Handler = async (req) => { // Use Handler type for req
           }
         }
         console.log(`[Session Manager] countActiveSessions: Found ${count} active sessions for userId: ${userId}`);
-        return new Response(JSON.stringify({ count }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ count }),
+          headers: { 'Content-Type': 'application/json' },
+        };
       }
       case 'deleteOldestSessions': {
         const { userId, limit } = payload;
         if (!userId || typeof limit !== 'number') {
           console.error("[Session Manager] Missing userId or limit for deleteOldestSessions:", payload);
-          return new Response(JSON.stringify({ error: "Missing userId or limit for deleteOldestSessions." }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ error: "Missing userId or limit for deleteOldestSessions." }),
+            headers: { 'Content-Type': 'application/json' },
+          };
         }
         console.log(`[Session Manager] deleteOldestSessions: Listing blobs with prefix: ${userId}_`);
         const { blobs } = await sessionsStore.list({ prefix: userId + '_' });
@@ -121,7 +169,7 @@ const handler: Handler = async (req) => { // Use Handler type for req
           try {
             const blobContent = await sessionsStore.get(blob.key);
             const blobData = blobContent ? JSON.parse(new TextDecoder().decode(blobContent)) as BlobSessionData : null;
-            if (blobData) { // userId check is implicit with prefix
+            if (blobData) {
               userSessions.push({ key: blob.key, data: blobData });
             }
           } catch (blobReadError: any) {
@@ -129,21 +177,29 @@ const handler: Handler = async (req) => { // Use Handler type for req
           }
         }
 
-        if (userSessions.length > limit) { // Changed to > limit to delete if there are more than allowed
+        if (userSessions.length > limit) {
           userSessions.sort((a, b) => new Date(a.data.createdAt).getTime() - new Date(b.data.createdAt).getTime());
-          const sessionsToDelete = userSessions.slice(0, userSessions.length - limit); // Delete only the excess
+          const sessionsToDelete = userSessions.slice(0, userSessions.length - limit);
           console.log(`[Session Manager] deleteOldestSessions: Deleting ${sessionsToDelete.length} oldest sessions.`);
           const deletePromises = sessionsToDelete.map(s => sessionsStore.delete(s.key));
           await Promise.all(deletePromises);
         }
         console.log(`[Session Manager] deleteOldestSessions: Oldest sessions deleted for userId: ${userId}`);
-        return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ success: true }),
+          headers: { 'Content-Type': 'application/json' },
+        };
       }
       case 'isValidSession': {
         const { userId, sessionId } = payload;
         if (!userId || !sessionId) {
           console.error("[Session Manager] Missing userId or sessionId for isValidSession:", payload);
-          return new Response(JSON.stringify({ error: "Missing userId or sessionId for isValidSession." }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ error: "Missing userId or sessionId for isValidSession." }),
+            headers: { 'Content-Type': 'application/json' },
+          };
         }
         const key = getCompositeKey(userId, sessionId);
         console.log(`[Session Manager] isValidSession: Getting blob for key: ${key}`);
@@ -151,20 +207,32 @@ const handler: Handler = async (req) => { // Use Handler type for req
         try {
           const blobContent = await sessionsStore.get(key);
           const blobData = blobContent ? JSON.parse(new TextDecoder().decode(blobContent)) as BlobSessionData : null;
-          isValid = blobData !== null && new Date(blobData.expiresAt) > new Date(); // userId check is implicit with composite key
+          isValid = blobData !== null && new Date(blobData.expiresAt) > new Date();
         } catch (blobReadError: any) {
-          console.error(`[Session Manager] Error reading/parsing blob ${key} for isValidSession:`, blobReadError.message);
+            console.error(`[Session Manager] Error reading/parsing blob ${key} for isValidSession:`, blobReadError.message);
         }
         console.log(`[Session Manager] isValidSession: Session ${key} is valid: ${isValid}`);
-        return new Response(JSON.stringify({ isValid }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ isValid }),
+          headers: { 'Content-Type': 'application/json' },
+        };
       }
       default:
         console.error("[Session Manager] Invalid action received:", action);
-        return new Response(JSON.stringify({ error: "Invalid action." }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: "Invalid action." }),
+          headers: { 'Content-Type': 'application/json' },
+        };
     }
   } catch (error: any) {
     console.error("[Session Manager] Netlify Function execution error:", error.message, error.stack);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message }),
+      headers: { 'Content-Type': 'application/json' },
+    };
   }
 };
 
