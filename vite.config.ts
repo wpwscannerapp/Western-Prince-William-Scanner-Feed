@@ -9,11 +9,14 @@ export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   const supabaseUrl = env.VITE_SUPABASE_URL; 
 
-  return {
-    base: '/',
-    plugins: [
-      react(),
-      netlifyPlugin(), // Add the Netlify Vite plugin here
+  const plugins = [
+    react(),
+    netlifyPlugin(), // Add the Netlify Vite plugin here
+  ];
+
+  // Only include VitePWA plugin in build mode
+  if (command === 'build') {
+    plugins.push(
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
@@ -66,11 +69,7 @@ export default defineConfig(({ command, mode }) => {
             },
           ],
         },
-        devOptions: {
-          enabled: false, // Set to false to disable service worker in development
-          type: 'module',
-          navigateFallback: 'index.html',
-        },
+        // devOptions are not needed if the plugin is only enabled for build
         manifest: {
           name: "Western Prince William Scanner Feed",
           short_name: "WPW Scanner",
@@ -92,8 +91,13 @@ export default defineConfig(({ command, mode }) => {
             }
           ]
         },
-      }),
-    ],
+      })
+    );
+  }
+
+  return {
+    base: '/',
+    plugins,
     root: './',
     resolve: {
       alias: {
