@@ -96,10 +96,8 @@ export default defineConfig(({ command, mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-        // Add alias for leaflet to ensure it uses the minified dist file
-        'leaflet': path.resolve(__dirname, 'node_modules/leaflet/dist/leaflet.js'),
-        // Explicitly alias leaflet-src.js to leaflet.js in case it's directly referenced
-        'leaflet/dist/leaflet-src.js': path.resolve(__dirname, 'node_modules/leaflet/dist/leaflet.js'),
+        // Removed specific Leaflet aliases as they were causing path resolution issues.
+        // Vite should correctly resolve 'leaflet/dist/leaflet.css' without them.
       },
     },
     server: command === 'serve' ? {
