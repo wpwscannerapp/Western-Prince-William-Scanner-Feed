@@ -26,8 +26,15 @@ const handler: Handler = async (event: HandlerEvent) => {
     WEB_PUSH_PRIVATE_KEY
   );
 
+  let payload;
   try {
-    const payload = JSON.parse(event.body || '{}');
+    payload = JSON.parse(event.body || '{}');
+  } catch (jsonError: any) {
+    console.error("Failed to parse JSON payload:", jsonError.message);
+    return { statusCode: 400, body: JSON.stringify({ error: "Invalid JSON payload." }) };
+  }
+  
+  try { // Corrected: Main logic wrapped in try-catch
     const newAlert = payload.record; // Supabase trigger payload
 
     if (!newAlert || !newAlert.id || !newAlert.description || !newAlert.title) {
@@ -154,9 +161,9 @@ const handler: Handler = async (event: HandlerEvent) => {
 
     return { statusCode: 200, body: JSON.stringify({ message: "Web Push notifications processed." }) };
 
-  } catch (error: any) {
+  } catch (error: any) { // Corrected: Catch block for the main logic
     console.error("Function execution error:", error.message, error.stack);
-    return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+    return new Response(JSON.stringify({ error: error.message }), { statusCode: 500, headers: { 'Content-Type': 'application/json' } });
   }
 };
 

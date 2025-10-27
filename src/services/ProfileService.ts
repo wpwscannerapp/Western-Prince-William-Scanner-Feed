@@ -34,45 +34,29 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
-      const { error: selectError } = await supabase
+      // Use upsert directly to handle both insert and update atomically
+      const { error: upsertError } = await supabase
         .from('profiles')
-        .select('id')
-        .eq('id', userId)
-        .abortSignal(controller.signal)
-        .single();
+        .upsert(
+          {
+            id: userId,
+            first_name: null,
+            last_name: null,
+            avatar_url: null,
+            subscription_status: 'free',
+            username: null,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'id', ignoreDuplicates: true } // 'ignoreDuplicates: true' is crucial here
+        )
+        .abortSignal(controller.signal);
 
-      if (selectError) {
-        if (selectError.code === 'PGRST116') { // No rows found
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert({
-              id: userId,
-              first_name: null,
-              last_name: null,
-              avatar_url: null,
-              subscription_status: 'free',
-              username: null,
-              updated_at: new Date().toISOString(),
-            })
-            .abortSignal(controller.signal);
-
-          if (insertError) {
-            if (insertError.code === '23505') { // Unique constraint violation, means profile was created concurrently
-              AnalyticsService.trackEvent({ name: 'profile_ensure_exists_concurrent_insert', properties: { userId } });
-              return true;
-            }
-            logSupabaseError('ensureProfileExists - insert', insertError);
-            AnalyticsService.trackEvent({ name: 'profile_ensure_exists_insert_failed', properties: { userId, error: insertError.message } });
-            throw insertError;
-          }
-          AnalyticsService.trackEvent({ name: 'profile_created_on_ensure', properties: { userId } });
-          return true;
-        }
-        logSupabaseError('ensureProfileExists - select', selectError);
-        AnalyticsService.trackEvent({ name: 'profile_ensure_exists_select_failed', properties: { userId, error: selectError.message } });
-        throw selectError;
+      if (upsertError) {
+        logSupabaseError('ensureProfileExists - upsert', upsertError);
+        AnalyticsService.trackEvent({ name: 'profile_ensure_exists_upsert_failed', properties: { userId, error: upsertError.message } });
+        throw upsertError;
       }
-      AnalyticsService.trackEvent({ name: 'profile_exists_checked', properties: { userId } });
+      AnalyticsService.trackEvent({ name: 'profile_ensured_exists', properties: { userId } });
       return true;
     } catch (err: any) {
       if (err.name === 'AbortError') {

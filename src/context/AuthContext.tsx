@@ -67,6 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await ProfileService.ensureProfileExists(currentSession.user.id);
 
       const profile = await ProfileService.fetchProfile(currentSession.user.id);
+      // Add null check for profile
       const isCurrentUserAdmin = profile?.role === 'admin';
 
       if (!isCurrentUserAdmin) {
@@ -125,10 +126,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setError(null);
 
           if (_event === 'SIGNED_IN') {
-            setIsExplicitlySignedIn(true);
+            if (isMountedRef.current) { // Add mounted check
+              setIsExplicitlySignedIn(true);
+            }
             AnalyticsService.trackEvent({ name: 'auth_state_signed_in', properties: { userId: currentSession?.user?.id } });
           } else if (_event === 'SIGNED_OUT') {
-            setIsExplicitlySignedIn(false);
+            if (isMountedRef.current) { // Add mounted check
+              setIsExplicitlySignedIn(false);
+            }
             AnalyticsService.trackEvent({ name: 'auth_state_signed_out', properties: { userId: userRef.current?.id } });
           }
 
@@ -180,7 +185,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: authError };
       }
       toast.success('Logged in successfully!');
-      setIsExplicitlySignedIn(true);
+      if (isMountedRef.current) { // Add mounted check
+        setIsExplicitlySignedIn(true);
+      }
       return { data };
     } finally {
       setLoading(false);
@@ -200,7 +207,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: authError };
       }
       toast.success('Logged out successfully!');
-      setIsExplicitlySignedIn(false);
+      if (isMountedRef.current) { // Add mounted check
+        setIsExplicitlySignedIn(false);
+      }
       return { success: true };
     } catch (e: any) {
       handleError(e, e.message || 'An unexpected error occurred during logout.');

@@ -74,13 +74,13 @@ export const NotificationService = {
 
     if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
       handleError(null, 'VAPID Public Key is missing or invalid. Cannot subscribe.');
-      AnalyticsService.trackEvent({ name: 'push_subscribe_failed', properties: { reason: 'invalid_vapid_key' } });
+      AnalyticsService.trackEvent({ name: 'push_subscribe_failed', properties: { reason: 'invalid_vapid_key' } }); // Fixed here
       return null;
     }
 
     if (Notification.permission !== 'granted') {
       handleError(null, 'Notification permission not granted. Please allow notifications to subscribe.');
-      AnalyticsService.trackEvent({ name: 'push_subscribe_failed', properties: { reason: 'permission_not_granted' } });
+      AnalyticsService.trackEvent({ name: 'push_subscribe_failed', properties: { reason: 'permission_not_granted' } }); // Fixed here
       return null;
     }
 

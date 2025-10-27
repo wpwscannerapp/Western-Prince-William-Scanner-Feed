@@ -26,10 +26,17 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(JSON.stringify({ error: "Failed to initialize session store." }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 
+  let action: string;
+  let payload: any;
   try {
-    const { action, payload } = await req.json();
+    ({ action, payload } = await req.json());
     console.log(`[Session Manager] Action: ${action}, Payload:`, payload);
+  } catch (jsonError: any) {
+    console.error("[Session Manager] Failed to parse JSON payload:", jsonError.message);
+    return new Response(JSON.stringify({ error: "Invalid JSON payload." }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  }
 
+  try {
     switch (action) {
       case 'createSession': {
         const { sessionId, userId, expiresAt } = payload;

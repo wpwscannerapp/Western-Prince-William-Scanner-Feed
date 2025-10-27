@@ -53,6 +53,15 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
   const [geocodedLocation, setGeocodedLocation] = useState<{ latitude: number; longitude: number; display_name: string } | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
 
+  // Effect to revoke object URLs when component unmounts or image changes
+  useEffect(() => {
+    return () => {
+      if (imagePreview && imageFile) { // Only revoke if it's a locally created object URL
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview, imageFile]);
+
   useEffect(() => {
     if (initialIncident) {
       form.reset({
@@ -61,6 +70,10 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         description: initialIncident.description,
         image: undefined,
       });
+      // Revoke old object URL if it exists and is a local one
+      if (imagePreview && imageFile) {
+        URL.revokeObjectURL(imagePreview);
+      }
       setImagePreview(initialIncident.image_url || undefined);
       setImageFile(null);
       if (initialIncident.latitude && initialIncident.longitude) {
@@ -79,6 +92,10 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         description: '',
         image: undefined,
       });
+      // Revoke old object URL if it exists and is a local one
+      if (imagePreview && imageFile) {
+        URL.revokeObjectURL(imagePreview);
+      }
       setImagePreview(undefined);
       setImageFile(null);
       setGeocodedLocation(null);
@@ -87,6 +104,11 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    // Revoke previous object URL if it exists
+    if (imagePreview && imageFile) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
     if (file) {
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
@@ -97,6 +119,10 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
   };
 
   const handleRemoveImage = () => {
+    // Revoke current object URL if it exists
+    if (imagePreview && imageFile) {
+      URL.revokeObjectURL(imagePreview);
+    }
     setImageFile(null);
     setImagePreview(undefined);
     if (fileInputRef.current) {
@@ -141,6 +167,10 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
       });
       if (!initialIncident) {
         form.reset();
+        // Revoke object URL after successful submission if it was a local one
+        if (imagePreview && imageFile) {
+          URL.revokeObjectURL(imagePreview);
+        }
         setImagePreview(undefined);
         setImageFile(null);
         if (fileInputRef.current) {
