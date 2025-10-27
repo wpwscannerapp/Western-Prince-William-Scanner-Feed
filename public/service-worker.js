@@ -1,3 +1,2 @@
-// This is a placeholder service worker file.
-// In development, vite-plugin-pwa typically uses 'dev-sw.js'.
-// This file ensures that if 'service-worker.js' is requested, it receives a valid JS file.
+// This file is intentionally left empty during development to prevent conflicts with Vite's module serving.
+// The PWA plugin will generate the actual service worker for production builds.
