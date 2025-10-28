@@ -62,7 +62,7 @@ export function useIsAdmin(): UseAdminResult {
       }, SUPABASE_API_TIMEOUT);
 
       if (import.meta.env.DEV) {
-        console.log(`useIsAdmin: Fetching role for user ${user.id} with timeout ${SUPABASE_API_TIMEOUT}ms.`);
+        console.log(`[useIsAdmin] Using SUPABASE_API_TIMEOUT: ${SUPABASE_API_TIMEOUT}ms`);
       }
 
       try {
