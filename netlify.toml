@@ -1,6 +1,29 @@
-[functions]
-  directory = "netlify/functions"
-  node_bundler = "esbuild" 
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
 
-[blobs]
-  main = "user_sessions"
+[[redirects]]
+  from = "/.netlify/functions/send-web-push-notification"
+  to = "https://wpwscannerapp.com/.netlify/functions/send-web-push-notification"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/.netlify/functions/create-checkout-session"
+  to = "https://wvvxkwvliogulfqmkaqb.supabase.co/functions/v1/create-checkout-session"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/.netlify/functions/stripe-webhook"
+  to = "https://wvvxkwvliogulfqmkaqb.supabase.co/functions/v1/stripe-webhook"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/.netlify/images"
+  to = "/.netlify/images"
+  status = 200
+  force = true
+  query = { url = ":url", w = ":w", h = ":h", fit = ":fit", fm = ":fm" }
