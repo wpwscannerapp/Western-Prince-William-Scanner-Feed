@@ -256,9 +256,8 @@ export const NotificationService = {
     try {
       const { data, error } = await supabase
         .from('alerts')
-        .select('id, title, type, latitude, longitude, description, created_at')
+        .select('*')
         .order('created_at', { ascending: false })
-        .limit(50)
         .abortSignal(controller.signal);
 
       if (error) {
@@ -270,13 +269,79 @@ export const NotificationService = {
       return data as Alert[];
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        handleError(new Error('Request timed out'), 'Fetching alerts for map timed out.');
+        handleError(new Error('Request timed out'), 'Fetching alerts timed out.');
         AnalyticsService.trackEvent({ name: 'fetch_alerts_timeout' });
       } else {
         logSupabaseError('fetchAlerts', err);
         AnalyticsService.trackEvent({ name: 'fetch_alerts_unexpected_error', properties: { error: err.message } });
       }
       return [];
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  },
+
+  async updateAlert(alertId: string, updates: Partial<Omit<Alert, 'id' | 'created_at'>>): Promise<Alert | null> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
+
+    try {
+      const { data, error } = await supabase
+        .from('alerts')
+        .update(updates)
+        .eq('id', alertId)
+        .abortSignal(controller.signal)
+        .select()
+        .single();
+
+      if (error) {
+        logSupabaseError('updateAlert', error);
+        AnalyticsService.trackEvent({ name: 'update_alert_failed', properties: { alertId, updates: Object.keys(updates), error: error.message } });
+        return null;
+      }
+      AnalyticsService.trackEvent({ name: 'alert_updated', properties: { alertId, updates: Object.keys(updates) } });
+      return data as Alert;
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        handleError(new Error('Request timed out'), 'Updating alert timed out.');
+        AnalyticsService.trackEvent({ name: 'update_alert_timeout', properties: { alertId } });
+      } else {
+        logSupabaseError('updateAlert', err);
+        AnalyticsService.trackEvent({ name: 'update_alert_unexpected_error', properties: { alertId, error: err.message } });
+      }
+      return null;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  },
+
+  async deleteAlert(alertId: string): Promise<boolean> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
+
+    try {
+      const { error } = await supabase
+        .from('alerts')
+        .delete()
+        .eq('id', alertId)
+        .abortSignal(controller.signal);
+
+      if (error) {
+        logSupabaseError('deleteAlert', error);
+        AnalyticsService.trackEvent({ name: 'delete_alert_failed', properties: { alertId, error: error.message } });
+        return false;
+      }
+      AnalyticsService.trackEvent({ name: 'alert_deleted', properties: { alertId } });
+      return true;
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        handleError(new Error('Request timed out'), 'Deleting alert timed out.');
+        AnalyticsService.trackEvent({ name: 'delete_alert_timeout', properties: { alertId } });
+      } else {
+        logSupabaseError('deleteAlert', err);
+        AnalyticsService.trackEvent({ name: 'delete_alert_unexpected_error', properties: { alertId, error: err.message } });
+      }
+      return false;
     } finally {
       clearTimeout(timeoutId);
     }

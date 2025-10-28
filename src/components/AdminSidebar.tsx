@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Settings, BellRing, Menu, Phone, Siren } from 'lucide-react';
+import { LayoutDashboard, Settings, BellRing, Menu, Phone, Siren, AlertTriangle } from 'lucide-react'; // Added AlertTriangle icon
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
@@ -17,6 +17,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, onTabChange }) =
 
   const navItems = [
     { name: 'Incidents', icon: Siren, tab: 'incidents' },
+    { name: 'Alerts', icon: AlertTriangle, tab: 'alerts' }, // New Alerts item
     { name: 'Analytics', icon: LayoutDashboard, tab: 'analytics' },
     { name: 'Settings', icon: Settings, tab: 'settings' },
     { name: 'Notifications', icon: BellRing, tab: 'notifications' },

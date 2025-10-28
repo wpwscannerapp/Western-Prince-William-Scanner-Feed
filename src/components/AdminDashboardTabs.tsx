@@ -9,6 +9,7 @@ import AdminNotificationSender from '@/components/AdminNotificationSender';
 import ContactSettingsForm from '@/components/ContactSettingsForm';
 import IncidentForm from '@/components/IncidentForm';
 import AdminIncidentTable from '@/components/AdminIncidentTable';
+import AdminAlertTable from '@/components/AdminAlertTable'; // Import new AdminAlertTable
 import { IncidentService } from '@/services/IncidentService';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -38,6 +39,11 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
     // No direct action needed here, as AdminIncidentTable will handle its own refresh.
     // This callback is primarily to satisfy the prop requirement and potentially log an event.
     AnalyticsService.trackEvent({ name: 'admin_incident_table_refresh_requested' });
+  }, []);
+
+  const refreshAlertTable = useCallback(() => {
+    // This function will be passed to AdminAlertTable to trigger its internal refresh
+    AnalyticsService.trackEvent({ name: 'admin_alert_table_refresh_requested' });
   }, []);
 
   const handleCreateIncident = async (type: string, location: string, description: string, imageFile: File | null, _currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => {
@@ -126,8 +132,9 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
 
   return (
     <Tabs value={activeTab} className="tw-w-full">
-      <TabsList className="tw-grid tw-w-full tw-grid-cols-5">
+      <TabsList className="tw-grid tw-w-full tw-grid-cols-6"> {/* Increased grid-cols to 6 */}
         <TabsTrigger value="incidents" aria-label="Incidents tab">Incidents</TabsTrigger>
+        <TabsTrigger value="alerts" aria-label="Alerts tab">Alerts</TabsTrigger> {/* New tab for Alerts */}
         <TabsTrigger value="analytics" aria-label="Analytics tab">Analytics</TabsTrigger>
         <TabsTrigger value="settings" aria-label="Settings tab">Settings</TabsTrigger>
         <TabsTrigger value="notifications" aria-label="Notifications tab">Notifications</TabsTrigger>
@@ -153,6 +160,17 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
           </CardHeader>
           <CardContent>
             <AdminIncidentTable onIncidentUpdated={refreshIncidentTable} />
+          </CardContent>
+        </Card>
+      </TabsContent>
+      <TabsContent value="alerts" className="tw-space-y-8"> {/* New TabsContent for Alerts */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Manage Real-Time Alerts</CardTitle>
+            <CardDescription>View, edit, or delete real-time alerts</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AdminAlertTable onAlertUpdated={refreshAlertTable} />
           </CardContent>
         </Card>
       </TabsContent>
