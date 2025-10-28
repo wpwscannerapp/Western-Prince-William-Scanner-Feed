@@ -56,7 +56,7 @@ export function useIsAdmin(): UseAdminResult {
       const timeoutId = setTimeout(() => {
         controller.abort();
         if (import.meta.env.DEV) {
-          console.error(`useIsAdmin: Role fetch for ${user.id} timed out after ${SUPABASE_API_TIMEOUT}ms.`);
+          console.warn(`useIsAdmin: Role fetch for ${user.id} timed out after ${SUPABASE_API_TIMEOUT}ms. This might be a temporary network issue or a slow response from Supabase.`);
         }
         AnalyticsService.trackEvent({ name: 'fetch_admin_role_timeout', properties: { userId: user.id } });
       }, SUPABASE_API_TIMEOUT);
