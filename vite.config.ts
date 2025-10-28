@@ -16,84 +16,84 @@ export default defineConfig(({ command, mode }) => {
 
   // Only include VitePWA plugin in build mode
   if (command === 'build') {
-    // Temporarily commenting out VitePWA to ensure a clean service worker state
-    // plugins.push(
-    //   VitePWA({
-    //     registerType: 'autoUpdate',
-    //     injectRegister: 'auto',
-    //     filename: 'service-worker.js',
-    //     workbox: {
-    //       clientsClaim: true,
-    //       skipWaiting: true,
-    //       globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
-    //       runtimeCaching: [
-    //         {
-    //           urlPattern: ({ url }) => url.origin === location.origin,
-    //           handler: 'NetworkFirst',
-    //           options: {
-    //             cacheName: 'static-assets-cache',
-    //             expiration: {
-    //               maxEntries: 50,
-    //               maxAgeSeconds: 60 * 60 * 24 * 7,
-    //             },
-    //           },
-    //         },
-    //         {
-    //           // Corrected: Use supabaseUrl for the regex pattern
-    //           urlPattern: new RegExp(`^${supabaseUrl}/rest/v1/incidents`),
-    //           handler: 'StaleWhileRevalidate',
-    //           options: {
-    //             cacheName: 'supabase-incidents-api-cache',
-    //             expiration: {
-    //               maxEntries: 50,
-    //               maxAgeSeconds: 60 * 60 * 24,
-    //             },
-    //             cacheableResponse: {
-    //               statuses: [0, 200],
-    //             },
-    //           },
-    //         },
-    //         {
-    //           // Corrected: Use supabaseUrl for the regex pattern
-    //           urlPattern: new RegExp(`^${supabaseUrl}/storage/v1/object/public/post_images/`),
-    //           handler: 'CacheFirst',
-    //           options: {
-    //             cacheName: 'supabase-post-images-cache',
-    //             expiration: {
-    //               maxEntries: 100,
-    //               maxAgeSeconds: 60 * 60 * 24 * 30,
-    //             },
-    //             cacheableResponse: {
-    //               statuses: [0, 200],
-    //             },
-    //           },
-    //         },
-    //       ],
-    //     },
-    //     // devOptions are not needed if the plugin is only enabled for build
-    //     manifest: {
-    //       name: "Western Prince William Scanner Feed",
-    //       short_name: "WPW Scanner",
-    //       description: "Exclusive Scanner Updates for Western Prince William",
-    //       start_url: "/",
-    //       display: "standalone",
-    //       background_color: "#000000",
-    //       theme_color: "#000000",
-    //       icons: [
-    //         {
-    //           src: "/Logo.png",
-    //           sizes: "192x192",
-    //           type: "image/png"
-    //         },
-    //         {
-    //           src: "/Logo.png",
-    //           sizes: "512x512",
-    //           type: "image/png"
-    //         }
-    //       ]
-    //     },
-    //   })
-    // );
+    // Re-enabling VitePWA plugin
+    plugins.push(
+      VitePWA({
+        registerType: 'autoUpdate',
+        injectRegister: 'auto',
+        filename: 'service-worker.js',
+        workbox: {
+          clientsClaim: true,
+          skipWaiting: true,
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+          runtimeCaching: [
+            {
+              urlPattern: ({ url }) => url.origin === location.origin,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'static-assets-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24 * 7,
+                },
+              },
+            },
+            {
+              // Corrected: Use supabaseUrl for the regex pattern
+              urlPattern: new RegExp(`^${supabaseUrl}/rest/v1/incidents`),
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'supabase-incidents-api-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            {
+              // Corrected: Use supabaseUrl for the regex pattern
+              urlPattern: new RegExp(`^${supabaseUrl}/storage/v1/object/public/post_images/`),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'supabase-post-images-cache',
+                expiration: {
+                  maxEntries: 100,
+                  maxAgeSeconds: 60 * 60 * 24 * 30,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+          ],
+        },
+        // devOptions are not needed if the plugin is only enabled for build
+        manifest: {
+          name: "Western Prince William Scanner Feed",
+          short_name: "WPW Scanner",
+          description: "Exclusive Scanner Updates for Western Prince William",
+          start_url: "/",
+          display: "standalone",
+          background_color: "#000000",
+          theme_color: "#000000",
+          icons: [
+            {
+              src: "/Logo.png",
+              sizes: "192x192",
+              type: "image/png"
+            },
+            {
+              src: "/Logo.png",
+              sizes: "512x512",
+              type: "image/png"
+            }
+          ]
+        },
+      })
+    );
   }
 
   return {
