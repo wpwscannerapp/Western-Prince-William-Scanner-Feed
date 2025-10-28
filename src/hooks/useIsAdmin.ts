@@ -48,6 +48,10 @@ export function useIsAdmin(): UseAdminResult {
         AnalyticsService.trackEvent({ name: 'fetch_admin_role_timeout', properties: { userId: user.id } });
       }, SUPABASE_API_TIMEOUT);
 
+      if (import.meta.env.DEV) {
+        console.log(`useIsAdmin: Fetching role for user ${user.id} with timeout ${SUPABASE_API_TIMEOUT}ms.`);
+      }
+
       try {
         const { data, error: supabaseError } = await supabase
           .from('profiles')
