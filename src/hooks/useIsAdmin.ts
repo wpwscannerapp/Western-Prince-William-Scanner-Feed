@@ -17,10 +17,21 @@ interface UseAdminResult {
 
 export function useIsAdmin(): UseAdminResult {
   const { user, loading: authLoading, authReady } = useAuth();
+  const location = useLocation();
+
+  const isOnAuthPage = location.pathname === '/auth' || location.pathname === '/auth/login' || location.pathname === '/auth/signup';
+
+  // If on an authentication-related page, we don't need to check admin status.
+  // Return immediately with non-admin status and not loading for this specific check.
+  if (isOnAuthPage) {
+    return { isAdmin: false, loading: false, error: null };
+  }
+
+  // The rest of the hook logic only runs if not on an auth page.
+  // State variables must be declared unconditionally at the top level of the component.
   const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
-  const location = useLocation();
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -29,16 +40,18 @@ export function useIsAdmin(): UseAdminResult {
     };
   }, []);
 
-  const isOnAuthPage = location.pathname === '/auth' || location.pathname === '/auth/login' || location.pathname === '/auth/signup';
-  const queryEnabled = !!user && authReady && !authLoading && !isOnAuthPage;
-  
+  // Enable the query only if user is authenticated and auth is ready and not loading.
+  const queryEnabled = !!user && authReady && !authLoading;
+
   const { data: roleData, isLoading: isRoleQueryLoading, isError: isRoleQueryError, error: roleQueryError } = useQuery<{ role: string } | null, Error>({
     queryKey: ['userRole', user?.id],
     queryFn: async () => {
       if (!user) {
+        // This case should ideally not be reached if queryEnabled is false,
+        // but it's a good safeguard.
         return null;
       }
-      
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
@@ -88,22 +101,6 @@ export function useIsAdmin(): UseAdminResult {
   useEffect(() => {
     if (!isMountedRef.current) return;
 
-    if (isOnAuthPage || !authReady || authLoading) {
-      if (isAdmin || error) {
-        setIsAdmin(false);
-        setError(null);
-      }
-      return;
-    }
-
-    if (!queryEnabled) {
-      if (isAdmin || error) {
-        setIsAdmin(false);
-        setError(null);
-      }
-      return;
-    }
-
     if (isRoleQueryError) {
       setError(handleError(roleQueryError, 'Failed to load admin role.'));
       setIsAdmin(false);
@@ -117,9 +114,11 @@ export function useIsAdmin(): UseAdminResult {
       }
       setError(null);
     }
-  }, [authReady, isRoleQueryLoading, isRoleQueryError, roleQueryError, roleData, user, authLoading, queryEnabled, isOnAuthPage, isAdmin, error]);
+  }, [isRoleQueryLoading, isRoleQueryError, roleQueryError, roleData, isAdmin]);
 
-  const overallLoading = authLoading || (authReady && isRoleQueryLoading);
+  // Overall loading state for the admin check itself.
+  // This will be true if auth is still loading, or if the role query is loading.
+  const overallLoading = authLoading || isRoleQueryLoading;
 
   return { isAdmin, loading: overallLoading, error };
 }
