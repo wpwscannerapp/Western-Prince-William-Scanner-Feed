@@ -24,4 +24,8 @@ export const validateEnv = () => {
       throw new Error(`Environment variable ${varName} is missing. Please set it in your .env file.`);
     }
   });
+
+  if (import.meta.env.DEV) {
+    console.log(`[Config] Resolved SUPABASE_API_TIMEOUT: ${SUPABASE_API_TIMEOUT}ms`);
+  }
 };
