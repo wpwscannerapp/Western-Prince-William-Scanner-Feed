@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Authenticated users can read all profiles" ON public.profiles;
