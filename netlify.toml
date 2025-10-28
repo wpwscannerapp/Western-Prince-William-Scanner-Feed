@@ -1,10 +1,6 @@
 [functions]
   directory = "netlify/functions"
-  # Use 'esbuild' for bundling if you're using TypeScript/ESM in your functions
   node_bundler = "esbuild" 
 
 [blobs]
-  # This line explicitly enables Netlify Blobs for your site.
-  # The store name 'user_sessions' should match what your function uses.
-  # You might need to create this store in your Netlify UI if it doesn't exist.
   main = "user_sessions"
