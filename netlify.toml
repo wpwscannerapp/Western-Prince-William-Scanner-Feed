@@ -1,7 +1,10 @@
-[build]
-  command = "pnpm run build"
-  publish = "dist"
-  functions = "netlify/functions"
+[functions]
+  directory = "netlify/functions"
+  # Use 'esbuild' for bundling if you're using TypeScript/ESM in your functions
+  node_bundler = "esbuild" 
 
-[images]
-  remote_images = ["https://wvvxkwvliogulfqmkaqb.supabase.co"]
+[blobs]
+  # This line explicitly enables Netlify Blobs for your site.
+  # The store name 'user_sessions' should match what your function uses.
+  # You might need to create this store in your Netlify UI if it doesn't exist.
+  main = "user_sessions"
