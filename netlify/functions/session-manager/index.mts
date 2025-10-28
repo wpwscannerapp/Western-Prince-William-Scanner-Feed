@@ -1,5 +1,5 @@
 import { getStore } from '@netlify/blobs';
-import type { Handler, HandlerEvent, HandlerResponse } from "@netlify/functions"; // Import HandlerEvent and HandlerResponse types
+import type { Handler, HandlerEvent, HandlerResponse } from "@netlify/functions";
 
 // Define the structure of a session stored in Netlify Blobs
 interface BlobSessionData {
@@ -10,9 +10,9 @@ interface BlobSessionData {
 
 const getCompositeKey = (userId: string, sessionId: string) => `${userId}_${sessionId}`;
 
-const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => { // Use HandlerEvent type for event
+const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
   console.log(`[Session Manager] Function invoked. HTTP Method: ${event.httpMethod}`);
-  console.log(`[Session Manager] Debug: Triggering re-deployment.`); // Added for re-deployment trigger
+  console.log(`[Session Manager] Debug: Triggering re-deployment.`);
 
   if (event.httpMethod !== "POST") {
     console.warn(`[Session Manager] Method Not Allowed: ${event.httpMethod}`);
@@ -39,10 +39,10 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
   let action: string;
   let payload: any;
   try {
-    ({ action, payload } = JSON.parse(event.body || '{}')); // Parse event.body
+    ({ action, payload } = JSON.parse(event.body || '{}'));
     console.log(`[Session Manager] Action: ${action}, Payload:`, payload);
   } catch (jsonError: any) {
-    console.error("[Session Manager] Failed to parse JSON payload:", jsonError.message);
+    console.error("[Session Manager] Failed to parse JSON payload from event body:", jsonError.message);
     return {
       statusCode: 400,
       body: JSON.stringify({ error: "Invalid JSON payload." }),
@@ -66,8 +66,13 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
         const key = getCompositeKey(userId, sessionId);
         
         console.log(`[Session Manager] createSession: Setting blob for key: ${key}`);
-        await sessionsStore.setJSON(key, blobData); 
-        console.log(`[Session Manager] createSession: Blob set successfully for key: ${key}`);
+        try {
+          await sessionsStore.setJSON(key, blobData); 
+          console.log(`[Session Manager] createSession: Blob set successfully for key: ${key}`);
+        } catch (blobError: any) {
+          console.error(`[Session Manager] Error setting blob for key ${key}:`, blobError.message, blobError.stack);
+          throw new Error(`Blob operation failed: ${blobError.message}`);
+        }
         return {
           statusCode: 200,
           body: JSON.stringify({ success: true }),
@@ -86,8 +91,13 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
         }
         const key = getCompositeKey(userId, sessionId);
         console.log(`[Session Manager] deleteSession: Deleting blob for key: ${key}`);
-        await sessionsStore.delete(key);
-        console.log(`[Session Manager] deleteSession: Blob deleted successfully for key: ${key}`);
+        try {
+          await sessionsStore.delete(key);
+          console.log(`[Session Manager] deleteSession: Blob deleted successfully for key: ${key}`);
+        } catch (blobError: any) {
+          console.error(`[Session Manager] Error deleting blob for key ${key}:`, blobError.message, blobError.stack);
+          throw new Error(`Blob operation failed: ${blobError.message}`);
+        }
         return {
           statusCode: 200,
           body: JSON.stringify({ success: true }),
@@ -105,8 +115,16 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
           };
         }
         console.log(`[Session Manager] deleteAllSessionsForUser: Listing blobs with prefix: ${userId}_`);
-        const { blobs } = await sessionsStore.list({ prefix: userId + '_' });
-        const deletePromises = blobs.map(blob => {
+        let blobsToList;
+        try {
+          const { blobs } = await sessionsStore.list({ prefix: userId + '_' });
+          blobsToList = blobs;
+        } catch (blobError: any) {
+          console.error(`[Session Manager] Error listing blobs for prefix ${userId}_:`, blobError.message, blobError.stack);
+          throw new Error(`Blob operation failed: ${blobError.message}`);
+        }
+        
+        const deletePromises = blobsToList.map(blob => {
           console.log(`[Session Manager] deleteAllSessionsForUser: Deleting blob key: ${blob.key}`);
           return sessionsStore.delete(blob.key);
         });
@@ -129,16 +147,26 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
           };
         }
         console.log(`[Session Manager] countActiveSessions: Listing blobs with prefix: ${userId}_`);
-        const { blobs } = await sessionsStore.list({ prefix: userId + '_' });
+        let blobsToList;
+        try {
+          const { blobs } = await sessionsStore.list({ prefix: userId + '_' });
+          blobsToList = blobs;
+        } catch (blobError: any) {
+          console.error(`[Session Manager] Error listing blobs for prefix ${userId}_:`, blobError.message, blobError.stack);
+          throw new Error(`Blob operation failed: ${blobError.message}`);
+        }
+
         let count = 0;
         const now = new Date();
-        for (const blob of blobs) {
+        for (const blob of blobsToList) {
           console.log(`[Session Manager] countActiveSessions: Getting blob content for key: ${blob.key}`);
           try {
             const blobContent = await sessionsStore.get(blob.key);
-            const blobData = blobContent ? JSON.parse(new TextDecoder().decode(blobContent)) as BlobSessionData : null;
-            if (blobData && new Date(blobData.expiresAt) > now) {
-              count++;
+            if (blobContent) {
+              const blobData = JSON.parse(new TextDecoder().decode(blobContent)) as BlobSessionData;
+              if (new Date(blobData.expiresAt) > now) {
+                count++;
+              }
             }
           } catch (blobReadError: any) {
             console.error(`[Session Manager] Error reading/parsing blob ${blob.key} for countActiveSessions:`, blobReadError.message);
@@ -162,15 +190,23 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
           };
         }
         console.log(`[Session Manager] deleteOldestSessions: Listing blobs with prefix: ${userId}_`);
-        const { blobs } = await sessionsStore.list({ prefix: userId + '_' });
+        let blobsToList;
+        try {
+          const { blobs } = await sessionsStore.list({ prefix: userId + '_' });
+          blobsToList = blobs;
+        } catch (blobError: any) {
+          console.error(`[Session Manager] Error listing blobs for prefix ${userId}_:`, blobError.message, blobError.stack);
+          throw new Error(`Blob operation failed: ${blobError.message}`);
+        }
+
         const userSessions: { key: string; data: BlobSessionData }[] = [];
 
-        for (const blob of blobs) {
+        for (const blob of blobsToList) {
           console.log(`[Session Manager] deleteOldestSessions: Getting blob content for key: ${blob.key}`);
           try {
             const blobContent = await sessionsStore.get(blob.key);
-            const blobData = blobContent ? JSON.parse(new TextDecoder().decode(blobContent)) as BlobSessionData : null;
-            if (blobData) {
+            if (blobContent) {
+              const blobData = JSON.parse(new TextDecoder().decode(blobContent)) as BlobSessionData;
               userSessions.push({ key: blob.key, data: blobData });
             }
           } catch (blobReadError: any) {
@@ -207,8 +243,10 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
         let isValid = false;
         try {
           const blobContent = await sessionsStore.get(key);
-          const blobData = blobContent ? JSON.parse(new TextDecoder().decode(blobContent)) as BlobSessionData : null;
-          isValid = blobData !== null && new Date(blobData.expiresAt) > new Date();
+          if (blobContent) {
+            const blobData = JSON.parse(new TextDecoder().decode(blobContent)) as BlobSessionData;
+            isValid = new Date(blobData.expiresAt) > new Date();
+          }
         } catch (blobReadError: any) {
             console.error(`[Session Manager] Error reading/parsing blob ${key} for isValidSession:`, blobReadError.message);
         }

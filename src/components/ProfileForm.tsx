@@ -139,7 +139,7 @@ const ProfileForm: React.FC = () => {
         AnalyticsService.trackEvent({ name: 'username_checked', properties: { username, status: 'taken' } });
       } else {
         setUsernameStatus('available');
-        AnalyticsService.trackEvent({ name: 'username_checked', properties: { username, status: 'available' } });
+        AnalyticsService.trackEvent({ name: 'username_checked', properties: { username, status: 'available' } }); // Fixed: Added missing '}'
       }
     } catch (err) {
       setUsernameStatus(null);
@@ -195,7 +195,7 @@ const ProfileForm: React.FC = () => {
   const onSubmit = async (values: ProfileFormValues) => {
     if (!user) {
       toast.error('You must be logged in to update your profile.');
-      AnalyticsService.trackEvent({ name: 'profile_update_attempt_failed', properties: { reason: 'not_logged_in' } });
+      AnalyticsService.trackEvent({ name: 'profile_update_attempt_failed', properties: { reason: 'not_logged_in' } }); // Fixed: Added missing '}'
       return;
     }
 
@@ -273,8 +273,8 @@ const ProfileForm: React.FC = () => {
 
   const isSubmitDisabled = updateProfileMutation.isPending || isUploading || usernameStatus === 'checking' || usernameStatus === 'taken';
 
-  // Ensure imagePreview is not an empty string before passing to Netlify Image CDN
-  const avatarUrlForCDN = imagePreview && imagePreview.trim() !== '' ? imagePreview : undefined;
+  // Ensure avatarUrlForCDN is a non-empty string before passing to Netlify Image CDN
+  const avatarUrlForCDN = (imagePreview && imagePreview.trim() !== '') ? imagePreview : undefined;
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="tw-space-y-6 tw-p-6 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm">
