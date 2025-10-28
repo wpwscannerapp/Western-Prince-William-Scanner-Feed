@@ -31,13 +31,9 @@ export class ProfileService {
       if (import.meta.env.DEV) {
         console.error(`ProfileService: ensureProfileExists for ${userId} timed out after ${SUPABASE_API_TIMEOUT}ms.`);
       }
-      AnalyticsService.trackEvent({ name: 'profile_ensure_exists_timeout', properties: { userId } });
     }, SUPABASE_API_TIMEOUT);
 
     try {
-      if (import.meta.env.DEV) {
-        console.log(`ProfileService: Attempting to ensure profile exists for user ${userId}.`);
-      }
       // Use upsert directly to handle both insert and update atomically
       const { error: upsertError } = await supabase
         .from('profiles')
@@ -60,14 +56,12 @@ export class ProfileService {
         AnalyticsService.trackEvent({ name: 'profile_ensure_exists_upsert_failed', properties: { userId, error: upsertError.message } });
         throw upsertError;
       }
-      if (import.meta.env.DEV) {
-        console.log(`ProfileService: Profile ensured to exist for user ${userId}.`);
-      }
       AnalyticsService.trackEvent({ name: 'profile_ensured_exists', properties: { userId } });
       return true;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Ensuring profile existence timed out.');
+        AnalyticsService.trackEvent({ name: 'profile_ensure_exists_timeout', properties: { userId } });
         throw new Error('Ensuring profile existence timed out.');
       } else {
         logSupabaseError('ensureProfileExists', err);
@@ -86,13 +80,9 @@ export class ProfileService {
       if (import.meta.env.DEV) {
         console.error(`ProfileService: fetchProfile for ${userId} timed out after ${SUPABASE_API_TIMEOUT}ms.`);
       }
-      AnalyticsService.trackEvent({ name: 'fetch_profile_timeout', properties: { userId } });
     }, SUPABASE_API_TIMEOUT);
 
     try {
-      if (import.meta.env.DEV) {
-        console.log(`ProfileService: Attempting to fetch profile for user ${userId}.`);
-      }
       const { data, error } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, subscription_status, role, username, updated_at')
@@ -101,32 +91,20 @@ export class ProfileService {
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') {
-          if (import.meta.env.DEV) {
-            console.warn(`ProfileService: Profile not found for user ${userId} (PGRST116).`);
-          }
-          AnalyticsService.trackEvent({ name: 'fetch_profile_not_found', properties: { userId } });
-          return null;
-        }
         logSupabaseError('fetchProfile', error);
         AnalyticsService.trackEvent({ name: 'fetch_profile_failed', properties: { userId, error: error.message } });
         throw error;
       }
       if (!data) {
-        if (import.meta.env.DEV) {
-          console.warn(`ProfileService: Profile data is null for user ${userId}.`);
-        }
         AnalyticsService.trackEvent({ name: 'fetch_profile_not_found', properties: { userId } });
         return null;
-      }
-      if (import.meta.env.DEV) {
-        console.log(`ProfileService: Profile fetched successfully for user ${userId}. Role: ${data.role}`);
       }
       AnalyticsService.trackEvent({ name: 'profile_fetched', properties: { userId, role: data.role, subscription_status: data.subscription_status } });
       return data as Profile;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching profile timed out.');
+        AnalyticsService.trackEvent({ name: 'fetch_profile_timeout', properties: { userId } });
         throw new Error('Fetching profile timed out.');
       } else {
         const errorMessage = err.code ? `Supabase Error (${err.code}): ${err.message}` : err.message;
@@ -152,9 +130,6 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
-      if (import.meta.env.DEV) {
-        console.log(`ProfileService: Attempting to update profile for user ${userId}. Updates:`, updates);
-      }
       const { data, error } = await supabase
         .from('profiles')
         .update({ ...updates, updated_at: new Date().toISOString() })
@@ -168,14 +143,12 @@ export class ProfileService {
         AnalyticsService.trackEvent({ name: 'update_profile_failed', properties: { userId, updates: Object.keys(updates), error: error.message } });
         throw error;
       }
-      if (import.meta.env.DEV) {
-        console.log(`ProfileService: Profile updated successfully for user ${userId}.`);
-      }
       AnalyticsService.trackEvent({ name: 'profile_updated', properties: { userId, updates: Object.keys(updates) } });
       return data as Profile;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Updating profile timed out.');
+        AnalyticsService.trackEvent({ name: 'update_profile_timeout', properties: { userId } });
         throw new Error('Updating profile timed out.');
       } else {
         logSupabaseError('updateProfile', err);
