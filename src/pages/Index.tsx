@@ -32,12 +32,14 @@ const Index: React.FC = () => {
     }
   }, [minimumSplashDurationPassed, authReady, user, navigate]);
 
+  const logoUrl = `${window.location.origin}/Logo.png`;
+
   if (!minimumSplashDurationPassed || !authReady) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-primary/20 tw-to-background tw-animate-fade-in" role="status" aria-label="Loading application">
         <div className="tw-flex tw-flex-col tw-items-center tw-gap-4">
           <img 
-            src="/.netlify/images?url=/Logo.png&w=96&h=96&fit=contain&fm=auto" 
+            src={`/.netlify/images?url=${encodeURIComponent(logoUrl)}&w=96&h=96&fit=contain&fm=auto`} 
             alt="WPW Scanner Logo" 
             className="tw-h-24 tw-animate-pulse" 
             aria-hidden="true" 

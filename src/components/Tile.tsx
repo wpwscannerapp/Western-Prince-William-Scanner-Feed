@@ -16,14 +16,9 @@ const Tile: React.FC<TileProps> = ({ title, description, to, icon }) => {
     navigate(to);
   };
 
-  // Use Netlify Image CDN for local paths to optimize image size
-  let finalIconUrl = icon;
-  if (icon.startsWith('/')) {
-    // Construct absolute URL for local assets
-    finalIconUrl = `${window.location.origin}${icon}`;
-  }
-
-  const optimizedIconSrc = `/.netlify/images?url=${encodeURIComponent(finalIconUrl)}&w=48&h=48&fit=contain&fm=auto`;
+  // Ensure the icon URL is always absolute before passing to Netlify Image CDN
+  const absoluteIconUrl = new URL(icon, window.location.origin).href;
+  const optimizedIconSrc = `/.netlify/images?url=${encodeURIComponent(absoluteIconUrl)}&w=48&h=48&fit=contain&fm=auto`;
 
   return (
     <Card 
