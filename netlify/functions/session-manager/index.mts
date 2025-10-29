@@ -27,6 +27,9 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext): P
   let retries = 3;
   while (retries > 0) {
     try {
+      // Explicitly log the values being used
+      console.log(`[Session Manager] Attempting to initialize Blobs store. siteID: ${context.site.id}, NETLIFY_API_TOKEN (first 5 chars): ${process.env.NETLIFY_API_TOKEN?.substring(0, 5)}`);
+
       // Explicitly pass siteID and token
       sessionsStore = getStore('user_sessions', {
         siteID: context.site.id,
