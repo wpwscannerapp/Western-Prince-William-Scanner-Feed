@@ -17,9 +17,13 @@ const Tile: React.FC<TileProps> = ({ title, description, to, icon }) => {
   };
 
   // Use Netlify Image CDN for local paths to optimize image size
-  const optimizedIconSrc = icon.startsWith('/') 
-    ? `/.netlify/images?url=${encodeURIComponent(icon)}&w=48&h=48&fit=contain&fm=auto` 
-    : icon;
+  let finalIconUrl = icon;
+  if (icon.startsWith('/')) {
+    // Construct absolute URL for local assets
+    finalIconUrl = `${window.location.origin}${icon}`;
+  }
+
+  const optimizedIconSrc = `/.netlify/images?url=${encodeURIComponent(finalIconUrl)}&w=48&h=48&fit=contain&fm=auto`;
 
   return (
     <Card 
@@ -28,7 +32,7 @@ const Tile: React.FC<TileProps> = ({ title, description, to, icon }) => {
     >
       <CardHeader className="tw-flex tw-flex-col tw-items-center tw-text-center tw-pb-2">
         <img src={optimizedIconSrc} alt={`${title} icon`} className="tw-h-12 tw-w-12 tw-mb-3" />
-        <CardTitle className="tw-text-xl tw-font-bold tw-text-foreground">{title}</CardTitle>
+        <CardTitle className="tw-xl tw-font-bold tw-text-foreground">{title}</CardTitle>
         {description && <CardDescription className="tw-text-muted-foreground">{description}</CardDescription>}
       </CardHeader>
       <CardContent className="tw-flex-grow tw-p-4 tw-flex tw-items-center tw-justify-center">
