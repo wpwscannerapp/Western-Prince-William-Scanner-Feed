@@ -6,7 +6,7 @@ interface TileProps {
   title: string;
   description?: string;
   to: string; // Path to navigate to
-  icon: string; // URL for the icon image (e.g., /Logo.png)
+  icon: string; // Path to the icon image (e.g., /Logo.png)
 }
 
 const Tile: React.FC<TileProps> = ({ title, description, to, icon }) => {
@@ -16,9 +16,8 @@ const Tile: React.FC<TileProps> = ({ title, description, to, icon }) => {
     navigate(to);
   };
 
-  // Ensure the icon URL is always absolute before passing to Netlify Image CDN
-  const absoluteIconUrl = new URL(icon, window.location.origin).href;
-  const optimizedIconSrc = `/.netlify/images?url=${encodeURIComponent(absoluteIconUrl)}&w=48&h=48&fit=contain&fm=auto`;
+  // The icon is now directly referenced from the public directory
+  const directIconSrc = icon;
 
   return (
     <Card 
@@ -26,7 +25,7 @@ const Tile: React.FC<TileProps> = ({ title, description, to, icon }) => {
       onClick={handleClick}
     >
       <CardHeader className="tw-flex tw-flex-col tw-items-center tw-text-center tw-pb-2">
-        <img src={optimizedIconSrc} alt={`${title} icon`} className="tw-h-12 tw-w-12 tw-mb-3" />
+        <img src={directIconSrc} alt={`${title} icon`} width={48} height={48} className="tw-h-12 tw-w-12 tw-mb-3" />
         <CardTitle className="tw-xl tw-font-bold tw-text-foreground">{title}</CardTitle>
         {description && <CardDescription className="tw-text-muted-foreground">{description}</CardDescription>}
       </CardHeader>

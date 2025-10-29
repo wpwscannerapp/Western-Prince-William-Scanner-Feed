@@ -20,14 +20,17 @@ const NotFound = () => {
     AnalyticsService.trackEvent({ name: 'page_not_found', properties: { path: location.pathname } });
   }, [location.pathname]);
 
-  const logoUrl = `${window.location.origin}/Logo.png`;
+  // The logo is now directly referenced from the public directory
+  const logoPath = "/Logo.png";
 
   return (
     <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-p-4">
       <div className="tw-text-center">
         <img 
-          src={`/.netlify/images?url=${encodeURIComponent(logoUrl)}&w=192&h=192&fit=contain&fm=auto`} 
+          src={logoPath} 
           alt="Page Not Found" 
+          width={192} 
+          height={192} 
           className="tw-h-48 tw-mx-auto tw-mb-4" 
           aria-hidden="true" 
         />

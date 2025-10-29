@@ -35,7 +35,8 @@ const AuthPage = () => {
     return null;
   }
 
-  const logoUrl = `${window.location.origin}/Logo.png`;
+  // The logo is now directly referenced from the public directory
+  const logoPath = "/Logo.png";
 
   // Otherwise, render the login/signup options. This covers:
   // 1. !loading && !user (no session)
@@ -46,8 +47,10 @@ const AuthPage = () => {
       {/* Branded Hero Section */}
       <div className="tw-relative tw-z-20 tw-text-center tw-mb-8 tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-xl">
         <img 
-          src={`/.netlify/images?url=${encodeURIComponent(logoUrl)}&w=64&h=64&fit=contain&fm=auto`} 
+          src={logoPath} 
           alt="WPW Scanner Logo" 
+          width={64} 
+          height={64} 
           className="tw-h-16 tw-mx-auto tw-mb-4" 
           aria-hidden="true" 
         />
