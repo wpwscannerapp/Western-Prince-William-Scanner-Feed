@@ -17,7 +17,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext): P
     console.warn(`[Session Manager] Method Not Allowed: ${event.httpMethod}`);
     return {
       statusCode: 405,
-      body: JSON.stringify({ error: "Method Not Allowed" }),
+      body: "Method Not Allowed",
       headers: { 'Content-Type': 'application/json' },
     };
   }
@@ -26,12 +26,15 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext): P
   let retries = 3;
   while (retries > 0) {
     try {
-      // NETLIFY_SITE_ID and NETLIFY_API_TOKEN are now expected to be set as environment variables.
-      // The getStore function should pick them up automatically if configured.
       console.log(`[Session Manager] Attempting to initialize Blobs store.`);
 
-      // Calling getStore with only the store name, as environment variables are now configured.
-      sessionsStore = getStore('user_sessions');
+      // Explicitly pass siteID and token from environment variables
+      // This should resolve the TypeScript error about `context.site`
+      // and ensure the Blobs store is initialized correctly.
+      sessionsStore = getStore('user_sessions', {
+        siteID: process.env.NETLIFY_SITE_ID as string,
+        token: process.env.NETLIFY_API_TOKEN as string,
+      });
       console.log("[Session Manager] Netlify Blobs store initialized successfully.");
       break;
     } catch (initError: any) {
