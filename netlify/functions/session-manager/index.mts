@@ -12,7 +12,7 @@ const getCompositeKey = (userId: string, sessionId: string) => `${userId}_${sess
 
 const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
   console.log(`[Session Manager] Function invoked. HTTP Method: ${event.httpMethod}`);
-  console.log(`[Session Manager] Debug: Triggering re-deployment.`);
+  // Removed: console.log(`[Session Manager] Debug: Triggering re-deployment.`);
 
   if (event.httpMethod !== "POST") {
     console.warn(`[Session Manager] Method Not Allowed: ${event.httpMethod}`);
