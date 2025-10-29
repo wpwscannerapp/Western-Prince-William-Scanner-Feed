@@ -1,0 +1,1 @@
+ALTER TABLE public.incidents DISABLE ROW LEVEL SECURITY;
