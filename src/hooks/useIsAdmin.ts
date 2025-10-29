@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { handleError } from '@/utils/errorHandler';
+import { handleError as globalHandleError } from '@/utils/errorHandler'; // Renamed to avoid conflict
 import { useLocation } from 'react-router-dom';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
@@ -14,6 +14,8 @@ interface UseAdminResult {
   loading: boolean;
   error: string | null;
 }
+
+let fetchCount = 0; // Add this at the top of the file
 
 export function useIsAdmin(): UseAdminResult {
   const { user, loading: authLoading, authReady } = useAuth();
@@ -51,6 +53,8 @@ export function useIsAdmin(): UseAdminResult {
         // but it's a good safeguard.
         return null;
       }
+
+      console.log('useIsAdmin: fetchRole started. Count:', ++fetchCount); // Add debug log here
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
@@ -102,7 +106,7 @@ export function useIsAdmin(): UseAdminResult {
     if (!isMountedRef.current) return;
 
     if (isRoleQueryError) {
-      setError(handleError(roleQueryError, 'Failed to load admin role.'));
+      setError(globalHandleError(roleQueryError, 'Failed to load admin role.')); // Use globalHandleError
       setIsAdmin(false);
       return;
     }

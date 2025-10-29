@@ -154,6 +154,21 @@ const IncidentsPage: React.FC = () => {
         Real-time scanner updates for Western Prince William.
       </p>
 
+      {/* Live Audio Player Section */}
+      <section className="tw-bg-card tw-rounded-lg tw-p-4 tw-mb-6 tw-text-center tw-shadow-md">
+        <h2 className="tw-text-xl tw-flex tw-items-center tw-justify-center tw-gap-2 tw-mb-3 tw-text-foreground">
+          <span className="tw-w-3 tw-h-3 tw-bg-destructive tw-rounded-full tw-animate-pulse" aria-hidden="true"></span>
+          LIVE: Prince William County Police
+        </h2>
+        <audio controls className="tw-w-full tw-max-w-md tw-mx-auto">
+          <source src="https://broadcastify.com/listen/feed/YOUR_FEED_ID" type="audio/mpeg" />
+          Your browser does not support the audio element.
+        </audio>
+        <p className="tw-text-xs tw-text-muted-foreground tw-mt-2">
+          Replace "YOUR_FEED_ID" in the code with the actual Broadcastify feed ID.
+        </p>
+      </section>
+
       {isAdmin && (
         <div className="tw-bg-background tw-p-4 tw-shadow-md tw-mb-8 tw-rounded-lg">
           <h2 className="tw-2xl tw-font-semibold tw-text-foreground tw-mb-4">Submit New Incident</h2>
