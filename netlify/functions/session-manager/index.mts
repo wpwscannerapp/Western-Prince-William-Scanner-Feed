@@ -26,16 +26,12 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext): P
   let retries = 3;
   while (retries > 0) {
     try {
-      // Use environment variables directly for siteID and token
-      const netlifySiteID = process.env.NETLIFY_SITE_ID;
-      const netlifyApiToken = process.env.NETLIFY_API_TOKEN;
+      // NETLIFY_SITE_ID and NETLIFY_API_TOKEN are now expected to be set as environment variables.
+      // The getStore function should pick them up automatically if configured.
+      console.log(`[Session Manager] Attempting to initialize Blobs store.`);
 
-      console.log(`[Session Manager] Attempting to initialize Blobs store. siteID: ${netlifySiteID}, NETLIFY_API_TOKEN (first 5 chars): ${netlifyApiToken?.substring(0, 5)}`);
-
-      sessionsStore = getStore('user_sessions', {
-        siteID: netlifySiteID,
-        token: netlifyApiToken,
-      });
+      // Calling getStore with only the store name, as environment variables are now configured.
+      sessionsStore = getStore('user_sessions');
       console.log("[Session Manager] Netlify Blobs store initialized successfully.");
       break;
     } catch (initError: any) {
