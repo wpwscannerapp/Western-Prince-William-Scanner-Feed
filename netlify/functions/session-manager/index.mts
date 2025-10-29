@@ -25,8 +25,8 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext): P
   const siteId = context.site?.id;
   const netlifyToken = process.env.NETLIFY_API_TOKEN;
 
-  console.log(`[Session Manager] DEBUG: siteId from context: ${siteId ? 'SET' : 'NOT SET'}`);
-  console.log(`[Session Manager] DEBUG: netlifyToken from process.env: ${netlifyToken ? 'SET' : 'NOT SET'}`);
+  console.log(`[Session Manager] DEBUG: context.site.id is ${siteId ? 'SET' : 'NOT SET'}`);
+  console.log(`[Session Manager] DEBUG: process.env.NETLIFY_API_TOKEN is ${netlifyToken ? 'SET' : 'NOT SET'}`);
 
   if (!siteId || !netlifyToken) {
     console.error("[Session Manager] CRITICAL ERROR: Missing siteID or NETLIFY_API_TOKEN for Blobs store initialization.");
