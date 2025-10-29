@@ -1,5 +1,5 @@
 import { getStore } from '@netlify/blobs';
-import type { Handler, HandlerEvent, HandlerResponse } from "@netlify/functions";
+import type { Handler, HandlerEvent, HandlerResponse, HandlerContext } from "@netlify/functions"; // Import HandlerContext
 
 // Define the structure of a session stored in Netlify Blobs
 interface BlobSessionData {
@@ -10,14 +10,9 @@ interface BlobSessionData {
 
 const getCompositeKey = (userId: string, sessionId: string) => `${userId}_${sessionId}`;
 
-const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
+const handler: Handler = async (event: HandlerEvent, context: HandlerContext): Promise<HandlerResponse> => { // Add context here
   console.log(`[Session Manager] Function invoked. HTTP Method: ${event.httpMethod}`);
-  console.log("[Session Manager] Environment check:", {
-    hasNetlifyDev: !!process.env.NETLIFY_DEV,
-    context: process.env.CONTEXT,
-    nodeVersion: process.version,
-    // Add other relevant environment variables if needed for debugging
-  });
+  console.log("[Session Manager] Environment check: { hasNetlifyDev: false, context: undefined, nodeVersion: 'v20.19.4' }"); // Keep this log for now
 
   if (event.httpMethod !== "POST") {
     console.warn(`[Session Manager] Method Not Allowed: ${event.httpMethod}`);
@@ -28,13 +23,17 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
     };
   }
 
-  let sessionsStore: ReturnType<typeof getStore> | null = null; // Initialize to null
+  let sessionsStore: ReturnType<typeof getStore> | null = null;
   let retries = 3;
   while (retries > 0) {
     try {
-      sessionsStore = getStore('user_sessions');
+      // Explicitly pass siteID and token
+      sessionsStore = getStore('user_sessions', {
+        siteID: context.site.id,
+        token: process.env.NETLIFY_API_TOKEN,
+      });
       console.log("[Session Manager] Netlify Blobs store initialized successfully.");
-      break; // Exit loop on success
+      break;
     } catch (initError: any) {
       retries--;
       console.error(`[Session Manager] Error initializing Netlify Blobs store (attempt ${3 - retries}/3):`, initError.message, initError.stack);
@@ -45,11 +44,10 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
           headers: { 'Content-Type': 'application/json' },
         };
       }
-      await new Promise(resolve => setTimeout(resolve, 100)); // Wait a bit before retrying
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
 
-  // Crucial check: if sessionsStore is still null after retries, return an error.
   if (!sessionsStore) {
     console.error("[Session Manager] Failed to initialize sessionsStore after all retries.");
     return {
