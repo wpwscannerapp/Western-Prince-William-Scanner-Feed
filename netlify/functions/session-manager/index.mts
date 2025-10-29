@@ -28,7 +28,7 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
     };
   }
 
-  let sessionsStore: ReturnType<typeof getStore>;
+  let sessionsStore: ReturnType<typeof getStore> | null = null; // Initialize to null
   let retries = 3;
   while (retries > 0) {
     try {
@@ -47,6 +47,16 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
       }
       await new Promise(resolve => setTimeout(resolve, 100)); // Wait a bit before retrying
     }
+  }
+
+  // Crucial check: if sessionsStore is still null after retries, return an error.
+  if (!sessionsStore) {
+    console.error("[Session Manager] Failed to initialize sessionsStore after all retries.");
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Failed to initialize session store after all retries." }),
+      headers: { 'Content-Type': 'application/json' },
+    };
   }
 
   let action: string;
