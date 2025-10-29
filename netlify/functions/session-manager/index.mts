@@ -14,11 +14,8 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext): P
   console.log(`[Session Manager] Function invoked. HTTP Method: ${event.httpMethod}`);
 
   // --- DEBUGGING ENVIRONMENT VARIABLES ---
-  console.log(`[Session Manager] DEBUG: process.env.NETLIFY_SITE_ID is ${process.env.NETLIFY_SITE_ID ? 'SET' : 'NOT SET'}`);
+  console.log(`[Session Manager] DEBUG: context.site.id is ${context.site?.id ? 'SET' : 'NOT SET'}`);
   console.log(`[Session Manager] DEBUG: process.env.NETLIFY_API_TOKEN is ${process.env.NETLIFY_API_TOKEN ? 'SET' : 'NOT SET'}`);
-  // You can uncomment the lines below for more detailed debugging, but be cautious with sensitive data in logs.
-  // console.log(`[Session Manager] DEBUG: NETLIFY_SITE_ID value: ${process.env.NETLIFY_SITE_ID}`);
-  // console.log(`[Session Manager] DEBUG: NETLIFY_API_TOKEN value: ${process.env.NETLIFY_API_TOKEN ? '********' : 'NOT SET'}`);
   // --- END DEBUGGING ---
 
   if (event.httpMethod !== "POST") {
@@ -33,8 +30,9 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext): P
   let sessionsStore: ReturnType<typeof getStore> | null = null;
   try {
     console.log(`[Session Manager] Attempting to initialize Blobs store.`);
+    // Use context.site.id for siteID and process.env for token
     sessionsStore = getStore('user_sessions', {
-      siteID: process.env.NETLIFY_SITE_ID as string,
+      siteID: context.site?.id as string, // Use context.site.id directly
       token: process.env.NETLIFY_API_TOKEN as string,
     });
     console.log("[Session Manager] Netlify Blobs store initialized successfully.");
