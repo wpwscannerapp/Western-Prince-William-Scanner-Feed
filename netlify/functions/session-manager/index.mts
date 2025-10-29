@@ -1,5 +1,5 @@
 import { getStore } from '@netlify/blobs';
-import type { Handler, HandlerEvent, HandlerResponse, HandlerContext } from "@netlify/functions"; // Import HandlerContext
+import type { Handler, HandlerEvent, HandlerResponse, HandlerContext } from "@netlify/functions";
 
 // Define the structure of a session stored in Netlify Blobs
 interface BlobSessionData {
@@ -10,9 +10,8 @@ interface BlobSessionData {
 
 const getCompositeKey = (userId: string, sessionId: string) => `${userId}_${sessionId}`;
 
-const handler: Handler = async (event: HandlerEvent, context: HandlerContext): Promise<HandlerResponse> => { // Add context here
+const handler: Handler = async (event: HandlerEvent, context: HandlerContext): Promise<HandlerResponse> => {
   console.log(`[Session Manager] Function invoked. HTTP Method: ${event.httpMethod}`);
-  console.log("[Session Manager] Environment check: { hasNetlifyDev: false, context: undefined, nodeVersion: 'v20.19.4' }"); // Keep this log for now
 
   if (event.httpMethod !== "POST") {
     console.warn(`[Session Manager] Method Not Allowed: ${event.httpMethod}`);
@@ -27,13 +26,15 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext): P
   let retries = 3;
   while (retries > 0) {
     try {
-      // Explicitly log the values being used
-      console.log(`[Session Manager] Attempting to initialize Blobs store. siteID: ${context.site.id}, NETLIFY_API_TOKEN (first 5 chars): ${process.env.NETLIFY_API_TOKEN?.substring(0, 5)}`);
+      // Use environment variables directly for siteID and token
+      const netlifySiteID = process.env.NETLIFY_SITE_ID;
+      const netlifyApiToken = process.env.NETLIFY_API_TOKEN;
 
-      // Explicitly pass siteID and token
+      console.log(`[Session Manager] Attempting to initialize Blobs store. siteID: ${netlifySiteID}, NETLIFY_API_TOKEN (first 5 chars): ${netlifyApiToken?.substring(0, 5)}`);
+
       sessionsStore = getStore('user_sessions', {
-        siteID: context.site.id,
-        token: process.env.NETLIFY_API_TOKEN,
+        siteID: netlifySiteID,
+        token: netlifyApiToken,
       });
       console.log("[Session Manager] Netlify Blobs store initialized successfully.");
       break;
