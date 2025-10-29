@@ -18,10 +18,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const IDLE_TIMEOUT_MS = 300000; // 5 minutes
 
 const notificationSettingsSchema = z.object({
   enabled: z.boolean(),
   receive_all_alerts: z.boolean(),
+  prefer_push_notifications: z.boolean(), // New field
   preferred_start_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid time format (HH:MM)').optional().or(z.literal('')),
   preferred_end_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid time format (HH:MM)').optional().or(z.literal('')),
   preferred_days: z.array(z.string()),
@@ -45,6 +47,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
     defaultValues: {
       enabled: false,
       receive_all_alerts: true,
+      prefer_push_notifications: false, // Default to false
       preferred_start_time: '',
       preferred_end_time: '',
       preferred_days: [],
@@ -54,6 +57,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
   const { handleSubmit, reset, watch, setValue, getValues } = form;
   const enabled = watch('enabled');
   const receiveAllAlerts = watch('receive_all_alerts');
+  const preferPushNotifications = watch('prefer_push_notifications'); // Watch new field
   const preferredDays = watch('preferred_days');
 
   const fetchSettings = useCallback(async () => {
@@ -65,15 +69,17 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
         reset({
           enabled: settings.enabled ?? false,
           receive_all_alerts: settings.receive_all_alerts ?? true,
+          prefer_push_notifications: settings.prefer_push_notifications ?? false, // Set new field
           preferred_start_time: settings.preferred_start_time?.substring(0, 5) ?? '',
           preferred_end_time: settings.preferred_end_time?.substring(0, 5) ?? '',
           preferred_days: settings.preferred_days ?? [],
         });
-        AnalyticsService.trackEvent({ name: 'notification_settings_loaded', properties: { userId: user.id, enabled: settings.enabled } });
+        AnalyticsService.trackEvent({ name: 'notification_settings_loaded', properties: { userId: user.id, enabled: settings.enabled, preferPush: settings.prefer_push_notifications } });
       } else {
         reset({
           enabled: false,
           receive_all_alerts: true,
+          prefer_push_notifications: false,
           preferred_start_time: '',
           preferred_end_time: '',
           preferred_days: [],
@@ -95,36 +101,77 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
     }
   }, [user, authLoading, fetchSettings]);
 
+  // Real-time alerts subscription and auto-unsubscribe logic
   useEffect(() => {
-    const channel = supabase
-      .channel('public:alerts')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'alerts' }, (payload) => {
-        toast.info(`New Alert: ${payload.new.title}`, {
-          description: payload.new.description,
-          duration: 5000,
-        });
-        AnalyticsService.trackEvent({ name: 'realtime_alert_received_in_app', properties: { alertId: payload.new.id, type: payload.new.type } });
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          setAlertRealtimeStatus('active');
-          toast.success('Real-time alerts connection active!', { id: 'alert-rt-status', duration: 3000 });
-          AnalyticsService.trackEvent({ name: 'realtime_alerts_subscribed' });
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          setAlertRealtimeStatus('failed');
-          toast.error('Real-time alerts connection failed. Please refresh.', { id: 'alert-rt-status', duration: 5000 });
-          AnalyticsService.trackEvent({ name: 'realtime_alerts_subscription_failed', properties: { status } });
-        } else if (status === 'CLOSED' || status === 'UNSUBSCRIBED') {
-          setAlertRealtimeStatus('failed');
-          AnalyticsService.trackEvent({ name: 'realtime_alerts_unsubscribed_or_closed', properties: { status } });
-        }
-      });
+    if (!user) return;
 
-    return () => {
-      supabase.removeChannel(channel);
+    let idleTimeout: ReturnType<typeof setTimeout> | null = null;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const subscribeToAlerts = () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
       setAlertRealtimeStatus('connecting');
+      channel = supabase
+        .channel('public:alerts')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'alerts' }, (payload) => {
+          // Reset idle timer on new alert
+          resetIdleTimer();
+          if (!preferPushNotifications) { // Only show toast if push-only mode is NOT preferred
+            toast.info(`New Alert: ${payload.new.title}`, {
+              description: payload.new.description,
+              duration: 5000,
+            });
+          }
+          AnalyticsService.trackEvent({ name: 'realtime_alert_received_in_app', properties: { alertId: payload.new.id, type: payload.new.type, toastShown: !preferPushNotifications } });
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            setAlertRealtimeStatus('active');
+            toast.success('Real-time alerts connection active!', { id: 'alert-rt-status', duration: 3000 });
+            AnalyticsService.trackEvent({ name: 'realtime_alerts_subscribed' });
+            resetIdleTimer(); // Start idle timer after successful subscription
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            setAlertRealtimeStatus('failed');
+            toast.error('Real-time alerts connection failed. Please refresh.', { id: 'alert-rt-status', duration: 5000 });
+            AnalyticsService.trackEvent({ name: 'realtime_alerts_subscription_failed', properties: { status } });
+          } else if (status === 'CLOSED' || status === 'UNSUBSCRIBED') {
+            setAlertRealtimeStatus('failed');
+            AnalyticsService.trackEvent({ name: 'realtime_alerts_unsubscribed_or_closed', properties: { status } });
+          }
+        });
     };
-  }, []);
+
+    const resetIdleTimer = () => {
+      if (idleTimeout) {
+        clearTimeout(idleTimeout);
+      }
+      idleTimeout = setTimeout(() => {
+        if (channel) {
+          supabase.removeChannel(channel);
+          setAlertRealtimeStatus('connecting'); // Indicate that it's trying to reconnect or is idle
+          toast.info('Real-time alerts unsubscribed due to inactivity. Will resubscribe on new activity.', { duration: 3000 });
+          AnalyticsService.trackEvent({ name: 'realtime_alerts_auto_unsubscribed_idle' });
+        }
+      }, IDLE_TIMEOUT_MS);
+    };
+
+    // Initial subscription
+    subscribeToAlerts();
+
+    // Cleanup function
+    return () => {
+      if (idleTimeout) {
+        clearTimeout(idleTimeout);
+      }
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+      setAlertRealtimeStatus('connecting'); // Reset status on unmount
+      AnalyticsService.trackEvent({ name: 'realtime_alerts_component_unmounted' });
+    };
+  }, [user, preferPushNotifications]); // Re-run effect if user or preferPushNotifications changes
 
   const onSubmit = async (values: NotificationSettingsFormValues) => {
     if (!user) {
@@ -183,7 +230,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
           preferred_start_time: updatedSettings.preferred_start_time?.substring(0, 5) ?? '',
           preferred_end_time: updatedSettings.preferred_end_time?.substring(0, 5) ?? '',
         });
-        AnalyticsService.trackEvent({ name: 'notification_settings_saved', properties: { userId: user.id, enabled: updatedSettings.enabled } });
+        AnalyticsService.trackEvent({ name: 'notification_settings_saved', properties: { userId: user.id, enabled: updatedSettings.enabled, preferPush: updatedSettings.prefer_push_notifications } });
       } else {
         throw new Error('database_update_failed');
       }
@@ -333,6 +380,17 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
                 <XCircle className="tw-h-4 tw-w-4" aria-hidden="true" /> Failed
               </span>
             )}
+          </div>
+
+          <div className="tw-flex tw-items-center tw-justify-between">
+            <Label htmlFor="prefer_push_notifications" className="tw-text-base">Prefer Push Notifications (Suppress in-app toasts)</Label>
+            <Switch
+              id="prefer_push_notifications"
+              checked={preferPushNotifications}
+              onCheckedChange={(checked) => setValue('prefer_push_notifications', checked)}
+              disabled={isFormDisabled || !enabled}
+              aria-label="Toggle preference for push notifications over in-app toasts"
+            />
           </div>
 
           <div className="tw-flex tw-items-center tw-justify-between">

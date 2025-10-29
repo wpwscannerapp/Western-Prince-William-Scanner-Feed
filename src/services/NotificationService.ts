@@ -22,6 +22,7 @@ export interface UserNotificationSettings {
   preferred_start_time: string | null;
   preferred_end_time: string | null;
   preferred_days: string[];
+  prefer_push_notifications: boolean; // New field
   updated_at: string;
 }
 

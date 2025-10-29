@@ -302,6 +302,7 @@ export type Database = {
           preferred_end_time: string | null
           preferred_start_time: string | null
           preferred_types: string[]
+          prefer_push_notifications: boolean // New field
           push_subscription: Json | null
           radius_miles: number
           updated_at: string | null
@@ -316,6 +317,7 @@ export type Database = {
           preferred_end_time?: string | null
           preferred_start_time?: string | null
           preferred_types?: string[]
+          prefer_push_notifications?: boolean // New field
           push_subscription?: Json | null
           radius_miles?: number
           updated_at?: string | null
@@ -330,6 +332,7 @@ export type Database = {
           preferred_end_time?: string | null
           preferred_start_time?: string | null
           preferred_types?: string[]
+          prefer_push_notifications?: boolean // New field
           push_subscription?: Json | null
           radius_miles?: number
           updated_at?: string | null
@@ -392,28 +395,7 @@ export type Tables<
         Row: infer R
       }
       ? R
-      : never
     : never
-
-export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
     : never
 
 export type TablesUpdate<
