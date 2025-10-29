@@ -13,11 +13,6 @@ const getCompositeKey = (userId: string, sessionId: string) => `${userId}_${sess
 const handler: Handler = async (event: HandlerEvent, context: HandlerContext): Promise<HandlerResponse> => {
   console.log(`[Session Manager] Function invoked. HTTP Method: ${event.httpMethod}`);
 
-  // --- DEBUGGING ENVIRONMENT VARIABLES ---
-  console.log(`[Session Manager] DEBUG: context.site.id is ${context.site?.id ? 'SET' : 'NOT SET'}`);
-  console.log(`[Session Manager] DEBUG: process.env.NETLIFY_API_TOKEN is ${process.env.NETLIFY_API_TOKEN ? 'SET' : 'NOT SET'}`);
-  // --- END DEBUGGING ---
-
   if (event.httpMethod !== "POST") {
     console.warn(`[Session Manager] Method Not Allowed: ${event.httpMethod}`);
     return {
@@ -27,13 +22,27 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext): P
     };
   }
 
+  const siteId = context.site?.id;
+  const netlifyToken = process.env.NETLIFY_API_TOKEN;
+
+  console.log(`[Session Manager] DEBUG: siteId from context: ${siteId ? 'SET' : 'NOT SET'}`);
+  console.log(`[Session Manager] DEBUG: netlifyToken from process.env: ${netlifyToken ? 'SET' : 'NOT SET'}`);
+
+  if (!siteId || !netlifyToken) {
+    console.error("[Session Manager] CRITICAL ERROR: Missing siteID or NETLIFY_API_TOKEN for Blobs store initialization.");
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Missing required environment variables for session store. Please ensure NETLIFY_SITE_ID and NETLIFY_API_TOKEN are configured." }),
+      headers: { 'Content-Type': 'application/json' },
+    };
+  }
+
   let sessionsStore: ReturnType<typeof getStore> | null = null;
   try {
-    console.log(`[Session Manager] Attempting to initialize Blobs store.`);
-    // Use context.site.id for siteID and process.env for token
+    console.log(`[Session Manager] Attempting to initialize Blobs store with siteID: ${siteId} and token: ${netlifyToken ? 'SET' : 'NOT SET'}.`);
     sessionsStore = getStore('user_sessions', {
-      siteID: context.site?.id as string, // Use context.site.id directly
-      token: process.env.NETLIFY_API_TOKEN as string,
+      siteID: siteId as string,
+      token: netlifyToken as string,
     });
     console.log("[Session Manager] Netlify Blobs store initialized successfully.");
   } catch (initError: any) {
@@ -46,7 +55,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext): P
   }
 
   if (!sessionsStore) {
-    console.error("[Session Manager] Failed to initialize sessionsStore.");
+    console.error("[Session Manager] Failed to initialize sessionsStore after attempt.");
     return {
       statusCode: 500,
       body: JSON.stringify({ error: "Failed to initialize session store." }),
