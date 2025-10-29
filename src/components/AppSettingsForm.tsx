@@ -329,7 +329,7 @@ const AppSettingsForm: React.FC = () => {
             <DialogTitle>Preview Appearance</DialogTitle>
           </DialogHeader>
           <div className="tw-flex-1 tw-overflow-auto tw-p-4 tw-border tw-rounded-md tw-bg-background" style={{ fontFamily: form.watch('font_family') }}>
-            <h3 className="tw-text-lg tw-font-semibold tw-mb-2">Layout Preview</h3>
+            <h3 className="tw-lg tw-font-semibold tw-mb-2">Layout Preview</h3>
             <div className="tw-space-y-2 tw-border tw-border-dashed tw-p-2 tw-rounded-md">
               {watchLayout?.length === 0 ? (
                 <p className="tw-text-muted-foreground tw-text-center">No components in layout.</p>
@@ -345,9 +345,9 @@ const AppSettingsForm: React.FC = () => {
             <div className="tw-space-y-2">
               <p className="tw-text-foreground">This text uses the selected font family.</p>
               <div className="tw-flex tw-items-center tw-gap-2">
-                <span className="tw-text-sm">Primary Color:</span>
+                <span className="tw-sm">Primary Color:</span>
                 <div className="tw-h-6 tw-w-6 tw-rounded-full tw-border" style={{ backgroundColor: form.watch('primary_color') }}></div>
-                <span className="tw-text-sm tw-text-muted-foreground">{form.watch('primary_color')}</span>
+                <span className="tw-sm tw-text-muted-foreground">{form.watch('primary_color')}</span>
               </div>
               <div className="tw-flex tw-items-center tw-gap-2">
                 <span className="tw-sm">Secondary Color:</span>
@@ -358,11 +358,19 @@ const AppSettingsForm: React.FC = () => {
             {logoUrlForCDN && (
               <div className="tw-mt-4">
                 <h3 className="tw-lg tw-font-semibold tw-mb-2">Logo Preview</h3>
-                <img 
-                  src={`/.netlify/images?url=${encodeURIComponent(logoUrlForCDN)}&w=200&h=80&fit=contain&fm=auto`} 
-                  alt="Logo Preview" 
-                  className="tw-max-h-20 tw-max-w-full tw-object-contain" 
-                />
+                {logoUrlForCDN === '/Logo.png' ? (
+                  <img 
+                    src="/Logo.png" 
+                    alt="WPWSF" 
+                    className="tw-max-h-20 tw-max-w-full tw-object-contain" 
+                  />
+                ) : (
+                  <img 
+                    src={`/.netlify/images?url=${encodeURIComponent(logoUrlForCDN)}&w=200&h=80&fit=contain&fm=auto`} 
+                    alt="Logo Preview" 
+                    className="tw-max-h-20 tw-max-w-full tw-object-contain" 
+                  />
+                )}
               </div>
             )}
             {form.watch('custom_css') && (
