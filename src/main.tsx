@@ -7,8 +7,14 @@ import { validateEnv } from './config'; // Import validateEnv
 // Call validateEnv early in the application lifecycle
 validateEnv();
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
+const root = ReactDOM.createRoot(document.getElementById('root')!);
+
+root.render(
+  import.meta.env.DEV ? (
     <App />
-  </React.StrictMode>
+  ) : (
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  )
 );
