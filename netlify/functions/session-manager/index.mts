@@ -23,39 +23,30 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext): P
   }
 
   let sessionsStore: ReturnType<typeof getStore> | null = null;
-  let retries = 3;
-  while (retries > 0) {
-    try {
-      console.log(`[Session Manager] Attempting to initialize Blobs store.`);
-
-      // Explicitly pass siteID and token from environment variables
-      // This should resolve the TypeScript error about `context.site`
-      // and ensure the Blobs store is initialized correctly.
-      sessionsStore = getStore('user_sessions', {
-        siteID: process.env.NETLIFY_SITE_ID as string,
-        token: process.env.NETLIFY_API_TOKEN as string,
-      });
-      console.log("[Session Manager] Netlify Blobs store initialized successfully.");
-      break;
-    } catch (initError: any) {
-      retries--;
-      console.error(`[Session Manager] Error initializing Netlify Blobs store (attempt ${3 - retries}/3):`, initError.message, initError.stack);
-      if (retries === 0) {
-        return {
-          statusCode: 500,
-          body: JSON.stringify({ error: `Failed to initialize session store after multiple attempts: ${initError.message}` }),
-          headers: { 'Content-Type': 'application/json' },
-        };
-      }
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
+  try {
+    console.log(`[Session Manager] Attempting to initialize Blobs store.`);
+    // Explicitly pass siteID and token from environment variables
+    // This should resolve the TypeScript error about `context.site`
+    // and ensure the Blobs store is initialized correctly.
+    sessionsStore = getStore('user_sessions', {
+      siteID: process.env.NETLIFY_SITE_ID as string,
+      token: process.env.NETLIFY_API_TOKEN as string,
+    });
+    console.log("[Session Manager] Netlify Blobs store initialized successfully.");
+  } catch (initError: any) {
+    console.error(`[Session Manager] Error initializing Netlify Blobs store:`, initError.message, initError.stack);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: `Failed to initialize session store: ${initError.message}` }),
+      headers: { 'Content-Type': 'application/json' },
+    };
   }
 
   if (!sessionsStore) {
-    console.error("[Session Manager] Failed to initialize sessionsStore after all retries.");
+    console.error("[Session Manager] Failed to initialize sessionsStore.");
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Failed to initialize session store after all retries." }),
+      body: JSON.stringify({ error: "Failed to initialize session store." }),
       headers: { 'Content-Type': 'application/json' },
     };
   }

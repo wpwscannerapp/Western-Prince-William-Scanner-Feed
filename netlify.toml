@@ -1,9 +1,14 @@
-# Base configuration for Netlify deployment
 [build]
   command = "npm run build"
   publish = "dist"
   functions = "netlify/functions"
 
-# Redirects are handled by the Netlify Vite plugin or _redirects file.
-# Do NOT add redirects for /.netlify/functions/* or /.netlify/images here,
-# as Netlify handles these paths internally.
+[functions]
+  # Ensure @netlify/blobs is bundled correctly
+  external_node_modules = ["@netlify/blobs"]
+  # Use esbuild for faster function bundling
+  node_bundler = "esbuild"
+  # Explicitly expose environment variables to functions
+  [functions.environment]
+    NETLIFY_SITE_ID = "${NETLIFY_SITE_ID}"
+    NETLIFY_API_TOKEN = "${NETLIFY_API_TOKEN}"
