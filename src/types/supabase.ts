@@ -101,7 +101,7 @@ export type Database = {
           content: string
           created_at: string | null
           id: string
-          post_id: string
+          incident_id: string
           updated_at: string | null
           user_id: string
         }
@@ -109,7 +109,7 @@ export type Database = {
           content: string
           created_at?: string | null
           id?: string
-          post_id: string
+          incident_id: string
           updated_at?: string | null
           user_id: string
         }
@@ -117,16 +117,16 @@ export type Database = {
           content?: string
           created_at?: string | null
           id?: string
-          post_id?: string
+          incident_id?: string
           updated_at?: string | null
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "comments_post_id_fkey"
-            columns: ["post_id"]
+            foreignKeyName: "comments_incident_id_fkey"
+            columns: ["incident_id"]
             isOneToOne: false
-            referencedRelation: "posts"
+            referencedRelation: "incidents"
             referencedColumns: ["id"]
           },
           {
@@ -158,102 +158,87 @@ export type Database = {
       }
       incidents: {
         Row: {
+          admin_id: string | null
           created_at: string | null
           date: string | null
           description: string
           id: string
+          image_url: string | null
+          latitude: number | null
           location: string
+          longitude: number | null
           search_vector: unknown | null
           title: string
           type: string
         }
         Insert: {
+          admin_id?: string | null
           created_at?: string | null
           date?: string | null
           description: string
           id?: string
+          image_url?: string | null
+          latitude?: number | null
           location: string
+          longitude?: number | null
           search_vector?: unknown | null
           title: string
           type: string
         }
         Update: {
+          admin_id?: string | null
           created_at?: string | null
           date?: string | null
           description?: string
           id?: string
+          image_url?: string | null
+          latitude?: number | null
           location?: string
+          longitude?: number | null
           search_vector?: unknown | null
           title?: string
           type?: string
         }
-        Relationships: []
-      }
-      likes: {
-        Row: {
-          created_at: string | null
-          id: string
-          post_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          post_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          post_id?: string
-          user_id?: string
-        }
         Relationships: [
           {
-            foreignKeyName: "likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "likes_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "incidents_admin_id_fkey"
+            columns: ["admin_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
       }
-      posts: {
+      likes: {
         Row: {
-          admin_id: string | null
           created_at: string | null
           id: string
-          image_url: string | null
-          text: string
-          timestamp: string | null
+          incident_id: string
+          user_id: string
         }
         Insert: {
-          admin_id?: string | null
           created_at?: string | null
           id?: string
-          image_url?: string | null
-          text: string
-          timestamp?: string | null
+          incident_id: string
+          user_id: string
         }
         Update: {
-          admin_id?: string | null
           created_at?: string | null
           id?: string
-          image_url?: string | null
-          text?: string
-          timestamp?: string | null
+          incident_id?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "posts_admin_id_fkey"
-            columns: ["admin_id"]
+            foreignKeyName: "likes_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "likes_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -313,6 +298,9 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           manual_location_address: string | null
+          preferred_days: string[]
+          preferred_end_time: string | null
+          preferred_start_time: string | null
           preferred_types: string[]
           push_subscription: Json | null
           radius_miles: number
@@ -324,6 +312,9 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           manual_location_address?: string | null
+          preferred_days?: string[]
+          preferred_end_time?: string | null
+          preferred_start_time?: string | null
           preferred_types?: string[]
           push_subscription?: Json | null
           radius_miles?: number
@@ -335,6 +326,9 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           manual_location_address?: string | null
+          preferred_days?: string[]
+          preferred_end_time?: string | null
+          preferred_start_time?: string | null
           preferred_types?: string[]
           push_subscription?: Json | null
           radius_miles?: number
@@ -351,38 +345,6 @@ export type Database = {
           },
         ]
       }
-      user_sessions: {
-        Row: {
-          created_at: string | null
-          expires_at: string
-          id: string
-          session_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          expires_at: string
-          id?: string
-          session_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          expires_at?: string
-          id?: string
-          session_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
@@ -392,7 +354,7 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: unknown
       }
-      notify_onesignal_on_new_alert: {
+      notify_web_push_on_new_alert: {
         Args: Record<PropertyKey, never>
         Returns: unknown
       }
@@ -483,7 +445,7 @@ export type Enums<
     ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  ? (Database[PublicEnumNameOrOptions["schema"]]["Enums"])[EnumName]
   : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
     ? PublicSchema["Enums"][PublicEnumNameOrOptions]
     : never
