@@ -12,7 +12,12 @@ const getCompositeKey = (userId: string, sessionId: string) => `${userId}_${sess
 
 const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
   console.log(`[Session Manager] Function invoked. HTTP Method: ${event.httpMethod}`);
-  // Removed: console.log(`[Session Manager] Debug: Triggering re-deployment.`);
+  console.log("[Session Manager] Environment check:", {
+    hasNetlifyDev: !!process.env.NETLIFY_DEV,
+    context: process.env.CONTEXT,
+    nodeVersion: process.version,
+    // Add other relevant environment variables if needed for debugging
+  });
 
   if (event.httpMethod !== "POST") {
     console.warn(`[Session Manager] Method Not Allowed: ${event.httpMethod}`);
@@ -24,16 +29,24 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
   }
 
   let sessionsStore: ReturnType<typeof getStore>;
-  try {
-    sessionsStore = getStore('user_sessions');
-    console.log("[Session Manager] Netlify Blobs store initialized.");
-  } catch (initError: any) {
-    console.error("[Session Manager] Error initializing Netlify Blobs store:", initError.message, initError.stack);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Failed to initialize session store." }),
-      headers: { 'Content-Type': 'application/json' },
-    };
+  let retries = 3;
+  while (retries > 0) {
+    try {
+      sessionsStore = getStore('user_sessions');
+      console.log("[Session Manager] Netlify Blobs store initialized successfully.");
+      break; // Exit loop on success
+    } catch (initError: any) {
+      retries--;
+      console.error(`[Session Manager] Error initializing Netlify Blobs store (attempt ${3 - retries}/3):`, initError.message, initError.stack);
+      if (retries === 0) {
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: `Failed to initialize session store after multiple attempts: ${initError.message}` }),
+          headers: { 'Content-Type': 'application/json' },
+        };
+      }
+      await new Promise(resolve => setTimeout(resolve, 100)); // Wait a bit before retrying
+    }
   }
 
   let action: string;
@@ -161,12 +174,9 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
         for (const blob of blobsToList) {
           console.log(`[Session Manager] countActiveSessions: Getting blob content for key: ${blob.key}`);
           try {
-            const blobContent = await sessionsStore.get(blob.key);
-            if (blobContent) {
-              const blobData = JSON.parse(new TextDecoder().decode(blobContent)) as BlobSessionData;
-              if (new Date(blobData.expiresAt) > now) {
-                count++;
-              }
+            const blobData = await sessionsStore.get(blob.key, { type: 'json' }) as BlobSessionData | null;
+            if (blobData && new Date(blobData.expiresAt) > now) {
+              count++;
             }
           } catch (blobReadError: any) {
             console.error(`[Session Manager] Error reading/parsing blob ${blob.key} for countActiveSessions:`, blobReadError.message);
@@ -204,9 +214,8 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
         for (const blob of blobsToList) {
           console.log(`[Session Manager] deleteOldestSessions: Getting blob content for key: ${blob.key}`);
           try {
-            const blobContent = await sessionsStore.get(blob.key);
-            if (blobContent) {
-              const blobData = JSON.parse(new TextDecoder().decode(blobContent)) as BlobSessionData;
+            const blobData = await sessionsStore.get(blob.key, { type: 'json' }) as BlobSessionData | null;
+            if (blobData) {
               userSessions.push({ key: blob.key, data: blobData });
             }
           } catch (blobReadError: any) {
@@ -242,9 +251,8 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
         console.log(`[Session Manager] isValidSession: Getting blob for key: ${key}`);
         let isValid = false;
         try {
-          const blobContent = await sessionsStore.get(key);
-          if (blobContent) {
-            const blobData = JSON.parse(new TextDecoder().decode(blobContent)) as BlobSessionData;
+          const blobData = await sessionsStore.get(key, { type: 'json' }) as BlobSessionData | null;
+          if (blobData) {
             isValid = new Date(blobData.expiresAt) > new Date();
           }
         } catch (blobReadError: any) {
