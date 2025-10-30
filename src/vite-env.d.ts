@@ -12,6 +12,7 @@ interface ImportMetaEnv {
   readonly VITE_WEB_PUSH_PUBLIC_KEY: string;
   readonly VITE_AUTH_INITIALIZATION_TIMEOUT: string;
   readonly VITE_STRIPE_PRICE: string;
+  readonly VITE_NETLIFY_SITE_ID: string; // Added Netlify Site ID
   readonly DEV: boolean;
 }
 

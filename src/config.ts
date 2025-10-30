@@ -17,6 +17,7 @@ export const validateEnv = () => {
     'VITE_MAX_CONCURRENT_SESSIONS',
     'VITE_WEB_PUSH_PUBLIC_KEY', // VAPID Public Key
     'VITE_AUTH_INITIALIZATION_TIMEOUT', // New: Auth initialization timeout
+    'VITE_NETLIFY_SITE_ID', // Added Netlify Site ID
   ];
 
   requiredEnvVars.forEach(varName => {
