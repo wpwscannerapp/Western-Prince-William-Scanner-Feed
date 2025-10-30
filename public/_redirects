@@ -1,6 +1,1 @@
-# Custom redirects can be added here.
-# Do NOT add redirects for /.netlify/functions/* or /.netlify/images here,
-# as Netlify handles these paths internally.
-
-# Fallback for client-side routing (SPA)
 /*    /index.html   200
