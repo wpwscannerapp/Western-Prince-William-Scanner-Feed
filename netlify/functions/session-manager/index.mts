@@ -11,7 +11,8 @@ interface SessionData {
 export const handler: Handler = async (event: HandlerEvent) => {
   try {
     const store = getStore('sessions')
-    const body = event.body ? JSON.parse(event.body) : {}
+    if (!event.body) return { statusCode: 400, body: 'Missing body' }
+    const body = JSON.parse(event.body)
     const { action, sessionId, userId, limit } = body
 
     // CREATE
