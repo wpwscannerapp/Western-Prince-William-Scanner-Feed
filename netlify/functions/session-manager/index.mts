@@ -21,16 +21,26 @@ export const handler: Handler = async (event: HandlerEvent) => {
     };
   }
 
-  console.log('BLOBS ENV:', {
+  console.log('BLOBS ENV (from process.env):', {
     siteId: process.env.NETLIFY_SITE_ID,
     hasToken: !!process.env.NETLIFY_API_TOKEN,
     tokenPrefix: process.env.NETLIFY_API_TOKEN?.slice(0, 10)
   });
 
+  let store;
   try {
-    const store = getStore('sessions');
-    console.log('BLOBS STORE INITIALIZED');
+    store = getStore('sessions');
+    console.log('Netlify Blobs store initialized successfully.');
+  } catch (storeError: any) {
+    console.error('Failed to initialize Netlify Blobs store:', storeError.message, storeError.stack);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: `Failed to initialize session store: ${storeError.message}` }),
+      headers: { 'Content-Type': 'application/json' }
+    };
+  }
 
+  try {
     if (event.httpMethod !== "POST") {
       console.warn(`Method Not Allowed: ${event.httpMethod}`);
       return { statusCode: 405, body: "Method Not Allowed" };
