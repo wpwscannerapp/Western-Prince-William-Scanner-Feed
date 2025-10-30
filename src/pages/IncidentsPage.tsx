@@ -14,7 +14,8 @@ import { useIsSubscribed } from '@/hooks/useIsSubscribed';
 import { handleError } from '@/utils/errorHandler';
 import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
+import { AnalyticsService } from '@/services/AnalyticsService';
+import { supabase } from '@/integrations/supabase/client'; // Import supabase client
 
 const IncidentsPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -59,6 +60,34 @@ const IncidentsPage: React.FC = () => {
   });
 
   const incidents = data?.pages.flat() || [];
+
+  // Real-time subscription for new incidents
+  useEffect(() => {
+    const channel = supabase
+      .channel('incidents_realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'incidents' }, (payload) => {
+        const newIncident = payload.new as Incident;
+        queryClient.setQueryData(['incidents'], (oldData: any) => {
+          if (oldData) {
+            // Check if the incident already exists to prevent duplicates
+            const isDuplicate = oldData.pages[0].some((inc: Incident) => inc.id === newIncident.id);
+            if (!isDuplicate) {
+              AnalyticsService.trackEvent({ name: 'realtime_incident_added', properties: { incidentId: newIncident.id, type: newIncident.type } });
+              return {
+                ...oldData,
+                pages: [{ ...oldData.pages[0], data: [newIncident, ...oldData.pages[0]] }, ...oldData.pages.slice(1)],
+              };
+            }
+          }
+          return oldData;
+        });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const lastIncidentRef = useCallback(
     (node: HTMLDivElement) => {
