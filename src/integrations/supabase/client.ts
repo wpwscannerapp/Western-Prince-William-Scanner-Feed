@@ -5,28 +5,33 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Ensure Supabase environment variables are correctly configured
 if (!supabaseUrl || !supabaseAnonKey || !supabaseAnonKey.startsWith('eyJ')) {
   console.error('Invalid Supabase config—check .env', { supabaseUrl, supabaseAnonKey });
   throw new Error('Supabase configuration error: VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is missing or invalid.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
-  db: {
-    schema: 'public',
-  },
-  realtime: {
-    params: {
-      apikey: supabaseAnonKey, // Explicitly pass the anon key for Realtime
+export const supabase = createClient(
+  supabaseUrl,
+  supabaseAnonKey,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
     },
-  },
-});
+    db: {
+      schema: 'public',
+    },
+    realtime: {
+      params: {
+        apikey: supabaseAnonKey, // Explicitly pass the anon key for Realtime
+      },
+    },
+  }
+);
 
-// Only log full anon key in development
+// Only log full anon key in development for debugging purposes
 if (import.meta.env.DEV) {
   console.log('Supabase Client Init: Using URL:', supabaseUrl);
   console.log('Supabase Client Init: Using Anon Key (first 10 chars):', supabaseAnonKey.substring(0, 10) + '...');
