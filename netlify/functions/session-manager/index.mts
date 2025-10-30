@@ -21,9 +21,15 @@ export const handler: Handler = async (event: HandlerEvent) => {
     };
   }
 
+  console.log('BLOBS ENV:', {
+    siteId: process.env.NETLIFY_SITE_ID,
+    hasToken: !!process.env.NETLIFY_API_TOKEN,
+    tokenPrefix: process.env.NETLIFY_API_TOKEN?.slice(0, 10)
+  });
+
   try {
     const store = getStore('sessions');
-    console.log('Netlify Blobs store initialized.');
+    console.log('BLOBS STORE INITIALIZED');
 
     if (event.httpMethod !== "POST") {
       console.warn(`Method Not Allowed: ${event.httpMethod}`);
