@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS incidents_search_vector_idx ON public.incidents USING GIN (search_vector);

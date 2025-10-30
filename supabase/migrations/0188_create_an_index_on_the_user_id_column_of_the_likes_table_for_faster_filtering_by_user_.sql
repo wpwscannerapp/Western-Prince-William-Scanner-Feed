@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS likes_user_id_idx ON public.likes (user_id);

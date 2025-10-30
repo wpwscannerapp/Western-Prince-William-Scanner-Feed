@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS incidents_location_idx ON public.incidents (location);

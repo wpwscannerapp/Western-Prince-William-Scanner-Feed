@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS comments_user_id_idx ON public.comments (user_id);

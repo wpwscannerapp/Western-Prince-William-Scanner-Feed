@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS incidents_date_idx ON public.incidents (date DESC);

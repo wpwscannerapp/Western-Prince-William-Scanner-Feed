@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS alerts_created_at_idx ON public.alerts (created_at DESC);

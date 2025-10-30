@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS comments_created_at_idx ON public.comments (created_at ASC);

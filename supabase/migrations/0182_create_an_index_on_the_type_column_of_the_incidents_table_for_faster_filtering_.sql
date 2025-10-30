@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS incidents_type_idx ON public.incidents (type);
