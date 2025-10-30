@@ -63,7 +63,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, onTabChange }) =
               <span className="tw-sr-only">Open admin menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="tw-w-[250px] sm:tw-w-[300px] tw-bg-sidebar tw-border-r tw-border-sidebar-border">
+          <SheetContent side="left" className="tw-w-[250px] sm:tw-w-[300px] tw-bg-sidebar tw-border-r tw-border-sidebar-border tw-overflow-y-auto">
             {sidebarContent}
           </SheetContent>
         </Sheet>

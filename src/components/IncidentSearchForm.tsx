@@ -68,7 +68,7 @@ const IncidentSearchForm: React.FC<IncidentSearchFormProps> = ({ onFilterChange,
   }, [debouncedSearchTerm, type, debouncedLocation, dateRange, onFilterChange]);
 
   return (
-    <div className="tw-space-y-4 tw-p-4 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm">
+    <div className="tw-space-y-4 tw-p-4 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm tw-relative tw-z-10"> {/* Added tw-relative tw-z-10 */}
       <div className="tw-relative">
         <Search className="tw-absolute tw-left-3 tw-top-1/2 tw-transform -tw-translate-y-1/2 tw-h-4 tw-w-4 tw-text-muted-foreground" />
         <Input
@@ -79,13 +79,13 @@ const IncidentSearchForm: React.FC<IncidentSearchFormProps> = ({ onFilterChange,
       </div>
 
       <div className="tw-grid tw-grid-cols-1 sm:tw-grid-cols-3 tw-gap-4">
-        <div>
+        <div className="tw-relative tw-z-20"> {/* Increased z-index for Select */}
           <Label htmlFor="type-filter" className="tw-sr-only">Incident Type</Label>
           <Select value={type} onValueChange={(value) => setValue('type', value === 'all' ? '' : value)}>
             <SelectTrigger id="type-filter" className="tw-w-full">
               <SelectValue placeholder="Filter by Type" />
             </SelectTrigger>
-            <SelectContent className="tw-z-50"> {/* Added tw-z-50 */}
+            <SelectContent className="tw-z-50">
               <SelectItem value="all">All Types</SelectItem>
               {incidentTypes.map(t => (
                 <SelectItem key={t} value={t}>{t}</SelectItem>
@@ -104,7 +104,7 @@ const IncidentSearchForm: React.FC<IncidentSearchFormProps> = ({ onFilterChange,
           />
         </div>
 
-        <div>
+        <div className="tw-relative tw-z-20"> {/* Increased z-index for Popover */}
           <Label htmlFor="date-range-filter" className="tw-sr-only">Date Range</Label>
           <Popover>
             <PopoverTrigger asChild>
@@ -131,7 +131,7 @@ const IncidentSearchForm: React.FC<IncidentSearchFormProps> = ({ onFilterChange,
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="tw-w-auto tw-p-0 tw-z-50" align="start"> {/* Added tw-z-50 */}
+            <PopoverContent className="tw-w-auto tw-p-0 tw-z-50" align="start">
               <Calendar
                 initialFocus
                 mode="range"

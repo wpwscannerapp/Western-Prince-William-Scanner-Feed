@@ -7,7 +7,6 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import AdminDashboardTabs from '@/components/AdminDashboardTabs';
 import AdminSidebar from '@/components/AdminSidebar';
-import AdminDebugInfo from '@/components/AdminDebugInfo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
@@ -42,7 +41,7 @@ const AdminPage = () => {
         <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
         <main className="tw-flex-1 tw-p-4 md:tw-p-8">
           <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground">Admin Dashboard</h1>
-          <AdminDebugInfo /> 
+          {/* AdminDebugInfo component removed */}
           <div className="tw-grid tw-gap-4">
             <AdminDashboardTabs activeTab={activeTab} />
           </div>
@@ -57,7 +56,7 @@ const AdminPage = () => {
       <Card className="tw-w-full tw-max-w-md tw-text-center tw-bg-card tw-border-destructive tw-border-2 tw-shadow-lg">
         <CardContent className="tw-py-8">
           <AlertCircle className="tw-h-12 tw-w-12 tw-text-destructive tw-mx-auto tw-mb-4" aria-hidden="true" />
-          <h1 className="tw-text-2xl tw-font-bold tw-text-destructive tw-mb-4">Access Denied</h1>
+          <h1 className="tw-2xl tw-font-bold tw-text-destructive tw-mb-4">Access Denied</h1>
           <p className="tw-text-muted-foreground tw-mb-6">
             You do not have administrator privileges to view this page.
           </p>
