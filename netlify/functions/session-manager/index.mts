@@ -13,14 +13,21 @@ export const handler: Handler = async (event: HandlerEvent) => {
     const store = getStore('sessions')
     if (!event.body) return { statusCode: 400, body: 'Missing body' }
     const body = JSON.parse(event.body)
-    const { action, sessionId, userId, limit } = body
+    const { action, payload } = body
+
+    if (!action) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Missing action' }) }
+    }
 
     // CREATE
-    if (action === 'create' && sessionId && userId) {
+    if (action === 'createSession' && payload?.sessionId && payload?.userId && payload?.expiresAt) {
+      const { sessionId, userId, expiresAt: expiresAtISO } = payload;
+      const expiresAtTimestamp = new Date(expiresAtISO).getTime();
+
       const data: SessionData = {
         sessionId,
         userId,
-        expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+        expiresAt: expiresAtTimestamp,
         createdAt: Date.now()
       }
       await store.setJSON(sessionId, data)
@@ -28,41 +35,45 @@ export const handler: Handler = async (event: HandlerEvent) => {
     }
 
     // VALIDATE
-    if (action === 'validate' && sessionId) {
+    if (action === 'isValidSession' && payload?.sessionId) {
+      const { sessionId } = payload;
       const data = await store.get(sessionId, { type: 'json' }) as SessionData | null
       if (data && data.expiresAt > Date.now()) {
-        return { statusCode: 200, body: JSON.stringify({ valid: true, userId: data.userId }) }
+        return { statusCode: 200, body: JSON.stringify({ isValid: true, userId: data.userId }) }
       }
-      return { statusCode: 401, body: JSON.stringify({ valid: false }) }
+      return { statusCode: 200, body: JSON.stringify({ isValid: false }) }
     }
 
     // DELETE SINGLE
-    if (action === 'delete' && sessionId) {
+    if (action === 'deleteSession' && payload?.sessionId) {
+      const { sessionId } = payload;
       await store.delete(sessionId)
       return { statusCode: 200, body: JSON.stringify({ success: true }) }
     }
 
     // DELETE ALL FOR USER
-    if (action === 'deleteAll' && userId) {
+    if (action === 'deleteAllSessionsForUser' && payload?.userId) {
+      const { userId } = payload;
       const list = await store.list()
       let deleted = 0
       for (const { key } of list.blobs) {
         const data = await store.get(key, { type: 'json' }) as SessionData | null
-        if (data?.userId === userId) {
+        if (data && data.userId === userId) {
           await store.delete(key)
           deleted++
         }
       }
-      return { statusCode: 200, body: JSON.stringify({ deleted }) }
+      return { statusCode: 200, body: JSON.stringify({ success: true, deleted }) }
     }
 
     // COUNT ACTIVE FOR USER
-    if (action === 'count' && userId) {
+    if (action === 'countActiveSessions' && payload?.userId) {
+      const { userId } = payload;
       const list = await store.list()
       let count = 0
       for (const { key } of list.blobs) {
         const data = await store.get(key, { type: 'json' }) as SessionData | null
-        if (data?.userId === userId && data.expiresAt > Date.now()) {
+        if (data && data.userId === userId && data.expiresAt > Date.now()) {
           count++
         }
       }
@@ -70,13 +81,14 @@ export const handler: Handler = async (event: HandlerEvent) => {
     }
 
     // DELETE OLDEST (RESPECT LIMIT)
-    if (action === 'deleteOldest' && userId && typeof limit === 'number') {
+    if (action === 'deleteOldestSessions' && payload?.userId && typeof payload?.limit === 'number') {
+      const { userId, limit } = payload;
       const list = await store.list()
       const userSessions: { key: string; createdAt: number }[] = []
 
       for (const { key } of list.blobs) {
         const data = await store.get(key, { type: 'json' }) as SessionData | null
-        if (data?.userId === userId && data.expiresAt > Date.now()) {
+        if (data && data.userId === userId && data.expiresAt > Date.now()) {
           userSessions.push({ key, createdAt: data.createdAt })
         }
       }
@@ -89,9 +101,9 @@ export const handler: Handler = async (event: HandlerEvent) => {
         for (const { key } of toDelete) {
           await store.delete(key)
         }
-        return { statusCode: 200, body: JSON.stringify({ deleted: toDelete.length }) }
+        return { statusCode: 200, body: JSON.stringify({ success: true, deleted: toDelete.length }) }
       }
-      return { statusCode: 200, body: JSON.stringify({ deleted: 0 }) }
+      return { statusCode: 200, body: JSON.stringify({ success: true, deleted: 0 }) }
     }
 
     return { statusCode: 400, body: JSON.stringify({ error: 'Invalid action' }) }
