@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import IncidentMap from './IncidentMap'; // Direct import
+// import IncidentMap from './IncidentMap'; // Direct import - REMOVED
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
@@ -175,19 +175,7 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
             }}
           />
         )}
-        {incident.latitude && incident.longitude && (
-          <div className="tw-w-full tw-h-64 tw-rounded-md tw-overflow-hidden tw-mb-4">
-            <IncidentMap alerts={[{
-                id: incident.id,
-                title: incident.title,
-                description: incident.description,
-                type: incident.type,
-                latitude: incident.latitude,
-                longitude: incident.longitude,
-                created_at: incident.created_at,
-              }]} />
-          </div>
-        )}
+        {/* Incident.latitude and longitude map removed for debugging */}
         <p className="tw-flex tw-items-start tw-gap-2 tw-text-sm tw-text-muted-foreground tw-whitespace-pre-wrap">
           <FileText className="tw-h-4 tw-w-4 tw-flex-shrink-0" aria-hidden="true" />
           {incident.description}
