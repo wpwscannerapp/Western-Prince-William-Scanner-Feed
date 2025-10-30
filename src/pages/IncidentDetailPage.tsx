@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
+// import IncidentMap from '@/components/IncidentMap'; // Direct import - REMOVED
 
 const IncidentDetailPage: React.FC = () => {
   const { incidentId } = useParams<{ incidentId: string }>();

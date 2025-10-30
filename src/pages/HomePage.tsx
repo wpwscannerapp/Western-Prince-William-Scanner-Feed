@@ -1,19 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Loader2, AlertCircle, Map, List } from 'lucide-react';
-// import IncidentMap from '@/components/IncidentMap'; // Removed direct import
+import IncidentMap from '@/components/IncidentMap'; // Direct import
 import { useQuery } from '@tanstack/react-query';
 import { NotificationService, Alert } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
-
-// Lazy load IncidentMap
-const LazyIncidentMap = React.lazy(() => import('@/components/IncidentMap'));
 
 const HomePage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -94,9 +91,7 @@ const HomePage: React.FC = () => {
           </Card>
         ) : alerts && alerts.length > 0 ? (
           viewMode === 'map' ? (
-            <Suspense fallback={<div className="tw-h-[500px] tw-w-full tw-rounded-md tw-shadow-md tw-flex tw-items-center tw-justify-center tw-bg-card"><Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" aria-label="Loading map" /></div>}>
-              <LazyIncidentMap alerts={alerts} />
-            </Suspense>
+            <IncidentMap alerts={alerts} />
           ) : (
             <div className="tw-space-y-4">
               {alerts.map((alert) => (
