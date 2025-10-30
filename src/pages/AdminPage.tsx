@@ -40,8 +40,10 @@ const AdminPage = () => {
       <div className="tw-flex tw-flex-col md:tw-flex-row tw-min-h-screen tw-bg-background">
         <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
         <main className="tw-flex-1 tw-p-4 md:tw-p-8">
+          <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
+            Back to Dashboard
+          </Button>
           <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground">Admin Dashboard</h1>
-          {/* AdminDebugInfo component removed */}
           <div className="tw-grid tw-gap-4">
             <AdminDashboardTabs activeTab={activeTab} />
           </div>
