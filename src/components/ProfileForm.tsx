@@ -273,8 +273,12 @@ const ProfileForm: React.FC = () => {
 
   const isSubmitDisabled = updateProfileMutation.isPending || isUploading || usernameStatus === 'checking' || usernameStatus === 'taken';
 
-  // Ensure avatarUrlForCDN is a non-empty string before passing to Netlify Image CDN
-  const avatarUrlForCDN = (imagePreview && imagePreview.trim() !== '') ? imagePreview : undefined;
+  // Determine the avatar source: local blob URL if a file is selected, otherwise Netlify CDN for hosted images.
+  const avatarSrc = imageFile 
+    ? imagePreview || undefined // Use blob URL directly for local file preview, convert null to undefined
+    : (imagePreview && imagePreview.trim() !== '') 
+      ? `/.netlify/images?url=${encodeURIComponent(imagePreview)}&w=96&h=96&fit=cover&fm=auto` 
+      : undefined;
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="tw-space-y-6 tw-p-6 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm">
@@ -282,7 +286,7 @@ const ProfileForm: React.FC = () => {
         <div className="tw-relative tw-group">
           <Avatar className="tw-h-24 tw-w-24 tw-border-2 tw-border-primary">
             <AvatarImage 
-              src={avatarUrlForCDN ? `/.netlify/images?url=${encodeURIComponent(avatarUrlForCDN)}&w=96&h=96&fit=cover&fm=auto` : undefined} 
+              src={avatarSrc} 
               alt="User Avatar" 
             />
             <AvatarFallback className="tw-bg-primary tw-text-primary-foreground tw-text-xl">

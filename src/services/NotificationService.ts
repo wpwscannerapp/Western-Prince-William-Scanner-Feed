@@ -24,6 +24,12 @@ export interface UserNotificationSettings {
   preferred_days: string[];
   prefer_push_notifications: boolean; // New field
   updated_at: string;
+  // Add other non-nullable fields with default values from schema
+  latitude: number | null;
+  longitude: number | null;
+  manual_location_address: string | null;
+  preferred_types: string[];
+  radius_miles: number;
 }
 
 export interface Alert {
@@ -184,7 +190,33 @@ export const NotificationService = {
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
-      const upsertPayload = { user_id: userId, ...updates, updated_at: new Date().toISOString() };
+      // Fetch existing settings or create a default one if none exist
+      const existingSettings = await NotificationService.getUserNotificationSettings(userId);
+
+      const defaultSettings: Omit<UserNotificationSettings, 'user_id' | 'updated_at'> = {
+        enabled: false,
+        push_subscription: null,
+        receive_all_alerts: true,
+        preferred_start_time: null,
+        preferred_end_time: null,
+        preferred_days: [],
+        prefer_push_notifications: false,
+        latitude: null,
+        longitude: null,
+        manual_location_address: null,
+        preferred_types: [],
+        radius_miles: 5,
+      };
+
+      // Merge existing settings (if any) with defaults, then apply updates
+      const mergedSettings = {
+        ...defaultSettings,
+        ...(existingSettings || {}), // Use existing settings if available
+        ...updates,
+        updated_at: new Date().toISOString(),
+      };
+
+      const upsertPayload = { user_id: userId, ...mergedSettings };
 
       const { data, error } = await supabase
         .from('user_notification_settings')

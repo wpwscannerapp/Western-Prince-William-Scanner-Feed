@@ -159,6 +159,7 @@ export type Database = {
       incidents: {
         Row: {
           admin_id: string | null
+          audio_url: string | null
           created_at: string | null
           date: string | null
           description: string
@@ -173,6 +174,7 @@ export type Database = {
         }
         Insert: {
           admin_id?: string | null
+          audio_url?: string | null
           created_at?: string | null
           date?: string | null
           description: string
@@ -187,6 +189,7 @@ export type Database = {
         }
         Update: {
           admin_id?: string | null
+          audio_url?: string | null
           created_at?: string | null
           date?: string | null
           description?: string
@@ -302,7 +305,7 @@ export type Database = {
           preferred_end_time: string | null
           preferred_start_time: string | null
           preferred_types: string[]
-          prefer_push_notifications: boolean // New field
+          prefer_push_notifications: boolean
           push_subscription: Json | null
           radius_miles: number
           updated_at: string | null
@@ -317,7 +320,7 @@ export type Database = {
           preferred_end_time?: string | null
           preferred_start_time?: string | null
           preferred_types?: string[]
-          prefer_push_notifications?: boolean // New field
+          prefer_push_notifications?: boolean
           push_subscription?: Json | null
           radius_miles?: number
           updated_at?: string | null
@@ -332,7 +335,7 @@ export type Database = {
           preferred_end_time?: string | null
           preferred_start_time?: string | null
           preferred_types?: string[]
-          prefer_push_notifications?: boolean // New field
+          prefer_push_notifications?: boolean
           push_subscription?: Json | null
           radius_miles?: number
           updated_at?: string | null
