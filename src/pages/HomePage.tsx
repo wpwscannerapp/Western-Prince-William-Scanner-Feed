@@ -61,7 +61,7 @@ const HomePage: React.FC = () => {
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-6xl">
       <div className="tw-mb-8">
         <div className="tw-flex tw-justify-between tw-items-center tw-mb-4">
-          <h2 className="tw-text-2xl tw-font-bold tw-text-foreground">Real-time Alerts</h2>
+          <h2 className="tw-text-2xl tw-font-bold tw-text-foreground">Most Recent Incident</h2>
           <div className="tw-flex tw-gap-2">
             <Button
               variant={viewMode === 'list' ? 'secondary' : 'outline'}
