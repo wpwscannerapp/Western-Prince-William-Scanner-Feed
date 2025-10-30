@@ -156,6 +156,47 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback_and_suggestions: {
+        Row: {
+          allow_contact: boolean | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          id: string
+          message: string
+          subject: string | null
+          user_id: string | null
+        }
+        Insert: {
+          allow_contact?: boolean | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string
+          message: string
+          subject?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          allow_contact?: boolean | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          subject?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_and_suggestions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incidents: {
         Row: {
           admin_id: string | null

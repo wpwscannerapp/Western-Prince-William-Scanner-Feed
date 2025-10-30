@@ -9,7 +9,8 @@ import AdminNotificationSender from '@/components/AdminNotificationSender';
 import ContactSettingsForm from '@/components/ContactSettingsForm';
 import IncidentForm from '@/components/IncidentForm';
 import AdminIncidentTable from '@/components/AdminIncidentTable';
-import AdminAlertTable from '@/components/AdminAlertTable'; // Import new AdminAlertTable
+import AdminAlertTable from '@/components/AdminAlertTable';
+import AdminFeedbackTable from '@/components/AdminFeedbackTable'; // Import new AdminFeedbackTable
 import { IncidentService } from '@/services/IncidentService';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -17,7 +18,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { handleError } from '@/utils/errorHandler';
-import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
+import { AnalyticsService } from '@/services/AnalyticsService';
 
 interface AdminDashboardTabsProps {
   activeTab: string;
@@ -132,9 +133,10 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
 
   return (
     <Tabs value={activeTab} className="tw-w-full">
-      <TabsList className="tw-grid tw-w-full tw-grid-cols-6"> {/* Increased grid-cols to 6 */}
+      <TabsList className="tw-grid tw-w-full tw-grid-cols-7"> {/* Increased grid-cols to 7 */}
         <TabsTrigger value="incidents" aria-label="Incidents tab">Incidents</TabsTrigger>
-        <TabsTrigger value="alerts" aria-label="Alerts tab">Alerts</TabsTrigger> {/* New tab for Alerts */}
+        <TabsTrigger value="alerts" aria-label="Alerts tab">Alerts</TabsTrigger>
+        <TabsTrigger value="feedback" aria-label="Feedback tab">Feedback</TabsTrigger> {/* New tab for Feedback */}
         <TabsTrigger value="analytics" aria-label="Analytics tab">Analytics</TabsTrigger>
         <TabsTrigger value="settings" aria-label="Settings tab">Settings</TabsTrigger>
         <TabsTrigger value="notifications" aria-label="Notifications tab">Notifications</TabsTrigger>
@@ -163,7 +165,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
           </CardContent>
         </Card>
       </TabsContent>
-      <TabsContent value="alerts" className="tw-space-y-8"> {/* New TabsContent for Alerts */}
+      <TabsContent value="alerts" className="tw-space-y-8">
         <Card>
           <CardHeader>
             <CardTitle>Manage Real-Time Alerts</CardTitle>
@@ -171,6 +173,17 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
           </CardHeader>
           <CardContent>
             <AdminAlertTable onAlertUpdated={refreshAlertTable} />
+          </CardContent>
+        </Card>
+      </TabsContent>
+      <TabsContent value="feedback" className="tw-space-y-8"> {/* New TabsContent for Feedback */}
+        <Card>
+          <CardHeader>
+            <CardTitle>User Feedback & Suggestions</CardTitle>
+            <CardDescription>View all submitted feedback and suggestions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AdminFeedbackTable />
           </CardContent>
         </Card>
       </TabsContent>
