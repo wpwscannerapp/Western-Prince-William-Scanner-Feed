@@ -8,6 +8,10 @@ import Index from '@/pages/Index';
 import { lazyLoad } from '@/lib/lazyLoad.tsx'; // Import lazyLoad utility
 import { Loader2 } from 'lucide-react'; // For a simple fallback
 
+// Directly import HomePage and IncidentsPage
+import HomePage from '@/pages/HomePage';
+import IncidentsPage from '@/pages/IncidentsPage';
+
 // Define a common loading fallback for pages
 const PageLoadingFallback = () => (
   <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
@@ -16,9 +20,7 @@ const PageLoadingFallback = () => (
   </div>
 );
 
-// Lazy load all page components
-const LazyHomePage = lazyLoad(() => import('@/pages/HomePage'), <PageLoadingFallback />);
-const LazyIncidentsPage = lazyLoad(() => import('@/pages/IncidentsPage'), <PageLoadingFallback />);
+// Lazy load other page components
 const LazyProfilePage = lazyLoad(() => import('@/pages/ProfilePage'), <PageLoadingFallback />);
 const LazyAdminPage = lazyLoad(() => import('@/pages/AdminPage'), <PageLoadingFallback />);
 const LazyIncidentDetailPage = lazyLoad(() => import('@/pages/IncidentDetailPage'), <PageLoadingFallback />);
@@ -54,8 +56,8 @@ const MainContent: React.FC = () => {
 
           {/* Protected routes wrapped by ProtectedRoute */}
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route path="home" element={<LazyHomePage />} />
-            <Route path="home/incidents" element={<LazyIncidentsPage />} />
+            <Route path="home" element={<HomePage />} /> {/* Direct import */}
+            <Route path="home/incidents" element={<IncidentsPage />} /> {/* Direct import */}
             <Route path="home/contact-us" element={<LazyContactUsPage />} />
             <Route path="home/archive" element={<LazyIncidentArchivePage />} />
             <Route path="home/feedback" element={<LazyFeedbackPage />} />
