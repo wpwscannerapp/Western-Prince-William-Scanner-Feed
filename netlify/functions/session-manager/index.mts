@@ -11,19 +11,19 @@ interface SessionData {
 
 export const handler: Handler = async (event: HandlerEvent) => {
   try {
-    // LOG ENV FOR CONFIRMATION
     console.log('BLOBS ENV:', {
       siteId: process.env.NETLIFY_SITE_ID,
       token: process.env.NETLIFY_API_TOKEN?.slice(0, 10) + '...'
     })
 
-    // FORCE MANUAL CONFIG — THIS BYPASSES AUTO-DETECTION
-    const store = getStore('sessions', {
+    // CORRECT: getStore only takes name OR options object
+    const store = getStore({
+      name: 'sessions',
       siteID: process.env.NETLIFY_SITE_ID!,
       token: process.env.NETLIFY_API_TOKEN!
     })
 
-    console.log('BLOBS STORE INITIALIZED WITH MANUAL CONFIG')
+    console.log('BLOBS STORE INITIALIZED')
 
     if (!event.body) return { statusCode: 400, body: 'Missing body' }
     const body = JSON.parse(event.body)
