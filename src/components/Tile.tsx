@@ -18,6 +18,9 @@ const Tile: React.FC<TileProps> = ({ title, description, to, icon }) => {
 
   // The icon is now directly referenced from the public directory
   const directIconSrc = icon;
+  const imageUrl = directIconSrc.startsWith('/') 
+    ? `/.netlify/images?url=${encodeURIComponent(directIconSrc)}&w=48&h=48&fit=contain&fm=auto` 
+    : directIconSrc;
 
   return (
     <Card 
@@ -25,7 +28,7 @@ const Tile: React.FC<TileProps> = ({ title, description, to, icon }) => {
       onClick={handleClick}
     >
       <CardHeader className="tw-flex tw-flex-col tw-items-center tw-text-center tw-pb-2">
-        <img src={directIconSrc} alt={`${title} icon`} width={48} height={48} className="tw-h-12 tw-w-12 tw-mb-3" />
+        <img src={imageUrl} alt={`${title} icon`} width={48} height={48} className="tw-h-12 tw-w-12 tw-mb-3" />
         <CardTitle className="tw-xl tw-font-bold tw-text-foreground">{title}</CardTitle>
         {description && <CardDescription className="tw-text-muted-foreground">{description}</CardDescription>}
       </CardHeader>

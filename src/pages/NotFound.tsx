@@ -22,12 +22,13 @@ const NotFound = () => {
 
   // The logo is now directly referenced from the public directory
   const logoPath = "/Logo.png";
+  const cdnLogoPath = `/.netlify/images?url=${encodeURIComponent(logoPath)}&w=192&h=192&fit=contain&fm=auto`;
 
   return (
     <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-p-4">
       <div className="tw-text-center">
         <img 
-          src={logoPath} 
+          src={cdnLogoPath} 
           alt="Page Not Found" 
           width={192} 
           height={192} 
