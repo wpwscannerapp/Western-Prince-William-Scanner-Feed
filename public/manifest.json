@@ -1,11 +1,11 @@
 {
-  "name": "Western Prince William Scanner Feed",
-  "short_name": "WPW Scanner",
+  "name": "WPW Scanner Feed",
+  "short_name": "WPWSF",
   "description": "Exclusive Scanner Updates for Western Prince William",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#1a1a1a",
+  "theme_color": "#1E3A8A",
   "icons": [
     {
       "src": "/Logo.png",
