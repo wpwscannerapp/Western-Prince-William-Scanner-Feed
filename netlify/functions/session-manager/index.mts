@@ -1,4 +1,4 @@
-import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions'
+import type { Handler, HandlerEvent } from '@netlify/functions'
 import { getStore } from '@netlify/blobs'
 
 interface SessionData {
@@ -7,12 +7,11 @@ interface SessionData {
   expiresAt: number
 }
 
-export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
+export const handler: Handler = async (event: HandlerEvent) => {
   try {
-    // Get Blobs store
+    // Get Blobs store (auto-uses NETLIFY_BLOBS_SITE_ID & TOKEN)
     const store = getStore('sessions')
-    
-    // Only allow POST
+
     if (event.httpMethod !== 'POST') {
       return { statusCode: 405, body: 'Method Not Allowed' }
     }
@@ -24,7 +23,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       const data: SessionData = {
         sessionId,
         userId,
-        expiresAt: Date.now() + 24 * 60 * 60 * 1000 // 24h
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000
       }
       await store.setJSON(sessionId, data)
       return { statusCode: 200, body: JSON.stringify({ success: true }) }
@@ -39,9 +38,8 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     }
 
     return { statusCode: 400, body: JSON.stringify({ error: 'Invalid action' }) }
-
   } catch (error: any) {
-    console.error('Session manager error:', error)
+    console.error('Session manager error:', error.message)
     return { statusCode: 500, body: JSON.stringify({ error: error.message }) }
   }
 }
