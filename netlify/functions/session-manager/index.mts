@@ -16,7 +16,6 @@ export const handler: Handler = async (event: HandlerEvent) => {
       token: process.env.NETLIFY_API_TOKEN?.slice(0, 10) + '...'
     })
 
-    // CORRECT: getStore only takes name OR options object
     const store = getStore({
       name: 'sessions',
       siteID: process.env.NETLIFY_SITE_ID!,
@@ -62,7 +61,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
       let deleted = 0
       for (const { key } of list.blobs) {
         const data = await store.get(key, { type: 'json' }) as SessionData | null
-        if (data?.userId === payload.userId) {
+        if (data && data.userId === payload.userId) { // Explicit null check for data
           await store.delete(key)
           deleted++
         }
@@ -76,7 +75,9 @@ export const handler: Handler = async (event: HandlerEvent) => {
       let count = 0
       for (const { key } of list.blobs) {
         const data = await store.get(key, { type: 'json' }) as SessionData | null
-        if (data?.userId === payload.userId && data.expiresAt > Date.now()) count++
+        if (data && data.userId === payload.userId && data.expiresAt > Date.now()) { // Explicit null check for data
+          count++
+        }
       }
       return { statusCode: 200, body: JSON.stringify({ count }) }
     }
@@ -88,7 +89,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
 
       for (const { key } of list.blobs) {
         const data = await store.get(key, { type: 'json' }) as SessionData | null
-        if (data?.userId === payload.userId && data.expiresAt > Date.now()) {
+        if (data && data.userId === payload.userId && data.expiresAt > Date.now()) { // Explicit null check for data
           userSessions.push({ key, createdAt: data.createdAt })
         }
       }
