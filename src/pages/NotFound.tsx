@@ -22,13 +22,14 @@ const NotFound = () => {
 
   // The logo is now directly referenced from the public directory
   const logoPath = "/Logo.png";
-  const cdnLogoPath = `/.netlify/images?url=${encodeURIComponent(logoPath)}&w=192&h=192&fit=contain&fm=auto`;
+  // Removed CDN path for local logo
+  // const cdnLogoPath = `/.netlify/images?url=${encodeURIComponent(logoPath)}&w=192&h=192&fit=contain&fm=auto`;
 
   return (
     <div className="tw-min-h-screen tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-p-4">
       <div className="tw-text-center">
         <img 
-          src={cdnLogoPath} 
+          src={logoPath} // Direct reference
           alt="Page Not Found" 
           width={192} 
           height={192} 

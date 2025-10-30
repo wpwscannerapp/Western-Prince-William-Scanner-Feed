@@ -18,9 +18,11 @@ const Tile: React.FC<TileProps> = ({ title, description, to, icon }) => {
 
   // The icon is now directly referenced from the public directory
   const directIconSrc = icon;
-  const imageUrl = directIconSrc.startsWith('/') 
-    ? `/.netlify/images?url=${encodeURIComponent(directIconSrc)}&w=48&h=48&fit=contain&fm=auto` 
-    : directIconSrc;
+  const imageUrl = (directIconSrc === '/Logo.png') 
+    ? '/Logo.png' // Direct path for Logo.png
+    : directIconSrc.startsWith('/') 
+      ? `/.netlify/images?url=${encodeURIComponent(directIconSrc)}&w=48&h=48&fit=contain&fm=auto` 
+      : directIconSrc;
 
   return (
     <Card 

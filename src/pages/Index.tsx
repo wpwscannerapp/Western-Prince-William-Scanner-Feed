@@ -34,14 +34,15 @@ const Index: React.FC = () => {
 
   // The logo is now directly referenced from the public directory
   const logoPath = "/Logo.png";
-  const cdnLogoPath = `/.netlify/images?url=${encodeURIComponent(logoPath)}&w=96&h=96&fit=contain&fm=auto`;
+  // Removed CDN path for local logo
+  // const cdnLogoPath = `/.netlify/images?url=${encodeURIComponent(logoPath)}&w=96&h=96&fit=contain&fm=auto`;
 
   if (!minimumSplashDurationPassed || !authReady) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-gradient-to-br tw-from-primary/20 tw-to-background tw-animate-fade-in" role="status" aria-label="Loading application">
         <div className="tw-flex tw-flex-col tw-items-center tw-gap-4">
           <img 
-            src={cdnLogoPath} 
+            src={logoPath} // Direct reference
             alt="WPW Scanner Logo" 
             width={96} 
             height={96} 

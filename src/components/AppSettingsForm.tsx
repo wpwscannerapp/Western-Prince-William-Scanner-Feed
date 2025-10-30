@@ -360,7 +360,7 @@ const AppSettingsForm: React.FC = () => {
                 <h3 className="tw-lg tw-font-semibold tw-mb-2">Logo Preview</h3>
                 {logoUrlForCDN === '/Logo.png' ? (
                   <img 
-                    src="/Logo.png" 
+                    src="/Logo.png" // Direct reference
                     alt="WPWSF" 
                     className="tw-max-h-20 tw-max-w-full tw-object-contain" 
                   />
