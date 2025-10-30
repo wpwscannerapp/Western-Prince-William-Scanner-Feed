@@ -4,7 +4,9 @@
   functions = "netlify/functions"
 
 [functions]
-  # Explicitly expose environment variables for Netlify Blobs
-  [functions.environment]
-    NETLIFY_BLOBS_SITE_ID = "${NETLIFY_SITE_ID}"
-    NETLIFY_BLOBS_TOKEN = "${NETLIFY_API_TOKEN}"
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[functions.environment]]
+  NETLIFY_BLOBS_SITE_ID = "1096a290-2d0c-4d03-846f-9eebbce52f52"
+  NETLIFY_BLOBS_TOKEN = "nfp_sKWK5zFa35g4eyF6vqxLQ744wt42YC726a29"
