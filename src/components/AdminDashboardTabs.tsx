@@ -22,6 +22,7 @@ import { AnalyticsService } from '@/services/AnalyticsService';
 
 interface AdminDashboardTabsProps {
   activeTab: string;
+  onTabChange: (tab: string) => void; // Added onTabChange prop
 }
 
 interface SubscriptionData {
@@ -29,7 +30,7 @@ interface SubscriptionData {
   count: number;
 }
 
-const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) => {
+const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTabChange }) => {
   const { user } = useAuth();
   const [incidentFormLoading, setIncidentFormLoading] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData[]>([]);
@@ -132,7 +133,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
   };
 
   return (
-    <Tabs value={activeTab} className="tw-w-full">
+    <Tabs value={activeTab} onValueChange={onTabChange} className="tw-w-full">
       <div className="tw-overflow-x-auto tw-pb-2"> {/* Added scrollable container */}
         <TabsList className="tw-inline-flex tw-h-auto tw-justify-start tw-gap-2 tw-rounded-md tw-p-1"> {/* Adjusted TabsList for horizontal scroll */}
           <TabsTrigger value="incidents" aria-label="Incidents tab" className="tw-whitespace-nowrap">Incidents</TabsTrigger>

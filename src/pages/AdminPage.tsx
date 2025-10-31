@@ -45,7 +45,7 @@ const AdminPage = () => {
           </Button>
           <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground">Admin Dashboard</h1>
           <div className="tw-grid tw-gap-4">
-            <AdminDashboardTabs activeTab={activeTab} />
+            <AdminDashboardTabs activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
           <p className="tw-mt-8 tw-text-center tw-text-sm tw-text-muted-foreground">© 2025 Western Prince William Scanner Feed</p>
         </main>
