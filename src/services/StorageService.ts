@@ -6,6 +6,7 @@ import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsServic
 
 const POST_IMAGES_BUCKET = 'post_images';
 const INCIDENT_IMAGES_BUCKET = 'incident_images';
+const PROFILE_AVATARS_BUCKET = 'profile_avatars'; // New bucket for profile avatars
 const MAX_IMAGE_SIZE_MB = 2;
 const MAX_IMAGE_DIMENSION = 1200;
 const JPEG_QUALITY = 0.8;
@@ -166,11 +167,11 @@ export const StorageService = {
   },
 
   async uploadImage(file: File): Promise<string | null> {
-    return this._uploadToBucket(file, POST_IMAGES_BUCKET);
+    return this._uploadToBucket(file, PROFILE_AVATARS_BUCKET); // Use new bucket for avatars
   },
 
   async deleteImage(imageUrl: string): Promise<boolean> {
-    return this._deleteFromBucket(imageUrl, POST_IMAGES_BUCKET);
+    return this._deleteFromBucket(imageUrl, PROFILE_AVATARS_BUCKET); // Use new bucket for avatars
   },
 
   async uploadIncidentImage(file: File): Promise<string | null> {
