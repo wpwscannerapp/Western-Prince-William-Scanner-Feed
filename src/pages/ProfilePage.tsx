@@ -32,11 +32,27 @@ const ProfilePage: React.FC = () => {
     }
   }, [authLoading, user, navigate]);
 
-  const { isLoading: isProfileLoading, isError: isProfileError, error: profileError } = useQuery<Profile | null, Error>({
+  const { data: profile, isLoading: isProfileLoading, isError: isProfileError, error: profileError } = useQuery<Profile | null, Error>({
     queryKey: ['profile', user?.id],
     queryFn: () => user ? ProfileService.fetchProfile(user.id) : Promise.resolve(null),
     enabled: !!user && !authLoading,
   });
+
+  // --- START DEBUG LOGS ---
+  useEffect(() => {
+    console.log('ProfilePage Debug:');
+    console.log('  user:', user);
+    console.log('  authLoading:', authLoading);
+    console.log('  isProfileLoading:', isProfileLoading);
+    console.log('  isSubscribedLoading:', isSubscribedLoading);
+    console.log('  isAdminLoading:', isAdminLoading);
+    console.log('  isProfileError:', isProfileError);
+    console.log('  profileData:', profile); // Added profile data to logs
+    if (isProfileError) {
+      console.error('  profileError:', profileError);
+    }
+  }, [user, authLoading, isProfileLoading, isSubscribedLoading, isAdminLoading, isProfileError, profileError, profile]);
+  // --- END DEBUG LOGS ---
 
   if (authLoading || !user || isProfileLoading || isSubscribedLoading || isAdminLoading) {
     return (
