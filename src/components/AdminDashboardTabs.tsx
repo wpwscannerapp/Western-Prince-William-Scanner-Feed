@@ -133,15 +133,17 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
 
   return (
     <Tabs value={activeTab} className="tw-w-full">
-      <TabsList className="tw-grid tw-w-full tw-grid-cols-7"> {/* Increased grid-cols to 7 */}
-        <TabsTrigger value="incidents" aria-label="Incidents tab">Incidents</TabsTrigger>
-        <TabsTrigger value="alerts" aria-label="Alerts tab">Alerts</TabsTrigger>
-        <TabsTrigger value="feedback" aria-label="Feedback tab">Feedback</TabsTrigger> {/* New tab for Feedback */}
-        <TabsTrigger value="analytics" aria-label="Analytics tab">Analytics</TabsTrigger>
-        <TabsTrigger value="settings" aria-label="Settings tab">Settings</TabsTrigger>
-        <TabsTrigger value="notifications" aria-label="Notifications tab">Notifications</TabsTrigger>
-        <TabsTrigger value="contact" aria-label="Contact tab">Contact</TabsTrigger>
-      </TabsList>
+      <div className="tw-overflow-x-auto tw-pb-2"> {/* Added scrollable container */}
+        <TabsList className="tw-inline-flex tw-h-auto tw-justify-start tw-gap-2 tw-rounded-md tw-p-1"> {/* Adjusted TabsList for horizontal scroll */}
+          <TabsTrigger value="incidents" aria-label="Incidents tab" className="tw-whitespace-nowrap">Incidents</TabsTrigger>
+          <TabsTrigger value="alerts" aria-label="Alerts tab" className="tw-whitespace-nowrap">Alerts</TabsTrigger>
+          <TabsTrigger value="feedback" aria-label="Feedback tab" className="tw-whitespace-nowrap">Feedback</TabsTrigger>
+          <TabsTrigger value="analytics" aria-label="Analytics tab" className="tw-whitespace-nowrap">Analytics</TabsTrigger>
+          <TabsTrigger value="settings" aria-label="Settings tab" className="tw-whitespace-nowrap">Settings</TabsTrigger>
+          <TabsTrigger value="notifications" aria-label="Notifications tab" className="tw-whitespace-nowrap">Notifications</TabsTrigger>
+          <TabsTrigger value="contact" aria-label="Contact tab" className="tw-whitespace-nowrap">Contact</TabsTrigger>
+        </TabsList>
+      </div>
       <TabsContent value="incidents" className="tw-space-y-8">
         <Card>
           <CardHeader>
@@ -176,7 +178,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab }) =>
           </CardContent>
         </Card>
       </TabsContent>
-      <TabsContent value="feedback" className="tw-space-y-8"> {/* New TabsContent for Feedback */}
+      <TabsContent value="feedback" className="tw-space-y-8">
         <Card>
           <CardHeader>
             <CardTitle>User Feedback & Suggestions</CardTitle>
