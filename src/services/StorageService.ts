@@ -13,6 +13,10 @@ const JPEG_QUALITY = 0.8;
 export const StorageService = {
   async resizeAndCompressImage(file: File): Promise<File | null> {
     return new Promise((resolve) => {
+      if (import.meta.env.DEV) {
+        console.log('StorageService: Starting image resize and compress for file:', file.name, 'Type:', file.type, 'Size:', (file.size / (1024 * 1024)).toFixed(2), 'MB');
+      }
+
       if (file.size / (1024 * 1024) > MAX_IMAGE_SIZE_MB) {
         toast.error(`Image size exceeds ${MAX_IMAGE_SIZE_MB}MB. Please upload a smaller image.`);
         AnalyticsService.trackEvent({ name: 'image_resize_failed', properties: { reason: 'size_exceeded', originalSize: file.size } });
@@ -23,9 +27,15 @@ export const StorageService = {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = (event) => {
+        if (import.meta.env.DEV) {
+          console.log('StorageService: FileReader loaded image data.');
+        }
         const img = new Image();
         img.src = event.target?.result as string;
         img.onload = () => {
+          if (import.meta.env.DEV) {
+            console.log('StorageService: Image loaded into DOM. Original dimensions:', img.width, 'x', img.height);
+          }
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
@@ -48,6 +58,9 @@ export const StorageService = {
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
+            if (import.meta.env.DEV) {
+              console.log('StorageService: Image drawn to canvas. New dimensions:', width, 'x', height);
+            }
             canvas.toBlob(
               (blob) => {
                 if (blob) {
@@ -55,10 +68,16 @@ export const StorageService = {
                     type: 'image/jpeg',
                     lastModified: Date.now(),
                   });
+                  if (import.meta.env.DEV) {
+                    console.log('StorageService: Image compressed to blob. New size:', (resizedFile.size / (1024 * 1024)).toFixed(2), 'MB');
+                  }
                   AnalyticsService.trackEvent({ name: 'image_resized', properties: { originalSize: file.size, newSize: resizedFile.size, originalDimensions: `${img.width}x${img.height}`, newDimensions: `${width}x${height}` } });
                   resolve(resizedFile);
                 } else {
-                  toast.error('Failed to compress image.');
+                  toast.error('Failed to compress image: Blob creation failed.');
+                  if (import.meta.env.DEV) {
+                    console.error('StorageService: Failed to create blob from canvas.');
+                  }
                   AnalyticsService.trackEvent({ name: 'image_resize_failed', properties: { reason: 'blob_creation_failed' } });
                   resolve(null);
                 }
@@ -67,25 +86,28 @@ export const StorageService = {
               JPEG_QUALITY
             );
           } else {
-            toast.error('Failed to get canvas context.');
+            toast.error('Failed to get canvas context. Image processing aborted.');
+            if (import.meta.env.DEV) {
+              console.error('StorageService: Failed to get 2D context from canvas.');
+            }
             AnalyticsService.trackEvent({ name: 'image_resize_failed', properties: { reason: 'canvas_context_failed' } });
             resolve(null);
           }
         };
         img.onerror = (err) => {
           if (import.meta.env.DEV) {
-            console.error('Error loading image for resizing:', err);
+            console.error('StorageService: Error loading image for resizing:', err);
           }
-          toast.error('Failed to load image for processing.');
+          toast.error('Failed to load image for processing. Invalid image file?');
           AnalyticsService.trackEvent({ name: 'image_resize_failed', properties: { reason: 'image_load_error', error: (err as Event).type } });
           resolve(null);
         };
       };
       reader.onerror = (err) => {
         if (import.meta.env.DEV) {
-          console.error('Error reading file for resizing:', err);
+          console.error('StorageService: Error reading file for resizing:', err);
         }
-        toast.error('Failed to read image file.');
+        toast.error('Failed to read image file. Please try another file.');
         AnalyticsService.trackEvent({ name: 'image_resize_failed', properties: { reason: 'file_read_error', error: (err as ProgressEvent).type } });
         resolve(null);
       };
@@ -93,16 +115,29 @@ export const StorageService = {
   },
 
   async _uploadToBucket(file: File, bucketName: string): Promise<string | null> {
-    if (!file) return null;
+    if (!file) {
+      if (import.meta.env.DEV) {
+        console.warn('StorageService: No file provided for upload.');
+      }
+      return null;
+    }
 
     const processedFile = await this.resizeAndCompressImage(file);
-    if (!processedFile) return null;
+    if (!processedFile) {
+      if (import.meta.env.DEV) {
+        console.error('StorageService: Image processing failed, cannot upload.');
+      }
+      return null;
+    }
 
     const fileExtension = processedFile.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExtension}`;
     const filePath = `${fileName}`;
 
     try {
+      if (import.meta.env.DEV) {
+        console.log(`StorageService: Attempting to upload processed file to ${bucketName}/${filePath}`);
+      }
       const { data: _data, error } = await supabase.storage
         .from(bucketName)
         .upload(filePath, processedFile, {
@@ -112,7 +147,7 @@ export const StorageService = {
 
       if (error) {
         if (import.meta.env.DEV) {
-          console.error(`Error uploading image to ${bucketName}:`, error);
+          console.error(`StorageService: Error uploading image to ${bucketName}:`, error);
         }
         toast.error(`Image upload failed: ${error.message}`);
         AnalyticsService.trackEvent({ name: 'image_upload_failed', properties: { bucket: bucketName, error: error.message } });
@@ -123,43 +158,57 @@ export const StorageService = {
         .from(bucketName)
         .getPublicUrl(filePath);
 
+      if (import.meta.env.DEV) {
+        console.log('StorageService: Image uploaded successfully. Public URL:', publicUrlData.publicUrl);
+      }
       AnalyticsService.trackEvent({ name: 'image_uploaded', properties: { bucket: bucketName, filePath } });
       return publicUrlData.publicUrl;
     } catch (error: any) {
       if (import.meta.env.DEV) {
-        console.error(`Unexpected error during image upload to ${bucketName}:`, error);
+        console.error(`StorageService: Unexpected error during image upload to ${bucketName}:`, error);
       }
-      toast.error(`An unexpected error occurred: ${error.message}`);
+      toast.error(`An unexpected error occurred during upload: ${error.message}`);
       AnalyticsService.trackEvent({ name: 'image_upload_unexpected_error', properties: { bucket: bucketName, error: error.message } });
       return null;
     }
   },
 
   async _deleteFromBucket(imageUrl: string, bucketName: string): Promise<boolean> {
-    if (!imageUrl) return false;
+    if (!imageUrl) {
+      if (import.meta.env.DEV) {
+        console.warn('StorageService: No image URL provided for deletion.');
+      }
+      return false;
+    }
 
     try {
       const urlParts = imageUrl.split('/');
       const fileName = urlParts[urlParts.length - 1];
+      if (import.meta.env.DEV) {
+        console.log(`StorageService: Attempting to delete image ${fileName} from ${bucketName}.`);
+      }
       const { error } = await supabase.storage
         .from(bucketName)
         .remove([fileName]);
 
       if (error) {
         if (import.meta.env.DEV) {
-          console.error(`Error deleting image from ${bucketName}:`, error);
+          console.error(`StorageService: Error deleting image from ${bucketName}:`, error);
         }
         toast.error(`Image deletion failed: ${error.message}`);
         AnalyticsService.trackEvent({ name: 'image_delete_failed', properties: { bucket: bucketName, fileName, error: error.message } });
         return false;
       }
+      if (import.meta.env.DEV) {
+        console.log(`StorageService: Image ${fileName} deleted successfully from ${bucketName}.`);
+      }
       AnalyticsService.trackEvent({ name: 'image_deleted', properties: { bucket: bucketName, fileName } });
       return true;
     } catch (error: any) {
       if (import.meta.env.DEV) {
-        console.error(`Unexpected error during image deletion from ${bucketName}:`, error);
+        console.error(`StorageService: Unexpected error during image deletion from ${bucketName}:`, error);
       }
-      toast.error(`An unexpected error occurred: ${error.message}`);
+      toast.error(`An unexpected error occurred during deletion: ${error.message}`);
       AnalyticsService.trackEvent({ name: 'image_delete_unexpected_error', properties: { bucket: bucketName, error: error.message } });
       return false;
     }
