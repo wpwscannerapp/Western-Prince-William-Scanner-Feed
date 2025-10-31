@@ -23,7 +23,7 @@ export interface UserNotificationSettings {
   preferred_end_time: string | null;
   preferred_days: string[];
   prefer_push_notifications: boolean;
-  customize_time_and_days: boolean; // New field
+  // Removed customize_time_and_days as its logic is now implicitly handled by receive_all_alerts
   updated_at: string;
   // Add other non-nullable fields with default values from schema
   latitude: number | null;
@@ -202,7 +202,7 @@ export const NotificationService = {
         preferred_end_time: null,
         preferred_days: [],
         prefer_push_notifications: false,
-        customize_time_and_days: false, // Default for new field
+        // Removed customize_time_and_days from default settings
         latitude: null,
         longitude: null,
         manual_location_address: null,

@@ -92,8 +92,8 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
       // If user wants all alerts, send it
       if (settings.receive_all_alerts) {
         console.log(`User ${settings.user_id} receives all alerts (24/7).`);
-      } else if (settings.customize_time_and_days) {
-        // Otherwise, apply time and day filtering if customization is enabled
+      } else {
+        // If 'receive_all_alerts' is false, apply time and day filtering
         const preferredDays = settings.preferred_days || [];
         const preferredStartTime = settings.preferred_start_time; // Format 'HH:MM:SS'
         const preferredEndTime = settings.preferred_end_time; // Format 'HH:MM:SS'
@@ -131,10 +131,6 @@ const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> =
           console.log(`User ${settings.user_id} has incomplete time settings for customization. Skipping.`);
           continue;
         }
-      } else {
-        // If neither receive_all_alerts nor customize_time_and_days is true, skip this user
-        console.log(`User ${settings.user_id} has neither 'receive all alerts' nor 'customize day and time' enabled. Skipping.`);
-        continue;
       }
 
       // Send the push notification

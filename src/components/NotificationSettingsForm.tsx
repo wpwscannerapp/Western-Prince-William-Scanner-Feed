@@ -24,7 +24,6 @@ const notificationSettingsSchema = z.object({
   enabled: z.boolean(),
   receive_all_alerts: z.boolean(),
   prefer_push_notifications: z.boolean(),
-  customize_time_and_days: z.boolean(), // New field
   preferred_start_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid time format (HH:MM)').optional().or(z.literal('')),
   preferred_end_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid time format (HH:MM)').optional().or(z.literal('')),
   preferred_days: z.array(z.string()),
@@ -49,7 +48,6 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
       enabled: false,
       receive_all_alerts: true,
       prefer_push_notifications: false,
-      customize_time_and_days: false, // Default to false
       preferred_start_time: '',
       preferred_end_time: '',
       preferred_days: [],
@@ -60,7 +58,6 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
   const enabled = watch('enabled');
   const receiveAllAlerts = watch('receive_all_alerts');
   const preferPushNotifications = watch('prefer_push_notifications');
-  const customizeTimeAndDays = watch('customize_time_and_days'); // Watch new field
   const preferredDays = watch('preferred_days');
 
   const fetchSettings = useCallback(async () => {
@@ -73,18 +70,16 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
           enabled: settings.enabled ?? false,
           receive_all_alerts: settings.receive_all_alerts ?? true,
           prefer_push_notifications: settings.prefer_push_notifications ?? false,
-          customize_time_and_days: settings.customize_time_and_days ?? false, // Set new field
           preferred_start_time: settings.preferred_start_time?.substring(0, 5) ?? '',
           preferred_end_time: settings.preferred_end_time?.substring(0, 5) ?? '',
           preferred_days: settings.preferred_days ?? [],
         });
-        AnalyticsService.trackEvent({ name: 'notification_settings_loaded', properties: { userId: user.id, enabled: settings.enabled, preferPush: settings.prefer_push_notifications, customize: settings.customize_time_and_days } });
+        AnalyticsService.trackEvent({ name: 'notification_settings_loaded', properties: { userId: user.id, enabled: settings.enabled, preferPush: settings.prefer_push_notifications, receiveAll: settings.receive_all_alerts } });
       } else {
         reset({
           enabled: false,
           receive_all_alerts: true,
           prefer_push_notifications: false,
-          customize_time_and_days: false,
           preferred_start_time: '',
           preferred_end_time: '',
           preferred_days: [],
@@ -235,7 +230,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
           preferred_start_time: updatedSettings.preferred_start_time?.substring(0, 5) ?? '',
           preferred_end_time: updatedSettings.preferred_end_time?.substring(0, 5) ?? '',
         });
-        AnalyticsService.trackEvent({ name: 'notification_settings_saved', properties: { userId: user.id, enabled: updatedSettings.enabled, preferPush: updatedSettings.prefer_push_notifications, customize: updatedSettings.customize_time_and_days } });
+        AnalyticsService.trackEvent({ name: 'notification_settings_saved', properties: { userId: user.id, enabled: updatedSettings.enabled, preferPush: updatedSettings.prefer_push_notifications, receiveAll: updatedSettings.receive_all_alerts } });
       } else {
         throw new Error('database_update_failed');
       }
@@ -293,6 +288,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
   };
 
   const isFormDisabled = isSaving || !isWebPushInitialized;
+  const isCustomizationDisabled = isFormDisabled || !enabled || receiveAllAlerts;
 
   if (authLoading || isLoading || !isWebPushInitialized) {
     return (
@@ -406,8 +402,11 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
                 checked={receiveAllAlerts}
                 onCheckedChange={(checked) => {
                   setValue('receive_all_alerts', checked);
+                  // When 'Receive All Alerts' is turned ON, clear custom settings
                   if (checked) {
-                    setValue('customize_time_and_days', false); // Disable custom settings if receiving all alerts
+                    setValue('preferred_start_time', '');
+                    setValue('preferred_end_time', '');
+                    setValue('preferred_days', []);
                   }
                 }}
                 disabled={isFormDisabled || !enabled}
@@ -419,23 +418,8 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
             </CardDescription>
           </div>
 
-          <div className="tw-space-y-2">
-            <div className="tw-flex tw-items-center tw-justify-between">
-              <Label htmlFor="customize_time_and_days" className="tw-text-base">Customize Day and Time</Label>
-              <Switch
-                id="customize_time_and_days"
-                checked={customizeTimeAndDays}
-                onCheckedChange={(checked) => setValue('customize_time_and_days', checked)}
-                disabled={isFormDisabled || !enabled || receiveAllAlerts} // Disabled if not enabled or receiving all alerts
-                aria-label="Toggle custom day and time for alerts"
-              />
-            </div>
-            <CardDescription className="tw-text-muted-foreground">
-              When enabled, you can specify preferred days and time ranges for receiving alerts.
-            </CardDescription>
-          </div>
-
-          {customizeTimeAndDays && enabled && !receiveAllAlerts && (
+          {/* Customization section, now directly controlled by 'receiveAllAlerts' */}
+          {!receiveAllAlerts && enabled && (
             <div className="tw-space-y-4 tw-p-4 tw-border tw-rounded-md tw-bg-muted/20">
               <p className="tw-text-sm tw-text-muted-foreground tw-flex tw-items-center tw-gap-1">
                 <Info className="tw-h-4 tw-w-4" aria-hidden="true" /> Customize when you want to receive alerts.
@@ -449,7 +433,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
                   type="time"
                   {...form.register('preferred_start_time')}
                   className="tw-bg-input tw-text-foreground"
-                  disabled={isFormDisabled || !enabled || receiveAllAlerts || !customizeTimeAndDays}
+                  disabled={isCustomizationDisabled}
                   aria-invalid={form.formState.errors.preferred_start_time ? "true" : "false"}
                   aria-describedby={form.formState.errors.preferred_start_time ? "start-time-error" : undefined}
                 />
@@ -466,7 +450,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
                   type="time"
                   {...form.register('preferred_end_time')}
                   className="tw-bg-input tw-text-foreground"
-                  disabled={isFormDisabled || !enabled || receiveAllAlerts || !customizeTimeAndDays}
+                  disabled={isCustomizationDisabled}
                   aria-invalid={form.formState.errors.preferred_end_time ? "true" : "false"}
                   aria-describedby={form.formState.errors.preferred_end_time ? "end-time-error" : undefined}
                 />
@@ -485,7 +469,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
                       type="button"
                       variant={preferredDays.includes(day) ? 'default' : 'outline'}
                       onClick={() => handleToggleDay(day)}
-                      disabled={isFormDisabled || !enabled || receiveAllAlerts || !customizeTimeAndDays}
+                      disabled={isCustomizationDisabled}
                       className={preferredDays.includes(day) ? 'tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground' : 'tw-text-muted-foreground hover:tw-text-primary'}
                       aria-pressed={preferredDays.includes(day)}
                       aria-label={`Toggle ${day} for notifications`}
