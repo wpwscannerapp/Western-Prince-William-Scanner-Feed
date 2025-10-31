@@ -22,7 +22,8 @@ export interface UserNotificationSettings {
   preferred_start_time: string | null;
   preferred_end_time: string | null;
   preferred_days: string[];
-  prefer_push_notifications: boolean; // New field
+  prefer_push_notifications: boolean;
+  customize_time_and_days: boolean; // New field
   updated_at: string;
   // Add other non-nullable fields with default values from schema
   latitude: number | null;
@@ -81,13 +82,13 @@ export const NotificationService = {
 
     if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
       handleError(null, 'VAPID Public Key is missing or invalid. Cannot subscribe.');
-      AnalyticsService.trackEvent({ name: 'push_subscribe_failed', properties: { reason: 'invalid_vapid_key' } }); // Fixed here
+      AnalyticsService.trackEvent({ name: 'push_subscribe_failed', properties: { reason: 'invalid_vapid_key' } });
       return null;
     }
 
     if (Notification.permission !== 'granted') {
       handleError(null, 'Notification permission not granted. Please allow notifications to subscribe.');
-      AnalyticsService.trackEvent({ name: 'push_subscribe_failed', properties: { reason: 'permission_not_granted' } }); // Fixed here
+      AnalyticsService.trackEvent({ name: 'push_subscribe_failed', properties: { reason: 'permission_not_granted' } });
       return null;
     }
 
@@ -201,6 +202,7 @@ export const NotificationService = {
         preferred_end_time: null,
         preferred_days: [],
         prefer_push_notifications: false,
+        customize_time_and_days: false, // Default for new field
         latitude: null,
         longitude: null,
         manual_location_address: null,
