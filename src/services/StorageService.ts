@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsService
 
-const POST_IMAGES_BUCKET = 'post_images';
 const INCIDENT_IMAGES_BUCKET = 'incident_images';
 const PROFILE_AVATARS_BUCKET = 'profile_avatars'; // New bucket for profile avatars
 const MAX_IMAGE_SIZE_MB = 2;
