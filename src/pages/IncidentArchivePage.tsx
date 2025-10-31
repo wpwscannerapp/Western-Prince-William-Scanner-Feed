@@ -110,9 +110,9 @@ const IncidentArchivePage: React.FC = () => {
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-3xl">
-      <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
+      {/* Removed: <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
         Back to Dashboard
-      </Button>
+      </Button> */}
       <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground tw-text-center">Incident Archive</h1>
       <p className="tw-text-center tw-text-muted-foreground tw-mb-8">
         Search and filter past incidents by keywords, type, location, and date.

@@ -189,9 +189,9 @@ const IncidentDetailPage: React.FC = () => {
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-3xl">
-      <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
+      {/* Removed: <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
         Back to Home Page
-      </Button>
+      </Button> */}
       <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground tw-text-center">Incident Detail</h1>
       <div className="tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-md" aria-labelledby={`incident-title-${incident.id}`}>
         <IncidentCard incident={incident} /> 

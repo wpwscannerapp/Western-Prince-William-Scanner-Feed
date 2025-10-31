@@ -63,9 +63,9 @@ const ContactUsPage: React.FC = () => {
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-xl">
-      <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
+      {/* Removed: <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
         Back to Dashboard
-      </Button>
+      </Button> */}
       <Card className="tw-bg-card tw-border-border tw-shadow-lg tw-text-center">
         <CardHeader>
           <Phone className="tw-h-16 tw-w-16 tw-text-primary tw-mx-auto tw-mb-4" aria-hidden="true" />
