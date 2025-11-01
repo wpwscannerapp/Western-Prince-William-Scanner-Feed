@@ -7,10 +7,6 @@ import Layout from '@/components/Layout';
 import Index from '@/pages/Index';
 import { Loader2 } from 'lucide-react'; // For a simple fallback
 
-// Directly import HomePage and IncidentsPage
-import HomePage from '@/pages/HomePage';
-import IncidentsPage from '@/pages/IncidentsPage';
-
 // Define a common loading fallback for pages
 const PageLoadingFallback = () => (
   <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
@@ -19,7 +15,9 @@ const PageLoadingFallback = () => (
   </div>
 );
 
-// Lazy load other page components directly with React.lazy
+// Lazy load all page components directly with React.lazy
+const HomePage = React.lazy(() => import('@/pages/HomePage'));
+const IncidentsPage = React.lazy(() => import('@/pages/IncidentsPage'));
 const ProfilePage = React.lazy(() => import('@/pages/ProfilePage'));
 const AdminPage = React.lazy(() => import('@/pages/AdminPage'));
 const IncidentDetailPage = React.lazy(() => import('@/pages/IncidentDetailPage'));
@@ -55,8 +53,8 @@ const MainContent: React.FC = () => {
 
           {/* Protected routes wrapped by ProtectedRoute */}
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route path="home" element={<HomePage />} /> {/* Direct import */}
-            <Route path="home/incidents" element={<IncidentsPage />} /> {/* Direct import */}
+            <Route path="home" element={<Suspense fallback={<PageLoadingFallback />}><HomePage /></Suspense>} />
+            <Route path="home/incidents" element={<Suspense fallback={<PageLoadingFallback />}><IncidentsPage /></Suspense>} />
             <Route path="home/contact-us" element={<Suspense fallback={<PageLoadingFallback />}><ContactUsPage /></Suspense>} />
             <Route path="home/archive" element={<Suspense fallback={<PageLoadingFallback />}><IncidentArchivePage /></Suspense>} />
             <Route path="home/feedback" element={<Suspense fallback={<PageLoadingFallback />}><FeedbackPage /></Suspense>} />
