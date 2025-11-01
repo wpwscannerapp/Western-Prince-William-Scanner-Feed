@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { handleError } from '@/utils/errorHandler';
 import { AnalyticsService } from '@/services/AnalyticsService';
+import { useQueryClient } from '@tanstack/react-query'; // Import useQueryClient
 
 interface AdminDashboardTabsProps {
   activeTab: string;
@@ -32,16 +33,17 @@ interface SubscriptionData {
 
 const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTabChange }) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient(); // Initialize queryClient
   const [incidentFormLoading, setIncidentFormLoading] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData[]>([]);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
-  const refreshIncidentTable = useCallback(() => {
-    // This function will be passed to AdminIncidentTable to trigger its internal refresh
-    // No direct action needed here, as AdminIncidentTable will handle its own refresh.
-    // This callback is primarily to satisfy the prop requirement and potentially log an event.
-    AnalyticsService.trackEvent({ name: 'admin_incident_table_refresh_requested' });
-  }, []);
+  const invalidateIncidentQueries = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['incidents'] });
+    queryClient.invalidateQueries({ queryKey: ['incidents', 'latest'] }); // Invalidate latest incident query
+    queryClient.invalidateQueries({ queryKey: ['incidents', 'archive'] }); // Invalidate archive query
+    AnalyticsService.trackEvent({ name: 'admin_incident_queries_invalidated' });
+  }, [queryClient]);
 
   const refreshAlertTable = useCallback(() => {
     // This function will be passed to AdminAlertTable to trigger its internal refresh
@@ -70,7 +72,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTa
       
       if (newIncident) {
         toast.success('Incident submitted successfully!', { id: 'create-incident' });
-        refreshIncidentTable(); // Trigger refresh in AdminIncidentTable
+        invalidateIncidentQueries(); // Invalidate queries after creation
         AnalyticsService.trackEvent({ name: 'admin_incident_created', properties: { incidentId: newIncident.id, type, location } });
         return true;
       } else {
@@ -164,7 +166,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTa
             <CardDescription>View, edit, or delete existing incidents</CardDescription>
           </CardHeader>
           <CardContent>
-            <AdminIncidentTable onIncidentUpdated={refreshIncidentTable} />
+            <AdminIncidentTable onIncidentUpdated={invalidateIncidentQueries} />
           </CardContent>
         </Card>
       </TabsContent>

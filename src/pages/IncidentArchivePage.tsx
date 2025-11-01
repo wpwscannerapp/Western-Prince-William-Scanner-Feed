@@ -33,6 +33,8 @@ const IncidentArchivePage: React.FC = () => {
     }
   }, [authLoading, user, navigate]);
 
+  const hasActiveFilters = Object.values(filters).some(value => value !== undefined && value !== '' && (Array.isArray(value) ? value.length > 0 : true));
+
   const {
     data,
     fetchNextPage,
@@ -43,7 +45,7 @@ const IncidentArchivePage: React.FC = () => {
     error,
     refetch,
   } = useInfiniteQuery<Incident[], Error>({
-    queryKey: ['incidents', filters],
+    queryKey: ['incidents', 'archive', filters],
     queryFn: async ({ pageParam = 0 }) => {
       const fetchedIncidents = await IncidentService.fetchIncidents(pageParam as number, filters);
       return fetchedIncidents;
@@ -56,14 +58,14 @@ const IncidentArchivePage: React.FC = () => {
     },
     staleTime: 1000 * 60,
     initialPageParam: 0,
-    enabled: !!user && !authLoading,
+    enabled: !!user && !authLoading && hasActiveFilters, // Only enable if user is logged in AND filters are active
   });
 
   const incidents = data?.pages.flat() || [];
 
   const handleFilterChange = useCallback((newFilters: IncidentFilter) => {
     setFilters(newFilters);
-    queryClient.invalidateQueries({ queryKey: ['incidents'] });
+    queryClient.invalidateQueries({ queryKey: ['incidents', 'archive'] });
     AnalyticsService.trackEvent({ name: 'archive_filters_changed', properties: newFilters });
   }, [queryClient]);
 
@@ -85,7 +87,7 @@ const IncidentArchivePage: React.FC = () => {
     [isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]
   );
 
-  if (authLoading || !user || isAdminLoading || isSubscribedLoading || isLoading) {
+  if (authLoading || !user || isAdminLoading || isSubscribedLoading) { // Removed isLoading from here
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
         <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" aria-label="Loading incident archive" />
@@ -110,9 +112,6 @@ const IncidentArchivePage: React.FC = () => {
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-3xl">
-      {/* Removed: <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
-        Back to Dashboard
-      </Button> */}
       <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground tw-text-center">Incident Archive</h1>
       <p className="tw-text-center tw-text-muted-foreground tw-mb-8">
         Search and filter past incidents by keywords, type, location, and date.
@@ -123,7 +122,12 @@ const IncidentArchivePage: React.FC = () => {
           <IncidentSearchForm onFilterChange={handleFilterChange} initialFilters={filters} />
 
           <div className="tw-mt-8 tw-space-y-6">
-            {(isLoading && !isFetchingNextPage) ? (
+            {!hasActiveFilters ? (
+              <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-12 tw-text-muted-foreground">
+                <Info className="tw-h-12 tw-w-12 tw-mb-4" aria-hidden="true" />
+                <p className="tw-text-lg">Enter search terms or apply filters to view incidents.</p>
+              </div>
+            ) : (isLoading && !isFetchingNextPage) ? (
               <SkeletonLoader count={3} className="tw-col-span-full" />
             ) : incidents.length === 0 ? (
               <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-12 tw-text-muted-foreground">

@@ -3,31 +3,49 @@
 import React, { useState, useEffect } from 'react';
 import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { Loader2, AlertCircle, Map, List } from 'lucide-react';
-import IncidentMap from '@/components/IncidentMap'; // Direct import
-import { useQuery } from '@tanstack/react-query';
-import { NotificationService, Alert } from '@/services/NotificationService';
+import { Loader2, AlertCircle, Info } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { IncidentService, Incident } from '@/services/IncidentService';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
+import IncidentCard from '@/components/IncidentCard'; // Import IncidentCard
+import { supabase } from '@/integrations/supabase/client'; // Import supabase client
 
 const HomePage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
+  const queryClient = useQueryClient();
 
-  const { data: alerts, isLoading: isLoadingAlerts, isError: isAlertsError, error: alertsError } = useQuery<Alert[], Error>({
-    queryKey: ['alerts'],
-    queryFn: () => NotificationService.fetchAlerts(),
-    staleTime: 1000 * 60 * 5,
+  const { data: latestIncident, isLoading: isLoadingIncident, isError: isIncidentError, error: incidentError } = useQuery<Incident | null, Error>({
+    queryKey: ['incidents', 'latest'],
+    queryFn: async () => {
+      const incidents = await IncidentService.fetchIncidents(0, {}, 1); // Fetch only 1 incident
+      return incidents.length > 0 ? incidents[0] : null;
+    },
+    staleTime: 1000 * 10, // Keep fresh for 10 seconds
   });
 
   useEffect(() => {
-    if (isAlertsError) {
-      handleError(alertsError, 'Failed to load real-time alerts for the map.');
+    if (isIncidentError) {
+      handleError(incidentError, 'Failed to load the most recent incident.');
     }
-  }, [isAlertsError, alertsError]);
+  }, [isIncidentError, incidentError]);
+
+  // Real-time subscription for incidents to keep the latest incident updated
+  useEffect(() => {
+    const channel = supabase
+      .channel('latest_incident_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'incidents' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['incidents', 'latest'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   if (isAdminError) {
     return (
@@ -62,57 +80,22 @@ const HomePage: React.FC = () => {
       <div className="tw-mb-8">
         <div className="tw-flex tw-justify-between tw-items-center tw-mb-4">
           <h2 className="tw-text-2xl tw-font-bold tw-text-foreground">Most Recent Incident</h2>
-          <div className="tw-flex tw-gap-2">
-            <Button
-              variant={viewMode === 'list' ? 'secondary' : 'outline'}
-              size="icon"
-              onClick={() => setViewMode('list')}
-              aria-label="View alerts as list"
-            >
-              <List className="tw-h-4 tw-w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'map' ? 'secondary' : 'outline'}
-              size="icon"
-              onClick={() => setViewMode('map')}
-              aria-label="View alerts on map"
-            >
-              <Map className="tw-h-4 tw-w-4" />
-            </Button>
-          </div>
         </div>
 
-        {isLoadingAlerts ? (
+        {isLoadingIncident ? (
           <Card className="tw-bg-card tw-border-border tw-shadow-md">
             <CardContent className="tw-flex tw-items-center tw-justify-center tw-py-8">
-              <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" aria-label="Loading alerts" />
-              <span className="tw-ml-2 tw-text-muted-foreground">Loading alerts...</span>
+              <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" aria-label="Loading most recent incident" />
+              <span className="tw-ml-2 tw-text-muted-foreground">Loading incident...</span>
             </CardContent>
           </Card>
-        ) : alerts && alerts.length > 0 ? (
-          viewMode === 'map' ? (
-            <IncidentMap alerts={alerts} />
-          ) : (
-            <div className="tw-space-y-4">
-              {alerts.map((alert) => (
-                <Card key={alert.id} className="tw-bg-card tw-border-border tw-shadow-sm">
-                  <CardHeader className="tw-pb-2">
-                    <CardTitle className="tw-text-lg tw-font-semibold">{alert.title}</CardTitle>
-                    <CardDescription className="tw-text-sm tw-text-muted-foreground">
-                      {new Date(alert.created_at).toLocaleString()} - {alert.type}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="tw-text-sm tw-text-foreground">{alert.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )
+        ) : latestIncident ? (
+          <IncidentCard incident={latestIncident} />
         ) : (
           <Card className="tw-bg-card tw-border-border tw-shadow-md">
             <CardContent className="tw-py-8 tw-text-center tw-text-muted-foreground">
-              No real-time alerts available.
+              <Info className="tw-h-12 tw-w-12 tw-mx-auto tw-mb-4" />
+              No recent incidents available.
             </CardContent>
           </Card>
         )}
