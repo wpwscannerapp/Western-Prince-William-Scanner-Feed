@@ -6,6 +6,7 @@ import { SUPABASE_API_TIMEOUT } from '@/config';
 import { StorageService } from './StorageService';
 import { NotificationService } from './NotificationService';
 import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsService
+import { ProfileService } from './ProfileService'; // Import ProfileService
 
 export interface Incident {
   id: string;
@@ -175,6 +176,22 @@ export const IncidentService = {
       console.log('Latitude:', latitude, 'Longitude:', longitude);
     }
 
+    // Ensure the admin's profile exists before creating the incident
+    try {
+      const profileExists = await ProfileService.ensureProfileExists(adminId);
+      if (!profileExists) {
+        throw new Error('Admin profile does not exist or could not be created.');
+      }
+      if (import.meta.env.DEV) {
+        console.log('IncidentService: Admin profile confirmed to exist.');
+      }
+    } catch (profileError: any) {
+      const errorMessage = `Failed to ensure admin profile exists: ${profileError.message}`;
+      handleError(profileError, errorMessage);
+      AnalyticsService.trackEvent({ name: 'create_incident_profile_check_failed', properties: { adminId, error: errorMessage } });
+      return null;
+    }
+
     let imageUrl: string | null = null;
     if (imageFile) {
       if (import.meta.env.DEV) {
@@ -216,8 +233,19 @@ export const IncidentService = {
         if (import.meta.env.DEV) {
           console.error('IncidentService: Supabase insert error:', error);
         }
-        logSupabaseError('createIncident', error);
-        AnalyticsService.trackEvent({ name: 'create_incident_failed', properties: { adminId, type: incident.type, error: error.message } });
+        // Provide more specific error message for constraint violations
+        let userFacingError = 'Failed to post incident.';
+        if (error.code === '23503') { // Foreign key violation
+          userFacingError = `Failed to post incident: The admin user ID '${adminId}' does not exist in the profiles table.`;
+        } else if (error.code === '23502') { // Not null violation
+          userFacingError = `Failed to post incident: A required field is missing. Error: ${error.message}`;
+        } else if (error.code === '23505') { // Unique constraint violation
+          userFacingError = `Failed to post incident: A duplicate entry was detected. Error: ${error.message}`;
+        } else {
+          userFacingError = `Failed to post incident: ${error.message}`;
+        }
+        handleError(error, userFacingError);
+        AnalyticsService.trackEvent({ name: 'create_incident_failed', properties: { adminId, type: incident.type, error: error.message, errorCode: error.code } });
         return null;
       }
 
@@ -245,7 +273,7 @@ export const IncidentService = {
         handleError(new Error('Request timed out'), 'Creating incident timed out.');
         AnalyticsService.trackEvent({ name: 'create_incident_timeout', properties: { adminId, type: incident.type } });
       } else {
-        logSupabaseError('createIncident', err);
+        handleError(err, 'An unexpected error occurred while creating the incident.');
         AnalyticsService.trackEvent({ name: 'create_incident_unexpected_error', properties: { adminId, type: incident.type, error: err.message } });
       }
       return null;
