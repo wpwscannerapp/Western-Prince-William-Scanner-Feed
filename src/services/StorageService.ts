@@ -18,7 +18,7 @@ export const StorageService = {
       }
 
       if (file.size / (1024 * 1024) > MAX_IMAGE_SIZE_MB) {
-        toast.error(`Image size exceeds ${MAX_IMAGE_SIZE_MB}MB. Please upload a smaller image.`);
+        toast.error(`Image too large: Max ${MAX_IMAGE_SIZE_MB}MB allowed.`);
         AnalyticsService.trackEvent({ name: 'image_resize_failed', properties: { reason: 'size_exceeded', originalSize: file.size } });
         resolve(null);
         return;
@@ -74,7 +74,7 @@ export const StorageService = {
                   AnalyticsService.trackEvent({ name: 'image_resized', properties: { originalSize: file.size, newSize: resizedFile.size, originalDimensions: `${img.width}x${img.height}`, newDimensions: `${width}x${height}` } });
                   resolve(resizedFile);
                 } else {
-                  toast.error('Failed to compress image: Blob creation failed.');
+                  toast.error('Image processing failed: Could not create image data.');
                   if (import.meta.env.DEV) {
                     console.error('StorageService: Failed to create blob from canvas.');
                   }
@@ -86,7 +86,7 @@ export const StorageService = {
               JPEG_QUALITY
             );
           } else {
-            toast.error('Failed to get canvas context. Image processing aborted.');
+            toast.error('Image processing failed: Canvas context unavailable.');
             if (import.meta.env.DEV) {
               console.error('StorageService: Failed to get 2D context from canvas.');
             }
@@ -98,7 +98,7 @@ export const StorageService = {
           if (import.meta.env.DEV) {
             console.error('StorageService: Error loading image for resizing:', err);
           }
-          toast.error('Failed to load image for processing. Invalid image file?');
+          toast.error('Image processing failed: Could not load image file.');
           AnalyticsService.trackEvent({ name: 'image_resize_failed', properties: { reason: 'image_load_error', error: (err as Event).type } });
           resolve(null);
         };
@@ -107,7 +107,7 @@ export const StorageService = {
         if (import.meta.env.DEV) {
           console.error('StorageService: Error reading file for resizing:', err);
         }
-        toast.error('Failed to read image file. Please try another file.');
+        toast.error('Image processing failed: Could not read file.');
         AnalyticsService.trackEvent({ name: 'image_resize_failed', properties: { reason: 'file_read_error', error: (err as ProgressEvent).type } });
         resolve(null);
       };
@@ -119,6 +119,7 @@ export const StorageService = {
       if (import.meta.env.DEV) {
         console.warn('StorageService: No file provided for upload.');
       }
+      toast.error('Image upload failed: No file provided.');
       return null;
     }
 
@@ -127,6 +128,7 @@ export const StorageService = {
       if (import.meta.env.DEV) {
         console.error('StorageService: Image processing failed, cannot upload.');
       }
+      // The specific error toast should have already been shown by resizeAndCompressImage
       return null;
     }
 
