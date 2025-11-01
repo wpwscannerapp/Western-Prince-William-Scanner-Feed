@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import IncidentForm from './IncidentForm';
 import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
+import { useQueryClient } from '@tanstack/react-query'; // Import useQueryClient
 
 interface AdminIncidentTableProps {
   onIncidentUpdated: () => void;
@@ -31,6 +32,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient(); // Initialize queryClient
 
   const fetchIncidents = async () => {
     setLoading(true);
@@ -58,8 +60,13 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
         const success = await IncidentService.deleteIncident(incidentId, imageUrl);
         if (success) {
           toast.success('Incident deleted successfully!', { id: 'delete-incident' });
-          fetchIncidents();
-          onIncidentUpdated();
+          // Invalidate and remove queries for global update
+          queryClient.invalidateQueries({ queryKey: ['incidents'] });
+          queryClient.invalidateQueries({ queryKey: ['incidents', 'latest'] });
+          queryClient.invalidateQueries({ queryKey: ['incidents', 'archive'] });
+          queryClient.removeQueries({ queryKey: ['incidents', incidentId] }); // Remove specific incident detail cache
+          fetchIncidents(); // Re-fetch for the admin table itself
+          onIncidentUpdated(); // Notify parent component (AdminDashboardTabs)
           AnalyticsService.trackEvent({ name: 'admin_incident_deleted', properties: { incidentId } });
         } else {
           toast.error('Failed to delete incident.', { id: 'delete-incident' });
@@ -97,8 +104,13 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
         toast.success('Incident updated successfully!', { id: 'update-incident' });
         setIsEditDialogOpen(false);
         setEditingIncident(null);
-        fetchIncidents();
-        onIncidentUpdated();
+        // Invalidate queries for global update
+        queryClient.invalidateQueries({ queryKey: ['incidents'] });
+        queryClient.invalidateQueries({ queryKey: ['incidents', 'latest'] });
+        queryClient.invalidateQueries({ queryKey: ['incidents', 'archive'] });
+        queryClient.invalidateQueries({ queryKey: ['incidents', updatedIncident.id] }); // Invalidate specific incident detail cache
+        fetchIncidents(); // Re-fetch for the admin table itself
+        onIncidentUpdated(); // Notify parent component (AdminDashboardTabs)
         AnalyticsService.trackEvent({ name: 'admin_incident_updated', properties: { incidentId: updatedIncident.id } });
         return true;
       } else {
