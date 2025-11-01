@@ -168,19 +168,43 @@ export const IncidentService = {
   },
 
   async createIncident(incident: Omit<Incident, 'id' | 'created_at' | 'image_url'>, imageFile: File | null, latitude: number | undefined, longitude: number | undefined, adminId: string): Promise<Incident | null> {
+    if (import.meta.env.DEV) {
+      console.log('IncidentService: Starting createIncident for adminId:', adminId);
+      console.log('Incident data:', incident);
+      console.log('Image file present:', !!imageFile);
+      console.log('Latitude:', latitude, 'Longitude:', longitude);
+    }
+
     let imageUrl: string | null = null;
     if (imageFile) {
+      if (import.meta.env.DEV) {
+        console.log('IncidentService: Attempting to upload incident image.');
+      }
       imageUrl = await StorageService.uploadIncidentImage(imageFile);
       if (!imageUrl) {
+        if (import.meta.env.DEV) {
+          console.error('IncidentService: Image upload failed.');
+        }
         AnalyticsService.trackEvent({ name: 'create_incident_image_upload_failed', properties: { adminId, type: incident.type } });
         return null;
+      }
+      if (import.meta.env.DEV) {
+        console.log('IncidentService: Image uploaded successfully. URL:', imageUrl);
       }
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      if (import.meta.env.DEV) {
+        console.error('IncidentService: createIncident Supabase insert timed out.');
+      }
+    }, SUPABASE_API_TIMEOUT);
 
     try {
+      if (import.meta.env.DEV) {
+        console.log('IncidentService: Attempting to insert incident into Supabase.');
+      }
       const { data, error } = await supabase
         .from('incidents')
         .insert({ ...incident, image_url: imageUrl, latitude, longitude, admin_id: adminId })
@@ -189,12 +213,19 @@ export const IncidentService = {
         .single();
 
       if (error) {
+        if (import.meta.env.DEV) {
+          console.error('IncidentService: Supabase insert error:', error);
+        }
         logSupabaseError('createIncident', error);
         AnalyticsService.trackEvent({ name: 'create_incident_failed', properties: { adminId, type: incident.type, error: error.message } });
         return null;
       }
 
       if (data) {
+        if (import.meta.env.DEV) {
+          console.log('IncidentService: Incident inserted successfully. Data:', data);
+          console.log('IncidentService: Attempting to create alert notification.');
+        }
         await NotificationService.createAlert({
           title: data.title,
           description: data.description,
@@ -203,6 +234,9 @@ export const IncidentService = {
           longitude: data.longitude || 0,
         });
         AnalyticsService.trackEvent({ name: 'incident_created', properties: { incidentId: data.id, adminId, type: data.type } });
+        if (import.meta.env.DEV) {
+          console.log('IncidentService: Alert notification created.');
+        }
       }
 
       return data as Incident;
@@ -217,6 +251,9 @@ export const IncidentService = {
       return null;
     } finally {
       clearTimeout(timeoutId);
+      if (import.meta.env.DEV) {
+        console.log('IncidentService: createIncident finished.');
+      }
     }
   },
 

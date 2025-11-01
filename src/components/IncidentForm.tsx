@@ -104,6 +104,9 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    if (import.meta.env.DEV) {
+      console.log('IncidentForm: Image file selected:', file?.name, 'Size:', file?.size);
+    }
     // Revoke previous object URL if it exists
     if (imagePreview && imagePreview.startsWith('blob:')) {
       URL.revokeObjectURL(imagePreview);
@@ -119,6 +122,9 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
   };
 
   const handleRemoveImage = () => {
+    if (import.meta.env.DEV) {
+      console.log('IncidentForm: Removing image.');
+    }
     // Revoke current object URL if it exists
     if (imagePreview && imagePreview.startsWith('blob:')) {
       URL.revokeObjectURL(imagePreview);
@@ -131,11 +137,20 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
   };
 
   const handleSubmit = async (values: IncidentFormValues) => {
+    if (import.meta.env.DEV) {
+      console.log('IncidentForm: handleSubmit triggered. Values:', values);
+      console.log('IncidentForm: Current imageFile:', imageFile);
+      console.log('IncidentForm: Current initialIncident?.image_url:', initialIncident?.image_url);
+    }
+
     setIsGeocoding(true);
     let latitude: number | undefined = initialIncident?.latitude;
     let longitude: number | undefined = initialIncident?.longitude;
 
     if (values.location !== initialIncident?.location || (!initialIncident?.latitude && !initialIncident?.longitude)) {
+      if (import.meta.env.DEV) {
+        console.log('IncidentForm: Location changed or no initial coordinates. Attempting to geocode:', values.location);
+      }
       const geoResult = await geocodeAddress(values.location);
       if (geoResult) {
         latitude = geoResult.latitude;
@@ -151,6 +166,9 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         AnalyticsService.trackEvent({ name: 'location_geocoded', properties: { address: values.location, success: false } });
       }
     } else if (initialIncident?.latitude && initialIncident?.longitude) {
+      if (import.meta.env.DEV) {
+        console.log('IncidentForm: Using existing geocoded location.');
+      }
       setGeocodedLocation({
         latitude: initialIncident.latitude,
         longitude: initialIncident.longitude,
@@ -158,6 +176,18 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
       });
     }
     setIsGeocoding(false);
+
+    if (import.meta.env.DEV) {
+      console.log('IncidentForm: Calling onSubmit prop with:', {
+        type: values.type,
+        location: values.location,
+        description: values.description,
+        imageFile: imageFile,
+        currentImageUrl: initialIncident?.image_url,
+        latitude: latitude,
+        longitude: longitude,
+      });
+    }
 
     const success = await onSubmit(values.type, values.location, values.description, imageFile, initialIncident?.image_url, latitude, longitude);
     if (success) {
