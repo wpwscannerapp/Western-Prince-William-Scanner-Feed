@@ -1,14 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Loader2, AlertCircle, Info } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { IncidentService, Incident } from '@/services/IncidentService';
 import { handleError } from '@/utils/errorHandler';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
 import IncidentCard from '@/components/IncidentCard'; // Import IncidentCard
 import { supabase } from '@/integrations/supabase/client'; // Import supabase client
@@ -21,7 +20,8 @@ const HomePage: React.FC = () => {
   const { data: latestIncident, isLoading: isLoadingIncident, isError: isIncidentError, error: incidentError } = useQuery<Incident | null, Error>({
     queryKey: ['incidents', 'latest'],
     queryFn: async () => {
-      const incidents = await IncidentService.fetchIncidents(0, {}, 1); // Fetch only 1 incident
+      // Fetch only 1 incident using the new limit parameter
+      const incidents = await IncidentService.fetchIncidents(0, {}, 1); 
       return incidents.length > 0 ? incidents[0] : null;
     },
     staleTime: 1000 * 10, // Keep fresh for 10 seconds

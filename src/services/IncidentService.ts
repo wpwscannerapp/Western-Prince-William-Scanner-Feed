@@ -42,7 +42,7 @@ const logSupabaseError = (functionName: string, error: any) => {
 export const IncidentService = {
   INCIDENTS_PER_PAGE,
 
-  async fetchIncidents(offset: number = 0, filters: IncidentFilter = {}): Promise<Incident[]> {
+  async fetchIncidents(offset: number = 0, filters: IncidentFilter = {}, limit?: number): Promise<Incident[]> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -72,25 +72,30 @@ export const IncidentService = {
       }
 
       query = query
-        .order('date', { ascending: false })
-        .range(offset, offset + INCIDENTS_PER_PAGE - 1);
+        .order('date', { ascending: false });
+      
+      if (limit !== undefined) {
+        query = query.limit(limit);
+      } else {
+        query = query.range(offset, offset + INCIDENTS_PER_PAGE - 1);
+      }
 
       const { data, error } = await query;
 
       if (error) {
         logSupabaseError('fetchIncidents', error);
-        AnalyticsService.trackEvent({ name: 'fetch_incidents_failed', properties: { offset, filters, error: error.message } });
+        AnalyticsService.trackEvent({ name: 'fetch_incidents_failed', properties: { offset, filters, limit, error: error.message } });
         return [];
       }
-      AnalyticsService.trackEvent({ name: 'incidents_fetched', properties: { offset, filters, count: data.length } });
+      AnalyticsService.trackEvent({ name: 'incidents_fetched', properties: { offset, filters, limit, count: data.length } });
       return data as Incident[];
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching incidents timed out.');
-        AnalyticsService.trackEvent({ name: 'fetch_incidents_timeout', properties: { offset, filters } });
+        AnalyticsService.trackEvent({ name: 'fetch_incidents_timeout', properties: { offset, filters, limit } });
       } else {
         logSupabaseError('fetchIncidents', err);
-        AnalyticsService.trackEvent({ name: 'fetch_incidents_unexpected_error', properties: { offset, filters, error: err.message } });
+        AnalyticsService.trackEvent({ name: 'fetch_incidents_unexpected_error', properties: { offset, filters, limit, error: err.message } });
       }
       return [];
     } finally {
