@@ -72,9 +72,9 @@ export const StorageService = {
             canvas.toBlob(
               (blob) => {
                 if (blob) {
-                  // Ensure the file name has the correct extension
-                  const originalFileName = file.name.split('.').slice(0, -1).join('.');
-                  const newFileName = `${originalFileName}.${outputExtension}`;
+                  // Use a unique name for the processed file, preserving the extension
+                  const uniqueId = crypto.randomUUID();
+                  const newFileName = `${uniqueId}.${outputExtension}`;
 
                   const resizedFile = new File([blob], newFileName, {
                     type: outputMimeType,
@@ -144,7 +144,7 @@ export const StorageService = {
       return null;
     }
 
-    // Use the processed file's name, which should now end in .jpeg or .png
+    // Use the processed file's name (which is now a UUID + extension)
     const fileName = processedFile.name;
     const filePath = `${fileName}`;
 
@@ -196,8 +196,13 @@ export const StorageService = {
     }
 
     try {
-      const urlParts = imageUrl.split('/');
-      const fileName = urlParts[urlParts.length - 1];
+      // Extract the file name from the public URL path
+      const url = new URL(imageUrl);
+      // The path is typically /storage/v1/object/public/bucketName/fileName
+      const pathSegments = url.pathname.split('/');
+      // The file name is the last segment
+      const fileName = pathSegments[pathSegments.length - 1];
+
       if (import.meta.env.DEV) {
         console.log(`StorageService: Attempting to delete image ${fileName} from ${bucketName}.`);
       }
