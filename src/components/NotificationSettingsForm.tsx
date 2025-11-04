@@ -135,7 +135,7 @@ const useRealtimeAlerts = (user: any, preferPushNotifications: boolean): UseReal
           AnalyticsService.trackEvent({ name: 'realtime_alerts_unsubscribed_or_closed', properties: { status } });
         }
       });
-  }, [user, preferPushNotifications, resetIdleTimer]);
+  }, [user, preferPushNotifications, resetIdleTimer]); // Added preferPushNotifications to dependencies
 
   useEffect(() => {
     subscribeToAlerts();
@@ -151,7 +151,7 @@ const useRealtimeAlerts = (user: any, preferPushNotifications: boolean): UseReal
       setAlertRealtimeStatus('connecting');
       AnalyticsService.trackEvent({ name: 'realtime_alerts_component_unmounted' });
     };
-  }, [user, preferPushNotifications, subscribeToAlerts]);
+  }, [user, preferPushNotifications, subscribeToAlerts]); // Added preferPushNotifications to dependencies
 
   return { alertRealtimeStatus };
 };

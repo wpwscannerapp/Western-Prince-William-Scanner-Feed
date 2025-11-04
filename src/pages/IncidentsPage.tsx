@@ -67,21 +67,9 @@ const IncidentsPage: React.FC = () => {
     const channel = supabase
       .channel('incidents_realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'incidents' }, (payload) => {
-        const newIncident = payload.new as IncidentRow; // Use IncidentRow
-        queryClient.setQueryData(['incidents'], (oldData: any) => {
-          if (oldData) {
-            // Check if the incident already exists to prevent duplicates
-            const isDuplicate = oldData.pages[0].some((inc: IncidentRow) => inc.id === newIncident.id); // Use IncidentRow
-            if (!isDuplicate) {
-              AnalyticsService.trackEvent({ name: 'realtime_incident_added', properties: { incidentId: newIncident.id, type: newIncident.type } });
-              return {
-                ...oldData,
-                pages: [{ ...oldData.pages[0], data: [newIncident, ...oldData.pages[0]] }, ...oldData.pages.slice(1)],
-              };
-            }
-          }
-          return oldData;
-        });
+        // Invalidate the query to trigger a re-fetch, which will include the new incident
+        queryClient.invalidateQueries({ queryKey: ['incidents'] });
+        AnalyticsService.trackEvent({ name: 'realtime_incident_added', properties: { incidentId: payload.new.id, type: payload.new.type } });
       })
       .subscribe();
 

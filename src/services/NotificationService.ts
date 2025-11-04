@@ -124,7 +124,7 @@ export const NotificationService = {
         .select('*')
         .eq('user_id', userId)
         .abortSignal(controller.signal)
-        .limit(1); 
+        .single(); // Changed from .limit(1) to .single()
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -135,7 +135,7 @@ export const NotificationService = {
         AnalyticsService.trackEvent({ name: 'fetch_notification_settings_failed', properties: { userId, error: error.message } });
         return null;
       }
-      const settings = (data && data.length > 0) ? data[0] as NotificationSettingsRow : null;
+      const settings = data as NotificationSettingsRow; // data is already a single object due to .single()
       AnalyticsService.trackEvent({ name: 'notification_settings_fetched', properties: { userId, enabled: settings?.enabled } });
       return settings;
     } catch (err: any) {
