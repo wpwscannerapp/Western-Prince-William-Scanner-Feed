@@ -15,8 +15,6 @@ interface UseAdminResult {
   error: string | null;
 }
 
-let fetchCount = 0; // Add this at the top of the file
-
 export function useIsAdmin(): UseAdminResult {
   const { user, loading: authLoading, authReady } = useAuth();
   const location = useLocation();
@@ -24,13 +22,10 @@ export function useIsAdmin(): UseAdminResult {
   const isOnAuthPage = location.pathname === '/auth' || location.pathname === '/auth/login' || location.pathname === '/auth/signup';
 
   // If on an authentication-related page, we don't need to check admin status.
-  // Return immediately with non-admin status and not loading for this specific check.
   if (isOnAuthPage) {
     return { isAdmin: false, loading: false, error: null };
   }
 
-  // The rest of the hook logic only runs if not on an auth page.
-  // State variables must be declared unconditionally at the top level of the component.
   const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
@@ -49,14 +44,7 @@ export function useIsAdmin(): UseAdminResult {
     queryKey: ['userRole', user?.id],
     queryFn: async () => {
       if (!user) {
-        // This case should ideally not be reached if queryEnabled is false,
-        // but it's a good safeguard.
         return null;
-      }
-
-      if (import.meta.env.DEV) {
-        console.log('useIsAdmin: fetchRole started. Count:', ++fetchCount);
-        console.log(`[useIsAdmin] Using SUPABASE_API_TIMEOUT: ${SUPABASE_API_TIMEOUT}ms`);
       }
 
       const controller = new AbortController();
