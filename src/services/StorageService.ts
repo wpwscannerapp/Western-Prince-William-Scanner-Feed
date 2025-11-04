@@ -9,6 +9,7 @@ const PROFILE_AVATARS_BUCKET = 'profile_avatars'; // New bucket for profile avat
 const MAX_IMAGE_SIZE_MB = 2;
 const MAX_IMAGE_DIMENSION = 1200;
 const JPEG_QUALITY = 0.8;
+const PNG_QUALITY = 0.9; // PNG compression quality (less effective than JPEG)
 
 export const StorageService = {
   async resizeAndCompressImage(file: File): Promise<File | null> {
@@ -61,21 +62,28 @@ export const StorageService = {
             if (import.meta.env.DEV) {
               console.log('StorageService: Image drawn to canvas. New dimensions:', width, 'x', height);
             }
+            
+            // Determine output format and quality
+            const isPng = file.type === 'image/png';
+            const outputMimeType = isPng ? 'image/png' : 'image/jpeg';
+            const outputQuality = isPng ? PNG_QUALITY : JPEG_QUALITY;
+            const outputExtension = isPng ? 'png' : 'jpeg';
+
             canvas.toBlob(
               (blob) => {
                 if (blob) {
-                  // Ensure the file name has a .jpeg extension after conversion
+                  // Ensure the file name has the correct extension
                   const originalFileName = file.name.split('.').slice(0, -1).join('.');
-                  const newFileName = `${originalFileName}.jpeg`;
+                  const newFileName = `${originalFileName}.${outputExtension}`;
 
                   const resizedFile = new File([blob], newFileName, {
-                    type: 'image/jpeg',
+                    type: outputMimeType,
                     lastModified: Date.now(),
                   });
                   if (import.meta.env.DEV) {
-                    console.log('StorageService: Image compressed to blob. New size:', (resizedFile.size / (1024 * 1024)).toFixed(2), 'MB', 'New name:', newFileName);
+                    console.log(`StorageService: Image compressed to blob (${outputMimeType}). New size:`, (resizedFile.size / (1024 * 1024)).toFixed(2), 'MB', 'New name:', newFileName);
                   }
-                  AnalyticsService.trackEvent({ name: 'image_resized', properties: { originalSize: file.size, newSize: resizedFile.size, originalDimensions: `${img.width}x${img.height}`, newDimensions: `${width}x${height}` } });
+                  AnalyticsService.trackEvent({ name: 'image_resized', properties: { originalSize: file.size, newSize: resizedFile.size, originalDimensions: `${img.width}x${img.height}`, newDimensions: `${width}x${height}`, outputMimeType } });
                   resolve(resizedFile);
                 } else {
                   toast.error('Image processing failed: Could not create image data.');
@@ -86,8 +94,8 @@ export const StorageService = {
                   resolve(null);
                 }
               },
-              'image/jpeg',
-              JPEG_QUALITY
+              outputMimeType,
+              outputQuality
             );
           } else {
             toast.error('Image processing failed: Canvas context unavailable.');
@@ -136,7 +144,7 @@ export const StorageService = {
       return null;
     }
 
-    // Use the processed file's name, which should now end in .jpeg
+    // Use the processed file's name, which should now end in .jpeg or .png
     const fileName = processedFile.name;
     const filePath = `${fileName}`;
 
