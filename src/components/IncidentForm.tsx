@@ -24,7 +24,7 @@ const incidentFormSchema = z.object({
 type IncidentFormValues = z.infer<typeof incidentFormSchema>;
 
 interface IncidentFormProps {
-  onSubmit: (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => Promise<boolean>;
+  onSubmit: (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | null | undefined, latitude: number | undefined, longitude: number | undefined) => Promise<boolean>;
   isLoading: boolean;
   initialIncident?: Omit<IncidentRow, 'id' | 'created_at' | 'date' | 'title' | 'search_vector' | 'audio_url' | 'admin_id'>; // Use Omit with IncidentRow
   formId?: string;
@@ -138,8 +138,8 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
     }
 
     setIsGeocoding(true);
-    let latitude: number | undefined = initialIncident?.latitude;
-    let longitude: number | undefined = initialIncident?.longitude;
+    let latitude: number | undefined = initialIncident?.latitude ?? undefined;
+    let longitude: number | undefined = initialIncident?.longitude ?? undefined;
 
     if (values.location !== initialIncident?.location || (!initialIncident?.latitude && !initialIncident?.longitude)) {
       if (import.meta.env.DEV) {
@@ -183,7 +183,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
       });
     }
 
-    const success = await onSubmit(values.type, values.location, values.description, imageFile, initialIncident?.image_url, latitude, longitude);
+    const success = await onSubmit(values.type, values.location, values.description, imageFile, initialIncident?.image_url || null, latitude, longitude);
     if (success) {
       AnalyticsService.trackEvent({ 
         name: initialIncident ? 'incident_updated' : 'incident_created', 

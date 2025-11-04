@@ -86,7 +86,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
     AnalyticsService.trackEvent({ name: 'admin_incident_edit_opened', properties: { incidentId: incident.id } });
   };
 
-  const handleUpdateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => {
+  const handleUpdateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined): Promise<boolean> => {
     if (!editingIncident) return false;
 
     setIsSubmitting(true);
@@ -122,6 +122,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
     } catch (err) {
       toast.error('An error occurred while updating the incident.', { id: 'update-incident' });
       AnalyticsService.trackEvent({ name: 'admin_incident_update_error', properties: { incidentId: editingIncident.id, error: (err as Error).message } });
+      return false; // Explicitly return false on error
     } finally {
       setIsSubmitting(false);
     }

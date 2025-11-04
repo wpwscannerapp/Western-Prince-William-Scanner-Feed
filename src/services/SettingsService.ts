@@ -3,7 +3,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { AnalyticsService } from './AnalyticsService';
-import { AppSettingsRow, AppSettingsUpdate, AppSettingsInsert, ContactSettingsRow, ContactSettingsUpdate, ContactCardsJson, LayoutJson, ContactCard } from '@/types/supabase';
+import { AppSettingsRow, AppSettingsUpdate, AppSettingsInsert, ContactSettingsRow, ContactSettingsUpdate, ContactCardsJson, LayoutJson, ContactCard, ContactSettingsInsert } from '@/types/supabase';
 
 export type AppSettings = AppSettingsRow; // Alias AppSettingsRow to AppSettings for existing usage
 

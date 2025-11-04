@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Phone, Mail, User, Briefcase, Loader2 } from 'lucide-react';
-import { SettingsService, ContactSettings, ContactCard } from '@/services/SettingsService';
+import { SettingsService, ContactSettings } from '@/services/SettingsService';
 import { handleError } from '@/utils/errorHandler';
 import { CONTACT_US_TITLE, CONTACT_US_DESCRIPTION } from '@/lib/constants';
 import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
+import { ContactCard } from '@/types/supabase'; // Import ContactCard
 
 const ContactUsPage: React.FC = () => {
   const navigate = useNavigate();

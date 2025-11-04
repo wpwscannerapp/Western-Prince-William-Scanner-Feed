@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { AnalyticsService } from './AnalyticsService';
-import { CommentRow, CommentInsert, CommentUpdate, CommentWithProfile } from '@/types/supabase';
+import { CommentInsert, CommentUpdate, CommentWithProfile } from '@/types/supabase';
 
 export type Comment = CommentWithProfile; // Alias CommentWithProfile to Comment
 
@@ -48,8 +48,7 @@ export const CommentService = {
         content: data.content,
         created_at: data.created_at,
         updated_at: data.updated_at,
-        username: profileData?.username || null,
-        avatar_url: profileData?.avatar_url || null,
+        profiles: profileData ? { username: profileData.username, avatar_url: profileData.avatar_url } : null,
       } as Comment;
     } catch (err: any) {
       if (err.name === 'AbortError') {
@@ -98,8 +97,7 @@ export const CommentService = {
           content: comment.content,
           created_at: comment.created_at,
           updated_at: comment.updated_at,
-          username: profileData?.username || null,
-          avatar_url: profileData?.avatar_url || null,
+          profiles: profileData ? { username: profileData.username, avatar_url: profileData.avatar_url } : null,
         };
       }) as Comment[];
     } catch (err: any) {
@@ -150,8 +148,7 @@ export const CommentService = {
         content: data.content,
         created_at: data.created_at,
         updated_at: data.updated_at,
-        username: profileData?.username || null,
-        avatar_url: profileData?.avatar_url || null,
+        profiles: profileData ? { username: profileData.username, avatar_url: profileData.avatar_url } : null,
       } as Comment;
     } catch (err: any) {
       if (err.name === 'AbortError') {

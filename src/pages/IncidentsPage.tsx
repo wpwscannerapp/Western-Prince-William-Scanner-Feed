@@ -4,7 +4,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import IncidentCard from '@/components/IncidentCard';
 import SubscribeOverlay from '@/components/SubscribeOverlay';
 import IncidentForm from '@/components/IncidentForm';
-import { IncidentService, IncidentFilter, INCIDENTS_PER_PAGE } from '@/services/IncidentService';
+import { IncidentService, INCIDENTS_PER_PAGE } from '@/services/IncidentService';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Info } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
@@ -47,7 +47,7 @@ const IncidentsPage: React.FC = () => {
     queryKey: ['incidents'],
     queryFn: async ({ pageParam = 0 }) => {
       const fetchedIncidents = await IncidentService.fetchIncidents(pageParam as number);
-      return fetchedIncidents;
+      return fetchedIncidents as IncidentRow[]; // Cast to IncidentRow[]
     },
     getNextPageParam: (lastPage, allPages) => {
       if (lastPage.length < INCIDENTS_PER_PAGE) {
@@ -125,7 +125,7 @@ const IncidentsPage: React.FC = () => {
         description,
         type,
         location,
-        date: new Date().toISOString(),
+        date: new Date().toISOString(), // Add date here
       }, imageFile, latitude, longitude, user.id);
       
       if (newIncident) {

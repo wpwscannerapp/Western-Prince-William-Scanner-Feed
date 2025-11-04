@@ -23,7 +23,7 @@ const HomePage: React.FC = () => {
     queryFn: async () => {
       // Fetch only 1 incident using the new limit parameter
       const incidents = await IncidentService.fetchIncidents(0, {}, 1); 
-      return incidents.length > 0 ? incidents[0] : null;
+      return incidents.length > 0 ? incidents[0] as IncidentRow : null; // Cast to IncidentRow
     },
     staleTime: 1000 * 10, // Keep fresh for 10 seconds
   });

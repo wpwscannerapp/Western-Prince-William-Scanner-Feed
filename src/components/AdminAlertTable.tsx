@@ -79,7 +79,7 @@ const AdminAlertTable: React.FC<AdminAlertTableProps> = ({ onAlertUpdated }) => 
     AnalyticsService.trackEvent({ name: 'admin_alert_edit_opened', properties: { alertId: alert.id } });
   };
 
-  const handleUpdateAlert = async (alertData: Omit<AlertRow, 'id' | 'created_at'>) => { // Use AlertRow
+  const handleUpdateAlert = async (alertData: Omit<AlertRow, 'id' | 'created_at'>): Promise<boolean> => { // Use AlertRow
     if (!editingAlert) return false;
 
     setIsSubmitting(true);
@@ -103,6 +103,7 @@ const AdminAlertTable: React.FC<AdminAlertTableProps> = ({ onAlertUpdated }) => 
     } catch (err) {
       toast.error('An error occurred while updating the alert.', { id: 'update-alert' });
       AnalyticsService.trackEvent({ name: 'admin_alert_update_error', properties: { alertId: editingAlert.id, error: (err as Error).message } });
+      return false; // Explicitly return false on error
     } finally {
       setIsSubmitting(false);
     }

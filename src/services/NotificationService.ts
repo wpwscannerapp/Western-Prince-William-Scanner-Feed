@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { AnalyticsService } from './AnalyticsService';
-import { PushSubJson, NotificationSettingsRow, NotificationSettingsUpdate, AlertRow, AlertInsert, AlertUpdate, NewAlert } from '@/types/supabase';
+import { PushSubJson, NotificationSettingsRow, NotificationSettingsUpdate, AlertRow, AlertUpdate, NewAlert, NotificationSettingsInsert } from '@/types/supabase';
 
 export type PushSubscription = PushSubJson; // Alias PushSubJson to PushSubscription for existing usage
 

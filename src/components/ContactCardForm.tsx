@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
-import { ContactCard } from '@/services/SettingsService';
+import { ContactCard } from '@/types/supabase';
 
 interface ContactCardFormProps<TFieldValues extends FieldValues = FieldValues> {
   index: number;
@@ -23,7 +23,7 @@ const ContactCardForm = <TFieldValues extends FieldValues = FieldValues>({
   const { register, formState: { errors } } = useFormContext<TFieldValues>();
 
   const getFieldName = (fieldName: keyof ContactCard) =>
-    `${fieldPrefix}.${fieldName}` as FieldPath<TFieldValues>;
+    `${fieldPrefix}.${String(fieldName)}` as FieldPath<TFieldValues>;
 
   const nameError = errors[getFieldName('name')]?.message as string | undefined;
   const titleError = errors[getFieldName('title')]?.message as string | undefined;

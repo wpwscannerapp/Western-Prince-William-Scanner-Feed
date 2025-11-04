@@ -69,16 +69,16 @@ export type TablesUpdate<
     : never;
 
 // 1. Core Row Types
-export type AlertRow = Tables<'alerts'>['Row'];
-export type AppSettingsRow = Tables<'app_settings'>['Row'];
-export type AppSettingsHistoryRow = Tables<'app_settings_history'>['Row'];
-export type CommentRow = Tables<'comments'>['Row'];
-export type ContactSettingsRow = Tables<'contact_settings'>['Row'];
-export type FeedbackRow = Tables<'feedback_and_suggestions'>['Row'];
-export type IncidentRow = Tables<'incidents'>['Row'];
-export type LikeRow = Tables<'likes'>['Row'];
-export type ProfileRow = Tables<'profiles'>['Row'];
-export type NotificationSettingsRow = Tables<'user_notification_settings'>['Row'];
+export type AlertRow = Tables<'alerts'>;
+export type AppSettingsRow = Tables<'app_settings'>;
+export type AppSettingsHistoryRow = Tables<'app_settings_history'>;
+export type CommentRow = Tables<'comments'>;
+export type ContactSettingsRow = Tables<'contact_settings'>;
+export type FeedbackRow = Tables<'feedback_and_suggestions'>;
+export type IncidentRow = Tables<'incidents'>;
+export type LikeRow = Tables<'likes'>;
+export type ProfileRow = Tables<'profiles'>;
+export type NotificationSettingsRow = Tables<'user_notification_settings'>;
 
 // 2. Insert / Update Types
 export type AlertInsert = TablesInsert<'alerts'>;
@@ -121,7 +121,7 @@ export type IncidentListItem = Pick<IncidentRow,
 export type RequiredInsert<T> = { [P in keyof T]-?: NonNullable<T[P]> };
 
 // Example: NewIncident type for creating an incident (excluding auto-generated fields)
-export type NewIncident = RequiredInsert<Omit<IncidentInsert, 'id' | 'created_at' | 'search_vector' | 'date'>>;
+export type NewIncident = RequiredInsert<Omit<IncidentInsert, 'id' | 'created_at' | 'search_vector'>>;
 export type NewAlert = RequiredInsert<Omit<AlertInsert, 'id' | 'created_at'>>;
 export type NewComment = RequiredInsert<Omit<CommentInsert, 'id' | 'created_at'>>;
 

@@ -70,7 +70,7 @@ const AppSettingsForm: React.FC = () => {
           logo_url: currentSettings.logo_url || '',
           favicon_url: currentSettings.favicon_url || '',
           custom_css: currentSettings.custom_css || '',
-          layout: currentSettings.layout as LayoutComponent[] || [],
+          layout: (currentSettings.layout || []) as LayoutComponent[],
         };
         form.reset(formValues);
       }
@@ -172,7 +172,7 @@ const AppSettingsForm: React.FC = () => {
         logo_url: historyEntry.settings.logo_url || '',
         favicon_url: historyEntry.settings.favicon_url || '',
         custom_css: historyEntry.settings.custom_css || '',
-        layout: historyEntry.settings.layout as LayoutComponent[] || [],
+        layout: (historyEntry.settings.layout || []) as LayoutComponent[],
       };
       form.reset(formValues);
       toast.success('Reverted to previous settings!', { id: 'revert-settings' });
