@@ -25,13 +25,13 @@ export const NotificationService = {
 
     if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
       handleError(null, 'Invalid VAPID Public Key configuration. Push notifications will not work.');
-      AnalyticsService.trackEvent({ name: 'web_push_init_failed', properties: { reason: 'invalid_vapid_key' } });
+      AnalyticsService.trackEvent({ name: 'web_push_init_failed', properties: { reason: 'invalid_vapid_key' });
       return false;
     }
 
     if (!('serviceWorker' in navigator)) {
       handleError(null, 'Push notifications are not supported by your browser.');
-      AnalyticsService.trackEvent({ name: 'web_push_init_failed', properties: { reason: 'service_worker_not_supported' } });
+      AnalyticsService.trackEvent({ name: 'web_push_init_failed', properties: { reason: 'service_worker_not_supported' });
       return false;
     }
 
@@ -51,13 +51,13 @@ export const NotificationService = {
 
     if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
       handleError(null, 'VAPID Public Key is missing or invalid. Cannot subscribe.');
-      AnalyticsService.trackEvent({ name: 'push_subscribe_failed', properties: { reason: 'invalid_vapid_key' } });
+      AnalyticsService.trackEvent({ name: 'push_subscribe_failed', properties: { reason: 'invalid_vapid_key' });
       return null;
     }
 
     if (Notification.permission !== 'granted') {
       handleError(null, 'Notification permission not granted. Please allow notifications to subscribe.');
-      AnalyticsService.trackEvent({ name: 'push_subscribe_failed', properties: { reason: 'permission_not_granted' } });
+      AnalyticsService.trackEvent({ name: 'push_subscribe_failed', properties: { reason: 'permission_not_granted' });
       return null;
     }
 
@@ -82,7 +82,7 @@ export const NotificationService = {
 
   async unsubscribeWebPush(userId: string): Promise<boolean> {
     if (!('serviceWorker' in navigator)) {
-      AnalyticsService.trackEvent({ name: 'push_unsubscribe_skipped', properties: { reason: 'service_worker_not_supported' } });
+      AnalyticsService.trackEvent({ name: 'push_unsubscribe_skipped', properties: { reason: 'service_worker_not_supported' });
       return false;
     }
 
@@ -163,7 +163,8 @@ export const NotificationService = {
       // Fetch existing settings or create a default one if none exist
       const existingSettings = await NotificationService.getUserNotificationSettings(userId);
 
-      const defaultSettings: Omit<NotificationSettingsInsert, 'user_id'> = {
+      const defaultSettings: NotificationSettingsInsert = { // Changed type to NotificationSettingsInsert
+        user_id: userId, // user_id is required for NotificationSettingsInsert
         enabled: false,
         push_subscription: null,
         receive_all_alerts: true,

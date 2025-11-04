@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useFormContext } from 'react-hook-form';
+import { useForm, useFormContext } from 'react-hook-form'; // Added useForm
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import { NotificationService } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import { PushSubJson, NotificationSettingsUpdate, NotificationSettingsInsert } from '@/types/supabase';
+import { PushSubJson, NotificationSettingsUpdate, NotificationSettingsInsert, NotificationSettingsRow } from '@/types/supabase';
 
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const IDLE_TIMEOUT_MS = 300000; // 5 minutes
@@ -231,11 +231,11 @@ interface NotificationCustomizationFieldsProps {
 const NotificationCustomizationFields: React.FC<NotificationCustomizationFieldsProps> = ({
   isCustomizationDisabled,
 }) => {
-  const { watch, setValue, formState: { errors }, getValues } = useFormContext<NotificationSettingsFormValues>();
+  const { watch, setValue, formState: { errors }, register } = useFormContext<NotificationSettingsFormValues>(); // Added register
   const preferredDays = watch('preferred_days');
 
   const handleToggleDay = (day: string) => {
-    const currentDays = getValues('preferred_days');
+    const currentDays = watch('preferred_days'); // Use watch instead of getValues
     if (currentDays.includes(day)) {
       setValue('preferred_days', currentDays.filter((d: string) => d !== day));
       AnalyticsService.trackEvent({ name: 'notification_preferred_day_removed', properties: { day } });
@@ -257,8 +257,7 @@ const NotificationCustomizationFields: React.FC<NotificationCustomizationFieldsP
         <Input
           id="preferred_start_time"
           type="time"
-          {...getValues('preferred_start_time')} // Use getValues for register-like behavior
-          onChange={(e) => setValue('preferred_start_time', e.target.value)}
+          {...register('preferred_start_time')} // Use register
           className="tw-bg-input tw-text-foreground"
           disabled={isCustomizationDisabled}
           aria-invalid={errors.preferred_start_time ? "true" : "false"}
@@ -275,8 +274,7 @@ const NotificationCustomizationFields: React.FC<NotificationCustomizationFieldsP
         <Input
           id="preferred_end_time"
           type="time"
-          {...getValues('preferred_end_time')} // Use getValues for register-like behavior
-          onChange={(e) => setValue('preferred_end_time', e.target.value)}
+          {...register('preferred_end_time')} // Use register
           className="tw-bg-input tw-text-foreground"
           disabled={isCustomizationDisabled}
           aria-invalid={errors.preferred_end_time ? "true" : "false"}
@@ -321,10 +319,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const { notificationPermission, requestNotificationPermission } = useNotificationPermissions();
-  const { alertRealtimeStatus } = useRealtimeAlerts(user, form.watch('prefer_push_notifications'));
-
-  const form = useForm<NotificationSettingsFormValues>({
+  const form = useForm<NotificationSettingsFormValues>({ // Moved form declaration to top
     resolver: zodResolver(notificationSettingsSchema),
     defaultValues: {
       enabled: false,
@@ -339,7 +334,10 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
   const { handleSubmit, reset, watch, setValue } = form;
   const enabled = watch('enabled');
   const receiveAllAlerts = watch('receive_all_alerts');
-  const preferPushNotifications = watch('prefer_push_notifications');
+  const preferPushNotifications = watch('prefer_push_notifications'); // Kept for useRealtimeAlerts
+
+  const { notificationPermission, requestNotificationPermission } = useNotificationPermissions();
+  const { alertRealtimeStatus } = useRealtimeAlerts(user, preferPushNotifications); // Used preferPushNotifications here
 
   const fetchSettings = useCallback(async () => {
     if (!user) return;
