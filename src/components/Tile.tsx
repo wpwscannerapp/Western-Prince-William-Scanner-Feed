@@ -16,16 +16,8 @@ const Tile: React.FC<TileProps> = ({ title, description, to, icon }) => {
     navigate(to);
   };
 
-  // The icon is now directly referenced from the public directory
-  const directIconSrc = icon;
-  
-  // Use CDN for optimization, sizing it for the tw-h-12 class (48px) if it's the logo, 
-  // otherwise use the existing CDN logic for other icons.
-  const imageUrl = (directIconSrc === '/Logo.png') 
-    ? `/.netlify/images?url=${encodeURIComponent(directIconSrc)}&w=48&h=48&fit=contain&fm=auto` // Use CDN for logo at 48x48
-    : directIconSrc.startsWith('/') 
-      ? `/.netlify/images?url=${encodeURIComponent(directIconSrc)}&w=48&h=48&fit=contain&fm=auto` 
-      : directIconSrc;
+  // Reverting to direct path for debugging
+  const imageUrl = icon;
 
   return (
     <Card 

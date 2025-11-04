@@ -37,7 +37,8 @@ const AuthPage = () => {
 
   // The logo is now referenced via Netlify Image CDN for optimization
   const logoPath = "/Logo.png";
-  const cdnLogoPath = `/.netlify/images?url=${encodeURIComponent(logoPath)}&w=64&h=64&fit=contain&fm=auto`;
+  // Reverting to direct path for debugging
+  const cdnLogoPath = logoPath;
 
   // Otherwise, render the login/signup options. This covers:
   // 1. !loading && !user (no session)
@@ -48,7 +49,7 @@ const AuthPage = () => {
       {/* Branded Hero Section */}
       <div className="tw-relative tw-z-20 tw-text-center tw-mb-8 tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-xl">
         <img 
-          src={cdnLogoPath} // Use CDN path
+          src={cdnLogoPath} // Use direct path
           alt="WPW Scanner Logo" 
           width={64} 
           height={64} 
