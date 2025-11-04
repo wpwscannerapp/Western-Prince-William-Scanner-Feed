@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { AnalyticsService } from './AnalyticsService';
-import { PushSubJson, NotificationSettingsUpdate, AlertRow, AlertUpdate, NewAlert, NotificationSettingsInsert } from '@/types/supabase';
+import { PushSubJson, NotificationSettingsUpdate, AlertRow, AlertUpdate, NewAlert, NotificationSettingsInsert, NotificationSettingsRow } from '@/types/supabase';
 
 export type PushSubscription = PushSubJson; // Alias PushSubJson to PushSubscription for existing usage
 
@@ -190,7 +190,7 @@ export const NotificationService = {
       const { data, error } = await supabase
         .from('user_notification_settings')
         .upsert(
-          mergedSettings,
+          mergedSettings as NotificationSettingsInsert,
           { onConflict: 'user_id' }
         )
         .abortSignal(controller.signal)
@@ -203,7 +203,7 @@ export const NotificationService = {
         return null;
       }
       AnalyticsService.trackEvent({ name: 'notification_settings_updated', properties: { userId, enabled: data?.enabled } });
-      return data as NotificationSettingsRow;
+      return data;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Updating notification settings timed out.');
@@ -236,7 +236,7 @@ export const NotificationService = {
         return null;
       }
       AnalyticsService.trackEvent({ name: 'alert_created', properties: { alertId: data.id, type: data.type } });
-      return data as AlertRow;
+      return data;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Creating alert timed out.');
@@ -268,7 +268,7 @@ export const NotificationService = {
         return [];
       }
       AnalyticsService.trackEvent({ name: 'alerts_fetched', properties: { count: data.length } });
-      return data as AlertRow[];
+      return data;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching alerts timed out.');
@@ -302,7 +302,7 @@ export const NotificationService = {
         return null;
       }
       AnalyticsService.trackEvent({ name: 'alert_updated', properties: { alertId, updates: Object.keys(updates) } });
-      return data as AlertRow;
+      return data;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Updating alert timed out.');

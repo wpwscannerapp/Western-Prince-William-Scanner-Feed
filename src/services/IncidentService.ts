@@ -114,7 +114,7 @@ export const IncidentService = {
         return null;
       }
       AnalyticsService.trackEvent({ name: 'single_incident_fetched', properties: { incidentId } });
-      return data as IncidentRow;
+      return data;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching single incident timed out.');
@@ -147,7 +147,7 @@ export const IncidentService = {
         return [];
       }
       AnalyticsService.trackEvent({ name: 'new_incidents_fetched', properties: { lastTimestamp, count: data.length } });
-      return data as IncidentRow[];
+      return data;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching new incidents timed out.');
@@ -162,7 +162,7 @@ export const IncidentService = {
     }
   },
 
-  async createIncident(incident: Omit<NewIncident, 'image_url' | 'latitude' | 'longitude' | 'admin_id'>, imageFile: File | null, latitude: number | undefined, longitude: number | undefined, adminId: string): Promise<IncidentRow | null> {
+  async createIncident(incident: Omit<NewIncident, 'image_url' | 'latitude' | 'longitude'>, imageFile: File | null, latitude: number | undefined, longitude: number | undefined, adminId: string): Promise<IncidentRow | null> {
     if (import.meta.env.DEV) {
       console.log('IncidentService: Starting createIncident for adminId:', adminId);
       console.log('Incident data:', incident);
@@ -182,7 +182,7 @@ export const IncidentService = {
     } catch (profileError: any) {
       const errorMessage = `Failed to ensure admin profile exists: ${profileError.message}`;
       handleError(profileError, errorMessage);
-      AnalyticsService.trackEvent({ name: 'create_incident_profile_check_failed', properties: { adminId, error: errorMessage } });
+      AnalyticsService.trackEvent({ name: 'create_incident_profile_check_failed', properties: { adminId, type: incident.type } });
       return null;
     }
 
@@ -216,7 +216,15 @@ export const IncidentService = {
       if (import.meta.env.DEV) {
         console.log('IncidentService: Attempting to insert incident into Supabase.');
       }
-      const incidentInsert: IncidentInsert = { ...incident, image_url: imageUrl, latitude, longitude, admin_id: adminId };
+      const incidentInsert: IncidentInsert = { 
+        ...incident, 
+        image_url: imageUrl, 
+        latitude, 
+        longitude, 
+        admin_id: adminId,
+        audio_url: null, // required but nullable
+        search_vector: null, // required but nullable
+      };
       const { data, error } = await supabase
         .from('incidents')
         .insert(incidentInsert)
@@ -263,7 +271,7 @@ export const IncidentService = {
         }
       }
 
-      return data as IncidentRow;
+      return data;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Creating incident timed out.');
@@ -281,8 +289,8 @@ export const IncidentService = {
     }
   },
 
-  async updateIncident(id: string, updates: Partial<Omit<IncidentUpdate, 'id' | 'created_at' | 'admin_id'>>, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined): Promise<IncidentRow | null> {
-    let imageUrl: string | undefined = currentImageUrl;
+  async updateIncident(id: string, updates: Partial<Omit<IncidentUpdate, 'id' | 'created_at' | 'admin_id'>>, imageFile: File | null, currentImageUrl: string | null, latitude: number | undefined, longitude: number | undefined): Promise<IncidentRow | null> {
+    let imageUrl: string | null = currentImageUrl;
 
     if (imageFile) {
       const newImageUrl = await StorageService.uploadIncidentImage(imageFile);
@@ -294,9 +302,9 @@ export const IncidentService = {
         await StorageService.deleteIncidentImage(currentImageUrl);
       }
       imageUrl = newImageUrl;
-    } else if (currentImageUrl && !imageFile) {
+    } else if (currentImageUrl && !imageFile && imageUrl !== null) { // Only delete if currentImageUrl exists and no new file, and imageUrl is not already null
       await StorageService.deleteIncidentImage(currentImageUrl);
-      imageUrl = undefined;
+      imageUrl = null;
     }
 
     const controller = new AbortController();
@@ -318,7 +326,7 @@ export const IncidentService = {
         return null;
       }
       AnalyticsService.trackEvent({ name: 'incident_updated', properties: { incidentId: id, updates: Object.keys(updates) } });
-      return data as IncidentRow;
+      return data;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Updating incident timed out.');
@@ -425,7 +433,7 @@ export const IncidentService = {
         return null;
       }
       AnalyticsService.trackEvent({ name: 'previous_incident_fetched', properties: { incidentId: data.id } });
-      return data as IncidentRow;
+      return data;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching previous incident timed out.');
@@ -457,14 +465,14 @@ export const IncidentService = {
         return [];
       }
       AnalyticsService.trackEvent({ name: 'nearby_incidents_fetched', properties: { lat, lng, radiusMiles, count: data.length } });
-      return data as IncidentRow[];
+      return data;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching nearby incidents timed out.');
         AnalyticsService.trackEvent({ name: 'fetch_nearby_incidents_timeout', properties: { lat, lng, radiusMiles } });
       } else {
         logSupabaseError('getNearbyIncidents', err);
-        AnalyticsService.trackEvent({ name: 'fetch_nearby_incidents_unexpected_error', properties: { lat, lng, radiusMiles, error: err.message } });
+        AnalyticsService.trackEvent({ name: 'get_nearby_incidents_unexpected_error', properties: { lat, lng, radiusMiles, error: err.message } });
       }
       return [];
     } finally {

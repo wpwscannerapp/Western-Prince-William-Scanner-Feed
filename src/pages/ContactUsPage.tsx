@@ -62,6 +62,14 @@ const ContactUsPage: React.FC = () => {
     );
   }
 
+  const cards = (contactSettings?.contact_cards ?? []) as Array<{
+    id: string;
+    name: string;
+    title?: string;
+    email?: string;
+    phone?: string;
+  }>;
+
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-xl">
       {/* Removed: <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
@@ -76,9 +84,9 @@ const ContactUsPage: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="tw-p-6">
-          {contactSettings && contactSettings.contact_cards.length > 0 ? (
+          {cards.length > 0 ? (
             <div className="tw-space-y-6">
-              {contactSettings.contact_cards.map((card: ContactCard, index: number) => (
+              {cards.map((card: ContactCard, index: number) => (
                 <Card key={index} className="tw-bg-background tw-border-border tw-shadow-sm tw-p-4 tw-text-left">
                   <h3 className="tw-text-xl tw-font-semibold tw-text-foreground tw-mb-2 tw-flex tw-items-center tw-gap-2">
                     <User className="tw-h-5 tw-w-5 tw-text-primary" aria-hidden="true" /> {card.name}

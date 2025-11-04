@@ -119,6 +119,14 @@ const ContactSettingsForm: React.FC = () => {
     );
   }
 
+  const cards = (methods.watch('contact_cards') ?? []) as Array<{
+    id: string;
+    name: string;
+    title?: string;
+    email?: string;
+    phone?: string;
+  }>;
+
   return (
     <Card className="tw-bg-card tw-border-border tw-shadow-lg">
       <CardHeader>
@@ -131,10 +139,10 @@ const ContactSettingsForm: React.FC = () => {
             <div>
               <Label className="tw-mb-2 tw-block">Contact Cards</Label>
               <div className="tw-space-y-4" role="list" aria-label="List of contact cards">
-                {fields.length === 0 && (
+                {cards.length === 0 && (
                   <p className="tw-text-muted-foreground tw-text-center tw-py-4">No contact cards added yet.</p>
                 )}
-                {fields.map((field, index) => (
+                {cards.map((field, index) => (
                   <ContactCardForm
                     key={field.id}
                     index={index}

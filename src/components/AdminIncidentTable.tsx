@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { IncidentRow } from '@/types/supabase'; // Import IncidentRow
+import { IncidentRow, IncidentListItem } from '@/types/supabase'; // Import IncidentRow, IncidentListItem
 import { IncidentService } from '@/services/IncidentService';
 import { format } from 'date-fns';
 import { Edit, Trash2, Search, Loader2 } from 'lucide-react';
@@ -26,7 +26,7 @@ interface AdminIncidentTableProps {
 }
 
 const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdated }) => {
-  const [incidents, setIncidents] = useState<IncidentRow[]>([]); // Use IncidentRow
+  const [incidents, setIncidents] = useState<IncidentListItem[]>([]); // Use IncidentListItem
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingIncident, setEditingIncident] = useState<IncidentRow | null>(null); // Use IncidentRow
@@ -86,7 +86,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
     AnalyticsService.trackEvent({ name: 'admin_incident_edit_opened', properties: { incidentId: incident.id } });
   };
 
-  const handleUpdateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined): Promise<boolean> => {
+  const handleUpdateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | null, latitude: number | undefined, longitude: number | undefined): Promise<boolean> => {
     if (!editingIncident) return false;
 
     setIsSubmitting(true);
@@ -219,7 +219,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          onClick={() => handleEdit(incident)}
+                          onClick={() => handleEdit(incident as IncidentRow)}
                           className="tw-h-8 tw-w-8"
                           aria-label={`Edit incident ${incident.title}`}
                         >
@@ -256,14 +256,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
               formId="edit-incident-form"
               onSubmit={handleUpdateIncident}
               isLoading={isSubmitting}
-              initialIncident={{
-                type: editingIncident.type,
-                location: editingIncident.location,
-                description: editingIncident.description,
-                image_url: editingIncident.image_url || undefined,
-                latitude: editingIncident.latitude || undefined,
-                longitude: editingIncident.longitude || undefined,
-              }}
+              initialIncident={editingIncident}
             />
             <DialogFooter>
               <Button 

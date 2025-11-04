@@ -24,7 +24,7 @@ const incidentFormSchema = z.object({
 type IncidentFormValues = z.infer<typeof incidentFormSchema>;
 
 interface IncidentFormProps {
-  onSubmit: (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | null | undefined, latitude: number | undefined, longitude: number | undefined) => Promise<boolean>;
+  onSubmit: (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | null, latitude: number | undefined, longitude: number | undefined) => Promise<boolean>;
   isLoading: boolean;
   initialIncident?: Omit<IncidentRow, 'id' | 'created_at' | 'date' | 'title' | 'search_vector' | 'audio_url' | 'admin_id'>; // Use Omit with IncidentRow
   formId?: string;

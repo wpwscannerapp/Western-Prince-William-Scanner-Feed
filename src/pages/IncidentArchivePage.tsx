@@ -15,7 +15,7 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useIsSubscribed } from '@/hooks/useIsSubscribed';
 import SubscribeOverlay from '@/components/SubscribeOverlay';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import { IncidentRow } from '@/types/supabase'; // Import IncidentRow
+import { IncidentListItem } from '@/types/supabase'; // Import IncidentListItem
 
 const IncidentArchivePage: React.FC = () => {
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ const IncidentArchivePage: React.FC = () => {
     isError,
     error,
     refetch,
-  } = useInfiniteQuery<IncidentRow[], Error>({ // Use IncidentRow
+  } = useInfiniteQuery<IncidentListItem[], Error>({ // Use IncidentListItem
     queryKey: ['incidents', 'archive', filters],
     queryFn: async ({ pageParam = 0 }) => {
       const fetchedIncidents = await IncidentService.fetchIncidents(pageParam as number, filters);
@@ -59,7 +59,7 @@ const IncidentArchivePage: React.FC = () => {
     },
     staleTime: 1000 * 60,
     initialPageParam: 0,
-    enabled: !!user && !authLoading && hasActiveFilters, // Only enable if user is logged in AND filters are active
+    enabled: !!user && !authLoading, // Removed hasActiveFilters from enabled
   });
 
   const incidents = data?.pages.flat() || [];
@@ -123,12 +123,7 @@ const IncidentArchivePage: React.FC = () => {
           <IncidentSearchForm onFilterChange={handleFilterChange} initialFilters={filters} />
 
           <div className="tw-mt-8 tw-space-y-6">
-            {!hasActiveFilters ? (
-              <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-12 tw-text-muted-foreground">
-                <Info className="tw-h-12 tw-w-12 tw-mb-4" aria-hidden="true" />
-                <p className="tw-text-lg">Enter search terms or apply filters to view incidents.</p>
-              </div>
-            ) : (isLoading && !isFetchingNextPage) ? (
+            {(isLoading && !isFetchingNextPage) ? (
               <SkeletonLoader count={3} className="tw-col-span-full" />
             ) : incidents.length === 0 ? (
               <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-12 tw-text-muted-foreground">

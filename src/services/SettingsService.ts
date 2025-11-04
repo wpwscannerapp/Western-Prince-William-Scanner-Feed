@@ -24,27 +24,27 @@ export const SettingsService = {
         .limit(1)
         .single();
 
-      if (error) {
-        if (error.code === 'PGRST116') { // No rows found, return default structure
-          AnalyticsService.trackEvent({ name: 'app_settings_not_found', properties: { reason: 'default_returned' } });
-          return {
-            id: 'default', // Placeholder ID
-            primary_color: '#2196F3',
-            secondary_color: '#4CAF50',
-            font_family: 'Inter',
-            logo_url: null,
-            favicon_url: null,
-            custom_css: null,
-            layout: [] as LayoutJson,
-            updated_at: new Date().toISOString(),
-          };
-        }
+      if (error && error.code !== 'PGRST116') { // No rows found, return default structure
         handleError(error, `Failed to fetch app settings.`);
         AnalyticsService.trackEvent({ name: 'fetch_app_settings_failed', properties: { error: error.message } });
         return null;
       }
+      if (!data) {
+        AnalyticsService.trackEvent({ name: 'app_settings_not_found', properties: { reason: 'default_returned' } });
+        return {
+          id: 'default', // Placeholder ID
+          primary_color: '#2196F3',
+          secondary_color: '#4CAF50',
+          font_family: 'Inter',
+          logo_url: null,
+          favicon_url: null,
+          custom_css: null,
+          layout: [] as LayoutJson,
+          updated_at: new Date().toISOString(),
+        };
+      }
       AnalyticsService.trackEvent({ name: 'app_settings_fetched', properties: { id: data.id } });
-      return data as AppSettingsRow;
+      return data;
     } catch (err) {
       handleError(err, `An unexpected error occurred while fetching app settings.`);
       AnalyticsService.trackEvent({ name: 'fetch_app_settings_unexpected_error', properties: { error: (err as Error).message } });
@@ -69,9 +69,11 @@ export const SettingsService = {
         upsertData = rest;
       }
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('app_settings')
-        .upsert(upsertData as AppSettingsInsert, { onConflict: 'id' }); // Cast to Insert for upsert
+        .upsert(upsertData as AppSettingsInsert, { onConflict: 'id' })
+        .select()
+        .single();
 
       if (error) {
         handleError(error, `Failed to update app settings.`);
@@ -79,7 +81,7 @@ export const SettingsService = {
         return false;
       }
       AnalyticsService.trackEvent({ name: 'app_settings_updated', properties: { updates: Object.keys(settings) } });
-      return true;
+      return !!data;
     } catch (err) {
       handleError(err, `An unexpected error occurred while updating app settings.`);
       AnalyticsService.trackEvent({ name: 'update_app_settings_unexpected_error', properties: { error: (err as Error).message } });
@@ -159,21 +161,21 @@ export const SettingsService = {
         .limit(1)
         .single();
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          AnalyticsService.trackEvent({ name: 'contact_settings_not_found', properties: { reason: 'default_returned' } });
-          return {
-            id: 'default',
-            contact_cards: [] as ContactCardsJson,
-            updated_at: new Date().toISOString(),
-          };
-        }
+      if (error && error.code !== 'PGRST116') {
         handleError(error, `Failed to fetch contact settings.`);
         AnalyticsService.trackEvent({ name: 'fetch_contact_settings_failed', properties: { error: error.message } });
         return null;
       }
+      if (!data) {
+        AnalyticsService.trackEvent({ name: 'contact_settings_not_found', properties: { reason: 'default_returned' } });
+        return {
+          id: 'default',
+          contact_cards: [] as ContactCardsJson,
+          updated_at: new Date().toISOString(),
+        };
+      }
       AnalyticsService.trackEvent({ name: 'contact_settings_fetched', properties: { id: data.id } });
-      return data as ContactSettingsRow;
+      return data;
     } catch (err) {
       handleError(err, `An unexpected error occurred while fetching contact settings.`);
       AnalyticsService.trackEvent({ name: 'fetch_contact_settings_unexpected_error', properties: { error: (err as Error).message } });
@@ -198,9 +200,11 @@ export const SettingsService = {
         upsertData.id = existingSettings.id;
       }
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('contact_settings')
-        .upsert(upsertData as ContactSettingsInsert, { onConflict: 'id' }); // Cast to Insert for upsert
+        .upsert(upsertData as ContactSettingsInsert, { onConflict: 'id' })
+        .select()
+        .single();
 
       if (error) {
         handleError(error, `Failed to update contact settings.`);
@@ -208,11 +212,23 @@ export const SettingsService = {
         return false;
       }
       AnalyticsService.trackEvent({ name: 'contact_settings_updated', properties: { count: contactCards.length } });
-      return true;
+      return !!data;
     } catch (err) {
       handleError(err, `An unexpected error occurred while updating contact settings.`);
       AnalyticsService.trackEvent({ name: 'update_contact_settings_unexpected_error', properties: { error: (err as Error).message } });
       return false;
     }
   },
+
+  getChangedFields: (
+    original: AppSettingsRow,
+    updated: Partial<AppSettingsRow>
+  ): string[] => {
+    const orig = original as Record<string, unknown>;
+    const upd = updated as Record<string, unknown>;
+
+    return Object.keys(upd).filter(
+      k => orig[k] !== upd[k]
+    );
+  }
 };

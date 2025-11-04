@@ -46,7 +46,7 @@ const IncidentDetailPage: React.FC = () => {
       const fetchedIncident = await IncidentService.fetchSingleIncident(incidentId);
       if (fetchedIncident) {
         setIncident(fetchedIncident);
-        const fetchedPreviousIncident = await IncidentService.fetchPreviousIncident(fetchedIncident.date);
+        const fetchedPreviousIncident = await IncidentService.fetchPreviousIncident(fetchedIncident.date!);
         setPreviousIncident(fetchedPreviousIncident);
         AnalyticsService.trackEvent({ name: 'incident_detail_loaded', properties: { incidentId } });
       } else {
@@ -220,7 +220,7 @@ const IncidentDetailPage: React.FC = () => {
 
         {loadingComments ? (
           <div className="tw-flex tw-justify-center tw-py-4">
-            <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" aria-label="Loading comments" />
+            <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" aria-hidden="true" />
             <span className="tw-ml-2 tw-text-muted-foreground">Loading comments...</span>
           </div>
         ) : (

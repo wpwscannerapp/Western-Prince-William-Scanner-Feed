@@ -187,6 +187,7 @@ const AppSettingsForm: React.FC = () => {
   };
 
   const watchLayout = form.watch('layout');
+  const safeLayout = Array.isArray(watchLayout) ? watchLayout : [];
   // Ensure logoUrl is not an empty string before passing to Netlify Image CDN
   const logoUrlForCDN = (form.watch('logo_url') || '').trim() !== '' ? form.watch('logo_url') : undefined;
 
@@ -300,7 +301,7 @@ const AppSettingsForm: React.FC = () => {
 
           <TabsContent value="layout" className="tw-space-y-6 tw-mt-4">
             <Suspense fallback={<div className="tw-min-h-[300px] tw-flex tw-items-center tw-justify-center tw-bg-muted/20 tw-rounded-lg"><Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" aria-label="Loading layout editor" /></div>}>
-              <LazyLayoutEditor layout={watchLayout || []} onLayoutChange={(newLayout) => form.setValue('layout', newLayout as LayoutComponent[])} />
+              <LazyLayoutEditor layout={safeLayout} onLayoutChange={(newLayout) => form.setValue('layout', newLayout as LayoutComponent[])} />
             </Suspense>
             {form.formState.errors.layout && (
               <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.layout.message}</p>
@@ -343,10 +344,10 @@ const AppSettingsForm: React.FC = () => {
           <div className="tw-flex-1 tw-overflow-auto tw-p-4 tw-border tw-rounded-md tw-bg-background" style={{ fontFamily: form.watch('font_family') }}>
             <h3 className="tw-lg tw-font-semibold tw-mb-2">Layout Preview</h3>
             <div className="tw-space-y-2 tw-border tw-border-dashed tw-p-2 tw-rounded-md">
-              {watchLayout?.length === 0 ? (
+              {safeLayout?.length === 0 ? (
                 <p className="tw-text-muted-foreground tw-text-center">No components in layout.</p>
               ) : (
-                watchLayout?.map((comp) => (
+                safeLayout?.map((comp) => (
                   <div key={comp.id} className="tw-p-3 tw-rounded-md tw-bg-primary tw-text-primary-foreground tw-text-sm">
                     {comp.content}
                   </div>

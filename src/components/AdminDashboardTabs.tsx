@@ -50,7 +50,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTa
     AnalyticsService.trackEvent({ name: 'admin_alert_table_refresh_requested' });
   }, []);
 
-  const handleCreateIncident = async (type: string, location: string, description: string, imageFile: File | null, _currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined): Promise<boolean> => {
+  const handleCreateIncident = async (type: string, location: string, description: string, imageFile: File | null, _currentImageUrl: string | null, latitude: number | undefined, longitude: number | undefined): Promise<boolean> => {
     if (!user) {
       toast.error('You must be logged in to create an incident.');
       AnalyticsService.trackEvent({ name: 'admin_create_incident_attempt_failed', properties: { reason: 'not_logged_in' } });
