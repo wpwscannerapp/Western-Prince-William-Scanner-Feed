@@ -175,7 +175,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTa
           <CardHeader>
             <CardTitle>Manage Real-Time Alerts</CardTitle>
             <CardDescription>View, edit, or delete real-time alerts</CardDescription>
-          </CardDescription>
+          </CardHeader>
           <CardContent>
             <AdminAlertTable onAlertUpdated={refreshAlertTable} />
           </CardContent>
@@ -284,7 +284,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTa
       </TabsContent>
       <TabsContent value="contact" className="tw-space-y-8">
         <ContactSettingsForm />
-      </TabsContent>
+      </CardContent>
     </Tabs>
   );
 };

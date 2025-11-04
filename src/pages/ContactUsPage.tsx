@@ -9,7 +9,7 @@ import { SettingsService, ContactSettings } from '@/services/SettingsService';
 import { handleError } from '@/utils/errorHandler';
 import { CONTACT_US_TITLE, CONTACT_US_DESCRIPTION } from '@/lib/constants';
 import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
-import { ContactCard } from '@/types/supabase'; // Corrected import path
+import type { ContactCard } from '@/types/contact'; // Corrected import path
 
 const ContactUsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -62,13 +62,7 @@ const ContactUsPage: React.FC = () => {
     );
   }
 
-  const cards = (contactSettings?.contact_cards ?? []) as Array<{
-    id: string;
-    name: string;
-    title?: string;
-    email?: string;
-    phone?: string;
-  }>;
+  const cards = (contactSettings?.contact_cards ?? []) as ContactCard[];
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-xl">

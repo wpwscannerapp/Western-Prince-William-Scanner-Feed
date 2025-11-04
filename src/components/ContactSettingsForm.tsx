@@ -1,64 +1,35 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useForm, useFieldArray, FormProvider } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, PlusCircle } from 'lucide-react';
+import { Loader2, PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleError } from '@/utils/errorHandler';
 import { SettingsService } from '@/services/SettingsService';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import ContactCardForm from './ContactCardForm';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import { ContactCard } from '@/types/supabase'; // Import ContactCard
-
-const contactCardSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(1, { message: 'Name is required.' }).max(100, { message: 'Name too long.' }),
-  title: z.string().max(100, { message: 'Title too long.' }).optional().or(z.literal('')),
-  email: z.string().email({ message: 'Invalid email address.' }).optional().or(z.literal('')),
-  phone: z.string().min(1, { message: 'Phone number is required.' }).regex(/^\+?[0-9\s\-\(\)]{7,20}$/, { message: 'Invalid phone number format.' }),
-});
-
-const contactSettingsSchema = z.object({
-  contact_cards: z.array(contactCardSchema),
-});
-
-type ContactSettingsFormValues = z.infer<typeof contactSettingsSchema>;
+import type { ContactSettingsRow } from '@/types/supabase';
+import type { ContactCard } from '@/types/contact';
+import { ContactCardForm } from './ContactCardForm'; // Assuming this is the new standalone form
 
 const ContactSettingsForm: React.FC = () => {
   const { isAdmin, loading: isAdminLoading } = useIsAdmin();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-
-  const methods = useForm<ContactSettingsFormValues>({
-    resolver: zodResolver(contactSettingsSchema),
-    defaultValues: {
-      contact_cards: [],
-    },
-  });
-
-  const { control, handleSubmit, reset } = methods;
-
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'contact_cards',
-  });
+  const [cards, setCards] = useState<ContactCard[]>([]);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null); // null for no edit, 'new' for new card, id for existing
 
   const fetchContactSettings = async () => {
     setIsLoading(true);
     try {
       const settings = await SettingsService.getContactSettings();
-      if (settings && settings.contact_cards && settings.contact_cards.length > 0) {
-        const cardsWithIds = (settings.contact_cards as ContactCard[]).map(card => ({ ...card, id: card.id || crypto.randomUUID() }));
-        reset({ contact_cards: cardsWithIds });
-        AnalyticsService.trackEvent({ name: 'contact_settings_form_loaded', properties: { count: cardsWithIds.length } });
+      if (settings && settings.contact_cards && Array.isArray(settings.contact_cards)) {
+        const loadedCards = (settings.contact_cards as ContactCard[]).map(card => ({ ...card, id: card.id || crypto.randomUUID() }));
+        setCards(loadedCards);
+        AnalyticsService.trackEvent({ name: 'contact_settings_form_loaded', properties: { count: loadedCards.length } });
       } else {
-        reset({ contact_cards: [{ id: crypto.randomUUID(), name: '', title: '', email: '', phone: '' }] });
+        setCards([]);
         AnalyticsService.trackEvent({ name: 'contact_settings_form_loaded_empty' });
       }
     } catch (err) {
@@ -75,17 +46,19 @@ const ContactSettingsForm: React.FC = () => {
     }
   }, [isAdminLoading]);
 
-  const onSubmit = async (values: ContactSettingsFormValues) => {
+  const handleSaveCards = async (updatedCards: ContactCard[]) => {
     setIsSaving(true);
     try {
       toast.loading('Saving contact settings...', { id: 'save-contact-settings' });
       
-      const cardsToSave = values.contact_cards.map(({ id, ...rest }) => rest) as ContactCard[];
+      // Remove the temporary 'id' field before saving to DB if it's not part of the schema
+      const cardsToSave = updatedCards.map(({ id, ...rest }) => rest) as ContactCard[];
 
       const success = await SettingsService.updateContactSettings(cardsToSave);
       if (success) {
         toast.success('Contact settings saved successfully!', { id: 'save-contact-settings' });
-        fetchContactSettings();
+        setEditingCardId(null); // Close form after saving
+        fetchContactSettings(); // Re-fetch to ensure UI is in sync with DB
         AnalyticsService.trackEvent({ name: 'contact_settings_saved', properties: { count: cardsToSave.length } });
       } else {
         throw new Error('Failed to update contact settings in database.');
@@ -95,6 +68,26 @@ const ContactSettingsForm: React.FC = () => {
       AnalyticsService.trackEvent({ name: 'contact_settings_save_failed', properties: { error: (err as Error).message } });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleAddOrUpdateCard = (card: ContactCard) => {
+    let updatedCards: ContactCard[];
+    if (editingCardId && editingCardId !== 'new') {
+      updatedCards = cards.map((c) => (c.id === editingCardId ? card : c));
+    } else {
+      updatedCards = [...cards, { ...card, id: crypto.randomUUID() }]; // Ensure new cards have an ID for local state
+    }
+    setCards(updatedCards);
+    handleSaveCards(updatedCards); // Save to DB immediately
+  };
+
+  const handleDeleteCard = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this contact card?')) {
+      const updatedCards = cards.filter((c) => c.id !== id);
+      setCards(updatedCards);
+      handleSaveCards(updatedCards); // Save to DB immediately
+      AnalyticsService.trackEvent({ name: 'contact_card_deleted', properties: { cardId: id } });
     }
   };
 
@@ -119,13 +112,7 @@ const ContactSettingsForm: React.FC = () => {
     );
   }
 
-  const cards = (methods.watch('contact_cards') ?? []) as Array<{
-    id: string;
-    name: string;
-    title?: string;
-    email?: string;
-    phone?: string;
-  }>;
+  const cardToEdit = editingCardId && editingCardId !== 'new' ? cards.find(c => c.id === editingCardId) : undefined;
 
   return (
     <Card className="tw-bg-card tw-border-border tw-shadow-lg">
@@ -134,45 +121,59 @@ const ContactSettingsForm: React.FC = () => {
         <CardDescription className="tw-text-muted-foreground">Manage contact cards for the "Contact Us" page.</CardDescription>
       </CardHeader>
       <CardContent>
-        <FormProvider {...methods}>
-          <form onSubmit={handleSubmit(onSubmit)} className="tw-space-y-6">
-            <div>
-              <Label className="tw-mb-2 tw-block">Contact Cards</Label>
-              <div className="tw-space-y-4" role="list" aria-label="List of contact cards">
-                {cards.length === 0 && (
-                  <p className="tw-text-muted-foreground tw-text-center tw-py-4">No contact cards added yet.</p>
-                )}
-                {cards.map((field, index) => (
-                  <ContactCardForm
-                    key={field.id}
-                    index={index}
-                    remove={remove}
-                    isLoading={isSaving}
-                    fieldPrefix={`contact_cards.${index}`}
-                  />
-                ))}
+        <div className="tw-space-y-4">
+          {cards.length === 0 && !editingCardId ? (
+            <p className="tw-text-muted-foreground tw-text-center tw-py-4">No contact cards added yet.</p>
+          ) : (
+            cards.map((card) => (
+              <div key={card.id} className="tw-flex tw-items-center tw-justify-between tw-p-3 tw-border tw-rounded-md tw-bg-muted/20">
+                <div>
+                  <p className="tw-font-medium tw-text-foreground">{card.name}</p>
+                  {card.title && <p className="tw-text-sm tw-text-muted-foreground">{card.title}</p>}
+                </div>
+                <div className="tw-flex tw-gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setEditingCardId(card.id)}
+                    disabled={isSaving}
+                    aria-label={`Edit ${card.name}`}
+                  >
+                    <Edit className="tw-h-4 tw-w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleDeleteCard(card.id)}
+                    disabled={isSaving}
+                    aria-label={`Delete ${card.name}`}
+                  >
+                    <Trash2 className="tw-h-4 tw-w-4 tw-text-destructive" />
+                  </Button>
+                </div>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  append({ id: crypto.randomUUID(), name: '', title: '', email: '', phone: '' });
-                  AnalyticsService.trackEvent({ name: 'contact_card_added' });
-                }}
-                className="tw-mt-4 tw-w-full"
-                disabled={isSaving}
-                aria-label="Add new contact card"
-              >
-                <PlusCircle className="tw-mr-2 tw-h-4 tw-w-4" aria-hidden="true" /> Add Contact Card
-              </Button>
-            </div>
+            ))
+          )}
 
-            <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isSaving} aria-label="Save contact settings">
-              {isSaving && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
-              Save Contact Settings
+          {editingCardId ? (
+            <ContactCardForm
+              card={cardToEdit}
+              onSave={handleAddOrUpdateCard}
+              onCancel={() => setEditingCardId(null)}
+            />
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditingCardId('new')}
+              className="tw-mt-4 tw-w-full"
+              disabled={isSaving}
+              aria-label="Add new contact card"
+            >
+              <PlusCircle className="tw-mr-2 tw-h-4 tw-w-4" aria-hidden="true" /> Add Contact Card
             </Button>
-          </form>
-        </FormProvider>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

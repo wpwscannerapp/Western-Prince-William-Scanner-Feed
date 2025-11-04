@@ -34,8 +34,6 @@ const IncidentArchivePage: React.FC = () => {
     }
   }, [authLoading, user, navigate]);
 
-  const hasActiveFilters = Object.values(filters).some(value => value !== undefined && value !== '' && (Array.isArray(value) ? value.length > 0 : true));
-
   const {
     data,
     fetchNextPage,
