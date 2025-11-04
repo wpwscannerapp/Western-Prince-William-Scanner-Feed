@@ -6,25 +6,28 @@ import { AuthProvider } from "@/context/AuthContext.tsx";
 import AppSettingsProvider from './context/AppSettingsContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import MainContent from './components/MainContent';
+import ChunkErrorHandler from './components/ChunkErrorHandler'; // Import ChunkErrorHandler
 
 const queryClient = new QueryClient();
 
 const App = () => {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Sonner />
-          <BrowserRouter>
-            <AuthProvider>
-              <AppSettingsProvider>
-                {/* Render MainContent which contains all routes */}
-                <MainContent />
-              </AppSettingsProvider>
-            </AuthProvider>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
+      <ChunkErrorHandler>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Sonner />
+            <BrowserRouter>
+              <AuthProvider>
+                <AppSettingsProvider>
+                  {/* Render MainContent which contains all routes */}
+                  <MainContent />
+                </AppSettingsProvider>
+              </AuthProvider>
+            </BrowserRouter>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ChunkErrorHandler>
     </ErrorBoundary>
   );
 };
