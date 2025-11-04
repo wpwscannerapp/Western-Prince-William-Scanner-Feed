@@ -47,6 +47,9 @@ export type CommentWithProfile = CommentRow & {
 // b) Make a column required (useful for inserts)
 export type RequiredInsert<T> = { [P in keyof T]-?: NonNullable<T[P]> };
 
+// Example of a new incident type where certain fields are required for insert
+export type NewIncident = RequiredInsert<Omit<IncidentInsert, 'id' | 'created_at'>>;
+
 // c) JSON payload helpers
 export type LayoutJson      = AppSettingsRow['layout'];
 export type ContactCardsJson= ContactSettingsRow['contact_cards'];
