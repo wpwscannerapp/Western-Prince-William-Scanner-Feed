@@ -9,7 +9,7 @@ import { SettingsService, ContactSettings } from '@/services/SettingsService';
 import { handleError } from '@/utils/errorHandler';
 import { CONTACT_US_TITLE, CONTACT_US_DESCRIPTION } from '@/lib/constants';
 import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
-import type { ContactCard } from '@/types/contact'; // Corrected import path
+import type { ContactCard } from '@/types/supabase'; // Corrected import path
 
 const ContactUsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -25,7 +25,12 @@ const ContactUsPage: React.FC = () => {
         const settings = await SettingsService.getContactSettings();
         if (settings) {
           setContactSettings(settings);
-          AnalyticsService.trackEvent({ name: 'contact_settings_loaded', properties: { count: settings.contact_cards.length } });
+          // Safely access length after ensuring contact_cards is an array
+          if (settings.contact_cards && Array.isArray(settings.contact_cards)) {
+            AnalyticsService.trackEvent({ name: 'contact_settings_loaded', properties: { count: settings.contact_cards.length } });
+          } else {
+            AnalyticsService.trackEvent({ name: 'contact_settings_loaded', properties: { count: 0 } });
+          }
         } else {
           setError('Failed to load contact information.');
           AnalyticsService.trackEvent({ name: 'contact_settings_load_failed', properties: { reason: 'no_settings' } });
@@ -62,7 +67,10 @@ const ContactUsPage: React.FC = () => {
     );
   }
 
-  const cards = (contactSettings?.contact_cards ?? []) as ContactCard[];
+  // Safely cast contact_cards to ContactCard[] after ensuring it's an array
+  const cards = (contactSettings?.contact_cards && Array.isArray(contactSettings.contact_cards)
+    ? contactSettings.contact_cards
+    : []) as ContactCard[];
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-xl">
@@ -92,7 +100,7 @@ const ContactUsPage: React.FC = () => {
                   )}
                   {card.email && (
                     <p className="tw-text-foreground tw-mb-1 tw-flex tw-items-center tw-gap-2">
-                      <Mail className="tw-h-4 tw-w-4 tw-text-secondary" aria-hidden="true" /> 
+                      <Mail className="tw-h-4 tw-w-4" aria-hidden="true" /> 
                       <a href={`mailto:${card.email}`} className="tw-text-primary hover:tw-underline">
                         {card.email}
                       </a>
@@ -100,7 +108,7 @@ const ContactUsPage: React.FC = () => {
                   )}
                   {card.phone && (
                     <p className="tw-text-foreground tw-flex tw-items-center tw-gap-2">
-                      <Phone className="tw-h-4 tw-w-4 tw-text-secondary" aria-hidden="true" /> 
+                      <Phone className="tw-h-4 tw-w-4" aria-hidden="true" /> 
                       <a href={`tel:${card.phone}`} className="tw-text-primary hover:tw-underline">
                         {card.phone}
                       </a>

@@ -14,7 +14,9 @@ export type FeedbackRow             = PublicSchema['Tables']['feedback_and_sugge
 export type IncidentRow             = PublicSchema['Tables']['incidents']['Row']
 export type LikeRow                 = PublicSchema['Tables']['likes']['Row']
 export type ProfileRow              = PublicSchema['Tables']['profiles']['Row']
-export type NotificationSettingsRow = PublicSchema['Tables']['user_notification_settings']['Row']
+export type NotificationSettingsRow = PublicSchema['Tables']['user_notification_settings']['Row'] & {
+  receive_all_alerts: boolean; // Added missing property
+};
 
 // ---------------------------------------------------------------
 // 3. Insert / Update helpers
@@ -29,7 +31,9 @@ export type ContactSettingsInsert = PublicSchema['Tables']['contact_settings']['
 export type ContactSettingsUpdate = PublicSchema['Tables']['contact_settings']['Update']
 export type IncidentInsert = PublicSchema['Tables']['incidents']['Insert']
 export type IncidentUpdate = PublicSchema['Tables']['incidents']['Update']
-export type NotificationSettingsInsert = PublicSchema['Tables']['user_notification_settings']['Insert']
+export type NotificationSettingsInsert = PublicSchema['Tables']['user_notification_settings']['Insert'] & {
+  receive_all_alerts: boolean; // Added missing property
+};
 export type NotificationSettingsUpdate = PublicSchema['Tables']['user_notification_settings']['Update']
 export type ProfileInsert = PublicSchema['Tables']['profiles']['Insert']
 export type ProfileUpdate = PublicSchema['Tables']['profiles']['Update']
@@ -47,7 +51,8 @@ export type NewAlert = RequiredInsert<Omit<AlertInsert, 'id' | 'created_at'>>;
 export type NewComment = RequiredInsert<Omit<CommentInsert, 'id' | 'created_at'>>;
 
 export type LayoutJson = Array<{ id: string; type: string; content: string }> | null;
-export type ContactCardsJson = Array<{ id?: string; name: string; title?: string; email?: string; phone?: string }> | null;
+export type ContactCard = { id: string; name: string; title?: string; email?: string; phone?: string }; // Made 'id' non-optional
+export type ContactCardsJson = Array<ContactCard> | null;
 export type PushSubJson = NotificationSettingsRow['push_subscription'];
 
 export type CommentWithProfile = CommentRow & {
@@ -57,5 +62,3 @@ export type CommentWithProfile = CommentRow & {
 export type FeedbackWithProfile = FeedbackRow & {
   profiles: Array<Pick<ProfileRow, 'username' | 'id'>> | null;
 };
-
-export type ContactCard = ContactCardsJson extends (infer U)[] ? U : never;

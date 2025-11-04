@@ -9,7 +9,7 @@ import { handleError } from '@/utils/errorHandler';
 import { SettingsService } from '@/services/SettingsService';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import type { ContactCard } from '@/types/contact';
+import type { ContactCard } from '@/types/supabase'; // Corrected import path
 import { ContactCardForm } from './ContactCardForm'; // Assuming this is the new standalone form
 
 const ContactSettingsForm: React.FC = () => {
@@ -51,7 +51,7 @@ const ContactSettingsForm: React.FC = () => {
       toast.loading('Saving contact settings...', { id: 'save-contact-settings' });
       
       // Remove the temporary 'id' field before saving to DB if it's not part of the schema
-      const cardsToSave = updatedCards.map(({ id, ...rest }) => rest) as ContactCard[];
+      const cardsToSave = updatedCards.map(({ id, ...rest }) => rest);
 
       const success = await SettingsService.updateContactSettings(cardsToSave);
       if (success) {

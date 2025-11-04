@@ -6,7 +6,7 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { ContactCard } from "@/types/contact";
+import type { ContactCard } from "@/types/supabase"; // Updated import path
 
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -16,7 +16,7 @@ const schema = z.object({
 });
 
 interface Props {
-  card?: ContactCard;
+  card?: Omit<ContactCard, 'id'> & { id?: string }; // Allow optional ID for new cards
   onSave: (card: ContactCard) => void;
   onCancel: () => void;
 }
@@ -38,7 +38,7 @@ export function ContactCardForm({ card, onSave, onCancel }: Props) {
 
   const onSubmit = (data: z.infer<typeof schema>) => {
     onSave({
-      id: card?.id ?? crypto.randomUUID(),
+      id: card?.id ?? crypto.randomUUID(), // Ensure ID is always present
       name: data.name,
       title: data.title,
       email: data.email,

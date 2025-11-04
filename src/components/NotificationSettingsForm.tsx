@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useForm, useFormContext } from 'react-hook-form'; // Added useForm
+import { useForm, useFormContext } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -231,11 +231,11 @@ interface NotificationCustomizationFieldsProps {
 const NotificationCustomizationFields: React.FC<NotificationCustomizationFieldsProps> = ({
   isCustomizationDisabled,
 }) => {
-  const { watch, setValue, formState: { errors }, register } = useFormContext<NotificationSettingsFormValues>(); // Added register
+  const { watch, setValue, formState: { errors }, register } = useFormContext<NotificationSettingsFormValues>();
   const preferredDays = watch('preferred_days');
 
   const handleToggleDay = (day: string) => {
-    const currentDays = watch('preferred_days'); // Use watch instead of getValues
+    const currentDays = watch('preferred_days');
     if (currentDays.includes(day)) {
       setValue('preferred_days', currentDays.filter((d: string) => d !== day));
       AnalyticsService.trackEvent({ name: 'notification_preferred_day_removed', properties: { day } });
@@ -257,7 +257,7 @@ const NotificationCustomizationFields: React.FC<NotificationCustomizationFieldsP
         <Input
           id="preferred_start_time"
           type="time"
-          {...register('preferred_start_time')} // Use register
+          {...register('preferred_start_time')}
           className="tw-bg-input tw-text-foreground"
           disabled={isCustomizationDisabled}
           aria-invalid={errors.preferred_start_time ? "true" : "false"}
@@ -274,7 +274,7 @@ const NotificationCustomizationFields: React.FC<NotificationCustomizationFieldsP
         <Input
           id="preferred_end_time"
           type="time"
-          {...register('preferred_end_time')} // Use register
+          {...register('preferred_end_time')}
           className="tw-bg-input tw-text-foreground"
           disabled={isCustomizationDisabled}
           aria-invalid={errors.preferred_end_time ? "true" : "false"}
@@ -319,7 +319,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const form = useForm<NotificationSettingsFormValues>({ // Moved form declaration to top
+  const form = useForm<NotificationSettingsFormValues>({
     resolver: zodResolver(notificationSettingsSchema),
     defaultValues: {
       enabled: false,
@@ -334,10 +334,10 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
   const { handleSubmit, reset, watch, setValue } = form;
   const enabled = watch('enabled');
   const receiveAllAlerts = watch('receive_all_alerts');
-  const preferPushNotifications = watch('prefer_push_notifications'); // Kept for useRealtimeAlerts
+  const preferPushNotifications = watch('prefer_push_notifications');
 
   const { notificationPermission, requestNotificationPermission } = useNotificationPermissions();
-  const { alertRealtimeStatus } = useRealtimeAlerts(user, preferPushNotifications); // Used preferPushNotifications here
+  const { alertRealtimeStatus } = useRealtimeAlerts(user, preferPushNotifications);
 
   const fetchSettings = useCallback(async () => {
     if (!user) return;
