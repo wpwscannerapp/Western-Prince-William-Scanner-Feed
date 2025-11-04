@@ -223,7 +223,7 @@ export const IncidentService = {
         longitude, 
         admin_id: adminId,
         audio_url: null, // required but nullable
-        search_vector: null, // required but nullable
+        // OMIT search_vector to allow DB to handle its default/trigger population
       };
       const { data, error } = await supabase
         .from('incidents')
@@ -311,7 +311,10 @@ export const IncidentService = {
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
-      const incidentUpdate: IncidentUpdate = { ...updates, image_url: imageUrl, latitude, longitude, date: new Date().toISOString() };
+      // OMIT search_vector from update as well, as it should be updated by a trigger
+      const { search_vector, ...restUpdates } = updates;
+      const incidentUpdate: IncidentUpdate = { ...restUpdates, image_url: imageUrl, latitude, longitude, date: new Date().toISOString() };
+      
       const { data, error } = await supabase
         .from('incidents')
         .update(incidentUpdate)
