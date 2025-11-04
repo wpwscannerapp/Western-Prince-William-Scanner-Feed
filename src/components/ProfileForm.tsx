@@ -192,6 +192,12 @@ const ProfileForm: React.FC = () => {
     AnalyticsService.trackEvent({ name: 'avatar_image_removed_from_preview' });
   };
 
+  const handleAvatarClick = () => {
+    if (fileInputRef.current && !isSubmitDisabled) {
+      fileInputRef.current.click();
+    }
+  };
+
   const onSubmit = async (values: ProfileFormValues) => {
     if (!user) {
       toast.error('You must be logged in to update your profile.');
@@ -284,19 +290,28 @@ const ProfileForm: React.FC = () => {
     <form onSubmit={form.handleSubmit(onSubmit)} className="tw-space-y-6 tw-p-6 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm">
       <div className="tw-flex tw-flex-col tw-items-center tw-gap-4">
         <div className="tw-relative tw-group">
-          <Avatar className="tw-h-24 tw-w-24 tw-border-2 tw-border-primary">
-            <AvatarImage 
-              src={avatarSrc} 
-              alt="User Avatar" 
-            />
-            <AvatarFallback className="tw-bg-primary tw-text-primary-foreground tw-text-xl">
-              {profile?.first_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || <User className="tw-h-12 tw-w-12" aria-hidden="true" />}
-            </AvatarFallback>
-          </Avatar>
-          <Label htmlFor="avatar-upload" className="tw-absolute tw-inset-0 tw-flex tw-items-center tw-justify-center tw-bg-black/50 tw-opacity-0 group-hover:tw-opacity-100 tw-transition-opacity tw-cursor-pointer tw-rounded-full">
-            <Camera className="tw-h-6 tw-w-6 tw-text-white" aria-hidden="true" />
-            <span className="tw-sr-only">Change avatar</span>
-          </Label>
+          <div 
+            className={`tw-h-24 tw-w-24 tw-rounded-full tw-border-2 tw-border-primary tw-cursor-pointer ${isSubmitDisabled ? 'tw-cursor-not-allowed tw-opacity-70' : ''}`}
+            onClick={handleAvatarClick}
+            role="button"
+            tabIndex={isSubmitDisabled ? -1 : 0}
+            aria-label="Change avatar image"
+          >
+            <Avatar className="tw-h-full tw-w-full">
+              <AvatarImage 
+                src={avatarSrc} 
+                alt="User Avatar" 
+              />
+              <AvatarFallback className="tw-bg-primary tw-text-primary-foreground tw-text-xl">
+                {profile?.first_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || <User className="tw-h-12 tw-w-12" aria-hidden="true" />}
+              </AvatarFallback>
+            </Avatar>
+            <div className="tw-absolute tw-inset-0 tw-flex tw-items-center tw-justify-center tw-bg-black/50 tw-opacity-0 group-hover:tw-opacity-100 tw-transition-opacity tw-cursor-pointer tw-rounded-full">
+              <Camera className="tw-h-6 tw-w-6 tw-text-white" aria-hidden="true" />
+              <span className="tw-sr-only">Change avatar</span>
+            </div>
+          </div>
+          
           <Input
             id="avatar-upload"
             type="file"
@@ -307,6 +322,7 @@ const ProfileForm: React.FC = () => {
             disabled={isSubmitDisabled}
             aria-label="Upload new avatar image"
           />
+          
           {(imagePreview || profile?.avatar_url) && (imageFile || profile?.avatar_url) && (
             <Button
               type="button"
