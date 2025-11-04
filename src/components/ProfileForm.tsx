@@ -279,11 +279,11 @@ const ProfileForm: React.FC = () => {
 
   const isSubmitDisabled = updateProfileMutation.isPending || isUploading || usernameStatus === 'checking' || usernameStatus === 'taken';
 
-  // Determine the avatar source: local blob URL if a file is selected, otherwise Netlify CDN for hosted images.
+  // Determine the avatar source: local blob URL if a file is selected, otherwise direct Supabase URL for hosted images.
   const avatarSrc = imageFile 
     ? imagePreview || undefined // Use blob URL directly for local file preview, convert null to undefined
     : (imagePreview && imagePreview.trim() !== '') 
-      ? `/.netlify/images?url=${encodeURIComponent(imagePreview)}&w=96&h=96&fit=cover&fm=auto` 
+      ? imagePreview // Use direct Supabase URL
       : undefined;
 
   return (
