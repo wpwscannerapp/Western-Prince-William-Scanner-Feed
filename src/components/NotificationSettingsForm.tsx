@@ -18,9 +18,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { AnalyticsService } from '@/services/AnalyticsService';
 import { PushSubJson, NotificationSettingsUpdate } from '@/types/supabase';
 
+// --- Constants ---
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const IDLE_TIMEOUT_MS = 300000; // 5 minutes
 
+// --- Validation Schema ---
 const notificationSettingsSchema = z.object({
   enabled: z.boolean(),
   receive_all_alerts: z.boolean(),
@@ -32,16 +34,21 @@ const notificationSettingsSchema = z.object({
 
 export type NotificationSettingsFormValues = z.infer<typeof notificationSettingsSchema>;
 
+// --- Interfaces ---
 interface NotificationSettingsFormProps {
   isWebPushInitialized: boolean;
 }
-
-// --- Custom Hooks ---
 
 interface UseNotificationPermissionsResult {
   notificationPermission: NotificationPermission;
   requestNotificationPermission: () => Promise<NotificationPermission>;
 }
+
+interface UseRealtimeAlertsResult {
+  alertRealtimeStatus: 'active' | 'failed' | 'connecting';
+}
+
+// --- Custom Hooks ---
 
 const useNotificationPermissions = (): UseNotificationPermissionsResult => {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
@@ -78,10 +85,6 @@ const useNotificationPermissions = (): UseNotificationPermissionsResult => {
   return { notificationPermission, requestNotificationPermission };
 };
 
-interface UseRealtimeAlertsResult {
-  alertRealtimeStatus: 'active' | 'failed' | 'connecting';
-}
-
 const useRealtimeAlerts = (user: any, preferPushNotifications: boolean): UseRealtimeAlertsResult => {
   const [alertRealtimeStatus, setAlertRealtimeStatus] = useState<'active' | 'failed' | 'connecting'>('connecting');
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -95,7 +98,7 @@ const useRealtimeAlerts = (user: any, preferPushNotifications: boolean): UseReal
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
-        setAlertRealtimeStatus('connecting'); // Indicate that it's trying to reconnect or is idle
+        setAlertRealtimeStatus('connecting');
         toast.info('Real-time alerts unsubscribed due to inactivity. Will resubscribe on new activity.', { duration: 3000 });
         AnalyticsService.trackEvent({ name: 'realtime_alerts_auto_unsubscribed_idle' });
       }
@@ -135,7 +138,7 @@ const useRealtimeAlerts = (user: any, preferPushNotifications: boolean): UseReal
           AnalyticsService.trackEvent({ name: 'realtime_alerts_unsubscribed_or_closed', properties: { status } });
         }
       });
-  }, [user, preferPushNotifications, resetIdleTimer]); // Added preferPushNotifications to dependencies
+  }, [user, preferPushNotifications, resetIdleTimer]);
 
   useEffect(() => {
     subscribeToAlerts();
@@ -146,29 +149,45 @@ const useRealtimeAlerts = (user: any, preferPushNotifications: boolean): UseReal
       }
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
       }
       setAlertRealtimeStatus('connecting');
       AnalyticsService.trackEvent({ name: 'realtime_alerts_component_unmounted' });
     };
-  }, [user, preferPushNotifications, subscribeToAlerts]); // Added preferPushNotifications to dependencies
+  }, [user, preferPushNotifications, subscribeToAlerts]);
 
   return { alertRealtimeStatus };
 };
 
-// --- Smaller Components ---
+// --- Sub Components ---
 
-interface NotificationPreferenceSwitchesProps {
+const NotificationStatusIndicator: React.FC<{ status: 'active' | 'failed' | 'connecting' }> = ({ status }) => {
+  return (
+    <div className="tw-flex tw-items-center tw-gap-2 tw-text-sm">
+      <span className="tw-font-medium">Real-time Alerts Status:</span>
+      {status === 'connecting' && (
+        <span className="tw-flex tw-items-center tw-gap-1 tw-text-muted-foreground">
+          <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" /> Connecting...
+        </span>
+      )}
+      {status === 'active' && (
+        <span className="tw-flex tw-items-center tw-gap-1 tw-text-green-600">
+          <CheckCircle2 className="tw-h-4 tw-w-4" aria-hidden="true" /> Active
+        </span>
+      )}
+      {status === 'failed' && (
+        <span className="tw-flex tw-items-center tw-gap-1 tw-text-destructive">
+          <XCircle className="tw-h-4 tw-w-4" aria-hidden="true" /> Failed
+        </span>
+      )}
+    </div>
+  );
+};
+
+const NotificationPreferenceSwitches: React.FC<{
   isFormDisabled: boolean;
   notificationPermission: NotificationPermission;
   requestNotificationPermission: () => Promise<NotificationPermission>;
-}
-
-const NotificationPreferenceSwitches: React.FC<NotificationPreferenceSwitchesProps> = ({
-  isFormDisabled,
-  notificationPermission,
-  requestNotificationPermission,
-}) => {
+}> = ({ isFormDisabled, notificationPermission, requestNotificationPermission }) => {
   const { watch, setValue } = useFormContext<NotificationSettingsFormValues>();
   const enabled = watch('enabled');
   const preferPushNotifications = watch('prefer_push_notifications');
@@ -224,13 +243,7 @@ const NotificationPreferenceSwitches: React.FC<NotificationPreferenceSwitchesPro
   );
 };
 
-interface NotificationCustomizationFieldsProps {
-  isCustomizationDisabled: boolean;
-}
-
-const NotificationCustomizationFields: React.FC<NotificationCustomizationFieldsProps> = ({
-  isCustomizationDisabled,
-}) => {
+const NotificationCustomizationFields: React.FC<{ isCustomizationDisabled: boolean }> = ({ isCustomizationDisabled }) => {
   const { watch, setValue, formState: { errors }, register } = useFormContext<NotificationSettingsFormValues>();
   const preferredDays = watch('preferred_days');
 
@@ -312,6 +325,37 @@ const NotificationCustomizationFields: React.FC<NotificationCustomizationFieldsP
   );
 };
 
+const AllAlertsToggle: React.FC<{ isFormDisabled: boolean }> = ({ isFormDisabled }) => {
+  const { watch, setValue } = useFormContext<NotificationSettingsFormValues>();
+  const receiveAllAlerts = watch('receive_all_alerts');
+  const enabled = watch('enabled');
+
+  return (
+    <div className="tw-space-y-2">
+      <div className="tw-flex tw-items-center tw-justify-between">
+        <Label htmlFor="receive_all_alerts" className="tw-text-base">Receive All Alerts (24/7, no filters)</Label>
+        <Switch
+          id="receive_all_alerts"
+          checked={receiveAllAlerts}
+          onCheckedChange={(checked) => {
+            setValue('receive_all_alerts', checked);
+            if (checked) {
+              setValue('preferred_start_time', '');
+              setValue('preferred_end_time', '');
+              setValue('preferred_days', []);
+            }
+          }}
+          disabled={isFormDisabled || !enabled}
+          aria-label="Toggle receiving all alerts 24/7"
+        />
+      </div>
+      <CardDescription className="tw-text-muted-foreground">
+        When enabled, you will receive all alerts at all times, regardless of day or time preferences.
+      </CardDescription>
+    </div>
+  );
+};
+
 // --- Main Component ---
 
 const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isWebPushInitialized }) => {
@@ -331,13 +375,12 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
     },
   });
 
-  const { handleSubmit, reset, watch, setValue } = form;
+  const { handleSubmit, reset, watch } = form;
   const enabled = watch('enabled');
   const receiveAllAlerts = watch('receive_all_alerts');
-  const preferPushNotifications = watch('prefer_push_notifications');
 
   const { notificationPermission, requestNotificationPermission } = useNotificationPermissions();
-  const { alertRealtimeStatus } = useRealtimeAlerts(user, preferPushNotifications);
+  const { alertRealtimeStatus } = useRealtimeAlerts(user, watch('prefer_push_notifications'));
 
   const fetchSettings = useCallback(async () => {
     if (!user) return;
@@ -454,7 +497,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
       handleError(err, errorMessages[err.message] || 'An unexpected error occurred while saving settings.', { id: 'save-settings' });
       AnalyticsService.trackEvent({ name: 'save_notification_settings_failed', properties: { userId: user?.id, reason: err.message, error: (err as Error).message } });
       if (err.message === 'permission_denied') {
-        setValue('enabled', false);
+        form.setValue('enabled', false);
       }
     } finally {
       setIsSaving(false);
@@ -510,47 +553,9 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
             requestNotificationPermission={requestNotificationPermission}
           />
 
-          <div className="tw-flex tw-items-center tw-gap-2 tw-text-sm">
-            <span className="tw-font-medium">Real-time Alerts Status:</span>
-            {alertRealtimeStatus === 'connecting' && (
-              <span className="tw-flex tw-items-center tw-gap-1 tw-text-muted-foreground">
-                <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" /> Connecting...
-              </span>
-            )}
-            {alertRealtimeStatus === 'active' && (
-              <span className="tw-flex tw-items-center tw-gap-1 tw-text-green-600">
-                <CheckCircle2 className="tw-h-4 tw-w-4" aria-hidden="true" /> Active
-              </span>
-            )}
-            {alertRealtimeStatus === 'failed' && (
-              <span className="tw-flex tw-items-center tw-gap-1 tw-text-destructive">
-                <XCircle className="tw-h-4 tw-w-4" aria-hidden="true" /> Failed
-              </span>
-            )}
-          </div>
+          <NotificationStatusIndicator status={alertRealtimeStatus} />
 
-          <div className="tw-space-y-2">
-            <div className="tw-flex tw-items-center tw-justify-between">
-              <Label htmlFor="receive_all_alerts" className="tw-text-base">Receive All Alerts (24/7, no filters)</Label>
-              <Switch
-                id="receive_all_alerts"
-                checked={receiveAllAlerts}
-                onCheckedChange={(checked) => {
-                  setValue('receive_all_alerts', checked);
-                  if (checked) {
-                    setValue('preferred_start_time', '');
-                    setValue('preferred_end_time', '');
-                    setValue('preferred_days', []);
-                  }
-                }}
-                disabled={isFormDisabled || !enabled}
-                aria-label="Toggle receiving all alerts 24/7"
-            />
-            </div>
-            <CardDescription className="tw-text-muted-foreground">
-              When enabled, you will receive all alerts at all times, regardless of day or time preferences.
-            </CardDescription>
-          </div>
+          <AllAlertsToggle isFormDisabled={isFormDisabled} />
 
           {!receiveAllAlerts && enabled && (
             <NotificationCustomizationFields isCustomizationDisabled={isCustomizationDisabled} />
