@@ -3,32 +3,22 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
-import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsService
-
-export interface Comment {
-  id: string;
-  incident_id: string;
-  user_id: string;
-  content: string;
-  created_at: string;
-  updated_at: string;
-  username: string | null;
-  avatar_url: string | null;
-}
+import { AnalyticsService } from './AnalyticsService';
+import { CommentInsert, CommentUpdate, CommentWithProfile } from '@/types/database'; // Import new types
 
 const logSupabaseError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
 };
 
 export const CommentService = {
-  async addComment(incidentId: string, userId: string, content: string): Promise<Comment | null> {
+  async addComment(incidentId: string, userId: string, content: string): Promise<CommentWithProfile | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
       const { data, error } = await supabase
         .from('comments')
-        .insert({ incident_id: incidentId, user_id: userId, content })
+        .insert({ incident_id: incidentId, user_id: userId, content } as CommentInsert)
         .abortSignal(controller.signal)
         .select(`
           id,
@@ -57,7 +47,7 @@ export const CommentService = {
         updated_at: data.updated_at,
         username: profileData?.username || null,
         avatar_url: profileData?.avatar_url || null,
-      } as Comment;
+      } as CommentWithProfile;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Adding comment timed out.');
@@ -72,7 +62,7 @@ export const CommentService = {
     }
   },
 
-  async fetchComments(incidentId: string): Promise<Comment[]> {
+  async fetchComments(incidentId: string): Promise<CommentWithProfile[]> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -108,7 +98,7 @@ export const CommentService = {
           username: profileData?.username || null,
           avatar_url: profileData?.avatar_url || null,
         };
-      }) as Comment[];
+      }) as CommentWithProfile[];
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching comments timed out.');
@@ -121,14 +111,14 @@ export const CommentService = {
     }
   },
 
-  async updateComment(commentId: string, content: string): Promise<Comment | null> {
+  async updateComment(commentId: string, content: string): Promise<CommentWithProfile | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
       const { data, error } = await supabase
         .from('comments')
-        .update({ content, updated_at: new Date().toISOString() })
+        .update({ content, updated_at: new Date().toISOString() } as CommentUpdate)
         .eq('id', commentId)
         .abortSignal(controller.signal)
         .select(`
@@ -158,7 +148,7 @@ export const CommentService = {
         updated_at: data.updated_at,
         username: profileData?.username || null,
         avatar_url: profileData?.avatar_url || null,
-      } as Comment;
+      } as CommentWithProfile;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Updating comment timed out.');

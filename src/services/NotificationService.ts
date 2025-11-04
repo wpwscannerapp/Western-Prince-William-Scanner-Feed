@@ -3,7 +3,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
-import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsService
+import { AnalyticsService } from './AnalyticsService';
+import { NotificationSettingsRow, NotificationSettingsInsert, NotificationSettingsUpdate, AlertRow, AlertInsert, AlertUpdate } from '@/types/database'; // Import new types
 
 export interface PushSubscription {
   endpoint: string;
@@ -12,35 +13,6 @@ export interface PushSubscription {
     p256dh: string;
     auth: string;
   };
-}
-
-export interface UserNotificationSettings {
-  user_id: string;
-  push_subscription: PushSubscription | null;
-  enabled: boolean;
-  receive_all_alerts: boolean;
-  preferred_start_time: string | null;
-  preferred_end_time: string | null;
-  preferred_days: string[];
-  prefer_push_notifications: boolean;
-  // Removed customize_time_and_days as its logic is now implicitly handled by receive_all_alerts
-  updated_at: string;
-  // Add other non-nullable fields with default values from schema
-  latitude: number | null;
-  longitude: number | null;
-  manual_location_address: string | null;
-  preferred_types: string[];
-  radius_miles: number;
-}
-
-export interface Alert {
-  id: string;
-  type: string;
-  latitude: number;
-  longitude: number;
-  description: string;
-  title: string;
-  created_at: string;
 }
 
 const logSupabaseError = (functionName: string, error: any) => {
@@ -145,7 +117,7 @@ export const NotificationService = {
     }
   },
 
-  async getUserNotificationSettings(userId: string): Promise<UserNotificationSettings | null> {
+  async getUserNotificationSettings(userId: string): Promise<NotificationSettingsRow | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -166,7 +138,7 @@ export const NotificationService = {
         AnalyticsService.trackEvent({ name: 'fetch_notification_settings_failed', properties: { userId, error: error.message } });
         return null;
       }
-      const settings = (data && data.length > 0) ? data[0] as UserNotificationSettings : null;
+      const settings = (data && data.length > 0) ? data[0] as NotificationSettingsRow : null;
       AnalyticsService.trackEvent({ name: 'notification_settings_fetched', properties: { userId, enabled: settings?.enabled } });
       return settings;
     } catch (err: any) {
@@ -185,8 +157,8 @@ export const NotificationService = {
 
   async updateUserNotificationSettings(
     userId: string,
-    updates: Partial<Omit<UserNotificationSettings, 'user_id' | 'updated_at'>>
-  ): Promise<UserNotificationSettings | null> {
+    updates: Partial<NotificationSettingsUpdate>
+  ): Promise<NotificationSettingsRow | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -194,7 +166,7 @@ export const NotificationService = {
       // Fetch existing settings or create a default one if none exist
       const existingSettings = await NotificationService.getUserNotificationSettings(userId);
 
-      const defaultSettings: Omit<UserNotificationSettings, 'user_id' | 'updated_at'> = {
+      const defaultSettings: Omit<NotificationSettingsInsert, 'user_id' | 'updated_at'> = {
         enabled: false,
         push_subscription: null,
         receive_all_alerts: true,
@@ -202,7 +174,6 @@ export const NotificationService = {
         preferred_end_time: null,
         preferred_days: [],
         prefer_push_notifications: false,
-        // Removed customize_time_and_days from default settings
         latitude: null,
         longitude: null,
         manual_location_address: null,
@@ -211,19 +182,18 @@ export const NotificationService = {
       };
 
       // Merge existing settings (if any) with defaults, then apply updates
-      const mergedSettings = {
+      const mergedSettings: NotificationSettingsInsert = {
+        user_id: userId,
         ...defaultSettings,
         ...(existingSettings || {}), // Use existing settings if available
         ...updates,
         updated_at: new Date().toISOString(),
       };
 
-      const upsertPayload = { user_id: userId, ...mergedSettings };
-
       const { data, error } = await supabase
         .from('user_notification_settings')
         .upsert(
-          upsertPayload,
+          mergedSettings,
           { onConflict: 'user_id' }
         )
         .abortSignal(controller.signal)
@@ -236,7 +206,7 @@ export const NotificationService = {
         return null;
       }
       AnalyticsService.trackEvent({ name: 'notification_settings_updated', properties: { userId, enabled: data?.enabled } });
-      return data as UserNotificationSettings;
+      return data as NotificationSettingsRow;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Updating notification settings timed out.');
@@ -251,7 +221,7 @@ export const NotificationService = {
     }
   },
 
-  async createAlert(alert: Omit<Alert, 'id' | 'created_at'>): Promise<Alert | null> {
+  async createAlert(alert: AlertInsert): Promise<AlertRow | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -269,7 +239,7 @@ export const NotificationService = {
         return null;
       }
       AnalyticsService.trackEvent({ name: 'alert_created', properties: { alertId: data.id, type: data.type } });
-      return data as Alert;
+      return data as AlertRow;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Creating alert timed out.');
@@ -284,7 +254,7 @@ export const NotificationService = {
     }
   },
 
-  async fetchAlerts(): Promise<Alert[]> {
+  async fetchAlerts(): Promise<AlertRow[]> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -301,7 +271,7 @@ export const NotificationService = {
         return [];
       }
       AnalyticsService.trackEvent({ name: 'alerts_fetched', properties: { count: data.length } });
-      return data as Alert[];
+      return data as AlertRow[];
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching alerts timed out.');
@@ -316,7 +286,7 @@ export const NotificationService = {
     }
   },
 
-  async updateAlert(alertId: string, updates: Partial<Omit<Alert, 'id' | 'created_at'>>): Promise<Alert | null> {
+  async updateAlert(alertId: string, updates: AlertUpdate): Promise<AlertRow | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -335,7 +305,7 @@ export const NotificationService = {
         return null;
       }
       AnalyticsService.trackEvent({ name: 'alert_updated', properties: { alertId, updates: Object.keys(updates) } });
-      return data as Alert;
+      return data as AlertRow;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Updating alert timed out.');

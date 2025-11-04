@@ -5,22 +5,9 @@ import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { StorageService } from './StorageService';
 import { NotificationService } from './NotificationService';
-import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsService
-import { ProfileService } from './ProfileService'; // Import ProfileService
-
-export interface Incident {
-  id: string;
-  title: string;
-  description: string;
-  type: string;
-  location: string;
-  date: string;
-  image_url?: string;
-  latitude?: number;
-  longitude?: number;
-  admin_id?: string;
-  created_at: string;
-}
+import { AnalyticsService } from './AnalyticsService';
+import { ProfileService } from './ProfileService';
+import { IncidentRow, IncidentInsert, IncidentUpdate, NewIncident } from '@/types/database'; // Import new types
 
 export interface IncidentFilter {
   searchTerm?: string;
@@ -42,7 +29,7 @@ const logSupabaseError = (functionName: string, error: any) => {
 export const IncidentService = {
   INCIDENTS_PER_PAGE,
 
-  async fetchIncidents(offset: number = 0, filters: IncidentFilter = {}, limit?: number): Promise<Incident[]> {
+  async fetchIncidents(offset: number = 0, filters: IncidentFilter = {}, limit?: number): Promise<IncidentRow[]> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -88,7 +75,7 @@ export const IncidentService = {
         return [];
       }
       AnalyticsService.trackEvent({ name: 'incidents_fetched', properties: { offset, filters, limit, count: data.length } });
-      return data as Incident[];
+      return data as IncidentRow[];
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching incidents timed out.');
@@ -103,7 +90,7 @@ export const IncidentService = {
     }
   },
 
-  async fetchSingleIncident(incidentId: string): Promise<Incident | null> {
+  async fetchSingleIncident(incidentId: string): Promise<IncidentRow | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -125,7 +112,7 @@ export const IncidentService = {
         return null;
       }
       AnalyticsService.trackEvent({ name: 'single_incident_fetched', properties: { incidentId } });
-      return data as Incident;
+      return data as IncidentRow;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching single incident timed out.');
@@ -140,7 +127,7 @@ export const IncidentService = {
     }
   },
 
-  async fetchNewIncidents(lastTimestamp: string): Promise<Incident[]> {
+  async fetchNewIncidents(lastTimestamp: string): Promise<IncidentRow[]> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -158,7 +145,7 @@ export const IncidentService = {
         return [];
       }
       AnalyticsService.trackEvent({ name: 'new_incidents_fetched', properties: { lastTimestamp, count: data.length } });
-      return data as Incident[];
+      return data as IncidentRow[];
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching new incidents timed out.');
@@ -173,7 +160,7 @@ export const IncidentService = {
     }
   },
 
-  async createIncident(incident: Omit<Incident, 'id' | 'created_at' | 'image_url'>, imageFile: File | null, latitude: number | undefined, longitude: number | undefined, adminId: string): Promise<Incident | null> {
+  async createIncident(incident: Omit<IncidentInsert, 'id' | 'created_at' | 'image_url' | 'search_vector' | 'date'>, imageFile: File | null, latitude: number | undefined, longitude: number | undefined, adminId: string): Promise<IncidentRow | null> {
     if (import.meta.env.DEV) {
       console.log('IncidentService: Starting createIncident for adminId:', adminId);
       console.log('Incident data:', incident);
@@ -229,7 +216,7 @@ export const IncidentService = {
       }
       const { data, error } = await supabase
         .from('incidents')
-        .insert({ ...incident, image_url: imageUrl, latitude, longitude, admin_id: adminId })
+        .insert({ ...incident, image_url: imageUrl, latitude, longitude, admin_id: adminId, date: new Date().toISOString() })
         .abortSignal(controller.signal)
         .select()
         .single();
@@ -272,7 +259,7 @@ export const IncidentService = {
         }
       }
 
-      return data as Incident;
+      return data as IncidentRow;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Creating incident timed out.');
@@ -290,7 +277,7 @@ export const IncidentService = {
     }
   },
 
-  async updateIncident(id: string, updates: Partial<Omit<Incident, 'id' | 'created_at' | 'admin_id'>>, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined): Promise<Incident | null> {
+  async updateIncident(id: string, updates: Partial<IncidentUpdate>, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined): Promise<IncidentRow | null> {
     let imageUrl: string | undefined = currentImageUrl;
 
     if (imageFile) {
@@ -326,7 +313,7 @@ export const IncidentService = {
         return null;
       }
       AnalyticsService.trackEvent({ name: 'incident_updated', properties: { incidentId: id, updates: Object.keys(updates) } });
-      return data as Incident;
+      return data as IncidentRow;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Updating incident timed out.');
@@ -409,7 +396,7 @@ export const IncidentService = {
     }
   },
 
-  async fetchPreviousIncident(currentIncidentTimestamp: string): Promise<Incident | null> {
+  async fetchPreviousIncident(currentIncidentTimestamp: string): Promise<IncidentRow | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -433,7 +420,7 @@ export const IncidentService = {
         return null;
       }
       AnalyticsService.trackEvent({ name: 'previous_incident_fetched', properties: { incidentId: data.id } });
-      return data as Incident;
+      return data as IncidentRow;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching previous incident timed out.');

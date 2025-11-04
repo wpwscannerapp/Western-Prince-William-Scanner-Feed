@@ -11,23 +11,24 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Alert, NotificationService } from '@/services/NotificationService';
+import { NotificationService } from '@/services/NotificationService';
 import { format } from 'date-fns';
 import { Edit, Trash2, Search, Loader2, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import AlertForm from './AlertForm';
 import { AnalyticsService } from '@/services/AnalyticsService';
+import { AlertRow, AlertInsert, AlertUpdate } from '@/types/database'; // Import new types
 
 interface AdminAlertTableProps {
   onAlertUpdated: () => void;
 }
 
 const AdminAlertTable: React.FC<AdminAlertTableProps> = ({ onAlertUpdated }) => {
-  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [alerts, setAlerts] = useState<AlertRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingAlert, setEditingAlert] = useState<Alert | null>(null);
+  const [editingAlert, setEditingAlert] = useState<AlertRow | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,19 +73,19 @@ const AdminAlertTable: React.FC<AdminAlertTableProps> = ({ onAlertUpdated }) => 
     }
   };
 
-  const handleEdit = (alert: Alert) => {
+  const handleEdit = (alert: AlertRow) => {
     setEditingAlert(alert);
     setIsEditDialogOpen(true);
     AnalyticsService.trackEvent({ name: 'admin_alert_edit_opened', properties: { alertId: alert.id } });
   };
 
-  const handleUpdateAlert = async (alertData: Omit<Alert, 'id' | 'created_at'>) => {
+  const handleUpdateAlert = async (alertData: AlertInsert) => {
     if (!editingAlert) return false;
 
     setIsSubmitting(true);
     try {
       toast.loading('Updating alert...', { id: 'update-alert' });
-      const updatedAlert = await NotificationService.updateAlert(editingAlert.id, alertData);
+      const updatedAlert = await NotificationService.updateAlert(editingAlert.id, alertData as AlertUpdate); // Cast to AlertUpdate
       
       if (updatedAlert) {
         toast.success('Alert updated successfully!', { id: 'update-alert' });
@@ -170,7 +171,7 @@ const AdminAlertTable: React.FC<AdminAlertTableProps> = ({ onAlertUpdated }) => 
                 filteredAlerts.map((alert) => (
                   <TableRow key={alert.id} className="tw-break-words">
                     <TableCell className="tw-font-medium tw-whitespace-nowrap">
-                      {format(new Date(alert.created_at), 'MMM dd, yyyy, hh:mm a')}
+                      {format(new Date(alert.created_at!), 'MMM dd, yyyy, hh:mm a')}
                     </TableCell>
                     <TableCell className="tw-max-w-xs tw-truncate">{alert.title}</TableCell>
                     <TableCell className="tw-whitespace-nowrap">{alert.type}</TableCell>

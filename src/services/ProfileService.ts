@@ -3,18 +3,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
-import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsService
-
-export interface Profile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  avatar_url: string | null;
-  subscription_status: string;
-  role: string;
-  username: string | null;
-  updated_at: string;
-}
+import { AnalyticsService } from './AnalyticsService';
+import { ProfileRow, ProfileInsert, ProfileUpdate } from '@/types/database'; // Import new types
 
 const logSupabaseError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
@@ -46,8 +36,9 @@ export class ProfileService {
             subscription_status: 'free',
             username: null,
             updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'id', ignoreDuplicates: true } // 'ignoreDuplicates: true' is crucial here
+            role: 'user', // Ensure default role is set
+          } as ProfileInsert, // Cast to ProfileInsert
+          { onConflict: 'id', ignoreDuplicates: true }
         )
         .abortSignal(controller.signal);
 
@@ -73,7 +64,7 @@ export class ProfileService {
     }
   }
 
-  static async fetchProfile(userId: string): Promise<Profile | null> {
+  static async fetchProfile(userId: string): Promise<ProfileRow | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
@@ -100,7 +91,7 @@ export class ProfileService {
         return null;
       }
       AnalyticsService.trackEvent({ name: 'profile_fetched', properties: { userId, role: data.role, subscription_status: data.subscription_status } });
-      return data as Profile;
+      return data as ProfileRow;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching profile timed out.');
@@ -119,8 +110,8 @@ export class ProfileService {
 
   static async updateProfile(
     userId: string,
-    updates: { first_name?: string | null; last_name?: string | null; avatar_url?: string | null; username?: string | null }
-  ): Promise<Profile | null> {
+    updates: ProfileUpdate
+  ): Promise<ProfileRow | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
@@ -144,7 +135,7 @@ export class ProfileService {
         throw error;
       }
       AnalyticsService.trackEvent({ name: 'profile_updated', properties: { userId, updates: Object.keys(updates) } });
-      return data as Profile;
+      return data as ProfileRow;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Updating profile timed out.');

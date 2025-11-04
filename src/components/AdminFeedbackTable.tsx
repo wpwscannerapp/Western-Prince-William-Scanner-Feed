@@ -16,21 +16,10 @@ import { Search, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { AnalyticsService } from '@/services/AnalyticsService';
-
-interface FeedbackEntry {
-  id: string;
-  user_id: string | null;
-  subject: string | null;
-  message: string;
-  contact_email: string | null;
-  contact_phone: string | null;
-  allow_contact: boolean | null;
-  created_at: string;
-  profiles?: Array<{ username: string | null; email: string | null }> | null;
-}
+import { FeedbackWithProfile } from '@/types/database'; // Import new type
 
 const AdminFeedbackTable: React.FC = () => {
-  const [feedback, setFeedback] = useState<FeedbackEntry[]>([]);
+  const [feedback, setFeedback] = useState<FeedbackWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +46,7 @@ const AdminFeedbackTable: React.FC = () => {
       if (error) {
         throw error;
       }
-      setFeedback(data as FeedbackEntry[]);
+      setFeedback(data as FeedbackWithProfile[]);
       AnalyticsService.trackEvent({ name: 'admin_feedback_table_loaded', properties: { count: data.length } });
     } catch (err) {
       setError(handleError(err, 'Failed to load feedback. Please try again.'));

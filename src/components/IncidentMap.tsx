@@ -2,7 +2,7 @@ import React from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Alert } from '@/services/NotificationService';
+import { AlertRow } from '@/types/database'; // Import new type
 
 // Removed the workaround for default Leaflet icons as custom DivIcons are used.
 // L.Icon.Default.mergeOptions({
@@ -12,7 +12,7 @@ import { Alert } from '@/services/NotificationService';
 // });
 
 interface IncidentMapProps {
-  alerts: Alert[];
+  alerts: AlertRow[];
 }
 
 const IncidentMap: React.FC<IncidentMapProps> = ({ alerts }) => {
@@ -71,7 +71,7 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ alerts }) => {
             <div className="tw-font-bold tw-text-foreground">{alert.title}</div>
             <div className="tw-text-sm tw-text-muted-foreground">{alert.description}</div>
             <div className="tw-text-xs tw-text-muted-foreground tw-mt-1">Type: {alert.type}</div>
-            <div className="tw-text-xs tw-text-muted-foreground">Posted: {new Date(alert.created_at).toLocaleString()}</div>
+            <div className="tw-text-xs tw-text-muted-foreground">Posted: {new Date(alert.created_at!).toLocaleString()}</div>
           </Popup>
         </Marker>
       ))}

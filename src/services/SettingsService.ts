@@ -2,36 +2,13 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
-import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsService
+import { AnalyticsService } from './AnalyticsService';
+import { AppSettingsRow, AppSettingsInsert, AppSettingsUpdate, AppSettingsHistoryInsert, AppSettingsHistoryRow, ContactSettingsRow, ContactSettingsInsert, ContactCard as ContactCardType, LayoutJson } from '@/types/database'; // Import new types
 
-export interface AppSettings {
-  id: string;
-  primary_color: string;
-  secondary_color: string;
-  font_family: string;
-  logo_url: string | null;
-  favicon_url: string | null;
-  custom_css: string | null;
-  layout: Array<{ id: string; type: string; content: string }>;
-  updated_at: string;
-}
-
-export interface ContactCard {
-  id: string;
-  name: string;
-  title: string;
-  email: string;
-  phone: string;
-}
-
-export interface ContactSettings {
-  id: string;
-  contact_cards: ContactCard[];
-  updated_at: string;
-}
+export interface ContactCard extends ContactCardType {} // Re-exporting for consistency
 
 export const SettingsService = {
-  async getSettings(): Promise<AppSettings | null> {
+  async getSettings(): Promise<AppSettingsRow | null> {
     try {
       const { data, error } = await supabase
         .from('app_settings')
@@ -52,14 +29,14 @@ export const SettingsService = {
             custom_css: null,
             layout: [],
             updated_at: new Date().toISOString(),
-          };
+          } as AppSettingsRow; // Cast to AppSettingsRow
         }
         handleError(error, `Failed to fetch app settings.`);
         AnalyticsService.trackEvent({ name: 'fetch_app_settings_failed', properties: { error: error.message } });
         return null;
       }
       AnalyticsService.trackEvent({ name: 'app_settings_fetched', properties: { id: data.id } });
-      return data as AppSettings;
+      return data as AppSettingsRow;
     } catch (err) {
       handleError(err, `An unexpected error occurred while fetching app settings.`);
       AnalyticsService.trackEvent({ name: 'fetch_app_settings_unexpected_error', properties: { error: (err as Error).message } });
@@ -67,7 +44,7 @@ export const SettingsService = {
     }
   },
 
-  async updateSettings(settings: Partial<AppSettings>): Promise<boolean> {
+  async updateSettings(settings: Partial<AppSettingsUpdate>): Promise<boolean> {
     try {
       const { data: existingSettings } = await supabase
         .from('app_settings')
@@ -75,11 +52,11 @@ export const SettingsService = {
         .limit(1)
         .single();
 
-      let upsertData = { ...settings, updated_at: new Date().toISOString() };
+      let upsertData: AppSettingsInsert = { ...settings, updated_at: new Date().toISOString() };
       if (existingSettings) {
         upsertData = { ...upsertData, id: existingSettings.id };
       } else if (!settings.id) {
-        delete (upsertData as any).id;
+        delete (upsertData as any).id; // Remove id if it's not from an existing record and not explicitly provided
       }
 
       const { error } = await supabase
@@ -100,13 +77,13 @@ export const SettingsService = {
     }
   },
 
-  async insertSettingsHistory(settings: AppSettings): Promise<boolean> {
+  async insertSettingsHistory(settings: AppSettingsInsert): Promise<boolean> {
     try {
       const { error } = await supabase.from('app_settings_history').insert({
-        settings: settings,
-        layout: settings.layout,
+        settings: settings as any, // Cast to any because settings is AppSettingsRow, but history expects Json
+        layout: settings.layout as LayoutJson, // Cast to LayoutJson
         created_at: new Date().toISOString(),
-      });
+      } as AppSettingsHistoryInsert); // Cast to AppSettingsHistoryInsert
       if (error) {
         handleError(error, 'Failed to save settings to history.');
         AnalyticsService.trackEvent({ name: 'insert_settings_history_failed', properties: { error: error.message } });
@@ -122,7 +99,7 @@ export const SettingsService = {
   },
 
   async fetchSettingsHistory(): Promise<
-    Array<{ id: string; created_at: string; settings: AppSettings; layout?: AppSettings['layout'] }> | null
+    Array<AppSettingsHistoryRow> | null
   > {
     try {
       const { data, error } = await supabase
@@ -135,7 +112,7 @@ export const SettingsService = {
         AnalyticsService.trackEvent({ name: 'fetch_settings_history_failed', properties: { error: error.message } });
         return null;
       }
-      return data || [];
+      return data as AppSettingsHistoryRow[] || [];
     } catch (err) {
       handleError(err, 'An unexpected error occurred while loading version history.');
       AnalyticsService.trackEvent({ name: 'fetch_settings_history_unexpected_error', properties: { error: (err as Error).message } });
@@ -143,7 +120,7 @@ export const SettingsService = {
     }
   },
 
-  async getSettingsFromHistory(historyId: string): Promise<{ settings: AppSettings, layout: any } | null> {
+  async getSettingsFromHistory(historyId: string): Promise<{ settings: AppSettingsRow, layout: LayoutJson } | null> {
     try {
       const { data, error } = await supabase
         .from('app_settings_history')
@@ -156,7 +133,7 @@ export const SettingsService = {
         return null;
       }
       AnalyticsService.trackEvent({ name: 'settings_from_history_fetched', properties: { historyId } });
-      return data as { settings: AppSettings, layout: any };
+      return data as { settings: AppSettingsRow, layout: LayoutJson };
     } catch (err) {
       handleError(err, 'An unexpected error occurred while fetching settings from history.');
       AnalyticsService.trackEvent({ name: 'get_settings_from_history_unexpected_error', properties: { historyId, error: (err as Error).message } });
@@ -164,7 +141,7 @@ export const SettingsService = {
     }
   },
 
-  async getContactSettings(): Promise<ContactSettings | null> {
+  async getContactSettings(): Promise<ContactSettingsRow | null> {
     try {
       const { data, error } = await supabase
         .from('contact_settings')
@@ -179,14 +156,14 @@ export const SettingsService = {
             id: 'default',
             contact_cards: [],
             updated_at: new Date().toISOString(),
-          };
+          } as ContactSettingsRow;
         }
         handleError(error, `Failed to fetch contact settings.`);
         AnalyticsService.trackEvent({ name: 'fetch_contact_settings_failed', properties: { error: error.message } });
         return null;
       }
       AnalyticsService.trackEvent({ name: 'contact_settings_fetched', properties: { id: data.id } });
-      return data as ContactSettings;
+      return data as ContactSettingsRow;
     } catch (err) {
       handleError(err, `An unexpected error occurred while fetching contact settings.`);
       AnalyticsService.trackEvent({ name: 'fetch_contact_settings_unexpected_error', properties: { error: (err as Error).message } });
@@ -194,7 +171,7 @@ export const SettingsService = {
     }
   },
 
-  async updateContactSettings(contactCards: ContactCard[]): Promise<boolean> {
+  async updateContactSettings(contactCards: ContactCardType[]): Promise<boolean> {
     try {
       const { data: existingSettings } = await supabase
         .from('contact_settings')
@@ -202,8 +179,8 @@ export const SettingsService = {
         .limit(1)
         .single();
 
-      let upsertData: Partial<ContactSettings> = {
-        contact_cards: contactCards,
+      let upsertData: ContactSettingsInsert = {
+        contact_cards: contactCards as any, // Cast to any because contact_cards is Json
         updated_at: new Date().toISOString(),
       };
 
