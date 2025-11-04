@@ -5,16 +5,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Edit, Trash2, Save, X } from 'lucide-react';
-import { CommentService } from '@/services/CommentService';
+import { Comment, CommentService } from '@/services/CommentService'; // Import Comment
 import { useAuth } from '@/hooks/useAuth';
 import { formatPostTimestamp } from '@/lib/utils';
 import { toast } from 'sonner';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import { CommentWithProfile } from '@/types/database'; // Import new type
 
 interface CommentCardProps {
-  comment: CommentWithProfile;
-  onCommentUpdated: (updatedComment: CommentWithProfile) => void;
+  comment: Comment; // Use Comment type
+  onCommentUpdated: (updatedComment: Comment) => void;
   onCommentDeleted: (commentId: string) => void;
 }
 
@@ -85,8 +84,8 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
     AnalyticsService.trackEvent({ name: 'edit_comment_cancelled', properties: { commentId: comment.id, userId: user?.id } });
   };
 
-  const displayName = comment.profiles?.username || 'Anonymous';
-  const displayAvatar = comment.profiles?.avatar_url || undefined;
+  const displayName = comment.username || 'Anonymous';
+  const displayAvatar = comment.avatar_url || undefined;
   const avatarFallback = displayName.charAt(0).toUpperCase();
 
   if (error) {
@@ -114,7 +113,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
         <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
           <p className="tw-font-semibold tw-text-foreground">{displayName}</p>
           <span className="tw-text-xs tw-text-muted-foreground">
-            {formatPostTimestamp(comment.created_at)}
+            {formatPostTimestamp(comment.created_at!)}
           </span>
         </div>
         {isEditing ? (

@@ -12,10 +12,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, BellRing, CheckCircle2, XCircle, Info, Clock, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { NotificationService, PushSubscription } from '@/services/NotificationService';
+import { NotificationService } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
 import { supabase } from '@/integrations/supabase/client';
-import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
+import { AnalyticsService } from '@/services/AnalyticsService';
+import { PushSubJson, NotificationSettingsRow, NotificationSettingsUpdate } from '@/types/supabase'; // Import PushSubJson, NotificationSettingsRow, NotificationSettingsUpdate
 
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const IDLE_TIMEOUT_MS = 300000; // 5 minutes
@@ -188,7 +189,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
     setIsSaving(true);
     toast.loading('Saving notification settings...', { id: 'save-settings' });
     try {
-      let pushSubscription: PushSubscription | null = null;
+      let pushSubscription: PushSubJson | null = null;
       let notificationsEnabledInDb = values.enabled;
 
       if (values.enabled) {
@@ -200,11 +201,12 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
             throw new Error('permission_denied');
           }
         }
-        pushSubscription = await NotificationService.subscribeUserToPush();
-        if (!pushSubscription) {
+        const subscription = await NotificationService.subscribeUserToPush();
+        if (!subscription) {
           notificationsEnabledInDb = false;
           throw new Error('subscription_failed');
         }
+        pushSubscription = subscription;
       } else {
         const unsubscribed = await NotificationService.unsubscribeWebPush(user.id);
         if (!unsubscribed) {
@@ -214,13 +216,15 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
         notificationsEnabledInDb = false;
       }
 
-      const updatedSettings = await NotificationService.updateUserNotificationSettings(user.id, {
+      const updates: NotificationSettingsUpdate = {
         ...values,
         enabled: notificationsEnabledInDb,
         push_subscription: pushSubscription,
         preferred_start_time: values.preferred_start_time ? `${values.preferred_start_time}:00` : null,
         preferred_end_time: values.preferred_end_time ? `${values.preferred_end_time}:00` : null,
-      });
+      };
+
+      const updatedSettings = await NotificationService.updateUserNotificationSettings(user.id, updates);
 
       if (updatedSettings) {
         toast.success('Settings saved successfully!', { id: 'save-settings' });

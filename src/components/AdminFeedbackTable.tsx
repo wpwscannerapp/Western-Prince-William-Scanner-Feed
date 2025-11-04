@@ -16,10 +16,14 @@ import { Search, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import { FeedbackWithProfile } from '@/types/database'; // Import new type
+import { FeedbackRow, ProfileRow } from '@/types/supabase'; // Import FeedbackRow and ProfileRow
+
+interface FeedbackEntry extends FeedbackRow {
+  profiles?: Array<Pick<ProfileRow, 'username' | 'id'>> | null; // Simplified profile data
+}
 
 const AdminFeedbackTable: React.FC = () => {
-  const [feedback, setFeedback] = useState<FeedbackWithProfile[]>([]);
+  const [feedback, setFeedback] = useState<FeedbackEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -39,14 +43,14 @@ const AdminFeedbackTable: React.FC = () => {
           contact_phone,
           allow_contact,
           created_at,
-          profiles (username, email)
+          profiles (username, id)
         `)
         .order('created_at', { ascending: false });
 
       if (error) {
         throw error;
       }
-      setFeedback(data as FeedbackWithProfile[]);
+      setFeedback(data as FeedbackEntry[]);
       AnalyticsService.trackEvent({ name: 'admin_feedback_table_loaded', properties: { count: data.length } });
     } catch (err) {
       setError(handleError(err, 'Failed to load feedback. Please try again.'));
@@ -65,8 +69,7 @@ const AdminFeedbackTable: React.FC = () => {
     entry.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (entry.contact_email?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
     (entry.contact_phone?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-    (entry.profiles?.[0]?.username?.toLowerCase().includes(searchTerm.toLowerCase()) || '') || // Access first element of profiles array
-    (entry.profiles?.[0]?.email?.toLowerCase().includes(searchTerm.toLowerCase()) || '') // Access first element of profiles array
+    (entry.profiles?.[0]?.username?.toLowerCase().includes(searchTerm.toLowerCase()) || '')
   );
 
   const handleRetry = () => {
@@ -126,10 +129,10 @@ const AdminFeedbackTable: React.FC = () => {
                 filteredFeedback.map((entry) => (
                   <TableRow key={entry.id} className="tw-break-words">
                     <TableCell className="tw-font-medium tw-whitespace-nowrap">
-                      {format(new Date(entry.created_at), 'MMM dd, yyyy, hh:mm a')}
+                      {format(new Date(entry.created_at!), 'MMM dd, yyyy, hh:mm a')}
                     </TableCell>
                     <TableCell>
-                      {entry.profiles?.[0]?.username || entry.profiles?.[0]?.email || 'Anonymous'}
+                      {entry.profiles?.[0]?.username || 'Anonymous'}
                     </TableCell>
                     <TableCell className="tw-max-w-xs tw-truncate">{entry.subject || '-'}</TableCell>
                     <TableCell className="tw-max-w-xs tw-truncate">{entry.message}</TableCell>

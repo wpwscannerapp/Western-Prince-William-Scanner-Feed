@@ -15,7 +15,7 @@ import { NotificationService } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
 import { useAuth } from '@/hooks/useAuth';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import { AlertInsert } from '@/types/database'; // Import new type
+import { NewAlert } from '@/types/supabase'; // Import NewAlert
 
 const notificationSchema = z.object({
   title: z.string().min(1, { message: 'Notification title is required.' }).max(100, { message: 'Title too long.' }),
@@ -49,7 +49,7 @@ const AdminNotificationSender: React.FC = () => {
     toast.loading('Creating alert...', { id: 'send-notification' });
 
     try {
-      const newAlert: AlertInsert = {
+      const newAlertData: NewAlert = {
         title: values.title,
         description: values.body,
         type: 'Admin Broadcast',
@@ -57,9 +57,9 @@ const AdminNotificationSender: React.FC = () => {
         longitude: 0, // Default or placeholder
       };
 
-      const createdAlert = await NotificationService.createAlert(newAlert);
+      const newAlert = await NotificationService.createAlert(newAlertData);
 
-      if (createdAlert) {
+      if (newAlert) {
         toast.success('Alert created and notifications queued!', { id: 'send-notification' });
         form.reset();
         AnalyticsService.trackEvent({ name: 'notification_sent', properties: { title: values.title, userId: user.id } });

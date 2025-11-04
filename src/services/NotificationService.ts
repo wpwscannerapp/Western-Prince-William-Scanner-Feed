@@ -4,16 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { AnalyticsService } from './AnalyticsService';
-import { NotificationSettingsRow, NotificationSettingsInsert, NotificationSettingsUpdate, AlertRow, AlertInsert, AlertUpdate } from '@/types/database'; // Import new types
+import { NotificationSettingsRow, AlertRow, AlertInsert, AlertUpdate, PushSubJson, NewAlert } from '@/types/supabase';
 
-export interface PushSubscription {
-  endpoint: string;
-  expirationTime: number | null;
-  keys: {
-    p256dh: string;
-    auth: string;
-  };
-}
+export type PushSubscription = PushSubJson; // Alias PushSubJson to PushSubscription for existing usage
+
+export type UserNotificationSettings = NotificationSettingsRow; // Alias NotificationSettingsRow to UserNotificationSettings for existing usage
+
+export type Alert = AlertRow; // Alias AlertRow to Alert for existing usage
 
 const logSupabaseError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
@@ -157,7 +154,7 @@ export const NotificationService = {
 
   async updateUserNotificationSettings(
     userId: string,
-    updates: Partial<NotificationSettingsUpdate>
+    updates: Partial<Omit<NotificationSettingsUpdate, 'user_id' | 'updated_at'>>
   ): Promise<NotificationSettingsRow | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
@@ -166,7 +163,7 @@ export const NotificationService = {
       // Fetch existing settings or create a default one if none exist
       const existingSettings = await NotificationService.getUserNotificationSettings(userId);
 
-      const defaultSettings: Omit<NotificationSettingsInsert, 'user_id' | 'updated_at'> = {
+      const defaultSettings: Omit<NotificationSettingsInsert, 'user_id' | 'created_at'> = {
         enabled: false,
         push_subscription: null,
         receive_all_alerts: true,
@@ -183,11 +180,11 @@ export const NotificationService = {
 
       // Merge existing settings (if any) with defaults, then apply updates
       const mergedSettings: NotificationSettingsInsert = {
-        user_id: userId,
         ...defaultSettings,
         ...(existingSettings || {}), // Use existing settings if available
         ...updates,
         updated_at: new Date().toISOString(),
+        user_id: userId, // Ensure user_id is always present for upsert
       };
 
       const { data, error } = await supabase
@@ -221,7 +218,7 @@ export const NotificationService = {
     }
   },
 
-  async createAlert(alert: AlertInsert): Promise<AlertRow | null> {
+  async createAlert(alert: NewAlert): Promise<AlertRow | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 

@@ -16,9 +16,10 @@ import { ChromePicker } from 'react-color';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, RotateCcw, Eye } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { LayoutComponent } from './LayoutEditor'; // Added import for LayoutComponent
-import { SettingsService, AppSettings } from '@/services/SettingsService';
-import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
+import { LayoutComponent } from './LayoutEditor';
+import { SettingsService } from '@/services/SettingsService';
+import { AnalyticsService } from '@/services/AnalyticsService';
+import { AppSettingsRow, AppSettingsUpdate, LayoutJson } from '@/types/supabase'; // Import AppSettingsRow, AppSettingsUpdate, LayoutJson
 
 // Lazy load LayoutEditor
 const LazyLayoutEditor = React.lazy(() => import('./LayoutEditor'));
@@ -41,7 +42,7 @@ const AppSettingsForm: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [versionHistory, setVersionHistory] = useState<
-    Array<{ id: string; created_at: string; settings: AppSettings; layout?: AppSettings['layout'] }>
+    Array<{ id: string; created_at: string; settings: AppSettingsRow; layout?: LayoutJson }>
   >([]);
 
   const form = useForm<SettingsFormValues>({
@@ -69,7 +70,7 @@ const AppSettingsForm: React.FC = () => {
           logo_url: currentSettings.logo_url || '',
           favicon_url: currentSettings.favicon_url || '',
           custom_css: currentSettings.custom_css || '',
-          layout: currentSettings.layout || [],
+          layout: currentSettings.layout as LayoutComponent[] || [],
         };
         form.reset(formValues);
       }
@@ -116,16 +117,27 @@ const AppSettingsForm: React.FC = () => {
     setIsSaving(true);
     try {
       toast.loading('Saving settings...', { id: 'save-settings' });
-      const success = await SettingsService.updateSettings(values);
+      const settingsUpdate: AppSettingsUpdate = {
+        primary_color: values.primary_color,
+        secondary_color: values.secondary_color,
+        font_family: values.font_family,
+        logo_url: values.logo_url,
+        favicon_url: values.favicon_url,
+        custom_css: values.custom_css,
+        layout: values.layout as LayoutJson,
+      };
+      const success = await SettingsService.updateSettings(settingsUpdate);
       if (!success) throw new Error('Failed to update settings in database.');
 
-      const settingsForHistory: AppSettings = {
-        id: 'new-history-entry',
-        ...values,
+      const settingsForHistory: AppSettingsRow = {
+        id: 'new-history-entry', // This will be ignored by the DB, but needed for type
+        primary_color: values.primary_color,
+        secondary_color: values.secondary_color,
+        font_family: values.font_family,
         logo_url: values.logo_url || null,
         favicon_url: values.favicon_url || null,
         custom_css: values.custom_css || null,
-        layout: values.layout || [],
+        layout: values.layout as LayoutJson || [],
         updated_at: new Date().toISOString(),
       };
 
@@ -160,7 +172,7 @@ const AppSettingsForm: React.FC = () => {
         logo_url: historyEntry.settings.logo_url || '',
         favicon_url: historyEntry.settings.favicon_url || '',
         custom_css: historyEntry.settings.custom_css || '',
-        layout: historyEntry.settings.layout || [],
+        layout: historyEntry.settings.layout as LayoutComponent[] || [],
       };
       form.reset(formValues);
       toast.success('Reverted to previous settings!', { id: 'revert-settings' });
@@ -302,8 +314,8 @@ const AppSettingsForm: React.FC = () => {
               <div className="tw-space-y-2" role="list" aria-label="Settings version history">
                 {versionHistory.map((entry) => (
                   <div key={entry.id} className="tw-flex tw-justify-between tw-items-center tw-py-2 tw-px-3 tw-bg-muted/30 tw-rounded-md tw-border tw-border-border" role="listitem">
-                    <span className="tw-text-sm tw-text-foreground">{new Date(entry.created_at).toLocaleString()}</span>
-                    <Button onClick={() => handleRevert(entry.id)} variant="outline" size="sm" disabled={isSaving} aria-label={`Revert to settings from ${new Date(entry.created_at).toLocaleString()}`}>
+                    <span className="tw-text-sm tw-text-foreground">{new Date(entry.created_at!).toLocaleString()}</span>
+                    <Button onClick={() => handleRevert(entry.id)} variant="outline" size="sm" disabled={isSaving} aria-label={`Revert to settings from ${new Date(entry.created_at!).toLocaleString()}`}>
                       <RotateCcw className="tw-mr-2 tw-h-4 tw-w-4" aria-hidden="true" /> Revert
                     </Button>
                   </div>

@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { MapPin, Loader2, Send } from 'lucide-react';
 import { geocodeAddress } from '@/utils/geocoding';
 import { toast } from 'sonner';
-import { AlertRow, AlertInsert } from '@/types/database'; // Import new types
+import { AlertRow } from '@/types/supabase'; // Import AlertRow
 import { AnalyticsService } from '@/services/AnalyticsService';
 
 const alertFormSchema = z.object({
@@ -24,9 +24,9 @@ const alertFormSchema = z.object({
 type AlertFormValues = z.infer<typeof alertFormSchema>;
 
 interface AlertFormProps {
-  onSubmit: (alert: AlertInsert) => Promise<boolean>;
+  onSubmit: (alert: Omit<AlertRow, 'id' | 'created_at'>) => Promise<boolean>; // Use AlertRow
   isLoading: boolean;
-  initialAlert?: AlertRow;
+  initialAlert?: Omit<AlertRow, 'created_at'>; // Use AlertRow
   formId?: string;
 }
 
@@ -109,15 +109,13 @@ const AlertForm: React.FC<AlertFormProps> = ({ onSubmit, isLoading, initialAlert
       return false;
     }
 
-    const alertData: AlertInsert = {
+    const success = await onSubmit({
       title: values.title,
       description: values.description,
       type: values.type,
       latitude: latitude,
       longitude: longitude,
-    };
-
-    const success = await onSubmit(alertData);
+    });
 
     if (success) {
       AnalyticsService.trackEvent({ 

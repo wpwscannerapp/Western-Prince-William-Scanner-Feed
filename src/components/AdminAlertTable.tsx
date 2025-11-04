@@ -11,24 +11,24 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { NotificationService } from '@/services/NotificationService';
+import { AlertRow } from '@/types/supabase'; // Import AlertRow
+import { Alert, NotificationService } from '@/services/NotificationService';
 import { format } from 'date-fns';
 import { Edit, Trash2, Search, Loader2, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import AlertForm from './AlertForm';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import { AlertRow, AlertInsert, AlertUpdate } from '@/types/database'; // Import new types
 
 interface AdminAlertTableProps {
   onAlertUpdated: () => void;
 }
 
 const AdminAlertTable: React.FC<AdminAlertTableProps> = ({ onAlertUpdated }) => {
-  const [alerts, setAlerts] = useState<AlertRow[]>([]);
+  const [alerts, setAlerts] = useState<AlertRow[]>([]); // Use AlertRow
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingAlert, setEditingAlert] = useState<AlertRow | null>(null);
+  const [editingAlert, setEditingAlert] = useState<AlertRow | null>(null); // Use AlertRow
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,19 +73,19 @@ const AdminAlertTable: React.FC<AdminAlertTableProps> = ({ onAlertUpdated }) => 
     }
   };
 
-  const handleEdit = (alert: AlertRow) => {
+  const handleEdit = (alert: AlertRow) => { // Use AlertRow
     setEditingAlert(alert);
     setIsEditDialogOpen(true);
     AnalyticsService.trackEvent({ name: 'admin_alert_edit_opened', properties: { alertId: alert.id } });
   };
 
-  const handleUpdateAlert = async (alertData: AlertInsert) => {
+  const handleUpdateAlert = async (alertData: Omit<AlertRow, 'id' | 'created_at'>) => { // Use AlertRow
     if (!editingAlert) return false;
 
     setIsSubmitting(true);
     try {
       toast.loading('Updating alert...', { id: 'update-alert' });
-      const updatedAlert = await NotificationService.updateAlert(editingAlert.id, alertData as AlertUpdate); // Cast to AlertUpdate
+      const updatedAlert = await NotificationService.updateAlert(editingAlert.id, alertData);
       
       if (updatedAlert) {
         toast.success('Alert updated successfully!', { id: 'update-alert' });

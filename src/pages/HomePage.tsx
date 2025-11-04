@@ -5,19 +5,20 @@ import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Loader2, AlertCircle, Info } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { IncidentService, Incident } from '@/services/IncidentService';
+import { IncidentService } from '@/services/IncidentService';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
-import IncidentCard from '@/components/IncidentCard'; // Import IncidentCard
-import { supabase } from '@/integrations/supabase/client'; // Import supabase client
+import IncidentCard from '@/components/IncidentCard';
+import { supabase } from '@/integrations/supabase/client';
+import { IncidentRow } from '@/types/supabase'; // Import IncidentRow
 
 const HomePage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
   const queryClient = useQueryClient();
 
-  const { data: latestIncident, isLoading: isLoadingIncident, isError: isIncidentError, error: incidentError } = useQuery<Incident | null, Error>({
+  const { data: latestIncident, isLoading: isLoadingIncident, isError: isIncidentError, error: incidentError } = useQuery<IncidentRow | null, Error>({
     queryKey: ['incidents', 'latest'],
     queryFn: async () => {
       // Fetch only 1 incident using the new limit parameter

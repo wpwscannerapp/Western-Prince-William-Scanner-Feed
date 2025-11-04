@@ -10,10 +10,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleError } from '@/utils/errorHandler';
-import { SettingsService, ContactCard } from '@/services/SettingsService';
+import { SettingsService, ContactCard } from '@/services/SettingsService'; // Import ContactCard
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import ContactCardForm from './ContactCardForm';
-import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
+import { AnalyticsService } from '@/services/AnalyticsService';
 
 const contactCardSchema = z.object({
   id: z.string().optional(),
@@ -52,8 +52,8 @@ const ContactSettingsForm: React.FC = () => {
     setIsLoading(true);
     try {
       const settings = await SettingsService.getContactSettings();
-      if (settings && settings.contact_cards.length > 0) {
-        const cardsWithIds = settings.contact_cards.map(card => ({ ...card, id: card.id || crypto.randomUUID() }));
+      if (settings && settings.contact_cards && settings.contact_cards.length > 0) {
+        const cardsWithIds = (settings.contact_cards as ContactCard[]).map(card => ({ ...card, id: card.id || crypto.randomUUID() }));
         reset({ contact_cards: cardsWithIds });
         AnalyticsService.trackEvent({ name: 'contact_settings_form_loaded', properties: { count: cardsWithIds.length } });
       } else {

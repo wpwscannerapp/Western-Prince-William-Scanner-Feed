@@ -7,7 +7,9 @@ import { StorageService } from './StorageService';
 import { NotificationService } from './NotificationService';
 import { AnalyticsService } from './AnalyticsService';
 import { ProfileService } from './ProfileService';
-import { IncidentRow, IncidentInsert, IncidentUpdate, NewIncident } from '@/types/database'; // Import new types
+import { IncidentRow, IncidentInsert, IncidentUpdate, NewIncident, IncidentListItem, AlertInsert } from '@/types/supabase';
+
+export type Incident = IncidentRow; // Alias IncidentRow to Incident for existing usage
 
 export interface IncidentFilter {
   searchTerm?: string;
@@ -29,7 +31,7 @@ const logSupabaseError = (functionName: string, error: any) => {
 export const IncidentService = {
   INCIDENTS_PER_PAGE,
 
-  async fetchIncidents(offset: number = 0, filters: IncidentFilter = {}, limit?: number): Promise<IncidentRow[]> {
+  async fetchIncidents(offset: number = 0, filters: IncidentFilter = {}, limit?: number): Promise<IncidentListItem[]> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -75,7 +77,7 @@ export const IncidentService = {
         return [];
       }
       AnalyticsService.trackEvent({ name: 'incidents_fetched', properties: { offset, filters, limit, count: data.length } });
-      return data as IncidentRow[];
+      return data as IncidentListItem[];
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching incidents timed out.');
@@ -160,7 +162,7 @@ export const IncidentService = {
     }
   },
 
-  async createIncident(incident: Omit<IncidentInsert, 'id' | 'created_at' | 'image_url' | 'search_vector' | 'date'>, imageFile: File | null, latitude: number | undefined, longitude: number | undefined, adminId: string): Promise<IncidentRow | null> {
+  async createIncident(incident: Omit<NewIncident, 'image_url' | 'latitude' | 'longitude' | 'admin_id'>, imageFile: File | null, latitude: number | undefined, longitude: number | undefined, adminId: string): Promise<IncidentRow | null> {
     if (import.meta.env.DEV) {
       console.log('IncidentService: Starting createIncident for adminId:', adminId);
       console.log('Incident data:', incident);
@@ -214,9 +216,10 @@ export const IncidentService = {
       if (import.meta.env.DEV) {
         console.log('IncidentService: Attempting to insert incident into Supabase.');
       }
+      const incidentInsert: IncidentInsert = { ...incident, image_url: imageUrl, latitude, longitude, admin_id: adminId };
       const { data, error } = await supabase
         .from('incidents')
-        .insert({ ...incident, image_url: imageUrl, latitude, longitude, admin_id: adminId, date: new Date().toISOString() })
+        .insert(incidentInsert)
         .abortSignal(controller.signal)
         .select()
         .single();
@@ -246,13 +249,14 @@ export const IncidentService = {
           console.log('IncidentService: Incident inserted successfully. Data:', data);
           console.log('IncidentService: Attempting to create alert notification.');
         }
-        await NotificationService.createAlert({
+        const alertInsert: AlertInsert = {
           title: data.title,
           description: data.description,
           type: data.type,
           latitude: data.latitude || 0,
           longitude: data.longitude || 0,
-        });
+        };
+        await NotificationService.createAlert(alertInsert);
         AnalyticsService.trackEvent({ name: 'incident_created', properties: { incidentId: data.id, adminId, type: data.type } });
         if (import.meta.env.DEV) {
           console.log('IncidentService: Alert notification created.');
@@ -277,7 +281,7 @@ export const IncidentService = {
     }
   },
 
-  async updateIncident(id: string, updates: Partial<IncidentUpdate>, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined): Promise<IncidentRow | null> {
+  async updateIncident(id: string, updates: Partial<Omit<IncidentUpdate, 'id' | 'created_at' | 'admin_id'>>, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined): Promise<IncidentRow | null> {
     let imageUrl: string | undefined = currentImageUrl;
 
     if (imageFile) {
@@ -299,9 +303,10 @@ export const IncidentService = {
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
+      const incidentUpdate: IncidentUpdate = { ...updates, image_url: imageUrl, latitude, longitude, date: new Date().toISOString() };
       const { data, error } = await supabase
         .from('incidents')
-        .update({ ...updates, image_url: imageUrl, latitude, longitude, date: new Date().toISOString() })
+        .update(incidentUpdate)
         .eq('id', id)
         .abortSignal(controller.signal)
         .select()

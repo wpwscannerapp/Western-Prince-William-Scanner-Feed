@@ -2,7 +2,7 @@ import React from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { AlertRow } from '@/types/database'; // Import new type
+import { AlertRow } from '@/types/supabase'; // Import AlertRow
 
 // Removed the workaround for default Leaflet icons as custom DivIcons are used.
 // L.Icon.Default.mergeOptions({
@@ -12,7 +12,7 @@ import { AlertRow } from '@/types/database'; // Import new type
 // });
 
 interface IncidentMapProps {
-  alerts: AlertRow[];
+  alerts: AlertRow[]; // Use AlertRow
 }
 
 const IncidentMap: React.FC<IncidentMapProps> = ({ alerts }) => {

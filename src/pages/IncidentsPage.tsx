@@ -4,7 +4,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import IncidentCard from '@/components/IncidentCard';
 import SubscribeOverlay from '@/components/SubscribeOverlay';
 import IncidentForm from '@/components/IncidentForm';
-import { Incident, IncidentService, INCIDENTS_PER_PAGE } from '@/services/IncidentService';
+import { IncidentService, IncidentFilter, INCIDENTS_PER_PAGE } from '@/services/IncidentService';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Info } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
@@ -15,7 +15,8 @@ import { handleError } from '@/utils/errorHandler';
 import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import { supabase } from '@/integrations/supabase/client'; // Import supabase client
+import { supabase } from '@/integrations/supabase/client';
+import { IncidentRow } from '@/types/supabase'; // Import IncidentRow
 
 const IncidentsPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -42,7 +43,7 @@ const IncidentsPage: React.FC = () => {
     isError,
     error,
     refetch,
-  } = useInfiniteQuery<Incident[], Error>({
+  } = useInfiniteQuery<IncidentRow[], Error>({ // Use IncidentRow
     queryKey: ['incidents'],
     queryFn: async ({ pageParam = 0 }) => {
       const fetchedIncidents = await IncidentService.fetchIncidents(pageParam as number);
@@ -66,11 +67,11 @@ const IncidentsPage: React.FC = () => {
     const channel = supabase
       .channel('incidents_realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'incidents' }, (payload) => {
-        const newIncident = payload.new as Incident;
+        const newIncident = payload.new as IncidentRow; // Use IncidentRow
         queryClient.setQueryData(['incidents'], (oldData: any) => {
           if (oldData) {
             // Check if the incident already exists to prevent duplicates
-            const isDuplicate = oldData.pages[0].some((inc: Incident) => inc.id === newIncident.id);
+            const isDuplicate = oldData.pages[0].some((inc: IncidentRow) => inc.id === newIncident.id); // Use IncidentRow
             if (!isDuplicate) {
               AnalyticsService.trackEvent({ name: 'realtime_incident_added', properties: { incidentId: newIncident.id, type: newIncident.type } });
               return {
@@ -175,9 +176,6 @@ const IncidentsPage: React.FC = () => {
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-xl">
-      {/* Removed: <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
-        Back to Dashboard
-      </Button> */}
       <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground tw-text-center">Incidents Feed</h1>
       <p className="tw-text-center tw-text-muted-foreground tw-mb-8">
         Real-time scanner updates for Western Prince William.

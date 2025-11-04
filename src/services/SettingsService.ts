@@ -3,9 +3,25 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { AnalyticsService } from './AnalyticsService';
-import { AppSettingsRow, AppSettingsInsert, AppSettingsUpdate, AppSettingsHistoryInsert, AppSettingsHistoryRow, ContactSettingsRow, ContactSettingsInsert, ContactCard as ContactCardType, LayoutJson } from '@/types/database'; // Import new types
+import { AppSettingsRow, AppSettingsUpdate, AppSettingsInsert, ContactSettingsRow, ContactSettingsUpdate, ContactCardsJson, LayoutJson } from '@/types/supabase';
 
-export interface ContactCard extends ContactCardType {} // Re-exporting for consistency
+export type AppSettings = AppSettingsRow; // Alias AppSettingsRow to AppSettings for existing usage
+
+export type ContactCard = {
+  id: string;
+  name: string;
+  title: string | null;
+  email: string | null;
+  phone: string | null;
+}; // Defined based on ContactCardsJson structure
+
+export type ContactSettings = ContactSettingsRow; // Alias ContactSettingsRow to ContactSettings for existing usage
+
+export type LayoutComponent = {
+  id: string;
+  type: string;
+  content: string;
+}; // Defined based on LayoutJson structure
 
 export const SettingsService = {
   async getSettings(): Promise<AppSettingsRow | null> {
@@ -27,9 +43,9 @@ export const SettingsService = {
             logo_url: null,
             favicon_url: null,
             custom_css: null,
-            layout: [],
+            layout: [] as LayoutJson,
             updated_at: new Date().toISOString(),
-          } as AppSettingsRow; // Cast to AppSettingsRow
+          };
         }
         handleError(error, `Failed to fetch app settings.`);
         AnalyticsService.trackEvent({ name: 'fetch_app_settings_failed', properties: { error: error.message } });
@@ -44,7 +60,7 @@ export const SettingsService = {
     }
   },
 
-  async updateSettings(settings: Partial<AppSettingsUpdate>): Promise<boolean> {
+  async updateSettings(settings: AppSettingsUpdate): Promise<boolean> {
     try {
       const { data: existingSettings } = await supabase
         .from('app_settings')
@@ -52,16 +68,18 @@ export const SettingsService = {
         .limit(1)
         .single();
 
-      let upsertData: AppSettingsInsert = { ...settings, updated_at: new Date().toISOString() };
+      let upsertData: AppSettingsUpdate = { ...settings, updated_at: new Date().toISOString() };
       if (existingSettings) {
         upsertData = { ...upsertData, id: existingSettings.id };
       } else if (!settings.id) {
-        delete (upsertData as any).id; // Remove id if it's not from an existing record and not explicitly provided
+        // If no existing settings and no ID provided, ensure ID is not passed to upsert
+        const { id, ...rest } = upsertData;
+        upsertData = rest;
       }
 
       const { error } = await supabase
         .from('app_settings')
-        .upsert(upsertData, { onConflict: 'id' });
+        .upsert(upsertData as AppSettingsInsert, { onConflict: 'id' }); // Cast to Insert for upsert
 
       if (error) {
         handleError(error, `Failed to update app settings.`);
@@ -77,13 +95,13 @@ export const SettingsService = {
     }
   },
 
-  async insertSettingsHistory(settings: AppSettingsInsert): Promise<boolean> {
+  async insertSettingsHistory(settings: AppSettingsRow): Promise<boolean> {
     try {
       const { error } = await supabase.from('app_settings_history').insert({
-        settings: settings as any, // Cast to any because settings is AppSettingsRow, but history expects Json
-        layout: settings.layout as LayoutJson, // Cast to LayoutJson
+        settings: settings as unknown as LayoutJson, // Cast to Json as per schema
+        layout: settings.layout,
         created_at: new Date().toISOString(),
-      } as AppSettingsHistoryInsert); // Cast to AppSettingsHistoryInsert
+      });
       if (error) {
         handleError(error, 'Failed to save settings to history.');
         AnalyticsService.trackEvent({ name: 'insert_settings_history_failed', properties: { error: error.message } });
@@ -99,7 +117,7 @@ export const SettingsService = {
   },
 
   async fetchSettingsHistory(): Promise<
-    Array<AppSettingsHistoryRow> | null
+    Array<{ id: string; created_at: string; settings: AppSettingsRow; layout?: LayoutJson }> | null
   > {
     try {
       const { data, error } = await supabase
@@ -112,7 +130,7 @@ export const SettingsService = {
         AnalyticsService.trackEvent({ name: 'fetch_settings_history_failed', properties: { error: error.message } });
         return null;
       }
-      return data as AppSettingsHistoryRow[] || [];
+      return data as Array<{ id: string; created_at: string; settings: AppSettingsRow; layout?: LayoutJson }> || [];
     } catch (err) {
       handleError(err, 'An unexpected error occurred while loading version history.');
       AnalyticsService.trackEvent({ name: 'fetch_settings_history_unexpected_error', properties: { error: (err as Error).message } });
@@ -154,9 +172,9 @@ export const SettingsService = {
           AnalyticsService.trackEvent({ name: 'contact_settings_not_found', properties: { reason: 'default_returned' } });
           return {
             id: 'default',
-            contact_cards: [],
+            contact_cards: [] as ContactCardsJson,
             updated_at: new Date().toISOString(),
-          } as ContactSettingsRow;
+          };
         }
         handleError(error, `Failed to fetch contact settings.`);
         AnalyticsService.trackEvent({ name: 'fetch_contact_settings_failed', properties: { error: error.message } });
@@ -171,7 +189,7 @@ export const SettingsService = {
     }
   },
 
-  async updateContactSettings(contactCards: ContactCardType[]): Promise<boolean> {
+  async updateContactSettings(contactCards: ContactCard[]): Promise<boolean> {
     try {
       const { data: existingSettings } = await supabase
         .from('contact_settings')
@@ -179,8 +197,8 @@ export const SettingsService = {
         .limit(1)
         .single();
 
-      let upsertData: ContactSettingsInsert = {
-        contact_cards: contactCards as any, // Cast to any because contact_cards is Json
+      let upsertData: ContactSettingsUpdate = {
+        contact_cards: contactCards as unknown as ContactCardsJson, // Cast to Json as per schema
         updated_at: new Date().toISOString(),
       };
 
@@ -190,7 +208,7 @@ export const SettingsService = {
 
       const { error } = await supabase
         .from('contact_settings')
-        .upsert(upsertData, { onConflict: 'id' });
+        .upsert(upsertData as ContactSettingsInsert, { onConflict: 'id' }); // Cast to Insert for upsert
 
       if (error) {
         handleError(error, `Failed to update contact settings.`);

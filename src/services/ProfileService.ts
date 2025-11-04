@@ -4,7 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { AnalyticsService } from './AnalyticsService';
-import { ProfileRow, ProfileInsert, ProfileUpdate } from '@/types/database'; // Import new types
+import { ProfileRow, ProfileUpdate, ProfileInsert } from '@/types/supabase';
+
+export type Profile = ProfileRow; // Alias ProfileRow to Profile for existing usage
 
 const logSupabaseError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
@@ -24,21 +26,23 @@ export class ProfileService {
     }, SUPABASE_API_TIMEOUT);
 
     try {
+      const profileInsert: ProfileInsert = {
+        id: userId,
+        first_name: null,
+        last_name: null,
+        avatar_url: null,
+        subscription_status: 'free',
+        username: null,
+        updated_at: new Date().toISOString(),
+        role: 'user', // Default role for new profiles
+      };
+
       // Use upsert directly to handle both insert and update atomically
       const { error: upsertError } = await supabase
         .from('profiles')
         .upsert(
-          {
-            id: userId,
-            first_name: null,
-            last_name: null,
-            avatar_url: null,
-            subscription_status: 'free',
-            username: null,
-            updated_at: new Date().toISOString(),
-            role: 'user', // Ensure default role is set
-          } as ProfileInsert, // Cast to ProfileInsert
-          { onConflict: 'id', ignoreDuplicates: true }
+          profileInsert,
+          { onConflict: 'id', ignoreDuplicates: true } // 'ignoreDuplicates: true' is crucial here
         )
         .abortSignal(controller.signal);
 

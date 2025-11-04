@@ -11,28 +11,29 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Incident, IncidentService } from '@/services/IncidentService';
+import { IncidentRow } from '@/types/supabase'; // Import IncidentRow
+import { IncidentService } from '@/services/IncidentService';
 import { format } from 'date-fns';
 import { Edit, Trash2, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import IncidentForm from './IncidentForm';
-import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
-import { useQueryClient } from '@tanstack/react-query'; // Import useQueryClient
+import { AnalyticsService } from '@/services/AnalyticsService';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AdminIncidentTableProps {
   onIncidentUpdated: () => void;
 }
 
 const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdated }) => {
-  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [incidents, setIncidents] = useState<IncidentRow[]>([]); // Use IncidentRow
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingIncident, setEditingIncident] = useState<Incident | null>(null);
+  const [editingIncident, setEditingIncident] = useState<IncidentRow | null>(null); // Use IncidentRow
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const queryClient = useQueryClient(); // Initialize queryClient
+  const queryClient = useQueryClient();
 
   const fetchIncidents = async () => {
     setLoading(true);
@@ -79,7 +80,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
     }
   };
 
-  const handleEdit = (incident: Incident) => {
+  const handleEdit = (incident: IncidentRow) => { // Use IncidentRow
     setEditingIncident(incident);
     setIsEditDialogOpen(true);
     AnalyticsService.trackEvent({ name: 'admin_incident_edit_opened', properties: { incidentId: incident.id } });
@@ -191,7 +192,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
                 filteredIncidents.map((incident) => (
                   <TableRow key={incident.id} className="tw-break-words">
                     <TableCell className="tw-font-medium tw-whitespace-nowrap">
-                      {format(new Date(incident.date), 'MMM dd, yyyy, hh:mm a')}
+                      {format(new Date(incident.date!), 'MMM dd, yyyy, hh:mm a')}
                     </TableCell>
                     <TableCell className="tw-max-w-xs tw-truncate">{incident.title}</TableCell>
                     <TableCell className="tw-whitespace-nowrap">{incident.type}</TableCell>
@@ -228,7 +229,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          onClick={() => handleDelete(incident.id, incident.image_url)}
+                          onClick={() => handleDelete(incident.id, incident.image_url || undefined)}
                           className="tw-h-8 tw-w-8"
                           aria-label={`Delete incident ${incident.title}`}
                         >
@@ -259,9 +260,9 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
                 type: editingIncident.type,
                 location: editingIncident.location,
                 description: editingIncident.description,
-                image_url: editingIncident.image_url,
-                latitude: editingIncident.latitude,
-                longitude: editingIncident.longitude,
+                image_url: editingIncident.image_url || undefined,
+                latitude: editingIncident.latitude || undefined,
+                longitude: editingIncident.longitude || undefined,
               }}
             />
             <DialogFooter>

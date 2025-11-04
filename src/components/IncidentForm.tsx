@@ -11,7 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Image as ImageIcon, XCircle, MapPin, Loader2, Send } from 'lucide-react';
 import { geocodeAddress } from '@/utils/geocoding';
 import { toast } from 'sonner';
-import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
+import { AnalyticsService } from '@/services/AnalyticsService';
+import { IncidentRow } from '@/types/supabase'; // Import IncidentRow
 
 const incidentFormSchema = z.object({
   type: z.string().min(1, { message: 'Incident type is required.' }).max(100, { message: 'Incident type too long.' }),
@@ -25,14 +26,7 @@ type IncidentFormValues = z.infer<typeof incidentFormSchema>;
 interface IncidentFormProps {
   onSubmit: (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => Promise<boolean>;
   isLoading: boolean;
-  initialIncident?: {
-    type: string;
-    location: string;
-    description: string;
-    image_url?: string;
-    latitude?: number;
-    longitude?: number;
-  };
+  initialIncident?: Omit<IncidentRow, 'id' | 'created_at' | 'date' | 'title' | 'search_vector' | 'audio_url' | 'admin_id'>; // Use Omit with IncidentRow
   formId?: string;
 }
 
@@ -105,7 +99,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (import.meta.env.DEV) {
-      console.log('IncidentForm: Image file selected:', file?.name, 'Size:', file?.size);
+      console.log('IncidentForm: Image file selected:', file?.name, 'Size:', file?.size, 'Type:', file?.type);
     }
     // Revoke previous object URL if it exists
     if (imagePreview && imagePreview.startsWith('blob:')) {
