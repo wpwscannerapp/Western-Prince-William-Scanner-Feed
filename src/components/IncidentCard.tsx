@@ -134,6 +134,11 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
 
   // Ensure incident.image_url is not an empty string before passing to Netlify Image CDN
   const imageUrlForCDN = incident.image_url && incident.image_url.trim() !== '' ? incident.image_url : undefined;
+  
+  if (imageUrlForCDN && import.meta.env.DEV) {
+    console.log('IncidentCard Debug: Image URL for CDN:', imageUrlForCDN);
+    console.log('IncidentCard Debug: Encoded URL:', encodeURIComponent(imageUrlForCDN));
+  }
 
   return (
     <Card className="tw-w-full tw-bg-card tw-border-border tw-shadow-md tw-text-foreground tw-rounded-lg tw-cursor-pointer" onClick={handleIncidentClick}>
@@ -189,7 +194,7 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
             className={hasLiked ? 'tw-text-primary hover:tw-text-primary/80 tw-button' : 'tw-text-muted-foreground hover:tw-text-primary tw-button'}
             aria-label={hasLiked ? `Unlike incident, currently ${likesCount} likes` : `Like incident, currently ${likesCount} likes`}
           >
-            {isLiking ? <Loader2 className="tw-h-4 tw-w-4 tw-mr-1 tw-animate-spin" aria-hidden="true" /> : <Heart className="tw-h-4 tw-w-4 tw-mr-1" fill={hasLiked ? 'currentColor' : 'none'} aria-hidden="true" />}
+            {isLiking ? <Loader2 className="tw-h-4 tw-w-4 tw-mr-1 tw-animate-spin" aria-hidden="true" /> : <Heart className="tw-h-4 tw-w-4 tw-mr-1" fill={hasLiked ? 'currentColor' : 'none'} aria-hidden="true' />)}
             {likesCount} Like{likesCount !== 1 ? 's' : ''}
           </Button>
           <Button
