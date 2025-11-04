@@ -9,7 +9,7 @@ import { SettingsService, ContactSettings } from '@/services/SettingsService';
 import { handleError } from '@/utils/errorHandler';
 import { CONTACT_US_TITLE, CONTACT_US_DESCRIPTION } from '@/lib/constants';
 import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
-import { ContactCard } from '@/types/supabase'; // Import ContactCard
+import { ContactCard } from '@/types/supabase'; // Corrected import path
 
 const ContactUsPage: React.FC = () => {
   const navigate = useNavigate();

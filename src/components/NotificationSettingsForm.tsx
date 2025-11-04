@@ -16,7 +16,7 @@ import { NotificationService } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import { PushSubJson, NotificationSettingsUpdate, NotificationSettingsInsert } from '@/types/supabase'; // Import PushSubJson, NotificationSettingsRow, NotificationSettingsUpdate
+import { PushSubJson, NotificationSettingsUpdate, NotificationSettingsInsert } from '@/types/supabase'; // Import PushSubJson, NotificationSettingsUpdate, NotificationSettingsInsert
 
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const IDLE_TIMEOUT_MS = 300000; // 5 minutes

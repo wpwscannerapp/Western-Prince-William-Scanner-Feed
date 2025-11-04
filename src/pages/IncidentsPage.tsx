@@ -108,7 +108,7 @@ const IncidentsPage: React.FC = () => {
     [isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]
   );
 
-  const handleCreateIncident = async (type: string, location: string, description: string, imageFile: File | null, _currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined) => {
+  const handleCreateIncident = async (type: string, location: string, description: string, imageFile: File | null, _currentImageUrl: string | undefined, latitude: number | undefined, longitude: number | undefined): Promise<boolean> => {
     if (!user) {
       toast.error('You must be logged in to create an incident.');
       AnalyticsService.trackEvent({ name: 'create_incident_attempt_failed', properties: { reason: 'not_logged_in' } });
@@ -125,7 +125,7 @@ const IncidentsPage: React.FC = () => {
         description,
         type,
         location,
-        date: new Date().toISOString(), // Add date here
+        // date is now part of NewIncident type and will be handled by the service
       }, imageFile, latitude, longitude, user.id);
       
       if (newIncident) {

@@ -61,7 +61,7 @@ export type TablesUpdate<
     ? U
     : never
   : PublicTableNameOrOptions extends keyof Database['public']['Tables']
-    ? Database['public']['Tables'][PublicTableNameOrOptions] extends {
+    ? PublicSchema['Tables'][PublicTableNameOrOptions] extends {
         Update: infer U;
       }
       ? U
@@ -118,7 +118,7 @@ export type IncidentListItem = Pick<IncidentRow,
 >;
 
 // b) Make a column required (useful for inserts)
-export type RequiredInsert<T> = { [P in keyof T]-?: NonNullable<T[P]> };
+export type RequiredInsert<T> = { [P in keyof T]-?: NonNullable<T[P]> }
 
 // Example: NewIncident type for creating an incident (excluding auto-generated fields)
 export type NewIncident = RequiredInsert<Omit<IncidentInsert, 'id' | 'created_at' | 'search_vector'>>;

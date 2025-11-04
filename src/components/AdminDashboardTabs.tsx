@@ -67,6 +67,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTa
         description,
         type,
         location,
+        date: new Date().toISOString(), // Add date here
       }, imageFile, latitude, longitude, user.id);
       
       if (newIncident) {
@@ -174,7 +175,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTa
           <CardHeader>
             <CardTitle>Manage Real-Time Alerts</CardTitle>
             <CardDescription>View, edit, or delete real-time alerts</CardDescription>
-          </CardHeader>
+          </CardDescription>
           <CardContent>
             <AdminAlertTable onAlertUpdated={refreshAlertTable} />
           </CardContent>

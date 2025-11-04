@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { AnalyticsService } from './AnalyticsService';
-import { PushSubJson, NotificationSettingsRow, NotificationSettingsUpdate, AlertRow, AlertUpdate, NewAlert, NotificationSettingsInsert } from '@/types/supabase';
+import { PushSubJson, NotificationSettingsUpdate, AlertRow, AlertUpdate, NewAlert, NotificationSettingsInsert } from '@/types/supabase';
 
 export type PushSubscription = PushSubJson; // Alias PushSubJson to PushSubscription for existing usage
 
@@ -163,7 +163,7 @@ export const NotificationService = {
       // Fetch existing settings or create a default one if none exist
       const existingSettings = await NotificationService.getUserNotificationSettings(userId);
 
-      const defaultSettings: Omit<NotificationSettingsInsert, 'user_id' | 'created_at'> = {
+      const defaultSettings: Omit<NotificationSettingsInsert, 'user_id'> = {
         enabled: false,
         push_subscription: null,
         receive_all_alerts: true,
