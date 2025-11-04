@@ -3,17 +3,9 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { AnalyticsService } from './AnalyticsService';
-import { AppSettingsRow, AppSettingsUpdate, AppSettingsInsert, ContactSettingsRow, ContactSettingsUpdate, ContactCardsJson, LayoutJson } from '@/types/supabase';
+import { AppSettingsRow, AppSettingsUpdate, AppSettingsInsert, ContactSettingsRow, ContactSettingsUpdate, ContactCardsJson, LayoutJson, ContactCard } from '@/types/supabase';
 
 export type AppSettings = AppSettingsRow; // Alias AppSettingsRow to AppSettings for existing usage
-
-export type ContactCard = {
-  id: string;
-  name: string;
-  title: string | null;
-  email: string | null;
-  phone: string | null;
-}; // Defined based on ContactCardsJson structure
 
 export type ContactSettings = ContactSettingsRow; // Alias ContactSettingsRow to ContactSettings for existing usage
 

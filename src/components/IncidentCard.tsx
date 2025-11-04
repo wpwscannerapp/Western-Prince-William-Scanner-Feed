@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { CalendarDays, MapPin, Tag, FileText, Heart, MessageCircle, Loader2, Shield } from 'lucide-react';
 import { IncidentRow } from '@/types/supabase'; // Import IncidentRow
 import { LikeService } from '@/services/LikeService';
-import { CommentService, Comment } from '@/services/CommentService'; // Import Comment
+import { CommentService } from '@/services/CommentService';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';

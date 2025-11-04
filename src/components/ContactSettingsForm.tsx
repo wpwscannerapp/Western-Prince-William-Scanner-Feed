@@ -10,10 +10,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleError } from '@/utils/errorHandler';
-import { SettingsService, ContactCard } from '@/services/SettingsService'; // Import ContactCard
+import { SettingsService } from '@/services/SettingsService';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import ContactCardForm from './ContactCardForm';
 import { AnalyticsService } from '@/services/AnalyticsService';
+import { ContactCard } from '@/types/supabase'; // Import ContactCard
 
 const contactCardSchema = z.object({
   id: z.string().optional(),

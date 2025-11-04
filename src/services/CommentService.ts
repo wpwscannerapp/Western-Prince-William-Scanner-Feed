@@ -4,12 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { AnalyticsService } from './AnalyticsService';
-import { CommentRow, CommentInsert, CommentUpdate, NewComment } from '@/types/supabase';
+import { CommentRow, CommentInsert, CommentUpdate, CommentWithProfile } from '@/types/supabase';
 
-export type Comment = CommentRow & {
-  username: string | null;
-  avatar_url: string | null;
-}; // Extend CommentRow with profile details
+export type Comment = CommentWithProfile; // Alias CommentWithProfile to Comment
 
 const logSupabaseError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);

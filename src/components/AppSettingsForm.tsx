@@ -311,7 +311,7 @@ const AppSettingsForm: React.FC = () => {
             {versionHistory.length === 0 ? (
               <p className="tw-text-muted-foreground">No version history available.</p>
             ) : (
-              <div className="tw-space-y-2" role="list" aria-label="Settings version history">
+              <div className="tw-space-y-2" role="list" aria-label="List of settings versions">
                 {versionHistory.map((entry) => (
                   <div key={entry.id} className="tw-flex tw-justify-between tw-items-center tw-py-2 tw-px-3 tw-bg-muted/30 tw-rounded-md tw-border tw-border-border" role="listitem">
                     <span className="tw-text-sm tw-text-foreground">{new Date(entry.created_at!).toLocaleString()}</span>

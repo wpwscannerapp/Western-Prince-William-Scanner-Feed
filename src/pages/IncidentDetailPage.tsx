@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Incident, IncidentService } from '@/services/IncidentService';
-import { Comment, CommentService } from '@/services/CommentService';
+import { CommentService } from '@/services/CommentService';
 import IncidentCard from '@/components/IncidentCard';
 import { Loader2, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,8 @@ import CommentCard from '@/components/CommentCard';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
+import { AnalyticsService } from '@/services/AnalyticsService';
+import { CommentWithProfile } from '@/types/supabase'; // Import CommentWithProfile
 // import IncidentMap from '@/components/IncidentMap'; // Direct import - REMOVED
 
 const IncidentDetailPage: React.FC = () => {
@@ -26,7 +27,7 @@ const IncidentDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [previousIncident, setPreviousIncident] = useState<Incident | null>(null);
   
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<CommentWithProfile[]>([]);
   const [newCommentContent, setNewCommentContent] = useState('');
   const [isCommenting, setIsCommenting] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -130,7 +131,7 @@ const IncidentDetailPage: React.FC = () => {
     }
   };
 
-  const handleCommentUpdated = (updatedComment: Comment) => {
+  const handleCommentUpdated = (updatedComment: CommentWithProfile) => {
     setComments(prev => prev.map(c => (c.id === updatedComment.id ? updatedComment : c)));
     AnalyticsService.trackEvent({ name: 'comment_updated_in_detail', properties: { commentId: updatedComment.id, incidentId } });
   };

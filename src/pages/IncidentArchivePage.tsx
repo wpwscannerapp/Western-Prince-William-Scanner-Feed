@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Info } from 'lucide-react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { IncidentService, Incident, IncidentFilter, INCIDENTS_PER_PAGE } from '@/services/IncidentService';
+import { IncidentService, IncidentFilter, INCIDENTS_PER_PAGE } from '@/services/IncidentService';
 import { handleError } from '@/utils/errorHandler';
 import IncidentSearchForm from '@/components/IncidentSearchForm';
 import IncidentCard from '@/components/IncidentCard';
@@ -14,7 +14,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useIsSubscribed } from '@/hooks/useIsSubscribed';
 import SubscribeOverlay from '@/components/SubscribeOverlay';
-import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
+import { AnalyticsService } from '@/services/AnalyticsService';
+import { IncidentRow } from '@/types/supabase'; // Import IncidentRow
 
 const IncidentArchivePage: React.FC = () => {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ const IncidentArchivePage: React.FC = () => {
     isError,
     error,
     refetch,
-  } = useInfiniteQuery<Incident[], Error>({
+  } = useInfiniteQuery<IncidentRow[], Error>({ // Use IncidentRow
     queryKey: ['incidents', 'archive', filters],
     queryFn: async ({ pageParam = 0 }) => {
       const fetchedIncidents = await IncidentService.fetchIncidents(pageParam as number, filters);
@@ -144,7 +145,7 @@ const IncidentArchivePage: React.FC = () => {
 
             {isFetchingNextPage && (
               <div className="tw-flex tw-justify-center tw-items-center tw-py-8 tw-gap-2 tw-text-muted-foreground">
-                <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" aria-label="Loading more incidents" />
+                <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" aria-hidden="true" />
                 <span>Loading more incidents...</span>
               </div>
             )}

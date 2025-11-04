@@ -122,7 +122,6 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
     } catch (err) {
       toast.error('An error occurred while updating the incident.', { id: 'update-incident' });
       AnalyticsService.trackEvent({ name: 'admin_incident_update_error', properties: { incidentId: editingIncident.id, error: (err as Error).message } });
-      return false;
     } finally {
       setIsSubmitting(false);
     }

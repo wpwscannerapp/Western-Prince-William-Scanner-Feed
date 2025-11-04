@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AlertRow } from '@/types/supabase'; // Import AlertRow
-import { Alert, NotificationService } from '@/services/NotificationService';
+import { NotificationService } from '@/services/NotificationService';
 import { format } from 'date-fns';
 import { Edit, Trash2, Search, Loader2, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
@@ -103,7 +103,6 @@ const AdminAlertTable: React.FC<AdminAlertTableProps> = ({ onAlertUpdated }) => 
     } catch (err) {
       toast.error('An error occurred while updating the alert.', { id: 'update-alert' });
       AnalyticsService.trackEvent({ name: 'admin_alert_update_error', properties: { alertId: editingAlert.id, error: (err as Error).message } });
-      return false;
     } finally {
       setIsSubmitting(false);
     }
