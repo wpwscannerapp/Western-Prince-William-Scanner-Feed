@@ -54,20 +54,19 @@ export function useIsAdmin(): UseAdminResult {
         return null;
       }
 
-      console.log('useIsAdmin: fetchRole started. Count:', ++fetchCount); // Add debug log here
+      if (import.meta.env.DEV) {
+        console.log('useIsAdmin: fetchRole started. Count:', ++fetchCount);
+        console.log(`[useIsAdmin] Using SUPABASE_API_TIMEOUT: ${SUPABASE_API_TIMEOUT}ms`);
+      }
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
         if (import.meta.env.DEV) {
-          console.warn(`useIsAdmin: Role fetch for ${user.id} timed out after ${SUPABASE_API_TIMEOUT}ms. This might be a temporary network issue or a slow response from Supabase.`);
+          console.warn(`useIsAdmin: Role fetch for ${user.id} timed out after ${SUPABASE_API_TIMEOUT}ms. Aborting request.`);
         }
         AnalyticsService.trackEvent({ name: 'fetch_admin_role_timeout', properties: { userId: user.id } });
       }, SUPABASE_API_TIMEOUT);
-
-      if (import.meta.env.DEV) {
-        console.log(`[useIsAdmin] Using SUPABASE_API_TIMEOUT: ${SUPABASE_API_TIMEOUT}ms`);
-      }
 
       try {
         const { data, error: supabaseError } = await supabase
@@ -88,6 +87,7 @@ export function useIsAdmin(): UseAdminResult {
         return data as { role: string };
       } catch (err: any) {
         if (err.name === 'AbortError') {
+          // Throw a specific error for the query to catch
           throw new Error('Fetching user role timed out.');
         }
         AnalyticsService.trackEvent({ name: 'fetch_admin_role_failed', properties: { userId: user.id, error: err.message } });
@@ -106,7 +106,12 @@ export function useIsAdmin(): UseAdminResult {
     if (!isMountedRef.current) return;
 
     if (isRoleQueryError) {
-      setError(globalHandleError(roleQueryError, 'Failed to load admin role.')); // Use globalHandleError
+      // Check if the error is the timeout error we threw
+      if (roleQueryError.message === 'Fetching user role timed out.') {
+        setError('Failed to load admin role: Request timed out.');
+      } else {
+        setError(globalHandleError(roleQueryError, 'Failed to load admin role.')); // Use globalHandleError
+      }
       setIsAdmin(false);
       return;
     }
