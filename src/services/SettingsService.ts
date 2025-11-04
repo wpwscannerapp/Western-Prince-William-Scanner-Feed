@@ -183,7 +183,7 @@ export const SettingsService = {
     }
   },
 
-  async updateContactSettings(contactCards: ContactCard[]): Promise<boolean> {
+  async updateContactSettings(contactCards: Omit<ContactCard, 'id'>[]): Promise<boolean> {
     try {
       const { data: existingSettings } = await supabase
         .from('contact_settings')
