@@ -12,13 +12,29 @@ const logSupabaseError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
 };
 
+/**
+ * Recursively builds a nested comment tree from a flat list of comments.
+ * @param comments A flat array of comments.
+ * @param parentId The ID of the parent comment (null for top-level comments).
+ * @returns A nested array of comments.
+ */
+const buildCommentTree = (comments: CommentWithProfile[], parentId: string | null = null): CommentWithProfile[] => {
+  return comments
+    .filter(comment => (comment.parent_comment_id || null) === parentId)
+    .sort((a, b) => new Date(a.created_at!).getTime() - new Date(b.created_at!).getTime())
+    .map(comment => ({
+      ...comment,
+      replies: buildCommentTree(comments, comment.id),
+    }));
+};
+
 export const CommentService = {
-  async addComment(incidentId: string, userId: string, content: string): Promise<Comment | null> {
+  async addComment(incidentId: string, userId: string, content: string, parentCommentId: string | null = null): Promise<Comment | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
-      const commentInsert: CommentInsert = { incident_id: incidentId, user_id: userId, content };
+      const commentInsert: CommentInsert = { incident_id: incidentId, user_id: userId, content, parent_comment_id: parentCommentId };
       const { data, error } = await supabase
         .from('comments')
         .insert(commentInsert)
@@ -30,16 +46,17 @@ export const CommentService = {
           content,
           created_at,
           updated_at,
+          parent_comment_id,
           profiles (username, avatar_url)
         `)
         .single();
 
       if (error) {
         logSupabaseError('addComment', error);
-        AnalyticsService.trackEvent({ name: 'add_comment_failed', properties: { incidentId, userId, error: error.message } });
+        AnalyticsService.trackEvent({ name: 'add_comment_failed', properties: { incidentId, userId, parentCommentId, error: error.message } });
         return null;
       }
-      AnalyticsService.trackEvent({ name: 'comment_added', properties: { incidentId, userId } });
+      AnalyticsService.trackEvent({ name: 'comment_added', properties: { incidentId, userId, isReply: !!parentCommentId } });
       const profileData = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
       return {
         id: data.id,
@@ -48,7 +65,9 @@ export const CommentService = {
         content: data.content,
         created_at: data.created_at,
         updated_at: data.updated_at,
+        parent_comment_id: data.parent_comment_id,
         profiles: profileData ? { username: profileData.username, avatar_url: profileData.avatar_url } : null,
+        replies: [],
       } as Comment;
     } catch (err: any) {
       if (err.name === 'AbortError') {
@@ -78,6 +97,7 @@ export const CommentService = {
           content,
           created_at,
           updated_at,
+          parent_comment_id,
           profiles (username, avatar_url)
         `)
         .eq('incident_id', incidentId)
@@ -88,7 +108,8 @@ export const CommentService = {
         logSupabaseError('fetchComments', error);
         return [];
       }
-      return data.map(comment => {
+
+      const flatComments = data.map(comment => {
         const profileData = Array.isArray(comment.profiles) ? comment.profiles[0] : comment.profiles;
         return {
           id: comment.id,
@@ -97,9 +118,14 @@ export const CommentService = {
           content: comment.content,
           created_at: comment.created_at,
           updated_at: comment.updated_at,
+          parent_comment_id: comment.parent_comment_id,
           profiles: profileData ? { username: profileData.username, avatar_url: profileData.avatar_url } : null,
         };
-      }) as Comment[];
+      }) as CommentWithProfile[];
+
+      // Build the nested tree structure
+      return buildCommentTree(flatComments, null);
+
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching comments timed out.');
@@ -130,6 +156,7 @@ export const CommentService = {
           content,
           created_at,
           updated_at,
+          parent_comment_id,
           profiles (username, avatar_url)
         `)
         .single();
@@ -148,7 +175,9 @@ export const CommentService = {
         content: data.content,
         created_at: data.created_at,
         updated_at: data.updated_at,
+        parent_comment_id: data.parent_comment_id,
         profiles: profileData ? { username: profileData.username, avatar_url: profileData.avatar_url } : null,
+        replies: [],
       } as Comment;
     } catch (err: any) {
       if (err.name === 'AbortError') {
@@ -172,7 +201,8 @@ export const CommentService = {
       const { error } = await supabase
         .from('comments')
         .delete()
-        .eq('id', commentId)
+        // Deleting a parent comment will cascade delete all replies due to the foreign key constraint ON DELETE CASCADE
+        .eq('id', commentId) 
         .abortSignal(controller.signal);
 
       if (error) {

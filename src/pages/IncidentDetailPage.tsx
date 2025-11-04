@@ -8,14 +8,13 @@ import IncidentCard from '@/components/IncidentCard';
 import { Loader2, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { handleError } from '@/utils/errorHandler';
-import { Input } from '@/components/ui/input';
 import CommentCard from '@/components/CommentCard';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalyticsService } from '@/services/AnalyticsService';
 import { CommentWithProfile } from '@/types/supabase'; // Import CommentWithProfile
-// import IncidentMap from '@/components/IncidentMap'; // Direct import - REMOVED
+import { Textarea } from '@/components/ui/textarea'; // Import Textarea for better comment input
 
 const IncidentDetailPage: React.FC = () => {
   const { incidentId } = useParams<{ incidentId: string }>();
@@ -65,6 +64,7 @@ const IncidentDetailPage: React.FC = () => {
     if (!incidentId) return;
     setLoadingComments(true);
     try {
+      // CommentService now returns the nested tree structure
       const fetchedComments = await CommentService.fetchComments(incidentId);
       setComments(fetchedComments);
       AnalyticsService.trackEvent({ name: 'comments_loaded', properties: { incidentId, count: fetchedComments.length } });
@@ -83,6 +83,7 @@ const IncidentDetailPage: React.FC = () => {
     const commentsChannel = supabase
       .channel(`public:comments:incident_id=eq.${incidentId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: `incident_id=eq.${incidentId}` }, () => {
+        // Re-fetch all comments to rebuild the tree on any change (insert, update, delete)
         fetchCommentsForIncident();
         AnalyticsService.trackEvent({ name: 'comments_realtime_update_received', properties: { incidentId } });
       })
@@ -113,11 +114,14 @@ const IncidentDetailPage: React.FC = () => {
     setIsCommenting(true);
     try {
       toast.loading('Adding comment...', { id: 'add-comment' });
-      const newComment = await CommentService.addComment(incidentId, user.id, newCommentContent);
+      // Pass null for parentCommentId for top-level comments
+      const newComment = await CommentService.addComment(incidentId, user.id, newCommentContent, null);
       
       if (newComment) {
         toast.success('Comment added!', { id: 'add-comment' });
         setNewCommentContent('');
+        // Realtime listener will handle the re-fetch, but we can manually update the state for immediate feedback if needed
+        // For simplicity and to rely on the new tree structure, we rely on the realtime listener here.
         AnalyticsService.trackEvent({ name: 'comment_added_from_detail', properties: { incidentId, userId: user.id } });
       } else {
         handleError(null, 'Failed to add comment.', { id: 'add-comment' });
@@ -131,17 +135,25 @@ const IncidentDetailPage: React.FC = () => {
     }
   };
 
+  // This function is passed down to CommentCard and its recursive calls
   const handleCommentUpdated = (updatedComment: CommentWithProfile) => {
-    setComments(prev => prev.map(c => (c.id === updatedComment.id ? updatedComment : c)));
+    // Since we rely on the full tree structure from fetchCommentsForIncident, 
+    // we don't need complex local state updates here. The realtime listener 
+    // should trigger a full re-fetch shortly after the update mutation succeeds.
+    // We can trigger a manual re-fetch here for immediate consistency if needed, 
+    // but relying on the realtime listener is often cleaner.
+    fetchCommentsForIncident();
     AnalyticsService.trackEvent({ name: 'comment_updated_in_detail', properties: { commentId: updatedComment.id, incidentId } });
   };
 
+  // This function is passed down to CommentCard and its recursive calls
   const handleCommentDeleted = (commentId: string) => {
-    setComments(prev => prev.filter(c => c.id !== commentId));
+    // Same as update, rely on the full re-fetch triggered by the realtime listener
+    fetchCommentsForIncident();
     AnalyticsService.trackEvent({ name: 'comment_deleted_in_detail', properties: { commentId, incidentId } });
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       handleAddComment();
@@ -190,9 +202,6 @@ const IncidentDetailPage: React.FC = () => {
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-3xl">
-      {/* Removed: <Button onClick={() => navigate('/home')} variant="outline" className="tw-mb-4 tw-button">
-        Back to Home Page
-      </Button> */}
       <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground tw-text-center">Incident Detail</h1>
       <div className="tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-md" aria-labelledby={`incident-title-${incident.id}`}>
         <IncidentCard incident={incident} /> 
@@ -203,20 +212,23 @@ const IncidentDetailPage: React.FC = () => {
           <MessageCircle className="tw-h-6 tw-w-6" aria-hidden="true" /> Comments ({comments.length})
         </h2>
         <div className="tw-flex tw-gap-2 tw-mb-6">
-          <Input
+          <Textarea
             placeholder="Add a comment..."
             value={newCommentContent}
             onChange={(e) => setNewCommentContent(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isCommenting || !user}
-            className="tw-flex-1 tw-input"
+            className="tw-flex-1 tw-input tw-min-h-[80px]"
             aria-label="New comment content"
           />
-          <Button onClick={handleAddComment} disabled={isCommenting || !user} className="tw-button">
+          <Button onClick={handleAddComment} disabled={isCommenting || !user || newCommentContent.trim() === ''} className="tw-button tw-self-start">
             {isCommenting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
             Comment
           </Button>
         </div>
+        {!user && (
+          <p className="tw-text-sm tw-text-destructive tw-mb-4">You must be logged in to post comments.</p>
+        )}
 
         {loadingComments ? (
           <div className="tw-flex tw-justify-center tw-py-4">
@@ -232,8 +244,10 @@ const IncidentDetailPage: React.FC = () => {
                 <CommentCard
                   key={comment.id}
                   comment={comment}
+                  incidentId={incidentId!}
                   onCommentUpdated={handleCommentUpdated}
                   onCommentDeleted={handleCommentDeleted}
+                  onReplySubmitted={fetchCommentsForIncident} // Re-fetch all comments to rebuild the tree
                 />
               ))
             )}

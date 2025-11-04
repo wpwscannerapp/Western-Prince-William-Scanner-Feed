@@ -8,7 +8,9 @@ export type PublicSchema = Database['public']
 export type AlertRow                = PublicSchema['Tables']['alerts']['Row']
 export type AppSettingsRow          = PublicSchema['Tables']['app_settings']['Row']
 export type AppSettingsHistoryRow   = PublicSchema['Tables']['app_settings_history']['Row']
-export type CommentRow              = PublicSchema['Tables']['comments']['Row']
+export type CommentRow              = PublicSchema['Tables']['comments']['Row'] & {
+  parent_comment_id: string | null; // Added parent_comment_id
+}
 export type ContactSettingsRow      = PublicSchema['Tables']['contact_settings']['Row']
 export type FeedbackRow             = PublicSchema['Tables']['feedback_and_suggestions']['Row']
 export type IncidentRow             = PublicSchema['Tables']['incidents']['Row']
@@ -25,8 +27,12 @@ export type AlertInsert = PublicSchema['Tables']['alerts']['Insert']
 export type AlertUpdate = PublicSchema['Tables']['alerts']['Update']
 export type AppSettingsInsert = PublicSchema['Tables']['app_settings']['Insert']
 export type AppSettingsUpdate = PublicSchema['Tables']['app_settings']['Update']
-export type CommentInsert = PublicSchema['Tables']['comments']['Insert']
-export type CommentUpdate = PublicSchema['Tables']['comments']['Update']
+export type CommentInsert = PublicSchema['Tables']['comments']['Insert'] & {
+  parent_comment_id?: string | null; // Added parent_comment_id
+}
+export type CommentUpdate = PublicSchema['Tables']['comments']['Update'] & {
+  parent_comment_id?: string | null; // Added parent_comment_id
+}
 export type ContactSettingsInsert = PublicSchema['Tables']['contact_settings']['Insert']
 export type ContactSettingsUpdate = PublicSchema['Tables']['contact_settings']['Update']
 export type IncidentInsert = PublicSchema['Tables']['incidents']['Insert']
@@ -57,6 +63,7 @@ export type PushSubJson = NotificationSettingsRow['push_subscription'];
 
 export type CommentWithProfile = CommentRow & {
   profiles: Pick<ProfileRow, 'username' | 'avatar_url'> | null;
+  replies?: CommentWithProfile[]; // Added replies for nesting
 };
 
 export type FeedbackWithProfile = FeedbackRow & {
