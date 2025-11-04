@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { SPLASH_DURATION } from '@/config';
 
@@ -7,6 +7,7 @@ const Index: React.FC = () => {
   const { user, authReady } = useAuth();
   const [minimumSplashDurationPassed, setMinimumSplashDurationPassed] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const splashDuration = SPLASH_DURATION || 3000;
@@ -24,13 +25,16 @@ const Index: React.FC = () => {
   useEffect(() => {
     // Navigate if minimum splash duration has passed AND auth is ready
     if (minimumSplashDurationPassed && authReady) {
-      if (user) { // If a user object exists (either explicit login or restored session)
-        navigate('/home', { replace: true });
-      } else { // No user object, so not logged in
-        navigate('/auth', { replace: true });
+      // Only perform automatic redirection if we are currently at the root path '/'
+      if (location.pathname === '/') {
+        if (user) { // If a user object exists (either explicit login or restored session)
+          navigate('/home', { replace: true });
+        } else { // No user object, so not logged in
+          navigate('/auth', { replace: true });
+        }
       }
     }
-  }, [minimumSplashDurationPassed, authReady, user, navigate]);
+  }, [minimumSplashDurationPassed, authReady, user, navigate, location.pathname]);
 
   // The logo is now referenced via Netlify Image CDN for optimization
   const logoPath = "/Logo.png";

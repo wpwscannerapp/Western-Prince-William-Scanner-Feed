@@ -35,7 +35,9 @@ const LoginPage: React.FC = () => {
     },
   });
 
-  // Redirect if already logged in
+  // Redirect if already logged in AND we are not currently loading (to prevent flicker)
+  // We keep this logic here for explicit sign-in, but rely on the main router/index page for initial routing.
+  // If the user is already logged in, we should redirect them away from the login page.
   useEffect(() => {
     if (!authLoading && user) {
       navigate('/home', { replace: true });
