@@ -31,7 +31,7 @@ const settingsSchema = z.object({
   logo_url: z.string().url().optional().or(z.literal('')).nullable(),
   favicon_url: z.string().url().optional().or(z.literal('')).nullable(),
   custom_css: z.string().optional().nullable(),
-  layout: z.array(z.object({ id: z.string(), type: z.string(), content: z.string() })).optional(),
+  layout: z.array(z.object({ id: z.string(), type: z.string(), content: z.string() })).optional().nullable(),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -70,7 +70,7 @@ const AppSettingsForm: React.FC = () => {
           logo_url: currentSettings.logo_url || '',
           favicon_url: currentSettings.favicon_url || '',
           custom_css: currentSettings.custom_css || '',
-          layout: (currentSettings.layout || []) as LayoutComponent[],
+          layout: (currentSettings.layout as unknown as LayoutComponent[]) || [],
         };
         form.reset(formValues);
       }
@@ -137,7 +137,7 @@ const AppSettingsForm: React.FC = () => {
         logo_url: values.logo_url || null,
         favicon_url: values.favicon_url || null,
         custom_css: values.custom_css || null,
-        layout: values.layout as LayoutJson || [],
+        layout: values.layout as LayoutJson || null,
         updated_at: new Date().toISOString(),
       };
 
@@ -172,7 +172,7 @@ const AppSettingsForm: React.FC = () => {
         logo_url: historyEntry.settings.logo_url || '',
         favicon_url: historyEntry.settings.favicon_url || '',
         custom_css: historyEntry.settings.custom_css || '',
-        layout: (historyEntry.settings.layout || []) as LayoutComponent[],
+        layout: (historyEntry.settings.layout as unknown as LayoutComponent[]) || [],
       };
       form.reset(formValues);
       toast.success('Reverted to previous settings!', { id: 'revert-settings' });

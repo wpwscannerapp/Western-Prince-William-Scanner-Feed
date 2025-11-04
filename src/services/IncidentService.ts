@@ -38,7 +38,7 @@ export const IncidentService = {
     try {
       let query = supabase
         .from('incidents')
-        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at')
+        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at, audio_url, search_vector')
         .abortSignal(controller.signal);
 
       if (filters.searchTerm) {
@@ -99,7 +99,7 @@ export const IncidentService = {
     try {
       const { data, error } = await supabase
         .from('incidents')
-        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at')
+        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at, audio_url, search_vector')
         .eq('id', incidentId)
         .abortSignal(controller.signal)
         .single();
@@ -162,7 +162,7 @@ export const IncidentService = {
     }
   },
 
-  async createIncident(incident: Omit<NewIncident, 'image_url' | 'latitude' | 'longitude'>, imageFile: File | null, latitude: number | undefined, longitude: number | undefined, adminId: string): Promise<IncidentRow | null> {
+  async createIncident(incident: Omit<NewIncident, 'image_url' | 'latitude' | 'longitude' | 'admin_id' | 'audio_url' | 'search_vector'>, imageFile: File | null, latitude: number | undefined, longitude: number | undefined, adminId: string): Promise<IncidentRow | null> {
     if (import.meta.env.DEV) {
       console.log('IncidentService: Starting createIncident for adminId:', adminId);
       console.log('Incident data:', incident);
@@ -248,7 +248,7 @@ export const IncidentService = {
           userFacingError = `Failed to post incident: ${error.message}`;
         }
         handleError(error, userFacingError);
-        AnalyticsService.trackEvent({ name: 'create_incident_failed', properties: { adminId, type: incident.type, error: error.message, errorCode: error.code } });
+        AnalyticsService.trackEvent({ name: 'create_incident_failed', properties: { adminId, type: incident.type, error: error.code || error.message, errorCode: error.code } });
         return null;
       }
 
@@ -416,7 +416,7 @@ export const IncidentService = {
     try {
       const { data, error } = await supabase
         .from('incidents')
-        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at')
+        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at, audio_url, search_vector')
         .lt('date', currentIncidentTimestamp)
         .order('date', { ascending: false })
         .limit(1)

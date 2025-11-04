@@ -1,4 +1,4 @@
-import type { Database } from '@/integrations/supabase/types'
+import type { Database } from '@/types/database.types'
 
 export type PublicSchema = Database['public']
 
@@ -37,7 +37,7 @@ export type ProfileUpdate = PublicSchema['Tables']['profiles']['Update']
 
 export type IncidentListItem = Pick<
   IncidentRow,
-  'id' | 'title' | 'type' | 'date' | 'latitude' | 'longitude' | 'image_url' | 'location' | 'description' | 'admin_id' | 'created_at'
+  'id' | 'title' | 'type' | 'date' | 'latitude' | 'longitude' | 'image_url' | 'location' | 'description' | 'admin_id' | 'created_at' | 'audio_url' | 'search_vector'
 >;
 
 export type RequiredInsert<T> = { [P in keyof T]-?: NonNullable<T[P]> };
@@ -46,8 +46,8 @@ export type NewIncident = RequiredInsert<Omit<IncidentInsert, 'id' | 'created_at
 export type NewAlert = RequiredInsert<Omit<AlertInsert, 'id' | 'created_at'>>;
 export type NewComment = RequiredInsert<Omit<CommentInsert, 'id' | 'created_at'>>;
 
-export type LayoutJson = AppSettingsRow['layout'];
-export type ContactCardsJson = ContactSettingsRow['contact_cards'];
+export type LayoutJson = Array<{ id: string; type: string; content: string }> | null;
+export type ContactCardsJson = Array<{ id?: string; name: string; title?: string; email?: string; phone?: string }> | null;
 export type PushSubJson = NotificationSettingsRow['push_subscription'];
 
 export type CommentWithProfile = CommentRow & {
