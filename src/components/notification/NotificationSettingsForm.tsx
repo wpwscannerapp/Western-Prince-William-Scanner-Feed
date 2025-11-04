@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, BellRing } from 'lucide-react';
@@ -17,18 +16,7 @@ import { NotificationPreferences } from './NotificationPreferences';
 import { NotificationStatus } from './NotificationStatus';
 import { NotificationCustomization } from './NotificationCustomization';
 import { AllAlertsToggle } from './AllAlertsToggle';
-
-// --- Validation Schema ---
-const notificationSettingsSchema = z.object({
-  enabled: z.boolean(),
-  receive_all_alerts: z.boolean(),
-  prefer_push_notifications: z.boolean(),
-  preferred_start_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid time format (HH:MM)').optional().or(z.literal('')),
-  preferred_end_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid time format (HH:MM)').optional().or(z.literal('')),
-  preferred_days: z.array(z.string()),
-});
-
-export type NotificationSettingsFormValues = z.infer<typeof notificationSettingsSchema>;
+import { notificationSettingsSchema, NotificationSettingsFormValues } from './types';
 
 // --- Interfaces ---
 interface NotificationSettingsFormProps {
@@ -162,6 +150,9 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
       };
       handleError(err, errorMessages[err.message] || 'An unexpected error occurred while saving settings.', { id: 'save-settings' });
       AnalyticsService.trackEvent({ name: 'save_notification_settings_failed', properties: { userId: user?.id, reason: err.message, error: (err as Error).message } });
+      if (err.message === 'permission_denied') {
+        form.setValue('enabled', false);
+      }
     } finally {
       setIsSaving(false);
     }

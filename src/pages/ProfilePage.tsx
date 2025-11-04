@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import ProfileForm from '@/components/ProfileForm';
-import NotificationSettingsForm from '@/components/NotificationSettingsForm';
+import NotificationSettingsForm from '@/components/notification/NotificationSettingsForm';
 import { PROFILE_TITLE, PROFILE_DESCRIPTION } from '@/lib/constants';
 import { Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
