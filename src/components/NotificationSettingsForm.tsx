@@ -16,7 +16,7 @@ import { NotificationService } from '@/services/NotificationService';
 import { handleError } from '@/utils/errorHandler';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import { PushSubJson, NotificationSettingsUpdate, NotificationSettingsInsert, NotificationSettingsRow } from '@/types/supabase'; // Import PushSubJson, NotificationSettingsUpdate, NotificationSettingsInsert
+import { PushSubJson, NotificationSettingsUpdate } from '@/types/supabase'; // Removed NotificationSettingsInsert, NotificationSettingsRow
 
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const IDLE_TIMEOUT_MS = 300000; // 5 minutes
@@ -415,7 +415,7 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
                 }}
                 disabled={isFormDisabled || !enabled}
                 aria-label="Toggle receiving all alerts 24/7"
-              />
+            />
             </div>
             <CardDescription className="tw-text-muted-foreground">
               When enabled, you will receive all alerts at all times, regardless of day or time preferences.

@@ -2,6 +2,9 @@ import type { Database } from '@/integrations/supabase/types'
 
 export type PublicSchema = Database['public']
 
+// ---------------------------------------------------------------
+// 2. Handy Row aliases (used everywhere)
+// ---------------------------------------------------------------
 export type AlertRow                = PublicSchema['Tables']['alerts']['Row']
 export type AppSettingsRow          = PublicSchema['Tables']['app_settings']['Row']
 export type AppSettingsHistoryRow   = PublicSchema['Tables']['app_settings_history']['Row']
@@ -13,10 +16,24 @@ export type LikeRow                 = PublicSchema['Tables']['likes']['Row']
 export type ProfileRow              = PublicSchema['Tables']['profiles']['Row']
 export type NotificationSettingsRow = PublicSchema['Tables']['user_notification_settings']['Row']
 
+// ---------------------------------------------------------------
+// 3. Insert / Update helpers
+// ---------------------------------------------------------------
+export type AlertInsert = PublicSchema['Tables']['alerts']['Insert']
+export type AlertUpdate = PublicSchema['Tables']['alerts']['Update']
+export type AppSettingsInsert = PublicSchema['Tables']['app_settings']['Insert']
+export type AppSettingsUpdate = PublicSchema['Tables']['app_settings']['Update']
+export type CommentInsert = PublicSchema['Tables']['comments']['Insert']
+export type CommentUpdate = PublicSchema['Tables']['comments']['Update']
+export type ContactSettingsInsert = PublicSchema['Tables']['contact_settings']['Insert']
+export type ContactSettingsUpdate = PublicSchema['Tables']['contact_settings']['Update']
 export type IncidentInsert = PublicSchema['Tables']['incidents']['Insert']
 export type IncidentUpdate = PublicSchema['Tables']['incidents']['Update']
 export type NotificationSettingsInsert = PublicSchema['Tables']['user_notification_settings']['Insert']
 export type NotificationSettingsUpdate = PublicSchema['Tables']['user_notification_settings']['Update']
+export type ProfileInsert = PublicSchema['Tables']['profiles']['Insert']
+export type ProfileUpdate = PublicSchema['Tables']['profiles']['Update']
+
 
 export type IncidentListItem = Pick<
   IncidentRow,

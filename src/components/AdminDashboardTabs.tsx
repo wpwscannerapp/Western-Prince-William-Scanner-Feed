@@ -283,8 +283,16 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTa
         </Card>
       </TabsContent>
       <TabsContent value="contact" className="tw-space-y-8">
-        <ContactSettingsForm />
-      </CardContent>
+        <Card>
+          <CardHeader>
+            <CardTitle>Contact Settings</CardTitle>
+            <CardDescription>Manage contact cards for the "Contact Us" page.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ContactSettingsForm />
+          </CardContent>
+        </Card>
+      </TabsContent>
     </Tabs>
   );
 };

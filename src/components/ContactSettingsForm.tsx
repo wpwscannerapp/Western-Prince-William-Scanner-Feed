@@ -9,7 +9,6 @@ import { handleError } from '@/utils/errorHandler';
 import { SettingsService } from '@/services/SettingsService';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import type { ContactSettingsRow } from '@/types/supabase';
 import type { ContactCard } from '@/types/contact';
 import { ContactCardForm } from './ContactCardForm'; // Assuming this is the new standalone form
 
