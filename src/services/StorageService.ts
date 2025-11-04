@@ -64,12 +64,16 @@ export const StorageService = {
             canvas.toBlob(
               (blob) => {
                 if (blob) {
-                  const resizedFile = new File([blob], file.name, {
+                  // Ensure the file name has a .jpeg extension after conversion
+                  const originalFileName = file.name.split('.').slice(0, -1).join('.');
+                  const newFileName = `${originalFileName}.jpeg`;
+
+                  const resizedFile = new File([blob], newFileName, {
                     type: 'image/jpeg',
                     lastModified: Date.now(),
                   });
                   if (import.meta.env.DEV) {
-                    console.log('StorageService: Image compressed to blob. New size:', (resizedFile.size / (1024 * 1024)).toFixed(2), 'MB');
+                    console.log('StorageService: Image compressed to blob. New size:', (resizedFile.size / (1024 * 1024)).toFixed(2), 'MB', 'New name:', newFileName);
                   }
                   AnalyticsService.trackEvent({ name: 'image_resized', properties: { originalSize: file.size, newSize: resizedFile.size, originalDimensions: `${img.width}x${img.height}`, newDimensions: `${width}x${height}` } });
                   resolve(resizedFile);
@@ -132,13 +136,13 @@ export const StorageService = {
       return null;
     }
 
-    const fileExtension = processedFile.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExtension}`;
+    // Use the processed file's name, which should now end in .jpeg
+    const fileName = processedFile.name;
     const filePath = `${fileName}`;
 
     try {
       if (import.meta.env.DEV) {
-        console.log(`StorageService: Attempting to upload processed file to ${bucketName}/${filePath}`);
+        console.log(`StorageService: Attempting to upload processed file (Type: ${processedFile.type}, Size: ${(processedFile.size / (1024 * 1024)).toFixed(2)}MB) to ${bucketName}/${filePath}`);
       }
       const { data: _data, error } = await supabase.storage
         .from(bucketName)
