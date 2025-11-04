@@ -74,7 +74,7 @@ export const IncidentService = {
       if (error) {
         logSupabaseError('fetchIncidents', error);
         AnalyticsService.trackEvent({ name: 'fetch_incidents_failed', properties: { offset, filters, limit, error: error.message } });
-        return [];
+        throw error; // Throw error to be caught by useInfiniteQuery
       }
       AnalyticsService.trackEvent({ name: 'incidents_fetched', properties: { offset, filters, limit, count: data.length } });
       return data as IncidentListItem[];
@@ -82,11 +82,12 @@ export const IncidentService = {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching incidents timed out.');
         AnalyticsService.trackEvent({ name: 'fetch_incidents_timeout', properties: { offset, filters, limit } });
+        throw new Error('Fetching incidents timed out.'); // Throw timeout error
       } else {
         logSupabaseError('fetchIncidents', err);
         AnalyticsService.trackEvent({ name: 'fetch_incidents_unexpected_error', properties: { offset, filters, limit, error: err.message } });
+        throw err; // Re-throw unexpected errors
       }
-      return [];
     } finally {
       clearTimeout(timeoutId);
     }
@@ -111,7 +112,7 @@ export const IncidentService = {
         }
         logSupabaseError('fetchSingleIncident', error);
         AnalyticsService.trackEvent({ name: 'fetch_single_incident_failed', properties: { incidentId, error: error.message } });
-        return null;
+        throw error;
       }
       AnalyticsService.trackEvent({ name: 'single_incident_fetched', properties: { incidentId } });
       return data;
@@ -119,11 +120,12 @@ export const IncidentService = {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching single incident timed out.');
         AnalyticsService.trackEvent({ name: 'fetch_single_incident_timeout', properties: { incidentId } });
+        throw new Error('Fetching single incident timed out.');
       } else {
         logSupabaseError('fetchSingleIncident', err);
         AnalyticsService.trackEvent({ name: 'fetch_single_incident_unexpected_error', properties: { incidentId, error: err.message } });
+        throw err;
       }
-      return null;
     } finally {
       clearTimeout(timeoutId);
     }
@@ -144,7 +146,7 @@ export const IncidentService = {
       if (error) {
         logSupabaseError('fetchNewIncidents', error);
         AnalyticsService.trackEvent({ name: 'fetch_new_incidents_failed', properties: { lastTimestamp, error: error.message } });
-        return [];
+        throw error;
       }
       AnalyticsService.trackEvent({ name: 'new_incidents_fetched', properties: { lastTimestamp, count: data.length } });
       return data;
@@ -152,11 +154,12 @@ export const IncidentService = {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching new incidents timed out.');
         AnalyticsService.trackEvent({ name: 'fetch_new_incidents_timeout', properties: { lastTimestamp } });
+        throw new Error('Fetching new incidents timed out.');
       } else {
         logSupabaseError('fetchNewIncidents', err);
         AnalyticsService.trackEvent({ name: 'fetch_new_incidents_unexpected_error', properties: { lastTimestamp, error: err.message } });
+        throw err;
       }
-      return [];
     } finally {
       clearTimeout(timeoutId);
     }
@@ -249,7 +252,7 @@ export const IncidentService = {
         }
         handleError(error, userFacingError);
         AnalyticsService.trackEvent({ name: 'create_incident_failed', properties: { adminId, type: incident.type, error: error.code || error.message, errorCode: error.code } });
-        return null;
+        throw error;
       }
 
       if (data) {
@@ -276,11 +279,12 @@ export const IncidentService = {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Creating incident timed out.');
         AnalyticsService.trackEvent({ name: 'create_incident_timeout', properties: { adminId, type: incident.type } });
+        throw new Error('Creating incident timed out.');
       } else {
         handleError(err, 'An unexpected error occurred while creating the incident.');
         AnalyticsService.trackEvent({ name: 'create_incident_unexpected_error', properties: { adminId, type: incident.type, error: err.message } });
+        throw err;
       }
-      return null;
     } finally {
       clearTimeout(timeoutId);
       if (import.meta.env.DEV) {
@@ -326,7 +330,7 @@ export const IncidentService = {
       if (error) {
         logSupabaseError('updateIncident', error);
         AnalyticsService.trackEvent({ name: 'update_incident_failed', properties: { incidentId: id, updates: Object.keys(updates), error: error.message } });
-        return null;
+        throw error;
       }
       AnalyticsService.trackEvent({ name: 'incident_updated', properties: { incidentId: id, updates: Object.keys(updates) } });
       return data;
@@ -334,11 +338,12 @@ export const IncidentService = {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Updating incident timed out.');
         AnalyticsService.trackEvent({ name: 'update_incident_timeout', properties: { incidentId: id } });
+        throw new Error('Updating incident timed out.');
       } else {
         logSupabaseError('updateIncident', err);
         AnalyticsService.trackEvent({ name: 'update_incident_unexpected_error', properties: { incidentId: id, error: err.message } });
+        throw err;
       }
-      return null;
     } finally {
       clearTimeout(timeoutId);
     }
@@ -362,7 +367,7 @@ export const IncidentService = {
       if (error) {
         logSupabaseError('deleteIncident', error);
         AnalyticsService.trackEvent({ name: 'delete_incident_failed', properties: { incidentId: id, error: error.message } });
-        return false;
+        throw error;
       }
       AnalyticsService.trackEvent({ name: 'incident_deleted', properties: { incidentId: id } });
       return true;
@@ -370,11 +375,12 @@ export const IncidentService = {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Deleting incident timed out.');
         AnalyticsService.trackEvent({ name: 'delete_incident_timeout', properties: { incidentId: id } });
+        throw new Error('Deleting incident timed out.');
       } else {
         logSupabaseError('deleteIncident', err);
         AnalyticsService.trackEvent({ name: 'delete_incident_unexpected_error', properties: { incidentId: id, error: err.message } });
+        throw err;
       }
-      return false;
     } finally {
       clearTimeout(timeoutId);
     }
@@ -394,7 +400,7 @@ export const IncidentService = {
       if (error) {
         logSupabaseError('fetchSubscriberCount', error);
         AnalyticsService.trackEvent({ name: 'fetch_subscriber_count_failed', properties: { error: error.message } });
-        return 0;
+        throw error;
       }
       AnalyticsService.trackEvent({ name: 'subscriber_count_fetched', properties: { count: count || 0 } });
       return count || 0;
@@ -402,11 +408,12 @@ export const IncidentService = {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching subscriber count timed out.');
         AnalyticsService.trackEvent({ name: 'fetch_subscriber_count_timeout' });
+        throw new Error('Fetching subscriber count timed out.');
       } else {
         logSupabaseError('fetchSubscriberCount', err);
         AnalyticsService.trackEvent({ name: 'fetch_subscriber_count_unexpected_error', properties: { error: err.message } });
+        throw err;
       }
-      return 0;
     } finally {
       clearTimeout(timeoutId);
     }
@@ -433,7 +440,7 @@ export const IncidentService = {
         }
         logSupabaseError('fetchPreviousIncident', error);
         AnalyticsService.trackEvent({ name: 'fetch_previous_incident_failed', properties: { currentIncidentTimestamp, error: error.message } });
-        return null;
+        throw error;
       }
       AnalyticsService.trackEvent({ name: 'previous_incident_fetched', properties: { incidentId: data.id } });
       return data;
@@ -441,11 +448,12 @@ export const IncidentService = {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching previous incident timed out.');
         AnalyticsService.trackEvent({ name: 'fetch_previous_incident_timeout', properties: { currentIncidentTimestamp } });
+        throw new Error('Fetching previous incident timed out.');
       } else {
         logSupabaseError('fetchPreviousIncident', err);
         AnalyticsService.trackEvent({ name: 'fetch_previous_incident_unexpected_error', properties: { currentIncidentTimestamp, error: err.message } });
+        throw err;
       }
-      return null;
     } finally {
       clearTimeout(timeoutId);
     }
@@ -465,7 +473,7 @@ export const IncidentService = {
       if (error) {
         logSupabaseError('getNearbyIncidents', error);
         AnalyticsService.trackEvent({ name: 'fetch_nearby_incidents_failed', properties: { lat, lng, radiusMiles, error: error.message } });
-        return [];
+        throw error;
       }
       AnalyticsService.trackEvent({ name: 'nearby_incidents_fetched', properties: { lat, lng, radiusMiles, count: data.length } });
       return data;
@@ -473,11 +481,12 @@ export const IncidentService = {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching nearby incidents timed out.');
         AnalyticsService.trackEvent({ name: 'fetch_nearby_incidents_timeout', properties: { lat, lng, radiusMiles } });
+        throw new Error('Fetching nearby incidents timed out.');
       } else {
         logSupabaseError('getNearbyIncidents', err);
         AnalyticsService.trackEvent({ name: 'get_nearby_incidents_unexpected_error', properties: { lat, lng, radiusMiles, error: err.message } });
+        throw err;
       }
-      return [];
     } finally {
       clearTimeout(timeoutId);
     }
