@@ -35,10 +35,9 @@ const AuthPage = () => {
     return null;
   }
 
-  // The logo is now directly referenced from the public directory
+  // The logo is now referenced via Netlify Image CDN for optimization
   const logoPath = "/Logo.png";
-  // Removed CDN path for local logo
-  // const cdnLogoPath = `/.netlify/images?url=${encodeURIComponent(logoPath)}&w=64&h=64&fit=contain&fm=auto`;
+  const cdnLogoPath = `/.netlify/images?url=${encodeURIComponent(logoPath)}&w=64&h=64&fit=contain&fm=auto`;
 
   // Otherwise, render the login/signup options. This covers:
   // 1. !loading && !user (no session)
@@ -49,7 +48,7 @@ const AuthPage = () => {
       {/* Branded Hero Section */}
       <div className="tw-relative tw-z-20 tw-text-center tw-mb-8 tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-xl">
         <img 
-          src={logoPath} // Direct reference
+          src={cdnLogoPath} // Use CDN path
           alt="WPW Scanner Logo" 
           width={64} 
           height={64} 
