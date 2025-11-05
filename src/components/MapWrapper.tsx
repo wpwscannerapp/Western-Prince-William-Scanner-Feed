@@ -20,7 +20,14 @@ const MapWrapper: React.FC<MapWrapperProps> = ({ incidents }) => {
         <span className="tw-ml-2 tw-text-muted-foreground">Loading Map...</span>
       </div>
     }>
-      <LazyIncidentMap incidents={incidents} />
+      {/* Defensive check: ensure LazyIncidentMap is defined before rendering */}
+      {LazyIncidentMap ? (
+        <LazyIncidentMap incidents={incidents} />
+      ) : (
+        <div className="tw-h-[500px] tw-w-full tw-flex tw-items-center tw-justify-center tw-bg-destructive/10 tw-rounded-md">
+          <span className="tw-ml-2 tw-text-destructive">Map component failed to load.</span>
+        </div>
+      )}
     </Suspense>
   ), [incidents]);
 
