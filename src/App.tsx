@@ -1,3 +1,4 @@
+console.log('App.tsx: Loaded');
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -11,6 +12,7 @@ import ChunkErrorHandler from './components/ChunkErrorHandler'; // Import ChunkE
 const queryClient = new QueryClient();
 
 const App = () => {
+  console.log('App.tsx: Rendering');
   return (
     <ErrorBoundary>
       <ChunkErrorHandler>

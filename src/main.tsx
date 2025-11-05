@@ -1,9 +1,12 @@
+console.log('main.tsx: File loaded — starting app');
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 import { validateEnv } from './config'; // Import validateEnv
 import { unregisterServiceWorkerInDev } from './utils/serviceWorkerHelper'; // Import unregister utility
+
+console.log('main.tsx: Imports done');
 
 // Declare window.import for TypeScript compatibility
 declare global {
@@ -29,6 +32,7 @@ if (import.meta.env.DEV) {
   unregisterServiceWorkerInDev();
 }
 
+console.log('main.tsx: About to createRoot');
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 
 root.render(
@@ -40,3 +44,4 @@ root.render(
     </React.StrictMode>
   )
 );
+console.log('main.tsx: App rendered');
