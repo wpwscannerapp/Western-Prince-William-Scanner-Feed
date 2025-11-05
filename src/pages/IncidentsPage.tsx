@@ -17,7 +17,7 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { AnalyticsService } from '@/services/AnalyticsService';
 import { supabase } from '@/integrations/supabase/client';
 import { IncidentRow, IncidentWithCoords } from '@/types/supabase'; // Import IncidentRow and IncidentWithCoords
-import IncidentMap from '@/components/IncidentMap'; // Import IncidentMap
+import MapWrapper from '@/components/MapWrapper'; // Import MapWrapper
 
 const IncidentsPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -191,7 +191,7 @@ const IncidentsPage: React.FC = () => {
           {/* Incident Map Integration */}
           {incidentsWithCoords.length > 0 && (
             <div className="tw-mb-8">
-              <IncidentMap incidents={incidentsWithCoords} />
+              <MapWrapper incidents={incidentsWithCoords} />
             </div>
           )}
 
