@@ -13,6 +13,11 @@ import IncidentCard from '@/components/IncidentCard';
 import { supabase } from '@/integrations/supabase/client';
 import { IncidentRow } from '@/types/supabase'; // Import IncidentRow
 
+// Log imports for debugging
+if (import.meta.env.DEV) {
+  console.log('HomePage imports:', { Tile, IncidentCard });
+}
+
 const HomePage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();

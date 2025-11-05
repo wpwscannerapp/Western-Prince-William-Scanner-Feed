@@ -10,6 +10,9 @@ const Index: React.FC = () => {
   const location = useLocation();
 
   useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log('Index.tsx: Component loaded.');
+    }
     const splashDuration = SPLASH_DURATION || 3000;
     if (splashDuration > 0) {
       document.documentElement.style.setProperty('--splash-duration', `${splashDuration / 1000}s`);
@@ -25,6 +28,9 @@ const Index: React.FC = () => {
   useEffect(() => {
     // Navigate if minimum splash duration has passed AND auth is ready
     if (minimumSplashDurationPassed && authReady) {
+      if (import.meta.env.DEV) {
+        console.log(`Index.tsx: Auth Ready. User: ${user ? 'Present' : 'Absent'}. Redirecting...`);
+      }
       // Only perform automatic redirection if we are currently at the root path '/'
       if (location.pathname === '/') {
         if (user) { // If a user object exists (either explicit login or restored session)

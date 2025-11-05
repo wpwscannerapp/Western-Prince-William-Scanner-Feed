@@ -5,6 +5,15 @@ import './index.css';
 import { validateEnv } from './config'; // Import validateEnv
 import { unregisterServiceWorkerInDev } from './utils/serviceWorkerHelper'; // Import unregister utility
 
+// Log all dynamic imports to console for debugging the 'c is not a function' error
+if (import.meta.env.DEV) {
+  const origImport = window.import;
+  window.import = (url: string) => {
+    console.log('Dynamic import:', url);
+    return origImport.call(window, url);
+  };
+}
+
 // Call validateEnv early in the application lifecycle
 validateEnv();
 
