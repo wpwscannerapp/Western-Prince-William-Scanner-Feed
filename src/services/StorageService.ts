@@ -12,6 +12,14 @@ const JPEG_QUALITY = 0.8;
 const PNG_QUALITY = 0.9; // PNG compression quality (less effective than JPEG)
 
 export const StorageService = {
+  
+  // Helper to manually construct the public URL
+  getPublicUrl(fileName: string, bucketName: string): string {
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+    // Manual URL: https://<project>.supabase.co/storage/v1/object/public/bucket/file.jpg
+    return `${SUPABASE_URL}/storage/v1/object/public/${bucketName}/${fileName}`;
+  },
+
   async resizeAndCompressImage(file: File): Promise<File | null> {
     return new Promise((resolve) => {
       if (import.meta.env.DEV) {
@@ -140,7 +148,6 @@ export const StorageService = {
       if (import.meta.env.DEV) {
         console.error('StorageService: Image processing failed, cannot upload.');
       }
-      // The specific error toast should have already been shown by resizeAndCompressImage
       return null;
     }
 
@@ -168,15 +175,14 @@ export const StorageService = {
         return null;
       }
 
-      const { data: publicUrlData } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
+      // Manually construct the public URL
+      const publicUrl = this.getPublicUrl(filePath, bucketName);
 
       if (import.meta.env.DEV) {
-        console.log('StorageService: Image uploaded successfully. Public URL:', publicUrlData.publicUrl);
+        console.log('StorageService: Image uploaded successfully. Public URL:', publicUrl);
       }
       AnalyticsService.trackEvent({ name: 'image_uploaded', properties: { bucket: bucketName, filePath } });
-      return publicUrlData.publicUrl;
+      return publicUrl;
     } catch (error: any) {
       if (import.meta.env.DEV) {
         console.error(`StorageService: Unexpected error during image upload to ${bucketName}:`, error);
@@ -199,29 +205,52 @@ export const StorageService = {
       // Extract the file name from the public URL path
       const url = new URL(imageUrl);
       // The path is typically /storage/v1/object/public/bucketName/fileName
+      // We need the path starting from the file name, relative to the bucket root.
+      // The path segments are: ['', 'storage', 'v1', 'object', 'public', 'bucketName', 'fileName']
+      // We want the segment after 'bucketName', which is index 6 if the URL is clean.
+      // A safer way is to split by bucketName and take the rest.
       const pathSegments = url.pathname.split('/');
-      // The file name is the last segment
-      const fileName = pathSegments[pathSegments.length - 1];
+      const bucketIndex = pathSegments.indexOf(bucketName);
+      
+      if (bucketIndex === -1 || bucketIndex === pathSegments.length - 1) {
+        if (import.meta.env.DEV) {
+          console.warn(`StorageService: Could not reliably extract file path from URL: ${imageUrl}`);
+        }
+        // Fallback to the last segment if path extraction fails
+        const fileName = pathSegments[pathSegments.length - 1];
+        if (fileName) {
+          const { error } = await supabase.storage
+            .from(bucketName)
+            .remove([fileName]);
+          if (error) throw error;
+          AnalyticsService.trackEvent({ name: 'image_deleted_fallback', properties: { bucket: bucketName, fileName } });
+          return true;
+        }
+        return false;
+      }
+
+      // The file path is everything after the bucket name
+      const filePath = pathSegments.slice(bucketIndex + 1).join('/');
 
       if (import.meta.env.DEV) {
-        console.log(`StorageService: Attempting to delete image ${fileName} from ${bucketName}.`);
+        console.log(`StorageService: Attempting to delete image ${filePath} from ${bucketName}.`);
       }
       const { error } = await supabase.storage
         .from(bucketName)
-        .remove([fileName]);
+        .remove([filePath]);
 
       if (error) {
         if (import.meta.env.DEV) {
           console.error(`StorageService: Error deleting image from ${bucketName}:`, error);
         }
         toast.error(`Image deletion failed: ${error.message}`);
-        AnalyticsService.trackEvent({ name: 'image_delete_failed', properties: { bucket: bucketName, fileName, error: error.message } });
+        AnalyticsService.trackEvent({ name: 'image_delete_failed', properties: { bucket: bucketName, filePath, error: error.message } });
         return false;
       }
       if (import.meta.env.DEV) {
-        console.log(`StorageService: Image ${fileName} deleted successfully from ${bucketName}.`);
+        console.log(`StorageService: Image ${filePath} deleted successfully from ${bucketName}.`);
       }
-      AnalyticsService.trackEvent({ name: 'image_deleted', properties: { bucket: bucketName, fileName } });
+      AnalyticsService.trackEvent({ name: 'image_deleted', properties: { bucket: bucketName, filePath } });
       return true;
     } catch (error: any) {
       if (import.meta.env.DEV) {
