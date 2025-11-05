@@ -4,8 +4,6 @@ import React, { Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext.tsx';
 import { useAppSettings } from '@/hooks/useAppSettings';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import Layout from '@/components/Layout';
 import Index from '@/pages/Index'; // Direct Import
 import { Loader2 } from 'lucide-react'; // For a simple fallback
 
