@@ -39,7 +39,7 @@ const App = () => {
       <ChunkErrorHandler>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
-            <Sonner />
+            {/* <Sonner /> <-- Temporarily removed */}
             <BrowserRouter>
               <AuthProvider>
                 <AppSettingsProvider>
