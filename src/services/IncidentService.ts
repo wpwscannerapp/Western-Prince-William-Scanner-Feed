@@ -423,15 +423,16 @@ export const IncidentService = {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
-    // Simplify the timestamp format to remove milliseconds and timezone offset
-    // This helps PostgREST and RLS policies handle the comparison reliably.
-    const simplifiedTimestamp = currentIncidentTimestamp.substring(0, 19); // e.g., '2025-11-05T05:16:38'
+    // Use the full timestamp string for comparison, but ensure it's a valid ISO format.
+    // The database should handle the comparison correctly if the string is valid.
+    // We will use the full string and rely on the database's timestamp comparison.
+    const comparisonTimestamp = currentIncidentTimestamp;
 
     try {
       const { data, error } = await supabase
         .from('incidents')
         .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at, audio_url, search_vector')
-        .lt('date', simplifiedTimestamp) // Use simplified timestamp
+        .lt('date', comparisonTimestamp) 
         .order('date', { ascending: false })
         .limit(1)
         .abortSignal(controller.signal)
