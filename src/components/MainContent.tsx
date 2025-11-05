@@ -11,16 +11,22 @@ import { Loader2 } from 'lucide-react'; // For a simple fallback
 
 // Helper function to ensure default export is used for lazy loading and log errors
 const lazyLoad = (factory: () => Promise<any>, path: string) => {
-  return React.lazy(() => factory().then(module => {
+  const LazyComponent = React.lazy(() => factory().then(module => {
     if (!module.default) {
       console.error(`CRITICAL ERROR: Missing default export in ${path}`, module);
       throw new Error(`Missing default export in ${path}`);
     }
+    console.log(`SUCCESS: Lazy loaded ${path}`);
     return { default: module.default };
   }).catch(err => {
-    console.error(`Failed to load module ${path}:`, err);
+    console.error(`FAILED: Failed to load module ${path}:`, err);
     throw err;
   }));
+  
+  if (import.meta.env.DEV) {
+    console.log(`DEBUG: Defined lazy component for ${path}`);
+  }
+  return LazyComponent;
 };
 
 // Define a common loading fallback for pages
@@ -57,9 +63,10 @@ const MainContent: React.FC = () => {
     <>
       <div className="tw-min-h-screen tw-bg-background tw-text-foreground">
         <Routes>
+          {/* Index page is NOT lazy loaded, so it should load first */}
           <Route path="/" element={<Index />} /> 
 
-          {/* Public routes for authentication and related pages */}
+          {/* Public routes for authentication and related pages - wrapped in Suspense */}
           <Route path="/auth" element={<Suspense fallback={<PageLoadingFallback />}><AuthPage /></Suspense>} />
           <Route path="/auth/login" element={<Suspense fallback={<PageLoadingFallback />}><LoginPage /></Suspense>} />
           <Route path="/auth/signup" element={<Suspense fallback={<PageLoadingFallback />}><SignupPage /></Suspense>} />
@@ -67,7 +74,7 @@ const MainContent: React.FC = () => {
           <Route path="/reset-password" element={<Suspense fallback={<PageLoadingFallback />}><ResetPasswordPage /></Suspense>} />
           <Route path="/terms-of-service" element={<Suspense fallback={<PageLoadingFallback />}><TermsOfServicePage /></Suspense>} />
 
-          {/* Protected routes wrapped by ProtectedRoute */}
+          {/* Protected routes wrapped by ProtectedRoute - wrapped in Suspense */}
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path="home" element={<Suspense fallback={<PageLoadingFallback />}><HomePage /></Suspense>} />
             <Route path="home/incidents" element={<Suspense fallback={<PageLoadingFallback />}><IncidentsPage /></Suspense>} />
@@ -79,7 +86,7 @@ const MainContent: React.FC = () => {
             <Route path="incidents/:incidentId" element={<Suspense fallback={<PageLoadingFallback />}><IncidentDetailPage /></Suspense>} />
           </Route>
 
-          {/* Catch-all for 404 - ensure it's after all other specific routes */}
+          {/* Catch-all for 404 - wrapped in Suspense */}
           <Route path="*" element={<Suspense fallback={<PageLoadingFallback />}><NotFound /></Suspense>} />
         </Routes>
       </div>
