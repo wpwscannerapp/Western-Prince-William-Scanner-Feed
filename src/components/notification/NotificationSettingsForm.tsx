@@ -186,10 +186,10 @@ const NotificationSettingsForm: React.FC<NotificationSettingsFormProps> = ({ isW
     <Card className="tw-bg-card tw-border-border tw-shadow-lg">
       <CardHeader>
         <CardTitle className="tw-xl tw-font-bold tw-text-foreground tw-flex tw-items-center tw-gap-2">
-          <BellRing className="tw-h-6 tw-w-6 tw-text-primary" aria-hidden="true" /> Notification Settings
+          <BellRing className="tw-h-6 tw-w-6 tw-text-primary" aria-hidden="true" /> Alert Notifications
         </CardTitle>
         <CardDescription className="tw-text-muted-foreground">
-          Customize how you receive real-time emergency alerts.
+          Control how and when you receive real-time emergency alerts.
         </CardDescription>
       </CardHeader>
       <CardContent>

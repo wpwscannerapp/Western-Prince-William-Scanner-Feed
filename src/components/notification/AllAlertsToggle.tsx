@@ -21,7 +21,7 @@ export const AllAlertsToggle: React.FC<AllAlertsToggleProps> = ({ isFormDisabled
   return (
     <div className="tw-space-y-2">
       <div className="tw-flex tw-items-center tw-justify-between">
-        <Label htmlFor="receive_all_alerts" className="tw-text-base">Receive All Alerts (24/7, no filters)</Label>
+        <Label htmlFor="receive_all_alerts" className="tw-text-base">Get All Alerts (24/7)</Label>
         <Switch
           id="receive_all_alerts"
           checked={receiveAllAlerts}
@@ -38,7 +38,7 @@ export const AllAlertsToggle: React.FC<AllAlertsToggleProps> = ({ isFormDisabled
         />
       </div>
       <CardDescription className="tw-text-muted-foreground">
-        When enabled, you will receive all alerts at all times, regardless of day or time preferences.
+        Turn this off to set custom times and days for when you want to receive alerts.
       </CardDescription>
     </div>
   );
