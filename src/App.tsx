@@ -13,6 +13,20 @@ const queryClient = new QueryClient();
 
 const App = () => {
   console.log('App.tsx: Rendering');
+  
+  // CRITICAL DEBUG LOG: Check if any component is undefined
+  if (import.meta.env.DEV) {
+    console.log('App.tsx Component Check:', {
+      Sonner, 
+      TooltipProvider, 
+      AuthProvider, 
+      AppSettingsProvider, 
+      ErrorBoundary, 
+      MainContent, 
+      ChunkErrorHandler
+    });
+  }
+
   return (
     <ErrorBoundary>
       <ChunkErrorHandler>
