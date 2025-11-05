@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
+import * as L from 'leaflet'; // FIX: Changed to namespace import
 import 'leaflet/dist/leaflet.css';
 import { IncidentWithCoords } from '@/types/supabase'; // Import IncidentWithCoords
 import { Loader2 } from 'lucide-react'; // Import Loader2
