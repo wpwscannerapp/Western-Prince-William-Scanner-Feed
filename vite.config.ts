@@ -54,11 +54,11 @@ export default defineConfig(({ command, mode }) => {
               },
             },
             {
-              // Corrected: Use supabaseUrl for the regex pattern
-              urlPattern: new RegExp(`^${supabaseUrl}/storage/v1/object/public/post_images/`),
+              // FIX: Updated to use 'incident_images' bucket instead of 'post_images'
+              urlPattern: new RegExp(`^${supabaseUrl}/storage/v1/object/public/incident_images/`),
               handler: 'CacheFirst',
               options: {
-                cacheName: 'supabase-post-images-cache',
+                cacheName: 'supabase-incident-images-cache', // Renamed cache name for clarity
                 expiration: {
                   maxEntries: 100,
                   maxAgeSeconds: 60 * 60 * 24 * 30,
