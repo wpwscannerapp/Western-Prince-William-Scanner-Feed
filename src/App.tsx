@@ -38,17 +38,15 @@ const App = () => {
     <ErrorBoundary>
       <ChunkErrorHandler>
         <QueryClientProvider client={queryClient}>
-          {/* <TooltipProvider> <-- Removed */}
-            {/* <Sonner /> <-- Already removed */}
-            <BrowserRouter>
-              <AuthProvider>
-                <AppSettingsProvider>
-                  {/* Render MainContent which contains all routes */}
-                  <MainContent />
-                </AppSettingsProvider>
-              </AuthProvider>
-            </BrowserRouter>
-          {/* </TooltipProvider> */}
+          {/* TooltipProvider and Sonner removed */}
+          <BrowserRouter>
+            <AuthProvider>
+              <AppSettingsProvider>
+                {/* Render MainContent which contains all routes */}
+                <MainContent />
+              </AppSettingsProvider>
+            </AuthProvider>
+          </BrowserRouter>
         </QueryClientProvider>
       </ChunkErrorHandler>
     </ErrorBoundary>
