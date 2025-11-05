@@ -132,13 +132,14 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
     );
   }
 
-  // Ensure incident.image_url is not an empty string before passing to Netlify Image CDN
-  const imageUrlForCDN = incident.image_url && incident.image_url.trim() !== '' ? incident.image_url : undefined;
+  // Determine the image source: use the direct Supabase URL if available.
+  const imageUrl = incident.image_url && incident.image_url.trim() !== '' ? incident.image_url : undefined;
   
-  if (imageUrlForCDN && import.meta.env.DEV) {
-    console.log('IncidentCard Debug: Image URL for CDN:', imageUrlForCDN);
-    console.log('IncidentCard Debug: Encoded URL:', encodeURIComponent(imageUrlForCDN));
-  }
+  // Remove debug logs
+  // if (imageUrl && import.meta.env.DEV) {
+  //   console.log('IncidentCard Debug: Image URL for CDN:', imageUrl);
+  //   console.log('IncidentCard Debug: Encoded URL:', encodeURIComponent(imageUrl));
+  // }
 
   return (
     <Card className="tw-w-full tw-bg-card tw-border-border tw-shadow-md tw-text-foreground tw-rounded-lg tw-cursor-pointer" onClick={handleIncidentClick}>
@@ -165,9 +166,9 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
           <Tag className="tw-h-4 tw-w-4 tw-text-secondary" aria-hidden="true" />
           <span className="tw-font-medium">{incident.type}</span>
         </p>
-        {imageUrlForCDN && (
+        {imageUrl && (
           <img
-            src={`/.netlify/images?url=${encodeURIComponent(imageUrlForCDN)}&w=800&h=600&fit=cover&fm=auto`}
+            src={imageUrl} // Use direct Supabase URL
             alt={`Image for incident: ${incident.title}`}
             className="tw-w-full tw-max-h-80 tw-object-cover tw-rounded-md tw-mb-4 tw-border tw-border-border"
             loading="lazy"
