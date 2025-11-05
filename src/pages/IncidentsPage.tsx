@@ -18,6 +18,7 @@ import { AnalyticsService } from '@/services/AnalyticsService';
 import { supabase } from '@/integrations/supabase/client';
 import { IncidentRow, IncidentWithCoords } from '@/types/supabase'; // Import IncidentRow and IncidentWithCoords
 import MapWrapper from '@/components/MapWrapper'; // Import MapWrapper
+import 'leaflet/dist/leaflet.css'; // Import Leaflet CSS here
 
 const IncidentsPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
