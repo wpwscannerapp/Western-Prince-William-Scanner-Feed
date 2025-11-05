@@ -95,7 +95,7 @@ const HomePage: React.FC = () => {
               <span className="tw-ml-2 tw-text-muted-foreground">Loading incident...</span>
             </CardContent>
           </Card>
-        ) : latestIncident ? (
+        ) : latestIncident && IncidentCard ? (
           <IncidentCard incident={latestIncident} />
         ) : (
           <Card className="tw-bg-card tw-border-border tw-shadow-md">
@@ -109,49 +109,59 @@ const HomePage: React.FC = () => {
 
       <div className="tw-grid tw-grid-cols-2 sm:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-6">
         {/* Incidents Feed Tile */}
-        <Tile
-          title="Incidents Feed"
-          description="Real-time scanner updates."
-          to="/home/incidents"
-          icon="/Logo.png"
-        />
+        {Tile && (
+          <Tile
+            title="Incidents Feed"
+            description="Real-time scanner updates."
+            to="/home/incidents"
+            icon="/Logo.png"
+          />
+        )}
 
         {/* Incident Archive Tile */}
-        <Tile
-          title="Incident Archive"
-          description="Search past incidents and trends."
-          to="/home/archive"
-          icon="/Logo.png"
-        />
+        {Tile && (
+          <Tile
+            title="Incident Archive"
+            description="Search past incidents and trends."
+            to="/home/archive"
+            icon="/Logo.png"
+          />
+        )}
 
         {/* Contact Us Tile */}
-        <Tile
-          title="Contact Us"
-          description="Get in touch with us."
-          to="/home/contact-us"
-          icon="/Logo.png"
-        />
+        {Tile && (
+          <Tile
+            title="Contact Us"
+            description="Get in touch with us."
+            to="/home/contact-us"
+            icon="/Logo.png"
+          />
+        )}
 
         {/* Feedback & Suggestions Tile */}
-        <Tile
-          title="Feedback & Suggestions"
-          description="Share your thoughts and ideas."
-          to="/home/feedback"
-          icon="/Logo.png"
-        />
+        {Tile && (
+          <Tile
+            title="Feedback & Suggestions"
+            description="Share your thoughts and ideas."
+            to="/home/feedback"
+            icon="/Logo.png"
+          />
+        )}
 
         {/* Conditional Tiles based on authentication */}
         {user ? (
           <>
             {/* Profile Tile */}
-            <Tile
-              title="Profile"
-              description="Manage your personal settings."
-              to="/profile"
-              icon="/Logo.png"
-            />
+            {Tile && (
+              <Tile
+                title="Profile"
+                description="Manage your personal settings."
+                to="/profile"
+                icon="/Logo.png"
+              />
+            )}
             {/* Admin Dashboard Tile (Conditional) */}
-            {isAdmin && (
+            {isAdmin && Tile && (
               <Tile
                 title="Admin Dashboard"
                 description="Manage incidents, settings, and users."
@@ -163,19 +173,23 @@ const HomePage: React.FC = () => {
         ) : (
           <>
             {/* Subscribe Tile */}
-            <Tile
-              title="Subscribe"
-              description="Unlock premium features."
-              to="/subscribe"
-              icon="/Logo.png"
-            />
+            {Tile && (
+              <Tile
+                title="Subscribe"
+                description="Unlock premium features."
+                to="/subscribe"
+                icon="/Logo.png"
+              />
+            )}
             {/* Login / Sign Up Tile */}
-            <Tile
-              title="Login / Sign Up"
-              description="Access your account or create a new one."
-              to="/auth"
-              icon="/Logo.png"
-            />
+            {Tile && (
+              <Tile
+                title="Login / Sign Up"
+                description="Access your account or create a new one."
+                to="/auth"
+                icon="/Logo.png"
+              />
+            )}
           </>
         )}
       </div>

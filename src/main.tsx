@@ -5,6 +5,13 @@ import './index.css';
 import { validateEnv } from './config'; // Import validateEnv
 import { unregisterServiceWorkerInDev } from './utils/serviceWorkerHelper'; // Import unregister utility
 
+// Declare window.import for TypeScript compatibility
+declare global {
+  interface Window {
+    import: (url: string) => Promise<any>;
+  }
+}
+
 // Log all dynamic imports to console for debugging the 'c is not a function' error
 if (import.meta.env.DEV) {
   const origImport = window.import;
