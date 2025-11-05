@@ -135,6 +135,11 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
   // Determine the image source: use the direct Supabase URL if available.
   const imageUrl = incident.image_url && incident.image_url.trim() !== '' ? incident.image_url : undefined;
   
+  // Use Netlify Image CDN for optimization and caching
+  const cdnImageUrl = imageUrl 
+    ? `/.netlify/images?url=${encodeURIComponent(imageUrl)}&w=600&h=400&fit=cover&fm=auto` 
+    : undefined;
+
   return (
     <Card className="tw-w-full tw-bg-card tw-border-border tw-shadow-md tw-text-foreground tw-rounded-lg tw-cursor-pointer" onClick={handleIncidentClick}>
       <CardHeader className="tw-pb-2 tw-px-4 tw-pt-4">
@@ -160,9 +165,9 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
           <Tag className="tw-h-4 tw-w-4 tw-text-secondary" aria-hidden="true" />
           <span className="tw-font-medium">{incident.type}</span>
         </p>
-        {imageUrl && (
+        {cdnImageUrl && (
           <img
-            src={imageUrl} // Use direct Supabase URL
+            src={cdnImageUrl} // Use Netlify CDN URL
             alt={`Image for incident: ${incident.title}`}
             className="tw-w-full tw-max-h-80 tw-object-cover tw-rounded-md tw-mb-4 tw-border tw-border-border"
             loading="lazy"
