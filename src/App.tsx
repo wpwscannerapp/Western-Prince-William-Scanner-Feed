@@ -11,6 +11,13 @@ import ChunkErrorHandler from './components/ChunkErrorHandler'; // Import ChunkE
 
 const queryClient = new QueryClient();
 
+// Defensive check for local imports
+if (!ErrorBoundary) throw new Error("ErrorBoundary is undefined");
+if (!ChunkErrorHandler) throw new Error("ChunkErrorHandler is undefined");
+if (!AppSettingsProvider) throw new Error("AppSettingsProvider is undefined");
+if (!AuthProvider) throw new Error("AuthProvider is undefined");
+if (!MainContent) throw new Error("MainContent is undefined");
+
 const App = () => {
   console.log('App.tsx: Rendering');
   
