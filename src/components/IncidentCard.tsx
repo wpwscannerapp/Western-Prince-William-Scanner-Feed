@@ -32,16 +32,16 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
 
   const fetchLikesAndCommentsCount = async () => {
     try {
-      const [likes, likedStatus, comments] = await Promise.all([
+      const [likes, likedStatus, commentsCount] = await Promise.all([
         LikeService.fetchLikesCount(incident.id),
         user ? LikeService.hasUserLiked(incident.id, user.id) : Promise.resolve(false),
-        CommentService.fetchComments(incident.id),
+        CommentService.fetchCommentsCount(incident.id), // Use the optimized count function
       ]);
 
       setLikesCount(likes);
       setHasLiked(likedStatus);
-      setCommentsCount(comments.length);
-      AnalyticsService.trackEvent({ name: 'incident_card_data_loaded', properties: { incidentId: incident.id, likes: likes, comments: comments.length } });
+      setCommentsCount(commentsCount);
+      AnalyticsService.trackEvent({ name: 'incident_card_data_loaded', properties: { incidentId: incident.id, likes: likes, comments: commentsCount } });
     } catch (err) {
       setError(handleError(err, 'Failed to load incident data. Please try again.'));
       AnalyticsService.trackEvent({ name: 'incident_card_data_load_failed', properties: { incidentId: incident.id, error: (err as Error).message } });
@@ -65,7 +65,7 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
     const commentsChannel = supabase
       .channel(`public:comments:incident_id=eq.${incident.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: `incident_id=eq.${incident.id}` }, () => {
-        CommentService.fetchComments(incident.id).then(fetchedComments => setCommentsCount(fetchedComments.length));
+        CommentService.fetchCommentsCount(incident.id).then(setCommentsCount); // Use the optimized count function
         AnalyticsService.trackEvent({ name: 'incident_comments_realtime_update', properties: { incidentId: incident.id } });
       })
       .subscribe();

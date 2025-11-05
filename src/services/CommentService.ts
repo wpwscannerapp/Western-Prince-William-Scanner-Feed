@@ -83,6 +83,34 @@ export const CommentService = {
     }
   },
 
+  async fetchCommentsCount(incidentId: string): Promise<number> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
+
+    try {
+      const { count, error } = await supabase
+        .from('comments')
+        .select('id', { count: 'exact' })
+        .eq('incident_id', incidentId)
+        .abortSignal(controller.signal);
+
+      if (error) {
+        logSupabaseError('fetchCommentsCount', error);
+        return 0;
+      }
+      return count || 0;
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        handleError(new Error('Request timed out'), 'Fetching comments count timed out.');
+      } else {
+        logSupabaseError('fetchCommentsCount', err);
+      }
+      return 0;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  },
+
   async fetchComments(incidentId: string): Promise<Comment[]> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
