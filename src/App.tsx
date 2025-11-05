@@ -38,8 +38,8 @@ const App = () => {
     <ErrorBoundary>
       <ChunkErrorHandler>
         <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            {/* <Sonner /> <-- Temporarily removed */}
+          {/* <TooltipProvider> <-- Removed */}
+            {/* <Sonner /> <-- Already removed */}
             <BrowserRouter>
               <AuthProvider>
                 <AppSettingsProvider>
@@ -48,7 +48,7 @@ const App = () => {
                 </AppSettingsProvider>
               </AuthProvider>
             </BrowserRouter>
-          </TooltipProvider>
+          {/* </TooltipProvider> */}
         </QueryClientProvider>
       </ChunkErrorHandler>
     </ErrorBoundary>
