@@ -16,7 +16,8 @@ import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { AnalyticsService } from '@/services/AnalyticsService';
 import { supabase } from '@/integrations/supabase/client';
-import { IncidentRow } from '@/types/supabase'; // Import IncidentRow
+import { IncidentRow, IncidentWithCoords } from '@/types/supabase'; // Import IncidentRow and IncidentWithCoords
+import IncidentMap from '@/components/IncidentMap'; // Import IncidentMap
 
 const IncidentsPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -61,6 +62,11 @@ const IncidentsPage: React.FC = () => {
   });
 
   const incidents = data?.pages.flat() || [];
+  
+  // Filter incidents to only include those with valid coordinates for the map
+  const incidentsWithCoords = incidents.filter(
+    (i): i is IncidentWithCoords => i.latitude !== null && i.longitude !== null
+  );
 
   // Real-time subscription for new incidents
   useEffect(() => {
@@ -154,7 +160,7 @@ const IncidentsPage: React.FC = () => {
     return (
       <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
         <div className="tw-text-center">
-          <h1 className="tw-text-2xl tw-font-bold tw-text-destructive tw-mb-4">Error Loading Incidents</h1>
+          <h1 className="tw-2xl tw-font-bold tw-text-destructive tw-mb-4">Error Loading Incidents</h1>
           <p className="tw-text-muted-foreground">{error?.message || 'An unexpected error occurred.'}</p>
           <Button onClick={handleRetry}>Retry</Button>
         </div>
@@ -170,7 +176,7 @@ const IncidentsPage: React.FC = () => {
       </p>
 
       {isAdmin && (
-        <div className="tw-bg-background tw-p-4 tw-shadow-md tw-mb-8 tw-rounded-lg">
+        <div className="tw-bg-card tw-p-4 tw-shadow-md tw-mb-8 tw-rounded-lg tw-border tw-border-border">
           <h2 className="tw-2xl tw-font-semibold tw-text-foreground tw-mb-4">Submit New Incident</h2>
           <IncidentForm
             onSubmit={handleCreateIncident}
@@ -181,6 +187,14 @@ const IncidentsPage: React.FC = () => {
 
       <div className={`tw-space-y-6 ${!isSubscribed && !isAdmin ? 'tw-relative' : ''}`} aria-live="polite">
         <div className={!isSubscribed && !isAdmin ? 'tw-blur-sm tw-pointer-events-none' : ''}>
+          
+          {/* Incident Map Integration */}
+          {incidentsWithCoords.length > 0 && (
+            <div className="tw-mb-8">
+              <IncidentMap incidents={incidentsWithCoords} />
+            </div>
+          )}
+
           {incidents.length === 0 && !isLoading && (
             <div className="tw-text-center tw-py-12 tw-col-span-full">
               <Info className="tw-h-12 tw-w-12 tw-text-muted-foreground tw-mx-auto tw-mb-4" aria-hidden="true" />

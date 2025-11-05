@@ -20,6 +20,12 @@ export type NotificationSettingsRow = PublicSchema['Tables']['user_notification_
   receive_all_alerts: boolean; // Added missing property
 };
 
+// Utility type for incidents guaranteed to have coordinates
+export type IncidentWithCoords = IncidentRow & {
+  latitude: number;
+  longitude: number;
+};
+
 // ---------------------------------------------------------------
 // 3. Insert / Update helpers
 // ---------------------------------------------------------------

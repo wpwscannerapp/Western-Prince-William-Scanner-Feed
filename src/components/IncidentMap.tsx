@@ -2,7 +2,7 @@ import React from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { AlertRow } from '@/types/supabase'; // Import AlertRow
+import { IncidentWithCoords } from '@/types/supabase'; // Import IncidentWithCoords
 
 // Removed the workaround for default Leaflet icons as custom DivIcons are used.
 // L.Icon.Default.mergeOptions({
@@ -12,10 +12,10 @@ import { AlertRow } from '@/types/supabase'; // Import AlertRow
 // });
 
 interface IncidentMapProps {
-  alerts: AlertRow[]; // Use AlertRow
+  incidents: IncidentWithCoords[]; // Use IncidentWithCoords
 }
 
-const IncidentMap: React.FC<IncidentMapProps> = ({ alerts }) => {
+const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
   // Custom icons based on alert type
   const fireIcon = new L.DivIcon({
     className: 'tw-custom-div-icon',
@@ -60,18 +60,18 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ alerts }) => {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      {alerts.map((alert) => (
+      {incidents.map((incident) => (
         <Marker
-          key={alert.id}
-          position={[alert.latitude, alert.longitude]}
-          icon={getIconForAlertType(alert.type)}
-          aria-label={`Incident: ${alert.title}`}
+          key={incident.id}
+          position={[incident.latitude, incident.longitude]}
+          icon={getIconForAlertType(incident.type)}
+          aria-label={`Incident: ${incident.title}`}
         >
           <Popup>
-            <div className="tw-font-bold tw-text-foreground">{alert.title}</div>
-            <div className="tw-text-sm tw-text-muted-foreground">{alert.description}</div>
-            <div className="tw-text-xs tw-text-muted-foreground tw-mt-1">Type: {alert.type}</div>
-            <div className="tw-text-xs tw-text-muted-foreground">Posted: {new Date(alert.created_at!).toLocaleString()}</div>
+            <div className="tw-font-bold tw-text-foreground">{incident.title}</div>
+            <div className="tw-text-sm tw-text-muted-foreground">{incident.description}</div>
+            <div className="tw-text-xs tw-text-muted-foreground tw-mt-1">Type: {incident.type}</div>
+            <div className="tw-text-xs tw-text-muted-foreground">Posted: {new Date(incident.created_at!).toLocaleString()}</div>
           </Popup>
         </Marker>
       ))}
