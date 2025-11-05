@@ -38,12 +38,12 @@ const App = () => {
     <ErrorBoundary>
       <ChunkErrorHandler>
         <QueryClientProvider client={queryClient}>
-          {/* TooltipProvider and Sonner removed */}
+          {/* TooltipProvider and Sonner removed from JSX */}
           <BrowserRouter>
             <AuthProvider>
               <AppSettingsProvider>
-                {/* Render MainContent which contains all routes */}
-                <MainContent />
+                {/* Render a placeholder instead of MainContent */}
+                <div className="tw-p-8 tw-text-center tw-text-2xl tw-text-primary">App Initialized Successfully!</div>
               </AppSettingsProvider>
             </AuthProvider>
           </BrowserRouter>
