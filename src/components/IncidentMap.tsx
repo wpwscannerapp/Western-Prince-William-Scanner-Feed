@@ -1,21 +1,21 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { IncidentWithCoords } from '@/types/supabase'; // Import IncidentWithCoords
-
-// Removed the workaround for default Leaflet icons as custom DivIcons are used.
-// L.Icon.Default.mergeOptions({
-//   iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-//   iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-//   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-// });
 
 interface IncidentMapProps {
   incidents: IncidentWithCoords[]; // Use IncidentWithCoords
 }
 
 const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    // This ensures the map components only mount after the initial render cycle
+    setIsClient(true);
+  }, []);
+
   // Custom icons based on alert type
   const fireIcon = new L.DivIcon({
     className: 'tw-custom-div-icon',
@@ -47,6 +47,15 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
     if (lowerCaseType.includes('police') || lowerCaseType.includes('crime')) return policeIcon;
     return defaultIcon;
   };
+
+  if (!isClient) {
+    return (
+      <div className="tw-h-[500px] tw-w-full tw-flex tw-items-center tw-justify-center tw-bg-muted tw-rounded-md">
+        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
+        <span className="tw-ml-2 tw-text-muted-foreground">Initializing Map...</span>
+      </div>
+    );
+  }
 
   return (
     <MapContainer
