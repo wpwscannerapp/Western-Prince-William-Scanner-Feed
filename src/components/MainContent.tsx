@@ -4,9 +4,7 @@ import React, { Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext.tsx';
 import { useAppSettings } from '@/hooks/useAppSettings';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import Layout from '@/components/Layout';
-import Index from '@/pages/Index';
+import Index from '@/pages/Index'; // Direct Import
 import { Loader2 } from 'lucide-react'; // For a simple fallback
 
 // Helper function to ensure default export is used for lazy loading and log errors
@@ -35,10 +33,10 @@ const PageLoadingFallback = () => (
   </div>
 );
 
-// Lazy load only the necessary components for the initial routes
-const AuthPage = lazyLoad(() => import('@/pages/AuthPage'), '@/pages/AuthPage');
-const LoginPage = lazyLoad(() => import('@/pages/LoginPage'), '@/pages/LoginPage');
-const HomePage = lazyLoad(() => import('@/pages/HomePage'), '@/pages/HomePage');
+// Lazy load definitions (ALL COMMENTED OUT)
+// const AuthPage = lazyLoad(() => import('@/pages/AuthPage'), '@/pages/AuthPage');
+// const LoginPage = lazyLoad(() => import('@/pages/LoginPage'), '@/pages/LoginPage');
+// const HomePage = lazyLoad(() => import('@/pages/HomePage'), '@/pages/HomePage');
 // const IncidentsPage = lazyLoad(() => import('@/pages/IncidentsPage'), '@/pages/IncidentsPage');
 // const ProfilePage = lazyLoad(() => import('@/pages/ProfilePage'), '@/pages/ProfilePage');
 // const AdminPage = lazyLoad(() => import('@/pages/AdminPage'), '@/pages/AdminPage');
@@ -64,16 +62,16 @@ const MainContent: React.FC = () => {
           <Route path="/" element={<Index />} /> 
 
           {/* Public routes for authentication and related pages */}
-          <Route path="/auth" element={<Suspense fallback={<PageLoadingFallback />}><AuthPage /></Suspense>} />
-          <Route path="/auth/login" element={<Suspense fallback={<PageLoadingFallback />}><LoginPage /></Suspense>} />
+          {/* <Route path="/auth" element={<Suspense fallback={<PageLoadingFallback />}><AuthPage /></Suspense>} /> */}
+          {/* <Route path="/auth/login" element={<Suspense fallback={<PageLoadingFallback />}><LoginPage /></Suspense>} /> */}
           {/* <Route path="/auth/signup" element={<Suspense fallback={<PageLoadingFallback />}><SignupPage /></Suspense>} /> */}
           {/* <Route path="/subscribe" element={<Suspense fallback={<PageLoadingFallback />}><SubscriptionPage /></Suspense>} /> */}
           {/* <Route path="/reset-password" element={<Suspense fallback={<PageLoadingFallback />}><ResetPasswordPage /></Suspense>} /> */}
           {/* <Route path="/terms-of-service" element={<Suspense fallback={<PageLoadingFallback />}><TermsOfServicePage /></Suspense>} /> */}
 
           {/* Protected routes wrapped by ProtectedRoute */}
-          <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route path="home" element={<Suspense fallback={<PageLoadingFallback />}><HomePage /></Suspense>} />
+          {/* <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}> */}
+            {/* <Route path="home" element={<Suspense fallback={<PageLoadingFallback />}><HomePage /></Suspense>} /> */}
             {/* <Route path="home/incidents" element={<Suspense fallback={<PageLoadingFallback />}><IncidentsPage /></Suspense>} /> */}
             {/* <Route path="home/contact-us" element={<Suspense fallback={<PageLoadingFallback />}><ContactUsPage /></Suspense>} /> */}
             {/* <Route path="home/archive" element={<Suspense fallback={<PageLoadingFallback />}><IncidentArchivePage /></Suspense>} /> */}
@@ -81,7 +79,7 @@ const MainContent: React.FC = () => {
             {/* <Route path="profile" element={<Suspense fallback={<PageLoadingFallback />}><ProfilePage /></Suspense>} /> */}
             {/* <Route path="admin" element={<Suspense fallback={<PageLoadingFallback />}><AdminPage /></Suspense>} /> */}
             {/* <Route path="incidents/:incidentId" element={<Suspense fallback={<PageLoadingFallback />}><IncidentDetailPage /></Suspense>} /> */}
-          </Route>
+          {/* </Route> */}
 
           {/* Catch-all for 404 - wrapped in Suspense */}
           {/* <Route path="*" element={<Suspense fallback={<PageLoadingFallback />}><NotFound /></Suspense>} /> */}
