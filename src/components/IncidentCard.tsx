@@ -135,12 +135,6 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
   // Determine the image source: use the direct Supabase URL if available.
   const imageUrl = incident.image_url && incident.image_url.trim() !== '' ? incident.image_url : undefined;
   
-  // Remove debug logs
-  // if (imageUrl && import.meta.env.DEV) {
-  //   console.log('IncidentCard Debug: Image URL for CDN:', imageUrl);
-  //   console.log('IncidentCard Debug: Encoded URL:', encodeURIComponent(imageUrl));
-  // }
-
   return (
     <Card className="tw-w-full tw-bg-card tw-border-border tw-shadow-md tw-text-foreground tw-rounded-lg tw-cursor-pointer" onClick={handleIncidentClick}>
       <CardHeader className="tw-pb-2 tw-px-4 tw-pt-4">
@@ -195,7 +189,7 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
             className={hasLiked ? 'tw-text-primary hover:tw-text-primary/80 tw-button' : 'tw-text-muted-foreground hover:tw-text-primary tw-button'}
             aria-label={hasLiked ? `Unlike incident, currently ${likesCount} likes` : `Like incident, currently ${likesCount} likes`}
           >
-            {isLiking ? <Loader2 className="tw-h-4 tw-w-4 tw-mr-1 tw-animate-spin" aria-hidden="true" /> : <Heart className="tw-h-4 tw-w-4 tw-mr-1" fill={hasLiked ? 'currentColor' : 'none'} aria-hidden="true' />)}
+            {isLiking ? <Loader2 className="tw-h-4 tw-w-4 tw-mr-1 tw-animate-spin" aria-hidden="true" /> : <Heart className="tw-h-4 tw-w-4 tw-mr-1" fill={hasLiked ? 'currentColor' : 'none'} aria-hidden="true" />}
             {likesCount} Like{likesCount !== 1 ? 's' : ''}
           </Button>
           <Button
