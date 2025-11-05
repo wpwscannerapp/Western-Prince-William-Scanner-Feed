@@ -204,11 +204,7 @@ export const StorageService = {
     try {
       // Extract the file name from the public URL path
       const url = new URL(imageUrl);
-      // The path is typically /storage/v1/object/public/bucketName/fileName
-      // We need the path starting from the file name, relative to the bucket root.
       // The path segments are: ['', 'storage', 'v1', 'object', 'public', 'bucketName', 'fileName']
-      // We want the segment after 'bucketName', which is index 6 if the URL is clean.
-      // A safer way is to split by bucketName and take the rest.
       const pathSegments = url.pathname.split('/');
       const bucketIndex = pathSegments.indexOf(bucketName);
       
