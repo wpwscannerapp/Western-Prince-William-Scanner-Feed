@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense } from 'react'; // Import Suspense
+import React, { Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext.tsx';
 import { useAppSettings } from '@/hooks/useAppSettings';
@@ -9,9 +9,18 @@ import Layout from '@/components/Layout';
 import Index from '@/pages/Index';
 import { Loader2 } from 'lucide-react'; // For a simple fallback
 
-// Helper function to ensure default export is used for lazy loading
-const lazyLoad = (factory: () => Promise<any>) => {
-  return React.lazy(() => factory().then(module => ({ default: module.default })));
+// Helper function to ensure default export is used for lazy loading and log errors
+const lazyLoad = (factory: () => Promise<any>, path: string) => {
+  return React.lazy(() => factory().then(module => {
+    if (!module.default) {
+      console.error(`CRITICAL ERROR: Missing default export in ${path}`, module);
+      throw new Error(`Missing default export in ${path}`);
+    }
+    return { default: module.default };
+  }).catch(err => {
+    console.error(`Failed to load module ${path}:`, err);
+    throw err;
+  }));
 };
 
 // Define a common loading fallback for pages
@@ -23,21 +32,21 @@ const PageLoadingFallback = () => (
 );
 
 // Lazy load all page components using the helper
-const HomePage = lazyLoad(() => import('@/pages/HomePage'));
-const IncidentsPage = lazyLoad(() => import('@/pages/IncidentsPage'));
-const ProfilePage = lazyLoad(() => import('@/pages/ProfilePage'));
-const AdminPage = lazyLoad(() => import('@/pages/AdminPage'));
-const IncidentDetailPage = lazyLoad(() => import('@/pages/IncidentDetailPage'));
-const ContactUsPage = lazyLoad(() => import('@/pages/ContactUsPage'));
-const IncidentArchivePage = lazyLoad(() => import('@/pages/IncidentArchivePage'));
-const FeedbackPage = lazyLoad(() => import('@/pages/FeedbackPage'));
-const AuthPage = lazyLoad(() => import('@/pages/AuthPage'));
-const LoginPage = lazyLoad(() => import('@/pages/LoginPage'));
-const SignupPage = lazyLoad(() => import('@/pages/SignupPage'));
-const SubscriptionPage = lazyLoad(() => import('@/pages/SubscriptionPage'));
-const ResetPasswordPage = lazyLoad(() => import('@/pages/ResetPasswordPage'));
-const TermsOfServicePage = lazyLoad(() => import('@/pages/TermsOfServicePage'));
-const NotFound = lazyLoad(() => import('@/pages/NotFound'));
+const HomePage = lazyLoad(() => import('@/pages/HomePage'), '@/pages/HomePage');
+const IncidentsPage = lazyLoad(() => import('@/pages/IncidentsPage'), '@/pages/IncidentsPage');
+const ProfilePage = lazyLoad(() => import('@/pages/ProfilePage'), '@/pages/ProfilePage');
+const AdminPage = lazyLoad(() => import('@/pages/AdminPage'), '@/pages/AdminPage');
+const IncidentDetailPage = lazyLoad(() => import('@/pages/IncidentDetailPage'), '@/pages/IncidentDetailPage');
+const ContactUsPage = lazyLoad(() => import('@/pages/ContactUsPage'), '@/pages/ContactUsPage');
+const IncidentArchivePage = lazyLoad(() => import('@/pages/IncidentArchivePage'), '@/pages/IncidentArchivePage');
+const FeedbackPage = lazyLoad(() => import('@/pages/FeedbackPage'), '@/pages/FeedbackPage');
+const AuthPage = lazyLoad(() => import('@/pages/AuthPage'), '@/pages/AuthPage');
+const LoginPage = lazyLoad(() => import('@/pages/LoginPage'), '@/pages/LoginPage');
+const SignupPage = lazyLoad(() => import('@/pages/SignupPage'), '@/pages/SignupPage');
+const SubscriptionPage = lazyLoad(() => import('@/pages/SubscriptionPage'), '@/pages/SubscriptionPage');
+const ResetPasswordPage = lazyLoad(() => import('@/pages/ResetPasswordPage'), '@/pages/ResetPasswordPage');
+const TermsOfServicePage = lazyLoad(() => import('@/pages/TermsOfServicePage'), '@/pages/TermsOfServicePage');
+const NotFound = lazyLoad(() => import('@/pages/NotFound'), '@/pages/NotFound');
 
 
 const MainContent: React.FC = () => {
