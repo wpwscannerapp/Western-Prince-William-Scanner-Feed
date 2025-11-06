@@ -6,7 +6,13 @@ import { IncidentWithCoords } from '@/types/supabase';
 
 // Dynamically import the IncidentMap component
 const LazyIncidentMap = React.lazy(() => 
-  import('./IncidentMap').then(module => ({ default: module.default }))
+  import('./IncidentMap').then(module => {
+    if (!module.default) {
+      console.error('IncidentMap missing default export!', module);
+      throw new Error('No default export in IncidentMap');
+    }
+    return { default: module.default };
+  })
 );
 
 interface MapWrapperProps {
