@@ -1,26 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import { IncidentWithCoords } from '@/types/supabase'; // Import IncidentWithCoords
-import { Loader2 } from 'lucide-react'; // Import Loader2
-import { L, initializeLeafletIcons } from '@/lib/leafletConfig'; // Import L and the new initialization function
+import { IncidentWithCoords } from '@/types/supabase';
+import { L, initializeLeafletIcons } from '@/lib/leafletConfig';
 
 interface IncidentMapProps {
-  incidents: IncidentWithCoords[]; // Use IncidentWithCoords
+  incidents: IncidentWithCoords[];
 }
 
 const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // 1. Initialize Leaflet global configuration here, ensuring it runs only on the client.
+    // Initialize Leaflet global configuration here, ensuring it runs only on the client.
     initializeLeafletIcons();
-    
-    // 2. This ensures the map components only mount after the initial render cycle
     setIsClient(true);
   }, []);
 
-  const { fireIcon, policeIcon, defaultIcon } = React.useMemo(() => {
+  const { fireIcon, policeIcon, defaultIcon } = useMemo(() => {
     if (!isClient) {
       return { fireIcon: null, policeIcon: null, defaultIcon: null };
     }
@@ -61,12 +57,8 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
   };
 
   if (!isClient || !fireIcon) {
-    return (
-      <div className="tw-h-[500px] tw-w-full tw-flex tw-items-center tw-justify-center tw-bg-muted tw-rounded-md">
-        <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
-        <span className="tw-ml-2 tw-text-muted-foreground">Initializing Map...</span>
-      </div>
-    );
+    // This fallback should ideally never be seen if MapWrapper handles the loading
+    return null;
   }
 
   return (
@@ -74,7 +66,7 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
       center={[38.65, -77.34]} // Center on Prince William County
       zoom={13}
       scrollWheelZoom={false}
-      className="tw-h-[500px] tw-w-full tw-rounded-md tw-shadow-md tw-z-10" // Added z-10 to ensure map is above other elements if needed
+      className="tw-h-[500px] tw-w-full tw-rounded-md tw-shadow-md tw-z-10"
       aria-label="Interactive map of incidents"
     >
       <TileLayer

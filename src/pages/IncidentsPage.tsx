@@ -190,7 +190,7 @@ const IncidentsPage: React.FC = () => {
         <div className={!isSubscribed && !isAdmin ? 'tw-blur-sm tw-pointer-events-none' : ''}>
           
           {/* Incident Map Integration */}
-          {incidentsWithCoords.length > 0 && MapWrapper && ( // Defensive check for MapWrapper
+          {incidentsWithCoords.length > 0 && (
             <div className="tw-mb-8">
               <MapWrapper incidents={incidentsWithCoords} />
             </div>
