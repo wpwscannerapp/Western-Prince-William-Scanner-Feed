@@ -5,7 +5,9 @@ import { Loader2 } from 'lucide-react';
 import { IncidentWithCoords } from '@/types/supabase';
 
 // Dynamically import the IncidentMap component
-const LazyIncidentMap = React.lazy(() => import('./IncidentMap'));
+const LazyIncidentMap = React.lazy(() => 
+  import('./IncidentMap').then(module => ({ default: module.default }))
+);
 
 interface MapWrapperProps {
   incidents: IncidentWithCoords[];
