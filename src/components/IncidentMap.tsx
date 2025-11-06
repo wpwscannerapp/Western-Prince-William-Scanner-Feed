@@ -17,39 +17,49 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
     setIsClient(true);
   }, []);
 
-  // Custom icons based on alert type
-  const fireIcon = new L.DivIcon({
-    className: 'tw-custom-div-icon',
-    html: `<div class="tw-bg-destructive tw-rounded-full tw-p-1 tw-shadow-md"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="24px" width="24px" style="color: white;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 10c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"></path></svg></div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
-  });
+  const { fireIcon, policeIcon, defaultIcon } = React.useMemo(() => {
+    if (!isClient) {
+      return { fireIcon: null, policeIcon: null, defaultIcon: null };
+    }
 
-  const policeIcon = new L.DivIcon({
-    className: 'tw-custom-div-icon',
-    html: `<div class="tw-bg-primary tw-rounded-full tw-p-1 tw-shadow-md"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="24px" width="24px" style="color: white;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 10c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"></path></svg></div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
-  });
+    // Custom icons based on alert type
+    const fireIcon = new L.DivIcon({
+      className: 'tw-custom-div-icon',
+      html: `<div class="tw-bg-destructive tw-rounded-full tw-p-1 tw-shadow-md"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="24px" width="24px" style="color: white;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 10c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"></path></svg></div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32],
+    });
 
-  const defaultIcon = new L.DivIcon({
-    className: 'tw-custom-div-icon',
-    html: `<div class="tw-bg-gray-500 tw-rounded-full tw-p-1 tw-shadow-md"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="24px" width="24px" style="color: white;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 10c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"></path></svg></div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
-  });
+    const policeIcon = new L.DivIcon({
+      className: 'tw-custom-div-icon',
+      html: `<div class="tw-bg-primary tw-rounded-full tw-p-1 tw-shadow-md"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="24px" width="24px" style="color: white;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 10c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"></path></svg></div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32],
+    });
+
+    const defaultIcon = new L.DivIcon({
+      className: 'tw-custom-div-icon',
+      html: `<div class="tw-bg-gray-500 tw-rounded-full tw-p-1 tw-shadow-md"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="24px" width="24px" style="color: white;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 10c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"></path></svg></div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32],
+    });
+
+    return { fireIcon, policeIcon, defaultIcon };
+  }, [isClient]);
 
   const getIconForAlertType = (type: string) => {
+    // We rely on the outer check (if (!isClient || !fireIcon)) to ensure icons are ready.
+    // The icons (fireIcon, policeIcon, defaultIcon) are guaranteed to be L.DivIcon instances here.
     const lowerCaseType = type.toLowerCase();
-    if (lowerCaseType.includes('fire')) return fireIcon;
-    if (lowerCaseType.includes('police') || lowerCaseType.includes('crime')) return policeIcon;
-    return defaultIcon;
+    if (lowerCaseType.includes('fire')) return fireIcon!;
+    if (lowerCaseType.includes('police') || lowerCaseType.includes('crime')) return policeIcon!;
+    return defaultIcon!;
   };
 
-  if (!isClient) {
+  if (!isClient || !fireIcon) {
     return (
       <div className="tw-h-[500px] tw-w-full tw-flex tw-items-center tw-justify-center tw-bg-muted tw-rounded-md">
         <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" />
