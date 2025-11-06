@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { IncidentWithCoords } from '@/types/supabase'; // Import IncidentWithCoords
 import { Loader2 } from 'lucide-react'; // Import Loader2
-import { L } from '@/lib/leafletConfig'; // Import L and ensure config runs
+import { L, initializeLeafletIcons } from '@/lib/leafletConfig'; // Import L and the new initialization function
 
 interface IncidentMapProps {
   incidents: IncidentWithCoords[]; // Use IncidentWithCoords
@@ -13,7 +13,10 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // This ensures the map components only mount after the initial render cycle
+    // 1. Initialize Leaflet global configuration here, ensuring it runs only on the client.
+    initializeLeafletIcons();
+    
+    // 2. This ensures the map components only mount after the initial render cycle
     setIsClient(true);
   }, []);
 
