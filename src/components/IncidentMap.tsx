@@ -51,8 +51,6 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
   }, [isClient]);
 
   const getIconForAlertType = (type: string) => {
-    // We rely on the outer check (if (!isClient || !fireIcon)) to ensure icons are ready.
-    // The icons (fireIcon, policeIcon, defaultIcon) are guaranteed to be L.DivIcon instances here.
     const lowerCaseType = type.toLowerCase();
     if (lowerCaseType.includes('fire')) return fireIcon!;
     if (lowerCaseType.includes('police') || lowerCaseType.includes('crime')) return policeIcon!;
