@@ -1,23 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import * as L from 'leaflet'; // FIX: Changed to namespace import
 import 'leaflet/dist/leaflet.css';
 import { IncidentWithCoords } from '@/types/supabase'; // Import IncidentWithCoords
 import { Loader2 } from 'lucide-react'; // Import Loader2
+import { L } from '@/lib/leafletConfig'; // Import L and ensure config runs
 
 interface IncidentMapProps {
   incidents: IncidentWithCoords[]; // Use IncidentWithCoords
 }
-
-// Fix for default marker icons not loading correctly in Webpack/Vite environments
-// This is a common fix required for Leaflet to find its default assets.
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
-
 
 const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
   const [isClient, setIsClient] = useState(false);
