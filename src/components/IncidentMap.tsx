@@ -1,94 +1,84 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React, { useState, useMemo } from 'react';
+import Map, { Marker, Popup } from 'react-map-gl';
+import maplibregl from 'maplibre-gl';
 import { IncidentWithCoords } from '@/types/supabase';
-import { L, initializeLeafletIcons } from '@/lib/leafletConfig';
+import { MapPin } from 'lucide-react';
+import { format } from 'date-fns';
+
+// Default view state centered around Prince William County, VA
+const INITIAL_VIEW_STATE = {
+  longitude: -77.34,
+  latitude: 38.65,
+  zoom: 11,
+};
 
 interface IncidentMapProps {
   incidents: IncidentWithCoords[];
 }
 
 const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
-  const [isClient, setIsClient] = useState(false);
+  const [viewState, setViewState] = useState(INITIAL_VIEW_STATE);
+  const [popupInfo, setPopupInfo] = useState<IncidentWithCoords | null>(null);
 
-  useEffect(() => {
-    // Initialize Leaflet global configuration here, ensuring it runs only on the client.
-    initializeLeafletIcons();
-    setIsClient(true);
-  }, []);
+  const markers = useMemo(() => incidents.map((incident) => {
+    const isFire = incident.type.toLowerCase().includes('fire');
+    const isPolice = incident.type.toLowerCase().includes('police') || incident.type.toLowerCase().includes('crime');
+    const color = isFire ? 'hsl(var(--destructive))' : isPolice ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))';
 
-  const { fireIcon, policeIcon, defaultIcon } = useMemo(() => {
-    if (!isClient) {
-      return { fireIcon: null, policeIcon: null, defaultIcon: null };
-    }
-
-    // Custom icons based on alert type
-    const fireIcon = new L.DivIcon({
-      className: 'tw-custom-div-icon',
-      html: `<div class="tw-bg-destructive tw-rounded-full tw-p-1 tw-shadow-md"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="24px" width="24px" style="color: white;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 10c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"></path></svg></div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32],
-    });
-
-    const policeIcon = new L.DivIcon({
-      className: 'tw-custom-div-icon',
-      html: `<div class="tw-bg-primary tw-rounded-full tw-p-1 tw-shadow-md"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="24px" width="24px" style="color: white;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 10c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"></path></svg></div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32],
-    });
-
-    const defaultIcon = new L.DivIcon({
-      className: 'tw-custom-div-icon',
-      html: `<div class="tw-bg-gray-500 tw-rounded-full tw-p-1 tw-shadow-md"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="24px" width="24px" style="color: white;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 10c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"></path></svg></div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32],
-    });
-
-    return { fireIcon, policeIcon, defaultIcon };
-  }, [isClient]);
-
-  const getIconForAlertType = (type: string) => {
-    const lowerCaseType = type.toLowerCase();
-    if (lowerCaseType.includes('fire')) return fireIcon!;
-    if (lowerCaseType.includes('police') || lowerCaseType.includes('crime')) return policeIcon!;
-    return defaultIcon!;
-  };
-
-  if (!isClient || !fireIcon) {
-    // This fallback should ideally never be seen if MapWrapper handles the loading
-    return null;
-  }
+    return (
+      <Marker
+        key={incident.id}
+        longitude={incident.longitude}
+        latitude={incident.latitude}
+        anchor="bottom"
+        onClick={e => {
+          e.originalEvent.stopPropagation();
+          setPopupInfo(incident);
+        }}
+      >
+        <div className="tw-relative tw-cursor-pointer" aria-label={`Incident marker: ${incident.title}`}>
+          <MapPin 
+            className="tw-h-8 tw-w-8 tw-shadow-lg" 
+            style={{ color }} 
+            fill={color}
+          />
+        </div>
+      </Marker>
+    );
+  }), [incidents]);
 
   return (
-    <MapContainer
-      center={[38.65, -77.34]} // Center on Prince William County
-      zoom={13}
-      scrollWheelZoom={false}
-      className="tw-h-[500px] tw-w-full tw-rounded-md tw-shadow-md tw-z-10"
-      aria-label="Interactive map of incidents"
+    <Map
+      {...viewState}
+      onMove={evt => setViewState(evt.viewState)}
+      mapLib={maplibregl}
+      style={{ width: '100%', height: '100%' }}
+      mapStyle="https://api.maptiler.com/maps/streets/style.json?key=YOUR_MAPTILER_API_KEY_HERE" // Using a generic style URL
+      // Note: For production, you should replace the MapTiler URL with a valid key or use a self-hosted style.
+      // MapLibre GL JS works well with OpenStreetMap data sources.
+      initialViewState={INITIAL_VIEW_STATE}
+      attributionControl={false}
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      {incidents.map((incident) => (
-        <Marker
-          key={incident.id}
-          position={[incident.latitude, incident.longitude]}
-          icon={getIconForAlertType(incident.type)}
-          aria-label={`Incident: ${incident.title}`}
+      {markers}
+
+      {popupInfo && (
+        <Popup
+          anchor="top"
+          longitude={popupInfo.longitude}
+          latitude={popupInfo.latitude}
+          onClose={() => setPopupInfo(null)}
+          closeButton={true}
+          closeOnClick={false}
         >
-          <Popup>
-            <div className="tw-font-bold tw-text-foreground">{incident.title}</div>
-            <div className="tw-text-sm tw-text-muted-foreground">{incident.description}</div>
-            <div className="tw-text-xs tw-text-muted-foreground tw-mt-1">Type: {incident.type}</div>
-            <div className="tw-text-xs tw-text-muted-foreground">Posted: {new Date(incident.created_at!).toLocaleString()}</div>
-          </Popup>
-        </Marker>
-      ))}
-    </MapContainer>
+          <div className="tw-p-1 tw-max-w-xs">
+            <h3 className="tw-font-bold tw-text-sm tw-text-foreground">{popupInfo.title}</h3>
+            <p className="tw-text-xs tw-text-muted-foreground tw-mt-1">{popupInfo.description}</p>
+            <p className="tw-text-xs tw-text-muted-foreground tw-mt-1">Type: {popupInfo.type}</p>
+            <p className="tw-text-xs tw-text-muted-foreground">Posted: {format(new Date(popupInfo.created_at!), 'MMM dd, hh:mm a')}</p>
+          </div>
+        </Popup>
+      )}
+    </Map>
   );
 };
 

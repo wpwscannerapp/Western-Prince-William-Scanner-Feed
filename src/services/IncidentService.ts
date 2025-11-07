@@ -463,37 +463,4 @@ export const IncidentService = {
       clearTimeout(timeoutId);
     }
   },
-
-  async getNearbyIncidents(lat: number, lng: number, radiusMiles = 5): Promise<IncidentRow[]> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
-
-    try {
-      const { data, error } = await supabase.rpc('get_nearby_incidents', {
-        lat_param: lat,
-        lng_param: lng,
-        radius_miles_param: radiusMiles,
-      }).abortSignal(controller.signal);
-
-      if (error) {
-        logSupabaseError('getNearbyIncidents', error);
-        AnalyticsService.trackEvent({ name: 'fetch_nearby_incidents_failed', properties: { lat, lng, radiusMiles, error: error.message } });
-        throw error;
-      }
-      AnalyticsService.trackEvent({ name: 'nearby_incidents_fetched', properties: { lat, lng, radiusMiles, count: data.length } });
-      return data;
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
-        handleError(new Error('Request timed out'), 'Fetching nearby incidents timed out.');
-        AnalyticsService.trackEvent({ name: 'fetch_nearby_incidents_timeout', properties: { lat, lng, radiusMiles } });
-        throw new Error('Fetching nearby incidents timed out.');
-      } else {
-        logSupabaseError('getNearbyIncidents', err);
-        AnalyticsService.trackEvent({ name: 'get_nearby_incidents_unexpected_error', properties: { lat, lng, radiusMiles, error: err.message } });
-        throw err;
-      }
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  },
 };
