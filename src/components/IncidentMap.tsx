@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl';
+import maplibregl from 'maplibre-gl'; // Re-introducing maplibre-gl import
 import { IncidentWithCoords } from '@/types/supabase';
 import { MapPin } from 'lucide-react';
 import { format } from 'date-fns';
@@ -57,10 +58,12 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
     <Map
       {...viewState}
       onViewStateChange={handleViewStateChange}
-      width="100%" // Explicitly set width
-      height="100%" // Explicitly set height
+      width="100%"
+      height="100%"
       style={{ width: '100%', height: '100%' }}
       mapStyle="https://api.maptiler.com/maps/streets/style.json?key=YOUR_MAPTILER_API_KEY_HERE"
+      // @ts-ignore - Re-introducing mapLib as it seems necessary for runtime initialization
+      mapLib={maplibregl} 
       attributionControl={false}
     >
       {markers}
