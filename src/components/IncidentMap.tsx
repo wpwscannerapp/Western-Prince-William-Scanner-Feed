@@ -57,8 +57,9 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
     <Map
       {...viewState}
       onViewStateChange={handleViewStateChange}
-      width="100%"
-      height="100%"
+      width="100%" // Explicitly set width
+      height="100%" // Explicitly set height
+      style={{ width: '100%', height: '100%' }}
       mapStyle="https://api.maptiler.com/maps/streets/style.json?key=YOUR_MAPTILER_API_KEY_HERE"
       attributionControl={false}
     >
