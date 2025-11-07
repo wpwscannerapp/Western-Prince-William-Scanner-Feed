@@ -116,6 +116,9 @@ importers:
       '@types/react-leaflet':
         specifier: ^3.0.0
         version: 3.0.0(leaflet@1.9.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@types/react-map-gl':
+        specifier: ^6.1.7
+        version: 6.1.7
       '@types/web-push':
         specifier: ^3.6.4
         version: 3.6.4
@@ -2702,6 +2705,9 @@ packages:
   '@types/leaflet@1.9.21':
     resolution: {integrity: sha512-TbAd9DaPGSnzp6QvtYngntMZgcRk+igFELwR2N99XZn7RXUdKgsXMR+28bUO0rPsWp8MIu/f47luLIQuSLYv/w==}
 
+  '@types/mapbox-gl@3.4.1':
+    resolution: {integrity: sha512-NsGKKtgW93B+UaLPti6B7NwlxYlES5DpV5Gzj9F75rK5ALKsqSk15CiEHbOnTr09RGbr6ZYiCdI+59NNNcAImg==}
+
   '@types/node@22.18.12':
     resolution: {integrity: sha512-BICHQ67iqxQGFSzfCFTT7MRQ5XcBjG5aeKh5Ok38UBbPe5fxTyE+aHFxwVrGyr8GNlqFMLKD1D3P2K/1ks8tog==}
 
@@ -2731,6 +2737,9 @@ packages:
     resolution: {integrity: sha512-p8R9mVKbCDDqOdW+M6GyJJuFn6q+IgDFYavFiOIvaWHuOe5kIHZEtCy1pfM43JIA6JiB3D/aDoby7C51eO+XSg==}
     deprecated: This is a stub types definition. react-leaflet provides its own type definitions, so you do not need this installed.
 
+  '@types/react-map-gl@6.1.7':
+    resolution: {integrity: sha512-szkfkWd3FbySDkxyn0MDj9yzD8XYk+RIi4od6sGb3lVHNBGcW20G2v2vcq2N5k18UYAdqAoKGSYuHkGV4JOCrA==}
+
   '@types/react-redux@7.1.34':
     resolution: {integrity: sha512-GdFaVjEbYv4Fthm2ZLvj1VSCedV7TqE5y1kNwnjSdBOTXuRSgowux6J8TAct15T3CKBr63UMk+2CO7ilRhyrAQ==}
 
@@ -2756,6 +2765,9 @@ packages:
 
   '@types/trusted-types@2.0.7':
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
+
+  '@types/viewport-mercator-project@6.1.6':
+    resolution: {integrity: sha512-uWrbqhRXFeiT6CAvRjf0BkQKRkKED+ofrPhglKpUktQML3463dEPiA4iwe7cZQs6m49Zo/g03rL7ChMLiE5Z8w==}
 
   '@types/web-push@3.6.4':
     resolution: {integrity: sha512-GnJmSr40H3RAnj0s34FNTcJi1hmWFV5KXugE0mYWnYhgTAHLJ/dJKAwDmvPJYMke0RplY2XE9LnM4hqSqKIjhQ==}
@@ -8694,6 +8706,10 @@ snapshots:
     dependencies:
       '@types/geojson': 7946.0.16
 
+  '@types/mapbox-gl@3.4.1':
+    dependencies:
+      '@types/geojson': 7946.0.16
+
   '@types/node@22.18.12':
     dependencies:
       undici-types: 6.21.0
@@ -8725,6 +8741,13 @@ snapshots:
       - react
       - react-dom
 
+  '@types/react-map-gl@6.1.7':
+    dependencies:
+      '@types/geojson': 7946.0.16
+      '@types/mapbox-gl': 3.4.1
+      '@types/react': 18.3.26
+      '@types/viewport-mercator-project': 6.1.6
+
   '@types/react-redux@7.1.34':
     dependencies:
       '@types/hoist-non-react-statics': 3.3.7(@types/react@18.3.26)
@@ -8752,6 +8775,10 @@ snapshots:
   '@types/triple-beam@1.3.5': {}
 
   '@types/trusted-types@2.0.7': {}
+
+  '@types/viewport-mercator-project@6.1.6':
+    dependencies:
+      gl-matrix: 3.4.4
 
   '@types/web-push@3.6.4':
     dependencies:

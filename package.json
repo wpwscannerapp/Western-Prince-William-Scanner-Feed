@@ -45,6 +45,7 @@
     "@types/react-beautiful-dnd": "^13.1.1",
     "@types/react-color": "^3.0.13",
     "@types/react-leaflet": "^3.0.0",
+    "@types/react-map-gl": "^6.1.7",
     "@types/web-push": "^3.6.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
