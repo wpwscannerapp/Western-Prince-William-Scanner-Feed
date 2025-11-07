@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import Map, { Marker, Popup, MapEvent, MapMouseEvent } from 'react-map-gl';
+import Map, { Marker, Popup } from 'react-map-gl';
 import maplibregl from 'maplibre-gl';
 import { IncidentWithCoords } from '@/types/supabase';
 import { MapPin } from 'lucide-react';
@@ -31,8 +31,11 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
         longitude={incident.longitude}
         latitude={incident.latitude}
         anchor="bottom"
-        onClick={(e: MapMouseEvent) => {
-          e.originalEvent.stopPropagation();
+        onClick={(e: any) => {
+          // Type guard to ensure e is of the correct type
+          if (e && e.originalEvent) {
+            e.originalEvent.stopPropagation();
+          }
           setPopupInfo(incident);
         }}
       >
@@ -47,15 +50,18 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
     );
   }), [incidents]);
 
+  // Use onViewStateChange instead of onMove for better compatibility
+  const handleViewStateChange = (evt: any) => {
+    setViewState(evt.viewState);
+  };
+
   return (
     <Map
       {...viewState}
-      onMove={(evt: MapEvent) => setViewState(evt.viewState)}
+      onViewStateChange={handleViewStateChange}
       mapLib={maplibregl}
       style={{ width: '100%', height: '100%' }}
-      mapStyle="https://api.maptiler.com/maps/streets/style.json?key=YOUR_MAPTILER_API_KEY_HERE" // Using a generic style URL
-      // Note: For production, you should replace the MapTiler URL with a valid key or use a self-hosted style.
-      // MapLibre GL JS works well with OpenStreetMap data sources.
+      mapStyle="https://api.maptiler.com/maps/streets/style.json?key=YOUR_MAPTILER_API_KEY_HERE"
       initialViewState={INITIAL_VIEW_STATE}
       attributionControl={false}
     >
