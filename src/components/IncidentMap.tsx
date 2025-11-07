@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import Map, { Marker, Popup, MapboxEvent, MapLayerMouseEvent } from 'react-map-gl';
+import Map, { Marker, Popup, MapboxEvent, MapboxMouseEvent } from 'react-map-gl';
 import maplibregl from 'maplibre-gl';
 import { IncidentWithCoords } from '@/types/supabase';
 import { MapPin } from 'lucide-react';
@@ -31,7 +31,7 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
         longitude={incident.longitude}
         latitude={incident.latitude}
         anchor="bottom"
-        onClick={(e: MapLayerMouseEvent) => {
+        onClick={(e: MapboxMouseEvent) => {
           e.originalEvent.stopPropagation();
           setPopupInfo(incident);
         }}
