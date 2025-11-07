@@ -103,8 +103,7 @@ export default defineConfig(({ command, mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-        // Explicitly alias react-map-gl to its main entry point to fix resolution issues
-        'react-map-gl': path.resolve(__dirname, './node_modules/react-map-gl/dist/esm/index.js'),
+        // Removed explicit alias for react-map-gl
       },
     },
     server: command === 'serve' ? {
@@ -131,6 +130,7 @@ export default defineConfig(({ command, mode }) => {
       },
     },
     optimizeDeps: {
+      // Keep react-map-gl here to help dependency scanning
       include: ['react-map-gl'],
       exclude: [],
     },
