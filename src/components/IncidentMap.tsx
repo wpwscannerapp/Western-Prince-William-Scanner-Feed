@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import Map, { Marker, Popup, MapboxEvent, MapboxMouseEvent } from 'react-map-gl';
+import Map, { Marker, Popup, MapEvent, MapMouseEvent } from 'react-map-gl';
 import maplibregl from 'maplibre-gl';
 import { IncidentWithCoords } from '@/types/supabase';
 import { MapPin } from 'lucide-react';
@@ -31,7 +31,7 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
         longitude={incident.longitude}
         latitude={incident.latitude}
         anchor="bottom"
-        onClick={(e: MapboxMouseEvent) => {
+        onClick={(e: MapMouseEvent) => {
           e.originalEvent.stopPropagation();
           setPopupInfo(incident);
         }}
@@ -50,7 +50,7 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
   return (
     <Map
       {...viewState}
-      onMove={(evt: MapboxEvent) => setViewState(evt.viewState)}
+      onMove={(evt: MapEvent) => setViewState(evt.viewState)}
       mapLib={maplibregl}
       style={{ width: '100%', height: '100%' }}
       mapStyle="https://api.maptiler.com/maps/streets/style.json?key=YOUR_MAPTILER_API_KEY_HERE" // Using a generic style URL
