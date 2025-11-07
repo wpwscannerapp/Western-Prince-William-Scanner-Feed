@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl';
-import maplibregl from 'maplibre-gl';
 import { IncidentWithCoords } from '@/types/supabase';
 import { MapPin } from 'lucide-react';
 import { format } from 'date-fns';
@@ -30,16 +29,15 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
         key={incident.id}
         longitude={incident.longitude}
         latitude={incident.latitude}
-        anchor="bottom"
-        onClick={(e: any) => {
-          // Type guard to ensure e is of the correct type
-          if (e && e.originalEvent) {
-            e.originalEvent.stopPropagation();
-          }
-          setPopupInfo(incident);
-        }}
       >
-        <div className="tw-relative tw-cursor-pointer" aria-label={`Incident marker: ${incident.title}`}>
+        <div 
+          className="tw-relative tw-cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            setPopupInfo(incident);
+          }}
+          aria-label={`Incident marker: ${incident.title}`}
+        >
           <MapPin 
             className="tw-h-8 tw-w-8 tw-shadow-lg" 
             style={{ color }} 
@@ -59,17 +57,14 @@ const IncidentMap: React.FC<IncidentMapProps> = ({ incidents }) => {
     <Map
       {...viewState}
       onViewStateChange={handleViewStateChange}
-      mapLib={maplibregl}
       style={{ width: '100%', height: '100%' }}
       mapStyle="https://api.maptiler.com/maps/streets/style.json?key=YOUR_MAPTILER_API_KEY_HERE"
-      initialViewState={INITIAL_VIEW_STATE}
       attributionControl={false}
     >
       {markers}
 
       {popupInfo && (
         <Popup
-          anchor="top"
           longitude={popupInfo.longitude}
           latitude={popupInfo.latitude}
           onClose={() => setPopupInfo(null)}
