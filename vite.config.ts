@@ -103,8 +103,8 @@ export default defineConfig(({ command, mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-        // Removed specific Leaflet aliases as they were causing path resolution issues.
-        // Vite should correctly resolve 'leaflet/dist/leaflet.css' without them.
+        // Explicitly alias react-map-gl to its main entry point to fix resolution issues
+        'react-map-gl': path.resolve(__dirname, './node_modules/react-map-gl/dist/esm/index.js'),
       },
     },
     server: command === 'serve' ? {
@@ -131,6 +131,7 @@ export default defineConfig(({ command, mode }) => {
       },
     },
     optimizeDeps: {
+      include: ['react-map-gl'],
       exclude: [],
     },
   };
