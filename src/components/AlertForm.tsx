@@ -85,9 +85,13 @@ const AlertForm: React.FC<AlertFormProps> = ({ onSubmit, isLoading, initialAlert
     if (values.location_text && (values.location_text !== geocodedLocation?.display_name || !geocodedLocation)) {
       const geoResult = await geocodeAddress(values.location_text);
       if (geoResult) {
-        latitude = geoResult.latitude;
-        longitude = geoResult.longitude;
-        setGeocodedLocation(geoResult);
+        latitude = geoResult.lat;
+        longitude = geoResult.lng;
+        setGeocodedLocation({
+          latitude: geoResult.lat,
+          longitude: geoResult.lng,
+          display_name: values.location_text, // Use location text as display name placeholder
+        });
         toast.success('Location geocoded successfully!');
         AnalyticsService.trackEvent({ name: 'alert_location_geocoded', properties: { address: values.location_text, success: true } });
       } else {
