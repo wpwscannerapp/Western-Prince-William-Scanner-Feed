@@ -13,6 +13,7 @@ import { geocodeAddress } from '@/utils/geocoding';
 import { toast } from 'sonner';
 import { AlertRow } from '@/types/supabase'; // Import AlertRow
 import { AnalyticsService } from '@/services/AnalyticsService';
+import useDebounce from '@/hooks/useDebounce'; // Import useDebounce
 
 const alertFormSchema = z.object({
   title: z.string().min(1, { message: 'Alert title is required.' }).max(100, { message: 'Title too long.' }),
@@ -43,6 +44,51 @@ const AlertForm: React.FC<AlertFormProps> = ({ onSubmit, isLoading, initialAlert
 
   const [geocodedLocation, setGeocodedLocation] = useState<{ latitude: number; longitude: number; display_name: string } | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  
+  const locationWatch = form.watch('location_text');
+  const debouncedLocation = useDebounce(locationWatch, 1000); // Debounce location input for 1 second
+
+  // --- Geocoding Effect ---
+  useEffect(() => {
+    if (initialAlert && !locationWatch) {
+        // Skip geocoding if editing and location is empty (handled by initialAlert check)
+        return;
+    }
+    if (!debouncedLocation.trim()) {
+      setGeocodedLocation(null);
+      return;
+    }
+
+    let cancelled = false;
+    setIsGeocoding(true);
+
+    (async () => {
+      const geoResult = await geocodeAddress(debouncedLocation);
+      if (cancelled) return;
+
+      if (geoResult) {
+        setGeocodedLocation({
+          latitude: geoResult.lat,
+          longitude: geoResult.lng,
+          display_name: debouncedLocation,
+        });
+        // Only show success toast if it's a new geocoding result, not on initial load
+        if (initialAlert?.latitude !== geoResult.lat || initialAlert?.longitude !== geoResult.lng) {
+            toast.success('Location geocoded successfully!');
+        }
+        AnalyticsService.trackEvent({ name: 'alert_location_geocoded', properties: { address: debouncedLocation, success: true } });
+      } else {
+        setGeocodedLocation(null);
+        AnalyticsService.trackEvent({ name: 'alert_location_geocoded', properties: { address: debouncedLocation, success: false } });
+      }
+      setIsGeocoding(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedLocation, initialAlert]);
+  // --- End Geocoding Effect ---
 
   useEffect(() => {
     if (initialAlert) {
@@ -50,9 +96,7 @@ const AlertForm: React.FC<AlertFormProps> = ({ onSubmit, isLoading, initialAlert
         title: initialAlert.title,
         description: initialAlert.description,
         type: initialAlert.type,
-        // For editing, we might not have a 'location_text' directly,
-        // so we can reconstruct it or leave it for the user to re-enter if needed.
-        // For simplicity, let's assume if lat/lon exist, we can display a generic location.
+        // For editing, we set location_text to a placeholder if coordinates exist
         location_text: initialAlert.latitude && initialAlert.longitude ? `Lat: ${initialAlert.latitude.toFixed(4)}, Lon: ${initialAlert.longitude.toFixed(4)}` : '',
       });
       if (initialAlert.latitude && initialAlert.longitude) {
@@ -76,42 +120,13 @@ const AlertForm: React.FC<AlertFormProps> = ({ onSubmit, isLoading, initialAlert
   }, [initialAlert, form]);
 
   const handleSubmit = async (values: AlertFormValues) => {
-    setIsGeocoding(true);
-    let latitude: number | undefined;
-    let longitude: number | undefined;
-
-    // Only geocode if location_text is provided and it's different from the initial geocoded display name
-    // or if there's no initial geocoded location.
-    if (values.location_text && (values.location_text !== geocodedLocation?.display_name || !geocodedLocation)) {
-      const geoResult = await geocodeAddress(values.location_text);
-      if (geoResult) {
-        latitude = geoResult.lat;
-        longitude = geoResult.lng;
-        setGeocodedLocation({
-          latitude: geoResult.lat,
-          longitude: geoResult.lng,
-          display_name: values.location_text, // Use location text as display name placeholder
-        });
-        toast.success('Location geocoded successfully!');
-        AnalyticsService.trackEvent({ name: 'alert_location_geocoded', properties: { address: values.location_text, success: true } });
-      } else {
-        toast.error('Failed to geocode location. Alert will be submitted without map coordinates.');
-        latitude = undefined;
-        longitude = undefined;
-        setGeocodedLocation(null);
-        AnalyticsService.trackEvent({ name: 'alert_location_geocoded', properties: { address: values.location_text, success: false } });
-      }
-    } else if (initialAlert?.latitude && initialAlert?.longitude) {
-      // If location text hasn't changed and initial alert had coordinates, use them
-      latitude = initialAlert.latitude;
-      longitude = initialAlert.longitude;
-    }
-    setIsGeocoding(false);
-
-    if (latitude === undefined || longitude === undefined) {
-      toast.error('Geocoding failed or no coordinates provided. Cannot submit alert without valid coordinates.');
+    if (!geocodedLocation) {
+      toast.error('Please wait for geocoding to complete or enter a valid location.');
       return false;
     }
+
+    const latitude = geocodedLocation.latitude;
+    const longitude = geocodedLocation.longitude;
 
     const success = await onSubmit({
       title: values.title,
@@ -212,10 +227,15 @@ const AlertForm: React.FC<AlertFormProps> = ({ onSubmit, isLoading, initialAlert
         )}
       </div>
 
-      <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isFormDisabled}>
+      <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isFormDisabled || !geocodedLocation}>
         {isFormDisabled && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
         <Send className="tw-mr-2 tw-h-4 tw-w-4" aria-hidden="true" /> {initialAlert ? 'Update Alert' : 'Create Alert'}
       </Button>
+      {!geocodedLocation && locationWatch && !isGeocoding && (
+        <p className="tw-text-sm tw-text-destructive tw-text-center">
+          Please enter a valid location to enable submission.
+        </p>
+      )}
     </form>
   );
 };
