@@ -14,20 +14,20 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import { MAPQUEST_API_KEY } from '@/config';
+import { GOOGLE_MAPS_KEY } from '@/config'; // Use GOOGLE_MAPS_KEY
 
 interface IncidentCardProps {
   incident: IncidentRow; // Use IncidentRow
 }
 
-// Helper function to generate MapQuest Static Map URL
+// Helper function to generate Google Static Map URL
 const getStaticMapUrl = (latitude: number, longitude: number, type: string): string => {
-  const markerColor = type.toLowerCase().includes('fire') ? 'ff0000' : '0000ff'; // Red for fire, Blue otherwise
-  const marker = `marker=sm-${markerColor}-pin@${latitude},${longitude}`;
-  const size = '400,200';
-  const zoom = 14;
+  const markerColor = type.toLowerCase().includes('fire') ? 'red' : 'blue'; // Red for fire, Blue otherwise
+  const marker = `markers=color:${markerColor}%7C${latitude},${longitude}`;
+  const size = '600x300';
+  const zoom = 15;
   
-  return `https://www.mapquestapi.com/staticmap/v5/map?key=${MAPQUEST_API_KEY}&center=${latitude},${longitude}&zoom=${zoom}&size=${size}&${marker}&type=map`;
+  return `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=${size}&${marker}&key=${GOOGLE_MAPS_KEY}`;
 };
 
 const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {

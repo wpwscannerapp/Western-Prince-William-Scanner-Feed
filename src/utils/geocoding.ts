@@ -1,53 +1,43 @@
 "use client";
 
 import { handleError } from './errorHandler';
-import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
+import { AnalyticsService } from '@/services/AnalyticsService';
+import { GOOGLE_MAPS_KEY } from '@/config';
 
-interface GeocodeResult {
-  latitude: number;
-  longitude: number;
-  display_name: string;
-}
+export async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  const apiKey = GOOGLE_MAPS_KEY;
+  if (!apiKey) {
+    handleError(null, "Google Maps API key missing for geocoding.");
+    AnalyticsService.trackEvent({ name: 'geocode_failed', properties: { reason: 'missing_api_key' } });
+    return null;
+  }
 
-export async function geocodeAddress(address: string): Promise<GeocodeResult | null> {
   if (!address) {
-    handleError(null, 'Address cannot be empty for geocoding.');
     AnalyticsService.trackEvent({ name: 'geocode_failed', properties: { reason: 'empty_address' } });
     return null;
   }
 
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+    address
+  )}&key=${apiKey}`;
 
   try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'WPWScannerApp/1.0 (wpwscannerfeed@gmail.com)',
-      },
-    });
+    const res = await fetch(url);
+    const data = await res.json();
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Geocoding API error: ${response.statusText} - ${errorText}`);
-    }
-
-    const data = await response.json();
-
-    if (data && data.length > 0) {
-      const firstResult = data[0];
-      AnalyticsService.trackEvent({ name: 'geocode_success', properties: { address, latitude: parseFloat(firstResult.lat), longitude: parseFloat(firstResult.lon) } });
-      return {
-        latitude: parseFloat(firstResult.lat),
-        longitude: parseFloat(firstResult.lon),
-        display_name: firstResult.display_name,
-      };
-    } else {
-      handleError(null, `Could not find coordinates for address: "${address}". Please try a more specific location.`);
-      AnalyticsService.trackEvent({ name: 'geocode_failed', properties: { address, reason: 'no_results' } });
+    if (data.status !== "OK" || !data.results?.[0]?.geometry?.location) {
+      const errorMessage = data.error_message || `Geocoding failed with status: ${data.status}`;
+      handleError(null, `Could not find coordinates for address: "${address}". ${errorMessage}`);
+      AnalyticsService.trackEvent({ name: 'geocode_failed', properties: { address, reason: data.status, error: errorMessage } });
       return null;
     }
-  } catch (error: any) {
-    handleError(error, `Failed to geocode address: ${error.message}`);
-    AnalyticsService.trackEvent({ name: 'geocode_failed', properties: { address, reason: 'api_error', error: error.message } });
+
+    const { lat, lng } = data.results[0].geometry.location;
+    AnalyticsService.trackEvent({ name: 'geocode_success', properties: { address, latitude: lat, longitude: lng } });
+    return { lat, lng };
+  } catch (err: any) {
+    handleError(err, `Geocode request failed: ${err.message}`);
+    AnalyticsService.trackEvent({ name: 'geocode_failed', properties: { address, reason: 'request_failed', error: err.message } });
     return null;
   }
 }

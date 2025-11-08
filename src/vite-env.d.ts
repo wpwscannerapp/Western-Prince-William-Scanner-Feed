@@ -14,6 +14,7 @@ interface ImportMetaEnv {
   readonly VITE_STRIPE_PRICE: string;
   readonly VITE_NETLIFY_SITE_ID: string; // Added Netlify Site ID
   readonly VITE_MAPQUEST_API_KEY: string; // Added MapQuest API Key
+  readonly VITE_GOOGLE_MAPS_KEY: string; // Added Google Maps API Key
   readonly DEV: boolean;
 }
 

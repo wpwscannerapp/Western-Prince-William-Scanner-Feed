@@ -9,10 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Image as ImageIcon, XCircle, MapPin, Loader2, Send } from 'lucide-react';
-import { geocodeAddress } from '@/utils/geocoding';
+import { geocodeAddress } from '@/utils/geocoding'; // Now imports the Google Maps version
 import { toast } from 'sonner';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import { IncidentRow } from '@/types/supabase'; // Import IncidentRow
+import { IncidentRow } from '@/types/supabase';
+import useDebounce from '@/hooks/useDebounce';
+import { GOOGLE_MAPS_KEY } from '@/config';
 
 const incidentFormSchema = z.object({
   type: z.string().min(1, { message: 'Incident type is required.' }).max(100, { message: 'Incident type too long.' }),
@@ -26,7 +28,7 @@ type IncidentFormValues = z.infer<typeof incidentFormSchema>;
 interface IncidentFormProps {
   onSubmit: (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | null, latitude: number | undefined, longitude: number | undefined) => Promise<boolean>;
   isLoading: boolean;
-  initialIncident?: Omit<IncidentRow, 'id' | 'created_at' | 'date' | 'title' | 'search_vector' | 'audio_url' | 'admin_id'>; // Use Omit with IncidentRow
+  initialIncident?: Omit<IncidentRow, 'id' | 'created_at' | 'date' | 'title' | 'search_vector' | 'audio_url' | 'admin_id'>;
   formId?: string;
 }
 
@@ -44,8 +46,15 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
   const [imagePreview, setImagePreview] = useState<string | undefined>(initialIncident?.image_url || undefined);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [geocodedLocation, setGeocodedLocation] = useState<{ latitude: number; longitude: number; display_name: string } | null>(null);
-  const [isGeocoding, setIsGeocoding] = useState(false);
+  
+  // --- New Map State ---
+  const [geocodedCoords, setGeocodedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapUrl, setMapUrl] = useState<string | null>(null);
+  const [mapLoading, setMapLoading] = useState(false);
+  
+  const locationWatch = form.watch('location');
+  const debouncedLocation = useDebounce(locationWatch, 1000);
+  // --- End New Map State ---
 
   // Effect to revoke object URLs when component unmounts or image changes
   useEffect(() => {
@@ -54,7 +63,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         URL.revokeObjectURL(imagePreview);
       }
     };
-  }, [imagePreview]); // Depend on imagePreview to revoke old URL when it changes
+  }, [imagePreview]);
 
   useEffect(() => {
     if (initialIncident) {
@@ -64,20 +73,20 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         description: initialIncident.description,
         image: undefined,
       });
-      // Revoke old object URL if it exists and is a local one
       if (imagePreview && imagePreview.startsWith('blob:')) {
         URL.revokeObjectURL(imagePreview);
       }
       setImagePreview(initialIncident.image_url || undefined);
       setImageFile(null);
+      
+      // Set initial coordinates if available for map preview
       if (initialIncident.latitude && initialIncident.longitude) {
-        setGeocodedLocation({
-          latitude: initialIncident.latitude,
-          longitude: initialIncident.longitude,
-          display_name: initialIncident.location,
+        setGeocodedCoords({
+          lat: initialIncident.latitude,
+          lng: initialIncident.longitude,
         });
       } else {
-        setGeocodedLocation(null);
+        setGeocodedCoords(null);
       }
     } else {
       form.reset({
@@ -86,22 +95,52 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         description: '',
         image: undefined,
       });
-      // Revoke old object URL if it exists and is a local one
       if (imagePreview && imagePreview.startsWith('blob:')) {
         URL.revokeObjectURL(imagePreview);
       }
       setImagePreview(undefined);
       setImageFile(null);
-      setGeocodedLocation(null);
+      setGeocodedCoords(null);
     }
   }, [initialIncident, form]);
+
+  // --- Geocoding and Map Generation Effect ---
+  useEffect(() => {
+    if (!debouncedLocation.trim()) {
+      setMapUrl(null);
+      setGeocodedCoords(null);
+      return;
+    }
+
+    let cancelled = false;
+    setMapLoading(true);
+
+    (async () => {
+      const coords = await geocodeAddress(debouncedLocation);
+      if (cancelled) return;
+
+      if (coords) {
+        const url = `https://maps.googleapis.com/maps/api/staticmap?center=${coords.lat},${coords.lng}&zoom=15&size=600x300&markers=color:red%7C${coords.lat},${coords.lng}&key=${GOOGLE_MAPS_KEY}`;
+        setMapUrl(url);
+        setGeocodedCoords(coords);
+      } else {
+        setMapUrl(null);
+        setGeocodedCoords(null);
+      }
+      setMapLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedLocation]);
+  // --- End Geocoding and Map Generation Effect ---
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (import.meta.env.DEV) {
       console.log('IncidentForm: Image file selected:', file?.name, 'Size:', file?.size, 'Type:', file?.type);
     }
-    // Revoke previous object URL if it exists
     if (imagePreview && imagePreview.startsWith('blob:')) {
       URL.revokeObjectURL(imagePreview);
     }
@@ -119,7 +158,6 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
     if (import.meta.env.DEV) {
       console.log('IncidentForm: Removing image.');
     }
-    // Revoke current object URL if it exists
     if (imagePreview && imagePreview.startsWith('blob:')) {
       URL.revokeObjectURL(imagePreview);
     }
@@ -131,59 +169,25 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
   };
 
   const handleSubmit = async (values: IncidentFormValues) => {
-    if (import.meta.env.DEV) {
-      console.log('IncidentForm: handleSubmit triggered. Values:', values);
-      console.log('IncidentForm: Current imageFile:', imageFile);
-      console.log('IncidentForm: Current initialIncident?.image_url:', initialIncident?.image_url);
+    // Use the coordinates from the real-time geocoding if available
+    const latitude = geocodedCoords?.lat;
+    const longitude = geocodedCoords?.lng;
+
+    if (!latitude || !longitude) {
+      toast.error('Location coordinates are missing. Please ensure the address is valid.');
+      return;
     }
 
-    setIsGeocoding(true);
-    let latitude: number | undefined = initialIncident?.latitude ?? undefined;
-    let longitude: number | undefined = initialIncident?.longitude ?? undefined;
-
-    if (values.location !== initialIncident?.location || (!initialIncident?.latitude && !initialIncident?.longitude)) {
-      if (import.meta.env.DEV) {
-        console.log('IncidentForm: Location changed or no initial coordinates. Attempting to geocode:', values.location);
-      }
-      const geoResult = await geocodeAddress(values.location);
-      if (geoResult) {
-        latitude = geoResult.latitude;
-        longitude = geoResult.longitude;
-        setGeocodedLocation(geoResult);
-        toast.success('Location geocoded successfully!');
-        AnalyticsService.trackEvent({ name: 'location_geocoded', properties: { address: values.location, success: true } });
-      } else {
-        toast.error('Failed to geocode location. Incident will be submitted without map coordinates.');
-        latitude = undefined;
-        longitude = undefined;
-        setGeocodedLocation(null);
-        AnalyticsService.trackEvent({ name: 'location_geocoded', properties: { address: values.location, success: false } });
-      }
-    } else if (initialIncident?.latitude && initialIncident?.longitude) {
-      if (import.meta.env.DEV) {
-        console.log('IncidentForm: Using existing geocoded location.');
-      }
-      setGeocodedLocation({
-        latitude: initialIncident.latitude,
-        longitude: initialIncident.longitude,
-        display_name: initialIncident.location,
-      });
-    }
-    setIsGeocoding(false);
-
-    if (import.meta.env.DEV) {
-      console.log('IncidentForm: Calling onSubmit prop with:', {
-        type: values.type,
-        location: values.location,
-        description: values.description,
-        imageFile: imageFile,
-        currentImageUrl: initialIncident?.image_url,
-        latitude: latitude,
-        longitude: longitude,
-      });
-    }
-
-    const success = await onSubmit(values.type, values.location, values.description, imageFile, initialIncident?.image_url || null, latitude, longitude);
+    const success = await onSubmit(
+      values.type, 
+      values.location, 
+      values.description, 
+      imageFile, 
+      initialIncident?.image_url || null, 
+      latitude, 
+      longitude
+    );
+    
     if (success) {
       AnalyticsService.trackEvent({ 
         name: initialIncident ? 'incident_updated' : 'incident_created', 
@@ -191,7 +195,6 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
       });
       if (!initialIncident) {
         form.reset();
-        // Revoke object URL after successful submission if it was a local one
         if (imagePreview && imagePreview.startsWith('blob:')) {
           URL.revokeObjectURL(imagePreview);
         }
@@ -200,7 +203,8 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-        setGeocodedLocation(null);
+        setGeocodedCoords(null);
+        setMapUrl(null);
       }
     } else {
       AnalyticsService.trackEvent({ 
@@ -210,7 +214,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
     }
   };
 
-  const isFormDisabled = isLoading || isGeocoding;
+  const isFormDisabled = isLoading || mapLoading;
 
   return (
     <form id={formId} onSubmit={form.handleSubmit(handleSubmit)} className="tw-space-y-6 tw-p-4 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm">
@@ -244,11 +248,34 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         {form.formState.errors.location && (
           <p id="incident-location-error" className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.location.message}</p>
         )}
-        {geocodedLocation && (
-          <p className="tw-text-sm tw-text-muted-foreground tw-mt-1 tw-flex tw-items-center tw-gap-1">
-            <MapPin className="tw-h-4 tw-w-4" aria-hidden="true" /> Geocoded: {geocodedLocation.display_name} ({geocodedLocation.latitude.toFixed(4)}, {geocodedLocation.longitude.toFixed(4)})
-          </p>
-        )}
+        
+        {/* --- Static Map Preview JSX --- */}
+        <div className="tw-mt-2">
+          {mapLoading && <p className="tw-text-sm tw-text-muted-foreground">Generating map...</p>}
+
+          {mapUrl && (
+            <div className="tw-mt-4 tw-text-center">
+              <img
+                src={mapUrl}
+                alt="Location map preview"
+                className="tw-w-full tw-max-w-full tw-h-auto tw-rounded-lg tw-shadow-md tw-border tw-border-border"
+              />
+            </div>
+          )}
+
+          {!mapUrl && locationWatch && !mapLoading && (
+            <p className="tw-text-destructive tw-text-sm tw-mt-1">
+              Could not find that location. Try a more specific address.
+            </p>
+          )}
+          
+          {geocodedCoords && (
+            <p className="tw-text-sm tw-text-muted-foreground tw-mt-1 tw-flex tw-items-center tw-gap-1">
+              <MapPin className="tw-h-4 tw-w-4" aria-hidden="true" /> Coordinates: {geocodedCoords.lat.toFixed(4)}, {geocodedCoords.lng.toFixed(4)}
+            </p>
+          )}
+        </div>
+        {/* --- End Static Map Preview JSX --- */}
       </div>
 
       <div>
@@ -298,10 +325,15 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
           </div>
         )}
       </div>
-      <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isFormDisabled}>
+      <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isFormDisabled || !geocodedCoords}>
         {isFormDisabled && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
         <Send className="tw-mr-2 tw-h-4 tw-w-4" aria-hidden="true" /> {initialIncident ? 'Update Incident' : 'Submit Incident'}
       </Button>
+      {!geocodedCoords && locationWatch && !mapLoading && (
+        <p className="tw-text-sm tw-text-destructive tw-text-center">
+          Please enter a valid location to enable submission.
+        </p>
+      )}
     </form>
   );
 };
