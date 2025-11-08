@@ -27,7 +27,8 @@ const getStaticMapUrl = (latitude: number, longitude: number, type: string): str
   const size = '600x300';
   const zoom = 15;
   
-  return `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=${size}&${marker}&key=${GOOGLE_MAPS_KEY}`;
+  // Added &maptype=satellite for satellite view
+  return `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=${size}&${marker}&maptype=satellite&key=${GOOGLE_MAPS_KEY}`;
 };
 
 const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
