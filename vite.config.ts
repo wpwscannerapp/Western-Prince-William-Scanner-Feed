@@ -103,7 +103,6 @@ export default defineConfig(({ command, mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-        // Removed explicit alias for react-map-gl
       },
     },
     server: command === 'serve' ? {
@@ -130,8 +129,8 @@ export default defineConfig(({ command, mode }) => {
       },
     },
     optimizeDeps: {
-      // Keep react-map-gl here to help dependency scanning
-      include: ['react-map-gl'],
+      // Removed map dependencies
+      include: [],
       exclude: [],
     },
   };

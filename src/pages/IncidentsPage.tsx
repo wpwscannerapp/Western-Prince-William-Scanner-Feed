@@ -16,9 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { AnalyticsService } from '@/services/AnalyticsService';
 import { supabase } from '@/integrations/supabase/client';
-import { IncidentRow, IncidentWithCoords } from '@/types/supabase'; // Import IncidentRow and IncidentWithCoords
-import MapWrapper from '@/components/MapWrapper'; // Import MapWrapper
-// Removed: import 'leaflet/dist/leaflet.css'; // Import Leaflet CSS here
+import { IncidentRow } from '@/types/supabase'; // Import IncidentRow
 
 const IncidentsPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -64,11 +62,6 @@ const IncidentsPage: React.FC = () => {
 
   const incidents = data?.pages.flat() || [];
   
-  // Filter incidents to only include those with valid coordinates for the map
-  const incidentsWithCoords = incidents.filter(
-    (i): i is IncidentWithCoords => i.latitude !== null && i.longitude !== null
-  );
-
   // Real-time subscription for new incidents
   useEffect(() => {
     const channel = supabase
@@ -189,13 +182,6 @@ const IncidentsPage: React.FC = () => {
       <div className={`tw-space-y-6 ${!isSubscribed && !isAdmin ? 'tw-relative' : ''}`} aria-live="polite">
         <div className={!isSubscribed && !isAdmin ? 'tw-blur-sm tw-pointer-events-none' : ''}>
           
-          {/* Incident Map Integration */}
-          {incidentsWithCoords.length > 0 && (
-            <div className="tw-mb-8">
-              <MapWrapper incidents={incidentsWithCoords} />
-            </div>
-          )}
-
           {incidents.length === 0 && !isLoading && (
             <div className="tw-text-center tw-py-12 tw-col-span-full">
               <Info className="tw-h-12 tw-w-12 tw-text-muted-foreground tw-mx-auto tw-mb-4" aria-hidden="true" />

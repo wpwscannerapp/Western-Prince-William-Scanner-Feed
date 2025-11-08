@@ -14,10 +14,21 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AnalyticsService } from '@/services/AnalyticsService';
+import { MAPQUEST_API_KEY } from '@/config';
 
 interface IncidentCardProps {
   incident: IncidentRow; // Use IncidentRow
 }
+
+// Helper function to generate MapQuest Static Map URL
+const getStaticMapUrl = (latitude: number, longitude: number, type: string): string => {
+  const markerColor = type.toLowerCase().includes('fire') ? 'ff0000' : '0000ff'; // Red for fire, Blue otherwise
+  const marker = `marker=sm-${markerColor}-pin@${latitude},${longitude}`;
+  const size = '400,200';
+  const zoom = 14;
+  
+  return `https://www.mapquestapi.com/staticmap/v5/map?key=${MAPQUEST_API_KEY}&center=${latitude},${longitude}&zoom=${zoom}&size=${size}&${marker}&type=map`;
+};
 
 const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
   const { user } = useAuth();
@@ -134,9 +145,12 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
 
   // Determine the image source: use the direct Supabase URL if available.
   const imageUrl = incident.image_url && incident.image_url.trim() !== '' ? incident.image_url : undefined;
-  
-  // Using direct URL for now
   const cdnImageUrl = imageUrl; 
+
+  // Determine the static map URL
+  const staticMapUrl = (incident.latitude && incident.longitude) 
+    ? getStaticMapUrl(incident.latitude, incident.longitude, incident.type) 
+    : undefined;
 
   return (
     <Card className="tw-w-full tw-bg-card tw-border-border tw-shadow-md tw-text-foreground tw-rounded-lg tw-cursor-pointer" onClick={handleIncidentClick}>
@@ -163,11 +177,28 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
           <Tag className="tw-h-4 tw-w-4 tw-text-secondary" aria-hidden="true" />
           <span className="tw-font-medium">{incident.type}</span>
         </p>
+        
+        {/* Static Map Image */}
+        {staticMapUrl && (
+          <img
+            src={staticMapUrl}
+            alt={`Map of incident location: ${incident.location}`}
+            className="tw-w-full tw-h-auto tw-max-h-80 tw-object-cover tw-rounded-md tw-mb-4 tw-border tw-border-border"
+            loading="lazy"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              AnalyticsService.trackEvent({ name: 'static_map_load_failed', properties: { incidentId: incident.id, mapUrl: staticMapUrl } });
+            }}
+          />
+        )}
+
+        {/* Incident Image (if available) */}
         {cdnImageUrl && (
           <img
-            src={cdnImageUrl} // Use direct Supabase URL
+            src={cdnImageUrl} 
             alt={`Image for incident: ${incident.title}`}
-            className="tw-w-full tw-h-auto tw-max-h-80 tw-object-cover tw-rounded-md tw-mb-4 tw-border tw-border-border" // Added tw-h-auto for better responsiveness
+            className="tw-w-full tw-h-auto tw-max-h-80 tw-object-cover tw-rounded-md tw-mb-4 tw-border tw-border-border"
             loading="lazy"
             onError={(e) => {
               const target = e.target as HTMLImageElement;

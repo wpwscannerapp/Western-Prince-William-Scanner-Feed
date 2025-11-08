@@ -4,6 +4,7 @@ export const POLL_INTERVAL = parseInt(import.meta.env.VITE_POLL_INTERVAL as stri
 export const SUPABASE_API_TIMEOUT = parseInt(import.meta.env.VITE_SUPABASE_API_TIMEOUT as string, 10) || 45000; // Reverted to 45 seconds (45000 ms)
 export const MAX_CONCURRENT_SESSIONS = parseInt(import.meta.env.VITE_MAX_CONCURRENT_SESSIONS as string, 10) || 3;
 export const AUTH_INITIALIZATION_TIMEOUT = parseInt(import.meta.env.VITE_AUTH_INITIALIZATION_TIMEOUT as string, 10) || 20000; // New: Timeout for auth initialization
+export const MAPQUEST_API_KEY = import.meta.env.VITE_MAPQUEST_API_KEY; // New: MapQuest API Key
 
 export const validateEnv = () => {
   const requiredEnvVars = [
@@ -18,6 +19,7 @@ export const validateEnv = () => {
     'VITE_WEB_PUSH_PUBLIC_KEY', // VAPID Public Key
     'VITE_AUTH_INITIALIZATION_TIMEOUT', // New: Auth initialization timeout
     'VITE_NETLIFY_SITE_ID', // Added Netlify Site ID
+    'VITE_MAPQUEST_API_KEY', // Added MapQuest API Key
   ];
 
   requiredEnvVars.forEach(varName => {
