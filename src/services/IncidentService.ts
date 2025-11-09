@@ -37,8 +37,9 @@ export const IncidentService = {
 
     try {
       let query = supabase
+        // Explicitly select columns defined in IncidentListItem to reduce payload size
         .from('incidents')
-        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at, audio_url, search_vector')
+        .select('id, title, description, type, location, date, image_url, latitude, longitude, admin_id, created_at, audio_url')
         .abortSignal(controller.signal);
 
       if (filters.searchTerm) {
