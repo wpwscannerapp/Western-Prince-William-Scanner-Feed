@@ -27,8 +27,8 @@ const getStaticMapUrl = (latitude: number, longitude: number, type: string): str
   const size = '600x300';
   const zoom = 15;
   
-  // Added &maptype=satellite for satellite view
-  return `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=${size}&${marker}&maptype=satellite&key=${GOOGLE_MAPS_KEY}`;
+  // Changed maptype from 'satellite' to 'hybrid' to include street names and labels
+  return `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=${size}&${marker}&maptype=hybrid&key=${GOOGLE_MAPS_KEY}`;
 };
 
 const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
@@ -114,7 +114,7 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
         setHasLiked(previousHasLiked);
         setLikesCount(previousLikesCount);
         handleError(null, `Failed to ${previousHasLiked ? 'unlike' : 'like'} incident.`);
-        AnalyticsService.trackEvent({ name: 'like_toggle_failed', properties: { incidentId: incident.id, userId: user.id, action: previousHasLiked ? 'unlike' : 'like', reason: 'db_operation_failed' } });
+        AnalyticsService.trackEvent({ name: 'like_toggle_failed', properties: { incidentId: incident.id, userId: user.id, action: previousHasLiked ? 'unlike' : 'like', reason: 'db_operation_failed' });
       }
     } catch (err) {
       setHasLiked(previousHasLiked);
