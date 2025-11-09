@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { CalendarDays, MapPin, Tag, FileText, Heart, MessageCircle, Shield } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
