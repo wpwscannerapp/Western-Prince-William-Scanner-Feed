@@ -179,22 +179,12 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
           <span className="tw-font-medium">{incident.type}</span>
         </p>
         
-        {/* Static Map Image */}
-        {staticMapUrl && (
-          <img
-            src={staticMapUrl}
-            alt={`Map of incident location: ${incident.location}`}
-            className="tw-w-full tw-h-auto tw-max-h-80 tw-object-cover tw-rounded-md tw-mb-4 tw-border tw-border-border"
-            loading="lazy"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              AnalyticsService.trackEvent({ name: 'static_map_load_failed', properties: { incidentId: incident.id, mapUrl: staticMapUrl } });
-            }}
-          />
-        )}
+        <p className="tw-flex tw-items-start tw-gap-2 tw-text-sm tw-text-foreground tw-whitespace-pre-wrap">
+          <FileText className="tw-h-4 tw-w-4 tw-flex-shrink-0 tw-text-muted-foreground" aria-hidden="true" />
+          {incident.description}
+        </p>
 
-        {/* Incident Image (if available) */}
+        {/* Incident Image (if available) - Moved below description */}
         {cdnImageUrl && (
           <img
             src={cdnImageUrl} 
@@ -209,10 +199,21 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
             }}
           />
         )}
-        <p className="tw-flex tw-items-start tw-gap-2 tw-text-sm tw-text-muted-foreground tw-whitespace-pre-wrap">
-          <FileText className="tw-h-4 tw-w-4 tw-flex-shrink-0" aria-hidden="true" />
-          {incident.description}
-        </p>
+        
+        {/* Static Map Image - Moved below image/description */}
+        {staticMapUrl && (
+          <img
+            src={staticMapUrl}
+            alt={`Map of incident location: ${incident.location}`}
+            className="tw-w-full tw-h-auto tw-max-h-80 tw-object-cover tw-rounded-md tw-mb-4 tw-border tw-border-border"
+            loading="lazy"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              AnalyticsService.trackEvent({ name: 'static_map_load_failed', properties: { incidentId: incident.id, mapUrl: staticMapUrl } });
+            }}
+          />
+        )}
       </CardContent>
       <CardFooter className="tw-flex tw-flex-col tw-items-start tw-pt-0 tw-pb-4 tw-px-4">
         <div className="tw-flex tw-justify-between tw-w-full tw-mb-2">
