@@ -28,7 +28,8 @@ type IncidentFormValues = z.infer<typeof incidentFormSchema>;
 interface IncidentFormProps {
   onSubmit: (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | null, latitude: number | undefined, longitude: number | undefined) => Promise<boolean>;
   isLoading: boolean;
-  initialIncident?: Omit<IncidentRow, 'id' | 'created_at' | 'date' | 'title' | 'search_vector' | 'audio_url' | 'admin_id'>;
+  // Updated type to accept the full IncidentRow for editing
+  initialIncident?: IncidentRow; 
   formId?: string;
 }
 
@@ -54,6 +55,9 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
   
   const locationWatch = form.watch('location');
   const debouncedLocation = useDebounce(locationWatch, 1000);
+  
+  // Ref to store the original location text for comparison during editing
+  const originalLocationRef = useRef(initialIncident?.location || '');
   // --- End New Map State ---
 
   // Effect to revoke object URLs when component unmounts or image changes
@@ -73,6 +77,9 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         description: initialIncident.description,
         image: undefined,
       });
+      // Update ref for comparison
+      originalLocationRef.current = initialIncident.location;
+
       if (imagePreview && imagePreview.startsWith('blob:')) {
         URL.revokeObjectURL(imagePreview);
       }
@@ -101,6 +108,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
       setImagePreview(undefined);
       setImageFile(null);
       setGeocodedCoords(null);
+      originalLocationRef.current = '';
     }
   }, [initialIncident, form]);
 
@@ -110,6 +118,20 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
       setMapUrl(null);
       setGeocodedCoords(null);
       return;
+    }
+
+    // If we are editing and the location hasn't changed, use existing coordinates
+    if (initialIncident && debouncedLocation === originalLocationRef.current) {
+      if (initialIncident.latitude && initialIncident.longitude) {
+        setGeocodedCoords({
+          lat: initialIncident.latitude,
+          lng: initialIncident.longitude,
+        });
+        const url = `https://maps.googleapis.com/maps/api/staticmap?center=${initialIncident.latitude},${initialIncident.longitude}&zoom=15&size=600x300&markers=color:red%7C${initialIncident.latitude},${initialIncident.longitude}&key=${GOOGLE_MAPS_KEY}`;
+        setMapUrl(url);
+        setMapLoading(false);
+        return;
+      }
     }
 
     let cancelled = false;
@@ -133,7 +155,7 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
     return () => {
       cancelled = true;
     };
-  }, [debouncedLocation]);
+  }, [debouncedLocation, initialIncident]);
   // --- End Geocoding and Map Generation Effect ---
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
