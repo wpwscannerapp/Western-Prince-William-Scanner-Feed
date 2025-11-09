@@ -114,7 +114,7 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
         setHasLiked(previousHasLiked);
         setLikesCount(previousLikesCount);
         handleError(null, `Failed to ${previousHasLiked ? 'unlike' : 'like'} incident.`);
-        AnalyticsService.trackEvent({ name: 'like_toggle_failed', properties: { incidentId: incident.id, userId: user.id, action: previousHasLiked ? 'unlike' : 'like', reason: 'db_operation_failed' });
+        AnalyticsService.trackEvent({ name: 'like_toggle_failed', properties: { incidentId: incident.id, userId: user.id, action: previousHasLiked ? 'unlike' : 'like', reason: 'db_operation_failed' } });
       }
     } catch (err) {
       setHasLiked(previousHasLiked);
