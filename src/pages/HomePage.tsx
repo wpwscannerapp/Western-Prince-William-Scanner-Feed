@@ -12,6 +12,9 @@ import { useAuth } from '@/context/AuthContext';
 import IncidentCard from '@/components/IncidentCard';
 import { supabase } from '@/integrations/supabase/client';
 import { IncidentRow } from '@/types/supabase'; // Import IncidentRow
+import { useIsSubscribed } from '@/hooks/useIsSubscribed'; // Import useIsSubscribed
+import SubscribeOverlay from '@/components/SubscribeOverlay'; // Import SubscribeOverlay
+import TeaserIncident from '@/components/TeaserIncident'; // Import TeaserIncident
 
 // Log imports for debugging
 if (import.meta.env.DEV) {
@@ -21,7 +24,10 @@ if (import.meta.env.DEV) {
 const HomePage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: isAdminLoading, error: isAdminError } = useIsAdmin();
+  const { isSubscribed, loading: isSubscribedLoading } = useIsSubscribed();
   const queryClient = useQueryClient();
+
+  const canAccessContent = isSubscribed || isAdmin;
 
   const { data: latestIncident, isLoading: isLoadingIncident, isError: isIncidentError, error: incidentError } = useQuery<IncidentRow | null, Error>({
     queryKey: ['incidents', 'latest'],
@@ -72,7 +78,7 @@ const HomePage: React.FC = () => {
     );
   }
 
-  if (isAdminLoading || authLoading) {
+  if (isAdminLoading || authLoading || isSubscribedLoading) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
         <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" aria-label="Loading user permissions" />
@@ -88,23 +94,34 @@ const HomePage: React.FC = () => {
           <h2 className="tw-text-2xl tw-font-bold tw-text-foreground">Most Recent Incident</h2>
         </div>
 
-        {isLoadingIncident ? (
-          <Card className="tw-bg-card tw-border-border tw-shadow-md">
-            <CardContent className="tw-flex tw-items-center tw-justify-center tw-py-8">
-              <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" aria-label="Loading most recent incident" />
-              <span className="tw-ml-2 tw-text-muted-foreground">Loading incident...</span>
-            </CardContent>
-          </Card>
-        ) : latestIncident ? (
-          <IncidentCard incident={latestIncident} />
-        ) : (
-          <Card className="tw-bg-card tw-border-border tw-shadow-md">
-            <CardContent className="tw-py-8 tw-text-center tw-text-muted-foreground">
-              <Info className="tw-h-12 tw-w-12 tw-mx-auto tw-mb-4" />
-              No recent incidents available.
-            </CardContent>
-          </Card>
-        )}
+        <div className={`tw-relative ${!canAccessContent ? 'tw-min-h-[300px]' : ''}`}>
+          {isLoadingIncident ? (
+            <Card className="tw-bg-card tw-border-border tw-shadow-md">
+              <CardContent className="tw-flex tw-items-center tw-justify-center tw-py-8">
+                <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" aria-label="Loading most recent incident" />
+                <span className="tw-ml-2 tw-text-muted-foreground">Loading incident...</span>
+              </CardContent>
+            </Card>
+          ) : latestIncident ? (
+            <>
+              {canAccessContent ? (
+                <IncidentCard incident={latestIncident} />
+              ) : (
+                <div className="tw-relative tw-blur-sm tw-pointer-events-none">
+                  <TeaserIncident />
+                </div>
+              )}
+            </>
+          ) : (
+            <Card className="tw-bg-card tw-border-border tw-shadow-md">
+              <CardContent className="tw-py-8 tw-text-center tw-text-muted-foreground">
+                <Info className="tw-h-12 tw-w-12 tw-mx-auto tw-mb-4" />
+                No recent incidents available.
+              </CardContent>
+            </Card>
+          )}
+          {!canAccessContent && latestIncident && <SubscribeOverlay />}
+        </div>
       </div>
 
       <div className="tw-grid tw-grid-cols-2 sm:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-6">

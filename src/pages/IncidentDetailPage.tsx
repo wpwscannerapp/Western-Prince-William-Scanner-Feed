@@ -16,11 +16,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { AnalyticsService } from '@/services/AnalyticsService';
 import { CommentWithProfile } from '@/types/supabase';
 import { Textarea } from '@/components/ui/textarea';
+import { useIsSubscribed } from '@/hooks/useIsSubscribed'; // Import useIsSubscribed
+import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin
+import SubscribeOverlay from '@/components/SubscribeOverlay'; // Import SubscribeOverlay
 
 const IncidentDetailPage: React.FC = () => {
   const { incidentId } = useParams<{ incidentId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isSubscribed, loading: isSubscribedLoading } = useIsSubscribed();
+  const { isAdmin, loading: isAdminLoading } = useIsAdmin();
+
+  const canComment = isSubscribed || isAdmin;
 
   const [incident, setIncident] = useState<Incident | null>(null);
   const [loading, setLoading] = useState(true);
@@ -156,7 +163,7 @@ const IncidentDetailPage: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (loading || isSubscribedLoading || isAdminLoading) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
         <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary" aria-label="Loading incident details" />
@@ -211,53 +218,59 @@ const IncidentDetailPage: React.FC = () => {
         <h2 className="tw-text-2xl tw-font-semibold tw-mb-4 tw-text-foreground tw-flex tw-items-center tw-gap-2">
           <MessageCircle className="tw-h-6 tw-w-6" aria-hidden="true" /> User Comments ({comments.length})
         </h2>
-        <div className="tw-flex tw-gap-2 tw-mb-6">
-          <Textarea
-            placeholder="Add a comment..."
-            value={newCommentContent}
-            onChange={(e) => setNewCommentContent(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={isCommenting || !user}
-            className="tw-flex-1 tw-input tw-min-h-[80px]"
-            aria-label="New comment content"
-          />
-          <Button onClick={handleAddComment} disabled={isCommenting || !user || newCommentContent.trim() === ''} className="tw-button tw-self-start">
-            {isCommenting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
-            Comment
-          </Button>
-        </div>
-        {!user && (
-          <p className="tw-text-sm tw-text-destructive tw-mb-4">You must be logged in to post comments.</p>
-        )}
+        
+        <div className={`tw-space-y-6 ${!canComment ? 'tw-relative' : ''}`}>
+          <div className={!canComment ? 'tw-blur-sm tw-pointer-events-none' : ''}>
+            <div className="tw-flex tw-gap-2 tw-mb-6">
+              <Textarea
+                placeholder="Add a comment..."
+                value={newCommentContent}
+                onChange={(e) => setNewCommentContent(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isCommenting || !user}
+                className="tw-flex-1 tw-input tw-min-h-[80px]"
+                aria-label="New comment content"
+              />
+              <Button onClick={handleAddComment} disabled={isCommenting || !user || newCommentContent.trim() === ''} className="tw-button tw-self-start">
+                {isCommenting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
+                Comment
+              </Button>
+            </div>
+            {!user && (
+              <p className="tw-text-sm tw-text-destructive tw-mb-4">You must be logged in to post comments.</p>
+            )}
 
-        {loadingComments ? (
-          <div className="tw-flex tw-justify-center tw-py-4">
-            <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" aria-hidden="true" />
-            <span className="tw-ml-2 tw-text-muted-foreground">Loading comments...</span>
-          </div>
-        ) : (
-          <div className="tw-space-y-4">
-            {comments.length === 0 ? (
-              <p className="tw-text-sm tw-text-muted-foreground tw-text-center">No comments yet. Be the first!</p>
+            {loadingComments ? (
+              <div className="tw-flex tw-justify-center tw-py-4">
+                <Loader2 className="tw-h-6 tw-w-6 tw-animate-spin tw-text-primary" aria-hidden="true" />
+                <span className="tw-ml-2 tw-text-muted-foreground">Loading comments...</span>
+              </div>
             ) : (
-              comments.map(comment => (
-                <CommentCard
-                  key={comment.id}
-                  comment={comment}
-                  incidentId={incidentId!}
-                  onCommentUpdated={handleCommentUpdated}
-                  onCommentDeleted={handleCommentDeleted}
-                  onReplySubmitted={fetchCommentsForIncident} // Re-fetch all comments to rebuild the tree
-                />
-              ))
+              <div className="tw-space-y-4">
+                {comments.length === 0 ? (
+                  <p className="tw-text-sm tw-text-muted-foreground tw-text-center">No comments yet. Be the first!</p>
+                ) : (
+                  comments.map(comment => (
+                    <CommentCard
+                      key={comment.id}
+                      comment={comment}
+                      incidentId={incidentId!}
+                      onCommentUpdated={handleCommentUpdated}
+                      onCommentDeleted={handleCommentDeleted}
+                      onReplySubmitted={fetchCommentsForIncident} // Re-fetch all comments to rebuild the tree
+                    />
+                  ))
+                )}
+              </div>
             )}
           </div>
-        )}
+          {!canComment && <SubscribeOverlay />}
+        </div>
       </div>
 
       {previousIncident && (
         <div className="tw-mt-8">
-          <h2 className="tw-text-2xl tw-font-semibold tw-mb-4 tw-text-foreground">Previous Incident</h2>
+          <h2 className="tw-2xl tw-font-semibold tw-mb-4 tw-text-foreground">Previous Incident</h2>
           <div className="tw-grid tw-grid-cols-1">
             <IncidentCard incident={previousIncident} />
           </div>
