@@ -29,12 +29,12 @@ const buildCommentTree = (comments: CommentWithProfile[], parentId: string | nul
 };
 
 export const CommentService = {
-  async addComment(incidentId: string, userId: string, content: string, parentCommentId: string | null = null): Promise<Comment | null> {
+  async addComment(incidentId: string, userId: string, content: string, parentCommentId: string | null = null, category: 'user' | 'update' = 'user'): Promise<Comment | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
-      const commentInsert: CommentInsert = { incident_id: incidentId, user_id: userId, content, parent_comment_id: parentCommentId };
+      const commentInsert: CommentInsert = { incident_id: incidentId, user_id: userId, content, parent_comment_id: parentCommentId, category };
       const { data, error } = await supabase
         .from('comments')
         .insert(commentInsert)
@@ -47,16 +47,17 @@ export const CommentService = {
           created_at,
           updated_at,
           parent_comment_id,
+          category,
           profiles (username, avatar_url)
         `)
         .single();
 
       if (error) {
         logSupabaseError('addComment', error);
-        AnalyticsService.trackEvent({ name: 'add_comment_failed', properties: { incidentId, userId, parentCommentId, error: error.message } });
+        AnalyticsService.trackEvent({ name: 'add_comment_failed', properties: { incidentId, userId, parentCommentId, category, error: error.message } });
         return null;
       }
-      AnalyticsService.trackEvent({ name: 'comment_added', properties: { incidentId, userId, isReply: !!parentCommentId } });
+      AnalyticsService.trackEvent({ name: 'comment_added', properties: { incidentId, userId, isReply: !!parentCommentId, category } });
       const profileData = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
       return {
         id: data.id,
@@ -66,6 +67,7 @@ export const CommentService = {
         created_at: data.created_at,
         updated_at: data.updated_at,
         parent_comment_id: data.parent_comment_id,
+        category: data.category,
         profiles: profileData ? { username: profileData.username, avatar_url: profileData.avatar_url } : null,
         replies: [],
       } as Comment;
@@ -83,7 +85,7 @@ export const CommentService = {
     }
   },
 
-  async fetchCommentsCount(incidentId: string): Promise<number> {
+  async fetchCommentsCount(incidentId: string, category: 'user' | 'update' = 'user'): Promise<number> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -92,6 +94,7 @@ export const CommentService = {
         .from('comments')
         .select('id', { count: 'exact' })
         .eq('incident_id', incidentId)
+        .eq('category', category)
         .abortSignal(controller.signal);
 
       if (error) {
@@ -111,7 +114,7 @@ export const CommentService = {
     }
   },
 
-  async fetchComments(incidentId: string): Promise<Comment[]> {
+  async fetchComments(incidentId: string, category: 'user' | 'update' = 'user'): Promise<Comment[]> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
@@ -126,9 +129,11 @@ export const CommentService = {
           created_at,
           updated_at,
           parent_comment_id,
+          category,
           profiles (username, avatar_url)
         `)
         .eq('incident_id', incidentId)
+        .eq('category', category)
         .abortSignal(controller.signal)
         .order('created_at', { ascending: true });
 
@@ -147,6 +152,7 @@ export const CommentService = {
           created_at: comment.created_at,
           updated_at: comment.updated_at,
           parent_comment_id: comment.parent_comment_id,
+          category: comment.category,
           profiles: profileData ? { username: profileData.username, avatar_url: profileData.avatar_url } : null,
         };
       }) as CommentWithProfile[];
@@ -185,6 +191,7 @@ export const CommentService = {
           created_at,
           updated_at,
           parent_comment_id,
+          category,
           profiles (username, avatar_url)
         `)
         .single();
@@ -204,6 +211,7 @@ export const CommentService = {
         created_at: data.created_at,
         updated_at: data.updated_at,
         parent_comment_id: data.parent_comment_id,
+        category: data.category,
         profiles: profileData ? { username: profileData.username, avatar_url: profileData.avatar_url } : null,
         replies: [],
       } as Comment;

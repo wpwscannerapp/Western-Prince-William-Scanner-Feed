@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Incident, IncidentService } from '@/services/IncidentService';
 import { CommentService } from '@/services/CommentService';
 import IncidentCard from '@/components/IncidentCard';
+import IncidentUpdateSection from '@/components/IncidentUpdateSection'; // Import new component
 import { Loader2, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { handleError } from '@/utils/errorHandler';
@@ -13,8 +14,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import { CommentWithProfile } from '@/types/supabase'; // Import CommentWithProfile
-import { Textarea } from '@/components/ui/textarea'; // Import Textarea for better comment input
+import { CommentWithProfile } from '@/types/supabase';
+import { Textarea } from '@/components/ui/textarea';
 
 const IncidentDetailPage: React.FC = () => {
   const { incidentId } = useParams<{ incidentId: string }>();
@@ -64,13 +65,13 @@ const IncidentDetailPage: React.FC = () => {
     if (!incidentId) return;
     setLoadingComments(true);
     try {
-      // CommentService now returns the nested tree structure
-      const fetchedComments = await CommentService.fetchComments(incidentId);
+      // Fetch only user comments (category 'user')
+      const fetchedComments = await CommentService.fetchComments(incidentId, 'user');
       setComments(fetchedComments);
-      AnalyticsService.trackEvent({ name: 'comments_loaded', properties: { incidentId, count: fetchedComments.length } });
+      AnalyticsService.trackEvent({ name: 'user_comments_loaded', properties: { incidentId, count: fetchedComments.length } });
     } catch (err) {
-      setError(handleError(err, 'Failed to load comments. Please try again.'));
-      AnalyticsService.trackEvent({ name: 'comments_load_failed', properties: { incidentId, error: (err as Error).message } });
+      setError(handleError(err, 'Failed to load user comments. Please try again.'));
+      AnalyticsService.trackEvent({ name: 'user_comments_load_failed', properties: { incidentId, error: (err as Error).message } });
     } finally {
       setLoadingComments(false);
     }
@@ -80,12 +81,13 @@ const IncidentDetailPage: React.FC = () => {
     fetchSingleIncident();
     fetchCommentsForIncident();
 
+    // Realtime subscription for user comments only
     const commentsChannel = supabase
-      .channel(`public:comments:incident_id=eq.${incidentId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: `incident_id=eq.${incidentId}` }, () => {
-        // Re-fetch all comments to rebuild the tree on any change (insert, update, delete)
+      .channel(`public:user_comments:incident_id=eq.${incidentId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: `incident_id=eq.${incidentId}&category=eq.user` }, () => {
+        // Re-fetch all user comments to rebuild the tree on any change (insert, update, delete)
         fetchCommentsForIncident();
-        AnalyticsService.trackEvent({ name: 'comments_realtime_update_received', properties: { incidentId } });
+        AnalyticsService.trackEvent({ name: 'user_comments_realtime_update_received', properties: { incidentId } });
       })
       .subscribe();
 
@@ -114,14 +116,12 @@ const IncidentDetailPage: React.FC = () => {
     setIsCommenting(true);
     try {
       toast.loading('Adding comment...', { id: 'add-comment' });
-      // Pass null for parentCommentId for top-level comments
-      const newComment = await CommentService.addComment(incidentId, user.id, newCommentContent, null);
+      // Pass null for parentCommentId for top-level comments, and default category 'user'
+      const newComment = await CommentService.addComment(incidentId, user.id, newCommentContent, null, 'user');
       
       if (newComment) {
         toast.success('Comment added!', { id: 'add-comment' });
         setNewCommentContent('');
-        // Realtime listener will handle the re-fetch, but we can manually update the state for immediate feedback if needed
-        // For simplicity and to rely on the new tree structure, we rely on the realtime listener here.
         AnalyticsService.trackEvent({ name: 'comment_added_from_detail', properties: { incidentId, userId: user.id } });
       } else {
         handleError(null, 'Failed to add comment.', { id: 'add-comment' });
@@ -137,18 +137,14 @@ const IncidentDetailPage: React.FC = () => {
 
   // This function is passed down to CommentCard and its recursive calls
   const handleCommentUpdated = (updatedComment: CommentWithProfile) => {
-    // Since we rely on the full tree structure from fetchCommentsForIncident, 
-    // we don't need complex local state updates here. The realtime listener 
-    // should trigger a full re-fetch shortly after the update mutation succeeds.
-    // We can trigger a manual re-fetch here for immediate consistency if needed, 
-    // but relying on the realtime listener is often cleaner.
+    // Trigger a full re-fetch of user comments
     fetchCommentsForIncident();
     AnalyticsService.trackEvent({ name: 'comment_updated_in_detail', properties: { commentId: updatedComment.id, incidentId } });
   };
 
   // This function is passed down to CommentCard and its recursive calls
   const handleCommentDeleted = (commentId: string) => {
-    // Same as update, rely on the full re-fetch triggered by the realtime listener
+    // Trigger a full re-fetch of user comments
     fetchCommentsForIncident();
     AnalyticsService.trackEvent({ name: 'comment_deleted_in_detail', properties: { commentId, incidentId } });
   };
@@ -207,9 +203,13 @@ const IncidentDetailPage: React.FC = () => {
         <IncidentCard incident={incident} /> 
       </div>
 
+      {/* NEW: Incident Updates Section */}
+      <IncidentUpdateSection incidentId={incidentId!} />
+
+      {/* Existing User Comments Section */}
       <div className="tw-mt-8 tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-md">
         <h2 className="tw-text-2xl tw-font-semibold tw-mb-4 tw-text-foreground tw-flex tw-items-center tw-gap-2">
-          <MessageCircle className="tw-h-6 tw-w-6" aria-hidden="true" /> Comments ({comments.length})
+          <MessageCircle className="tw-h-6 tw-w-6" aria-hidden="true" /> User Comments ({comments.length})
         </h2>
         <div className="tw-flex tw-gap-2 tw-mb-6">
           <Textarea
