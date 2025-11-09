@@ -39,6 +39,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
     setIsLoading(true);
     try {
       toast.loading('Updating comment...', { id: 'update-comment' });
+      // Note: We only allow editing content here, media is immutable after posting
       const updatedComment = await CommentService.updateComment(comment.id, editedContent);
       
       if (updatedComment) {
@@ -63,6 +64,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
       setIsLoading(true);
       try {
         toast.loading('Deleting comment...', { id: 'delete-comment' });
+        // CommentService handles media deletion automatically now
         const success = await CommentService.deleteComment(comment.id);
         
         if (success) {
@@ -92,6 +94,10 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
   const displayName = comment.profiles?.username || 'Anonymous';
   const displayAvatar = comment.profiles?.avatar_url || undefined;
   const avatarFallback = displayName.charAt(0).toUpperCase();
+  
+  const mediaUrl = comment.media_url;
+  const isImage = mediaUrl && (mediaUrl.toLowerCase().endsWith('.jpg') || mediaUrl.toLowerCase().endsWith('.jpeg') || mediaUrl.toLowerCase().endsWith('.png'));
+  const isVideo = mediaUrl && (mediaUrl.toLowerCase().endsWith('.mp4') || mediaUrl.toLowerCase().endsWith('.webm') || mediaUrl.toLowerCase().endsWith('.ogg'));
 
   if (error) {
     return (
@@ -122,6 +128,29 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onCommentUpdated, on
               {formatPostTimestamp(comment.created_at!)}
             </span>
           </div>
+          
+          {/* Media Display */}
+          {mediaUrl && (
+            <div className="tw-mb-3 tw-mt-2 tw-max-w-full tw-rounded-lg tw-overflow-hidden tw-shadow-md">
+              {isImage ? (
+                <img 
+                  src={mediaUrl} 
+                  alt="Comment media" 
+                  className="tw-w-full tw-h-auto tw-max-h-64 tw-object-cover" 
+                  loading="lazy"
+                />
+              ) : isVideo ? (
+                <video 
+                  src={mediaUrl} 
+                  controls 
+                  className="tw-w-full tw-h-auto tw-max-h-64 tw-object-cover" 
+                />
+              ) : (
+                <p className="tw-text-sm tw-text-destructive tw-p-2">Unsupported media type.</p>
+              )}
+            </div>
+          )}
+
           {isEditing ? (
             <div className="tw-space-y-2">
               <Textarea

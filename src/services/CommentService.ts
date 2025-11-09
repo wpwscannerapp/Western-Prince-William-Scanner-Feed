@@ -5,6 +5,7 @@ import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { AnalyticsService } from './AnalyticsService';
 import { CommentInsert, CommentUpdate, CommentWithProfile } from '@/types/supabase';
+import { StorageService } from './StorageService'; // Import StorageService
 
 export type Comment = CommentWithProfile; // Alias CommentWithProfile to Comment
 
@@ -29,12 +30,37 @@ const buildCommentTree = (comments: CommentWithProfile[], parentId: string | nul
 };
 
 export const CommentService = {
-  async addComment(incidentId: string, userId: string, content: string, parentCommentId: string | null = null, category: 'user' | 'update' = 'user'): Promise<Comment | null> {
+  async addComment(incidentId: string, userId: string, content: string, parentCommentId: string | null = null, category: 'user' | 'update' = 'user', mediaFile: File | null = null): Promise<Comment | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
+    let mediaUrl: string | null = null;
+    let uploadError: Error | null = null;
+
+    if (mediaFile) {
+      try {
+        mediaUrl = await StorageService.uploadCommentMedia(mediaFile);
+        if (!mediaUrl) {
+          uploadError = new Error('Failed to upload media file.');
+          throw uploadError;
+        }
+      } catch (err) {
+        // If media upload fails, we stop the process and report the error
+        handleError(err, 'Failed to upload media for comment.');
+        AnalyticsService.trackEvent({ name: 'add_comment_media_upload_failed', properties: { incidentId, userId, error: (err as Error).message } });
+        return null;
+      }
+    }
+
     try {
-      const commentInsert: CommentInsert = { incident_id: incidentId, user_id: userId, content, parent_comment_id: parentCommentId, category };
+      const commentInsert: CommentInsert = { 
+        incident_id: incidentId, 
+        user_id: userId, 
+        content, 
+        parent_comment_id: parentCommentId, 
+        category,
+        media_url: mediaUrl, // Include media URL
+      };
       const { data, error } = await supabase
         .from('comments')
         .insert(commentInsert)
@@ -48,16 +74,21 @@ export const CommentService = {
           updated_at,
           parent_comment_id,
           category,
+          media_url,
           profiles (username, avatar_url)
         `)
         .single();
 
       if (error) {
         logSupabaseError('addComment', error);
-        AnalyticsService.trackEvent({ name: 'add_comment_failed', properties: { incidentId, userId, parentCommentId, category, error: error.message } });
+        AnalyticsService.trackEvent({ name: 'add_comment_failed', properties: { incidentId, userId, parentCommentId, category, hasMedia: !!mediaUrl, error: error.message } });
+        // If DB insert fails, attempt to clean up the uploaded media
+        if (mediaUrl) {
+          void StorageService.deleteCommentMedia(mediaUrl);
+        }
         return null;
       }
-      AnalyticsService.trackEvent({ name: 'comment_added', properties: { incidentId, userId, isReply: !!parentCommentId, category } });
+      AnalyticsService.trackEvent({ name: 'comment_added', properties: { incidentId, userId, isReply: !!parentCommentId, category, hasMedia: !!mediaUrl } });
       const profileData = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
       return {
         id: data.id,
@@ -68,6 +99,7 @@ export const CommentService = {
         updated_at: data.updated_at,
         parent_comment_id: data.parent_comment_id,
         category: data.category,
+        media_url: data.media_url,
         profiles: profileData ? { username: profileData.username, avatar_url: profileData.avatar_url } : null,
         replies: [],
       } as Comment;
@@ -130,6 +162,7 @@ export const CommentService = {
           updated_at,
           parent_comment_id,
           category,
+          media_url,
           profiles (username, avatar_url)
         `)
         .eq('incident_id', incidentId)
@@ -153,6 +186,7 @@ export const CommentService = {
           updated_at: comment.updated_at,
           parent_comment_id: comment.parent_comment_id,
           category: comment.category,
+          media_url: comment.media_url,
           profiles: profileData ? { username: profileData.username, avatar_url: profileData.avatar_url } : null,
         };
       }) as CommentWithProfile[];
@@ -192,6 +226,7 @@ export const CommentService = {
           updated_at,
           parent_comment_id,
           category,
+          media_url,
           profiles (username, avatar_url)
         `)
         .single();
@@ -212,6 +247,7 @@ export const CommentService = {
         updated_at: data.updated_at,
         parent_comment_id: data.parent_comment_id,
         category: data.category,
+        media_url: data.media_url,
         profiles: profileData ? { username: profileData.username, avatar_url: profileData.avatar_url } : null,
         replies: [],
       } as Comment;
@@ -234,6 +270,18 @@ export const CommentService = {
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
+      // Fetch the comment first to get the media URL for deletion
+      const { data: commentData, error: fetchError } = await supabase
+        .from('comments')
+        .select('media_url')
+        .eq('id', commentId)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        logSupabaseError('deleteComment - fetch media', fetchError);
+        // Continue deletion attempt even if fetch fails
+      }
+
       const { error } = await supabase
         .from('comments')
         .delete()
@@ -246,6 +294,12 @@ export const CommentService = {
         AnalyticsService.trackEvent({ name: 'delete_comment_failed', properties: { commentId, error: error.message } });
         return false;
       }
+
+      // If comment deletion succeeds, attempt to delete media
+      if (commentData?.media_url) {
+        void StorageService.deleteCommentMedia(commentData.media_url);
+      }
+
       AnalyticsService.trackEvent({ name: 'comment_deleted', properties: { commentId } });
       return true;
     } catch (err: any) {

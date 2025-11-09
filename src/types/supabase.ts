@@ -11,6 +11,7 @@ export type AppSettingsHistoryRow   = PublicSchema['Tables']['app_settings_histo
 export type CommentRow              = PublicSchema['Tables']['comments']['Row'] & {
   parent_comment_id: string | null; // Added parent_comment_id
   category: string; // Added category
+  media_url: string | null; // Added media_url
 }
 export type ContactSettingsRow      = PublicSchema['Tables']['contact_settings']['Row']
 export type FeedbackRow             = PublicSchema['Tables']['feedback_and_suggestions']['Row']
@@ -37,10 +38,12 @@ export type AppSettingsUpdate = PublicSchema['Tables']['app_settings']['Update']
 export type CommentInsert = PublicSchema['Tables']['comments']['Insert'] & {
   parent_comment_id?: string | null; // Added parent_comment_id
   category?: string; // Added category
+  media_url?: string | null; // Added media_url
 }
 export type CommentUpdate = PublicSchema['Tables']['comments']['Update'] & {
   parent_comment_id?: string | null; // Added parent_comment_id
   category?: string; // Added category
+  media_url?: string | null; // Added media_url
 }
 export type ContactSettingsInsert = PublicSchema['Tables']['contact_settings']['Insert']
 export type ContactSettingsUpdate = PublicSchema['Tables']['contact_settings']['Update']

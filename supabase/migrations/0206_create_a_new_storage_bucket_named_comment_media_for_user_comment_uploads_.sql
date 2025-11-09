@@ -1,0 +1,1 @@
+INSERT INTO storage.buckets (id, name, public) VALUES ('comment_media', 'comment_media', true);

@@ -6,6 +6,7 @@ import { AnalyticsService } from './AnalyticsService'; // Import AnalyticsServic
 
 const INCIDENT_IMAGES_BUCKET = 'incident_images';
 const PROFILE_AVATARS_BUCKET = 'profile_avatars'; // New bucket for profile avatars
+const COMMENT_MEDIA_BUCKET = 'comment_media'; // New bucket for comment media
 const MAX_IMAGE_SIZE_MB = 2;
 const MAX_IMAGE_DIMENSION = 1200;
 const JPEG_QUALITY = 0.8;
@@ -164,6 +165,8 @@ export const StorageService = {
         .upload(filePath, processedFile, {
           cacheControl: '3600',
           upsert: false,
+          // Set owner to the current authenticated user
+          // Note: Supabase Storage automatically sets the owner based on the RLS policy context
         });
 
       if (error) {
@@ -272,5 +275,13 @@ export const StorageService = {
 
   async deleteIncidentImage(imageUrl: string): Promise<boolean> {
     return this._deleteFromBucket(imageUrl, INCIDENT_IMAGES_BUCKET);
+  },
+
+  async uploadCommentMedia(file: File): Promise<string | null> {
+    return this._uploadToBucket(file, COMMENT_MEDIA_BUCKET);
+  },
+
+  async deleteCommentMedia(mediaUrl: string): Promise<boolean> {
+    return this._deleteFromBucket(mediaUrl, COMMENT_MEDIA_BUCKET);
   },
 };

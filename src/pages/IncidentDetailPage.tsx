@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Incident, IncidentService } from '@/services/IncidentService';
 import { CommentService } from '@/services/CommentService';
 import IncidentCard from '@/components/IncidentCard';
 import IncidentUpdateSection from '@/components/IncidentUpdateSection'; // Import new component
-import { Loader2, MessageCircle } from 'lucide-react';
+import { Loader2, MessageCircle, Image as ImageIcon, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { handleError } from '@/utils/errorHandler';
 import CommentCard from '@/components/CommentCard';
@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useIsSubscribed } from '@/hooks/useIsSubscribed'; // Import useIsSubscribed
 import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin
 import SubscribeOverlay from '@/components/SubscribeOverlay'; // Import SubscribeOverlay
+import { Input } from '@/components/ui/input'; // Import Input
 
 const IncidentDetailPage: React.FC = () => {
   const { incidentId } = useParams<{ incidentId: string }>();
@@ -38,6 +39,12 @@ const IncidentDetailPage: React.FC = () => {
   const [newCommentContent, setNewCommentContent] = useState('');
   const [isCommenting, setIsCommenting] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
+  
+  // --- Media State ---
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  // --- End Media State ---
 
   const fetchSingleIncident = useCallback(async () => {
     if (!incidentId) {
@@ -103,14 +110,55 @@ const IncidentDetailPage: React.FC = () => {
     };
   }, [fetchSingleIncident, fetchCommentsForIncident, incidentId]);
 
+  // Cleanup media preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (mediaPreview && mediaPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(mediaPreview);
+      }
+    };
+  }, [mediaPreview]);
+
+  const handleMediaChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (mediaPreview && mediaPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(mediaPreview);
+    }
+
+    if (file) {
+      // Simple check for file type (allowing images and common video formats)
+      if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+        toast.error('Only images and videos are supported.');
+        setMediaFile(null);
+        setMediaPreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+      setMediaFile(file);
+      setMediaPreview(URL.createObjectURL(file));
+    } else {
+      setMediaFile(null);
+      setMediaPreview(null);
+    }
+  };
+
+  const handleRemoveMedia = () => {
+    if (mediaPreview && mediaPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(mediaPreview);
+    }
+    setMediaFile(null);
+    setMediaPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleAddComment = async () => {
     if (!user) {
       handleError(null, 'You must be logged in to comment.');
       AnalyticsService.trackEvent({ name: 'add_comment_attempt_failed', properties: { reason: 'not_logged_in' } });
       return;
     }
-    if (newCommentContent.trim() === '') {
-      handleError(null, 'Comment cannot be empty.');
+    if (newCommentContent.trim() === '' && !mediaFile) {
+      handleError(null, 'Comment cannot be empty without media.');
       AnalyticsService.trackEvent({ name: 'add_comment_attempt_failed', properties: { reason: 'empty_content' } });
       return;
     }
@@ -123,16 +171,18 @@ const IncidentDetailPage: React.FC = () => {
     setIsCommenting(true);
     try {
       toast.loading('Adding comment...', { id: 'add-comment' });
-      // Pass null for parentCommentId for top-level comments, and default category 'user'
-      const newComment = await CommentService.addComment(incidentId, user.id, newCommentContent, null, 'user');
+      
+      // Pass mediaFile to the service
+      const newComment = await CommentService.addComment(incidentId, user.id, newCommentContent, null, 'user', mediaFile);
       
       if (newComment) {
         toast.success('Comment added!', { id: 'add-comment' });
         setNewCommentContent('');
-        AnalyticsService.trackEvent({ name: 'comment_added_from_detail', properties: { incidentId, userId: user.id } });
+        handleRemoveMedia(); // Clear media state
+        AnalyticsService.trackEvent({ name: 'comment_added_from_detail', properties: { incidentId, userId: user.id, hasMedia: !!mediaFile } });
       } else {
         handleError(null, 'Failed to add comment.', { id: 'add-comment' });
-        AnalyticsService.trackEvent({ name: 'add_comment_failed_from_detail', properties: { incidentId, userId: user.id } });
+        AnalyticsService.trackEvent({ name: 'add_comment_failed_from_detail', properties: { incidentId, userId: user.id, hasMedia: !!mediaFile } });
       }
     } catch (err) {
       handleError(err, 'An error occurred while adding the comment.', { id: 'add-comment' });
@@ -221,7 +271,7 @@ const IncidentDetailPage: React.FC = () => {
         
         <div className={`tw-space-y-6 ${!canComment ? 'tw-relative' : ''}`}>
           <div className={!canComment ? 'tw-blur-sm tw-pointer-events-none' : ''}>
-            <div className="tw-flex tw-gap-2 tw-mb-6">
+            <div className="tw-flex tw-flex-col tw-gap-2 tw-mb-6 tw-border tw-p-3 tw-rounded-lg tw-bg-muted/10">
               <Textarea
                 placeholder="Add a comment..."
                 value={newCommentContent}
@@ -231,10 +281,52 @@ const IncidentDetailPage: React.FC = () => {
                 className="tw-flex-1 tw-input tw-min-h-[80px]"
                 aria-label="New comment content"
               />
-              <Button onClick={handleAddComment} disabled={isCommenting || !user || newCommentContent.trim() === ''} className="tw-button tw-self-start">
-                {isCommenting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
-                Comment
-              </Button>
+              
+              <div className="tw-flex tw-justify-between tw-items-center tw-mt-2">
+                <div className="tw-relative tw-flex tw-items-center tw-gap-2">
+                  <label htmlFor="comment-media-upload" className="tw-cursor-pointer tw-text-muted-foreground hover:tw-text-primary tw-transition-colors">
+                    <ImageIcon className="tw-h-5 tw-w-5" aria-hidden="true" />
+                    <span className="tw-sr-only">Upload Image or Video</span>
+                  </label>
+                  <Input
+                    id="comment-media-upload"
+                    type="file"
+                    accept="image/*,video/*"
+                    onChange={handleMediaChange}
+                    className="tw-hidden"
+                    disabled={isCommenting || !user}
+                    ref={fileInputRef}
+                  />
+                  {mediaPreview && (
+                    <div className="tw-relative tw-h-10 tw-w-10 tw-rounded-md tw-overflow-hidden tw-border tw-border-border">
+                      {mediaFile?.type.startsWith('image/') ? (
+                        <img src={mediaPreview} alt="Media preview" className="tw-w-full tw-h-full tw-object-cover" />
+                      ) : (
+                        <video src={mediaPreview} className="tw-w-full tw-h-full tw-object-cover" />
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="tw-absolute tw-top-0 tw-right-0 tw-h-5 tw-w-5 tw-rounded-full tw-bg-background/70 hover:tw-bg-background"
+                        onClick={handleRemoveMedia}
+                        disabled={isCommenting}
+                      >
+                        <XCircle className="tw-h-3 tw-w-3 tw-text-destructive" aria-hidden="true" />
+                        <span className="tw-sr-only">Remove media</span>
+                      </Button>
+                    </div>
+                  )}
+                  {mediaFile && (
+                    <span className="tw-text-xs tw-text-muted-foreground">{mediaFile.name}</span>
+                  )}
+                </div>
+                
+                <Button onClick={handleAddComment} disabled={isCommenting || !user || (newCommentContent.trim() === '' && !mediaFile)} className="tw-button tw-self-start">
+                  {isCommenting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
+                  Comment
+                </Button>
+              </div>
             </div>
             {!user && (
               <p className="tw-text-sm tw-text-destructive tw-mb-4">You must be logged in to post comments.</p>
