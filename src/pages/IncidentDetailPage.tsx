@@ -6,7 +6,7 @@ import { Incident, IncidentService } from '@/services/IncidentService';
 import { CommentService } from '@/services/CommentService';
 import IncidentCard from '@/components/IncidentCard';
 import IncidentUpdateSection from '@/components/IncidentUpdateSection'; // Import new component
-import { Loader2, MessageCircle, Image as ImageIcon, XCircle } from 'lucide-react';
+import { Loader2, MessageCircle, Image as ImageIcon, XCircle, Edit, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { handleError } from '@/utils/errorHandler';
 import CommentCard from '@/components/CommentCard';
@@ -19,7 +19,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useIsSubscribed } from '@/hooks/useIsSubscribed'; // Import useIsSubscribed
 import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin
 import SubscribeOverlay from '@/components/SubscribeOverlay'; // Import SubscribeOverlay
-import { Input } from '@/components/ui/input'; // Import Input
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import IncidentForm from '@/components/IncidentForm'; // Import IncidentForm
 
 const IncidentDetailPage: React.FC = () => {
   const { incidentId } = useParams<{ incidentId: string }>();
@@ -40,6 +42,11 @@ const IncidentDetailPage: React.FC = () => {
   const [isCommenting, setIsCommenting] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
   
+  // --- New Admin Edit State ---
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isUpdatingIncident, setIsUpdatingIncident] = useState(false);
+  // --- End New Admin Edit State ---
+
   // --- Media State ---
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
@@ -213,6 +220,44 @@ const IncidentDetailPage: React.FC = () => {
     }
   };
 
+  // --- Admin Incident Update Handler ---
+  const handleUpdateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | null, latitude: number | undefined, longitude: number | undefined): Promise<boolean> => {
+    if (!incident) return false;
+
+    setIsUpdatingIncident(true);
+    try {
+      toast.loading('Updating incident...', { id: 'update-incident' });
+      const title = `${type} at ${location}`;
+      const updatedIncident = await IncidentService.updateIncident(incident.id, {
+        title,
+        type,
+        location,
+        description,
+        date: incident.date,
+      }, imageFile, currentImageUrl, latitude, longitude);
+      
+      if (updatedIncident) {
+        toast.success('Incident updated successfully!', { id: 'update-incident' });
+        setIncident(updatedIncident); // Update local state immediately
+        setIsEditDialogOpen(false);
+        AnalyticsService.trackEvent({ name: 'admin_incident_updated_from_detail', properties: { incidentId: updatedIncident.id } });
+        return true;
+      } else {
+        toast.error('Failed to update incident.', { id: 'update-incident' });
+        AnalyticsService.trackEvent({ name: 'admin_incident_update_failed_from_detail', properties: { incidentId: incident.id } });
+        return false;
+      }
+    } catch (err) {
+      toast.error('An error occurred while updating the incident.', { id: 'update-incident' });
+      AnalyticsService.trackEvent({ name: 'admin_incident_update_error_from_detail', properties: { incidentId: incident.id, error: (err as Error).message } });
+      return false;
+    } finally {
+      setIsUpdatingIncident(false);
+    }
+  };
+  // --- End Admin Incident Update Handler ---
+
+
   if (loading || isSubscribedLoading || isAdminLoading) {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground">
@@ -255,7 +300,15 @@ const IncidentDetailPage: React.FC = () => {
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-3xl">
-      <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-mb-6 tw-text-foreground tw-text-center">Incident Detail</h1>
+      <div className="tw-flex tw-justify-between tw-items-center tw-mb-6">
+        <h1 className="tw-text-3xl sm:tw-text-4xl tw-font-bold tw-text-foreground tw-text-center">Incident Detail</h1>
+        {isAdmin && (
+          <Button onClick={() => setIsEditDialogOpen(true)} className="tw-button" aria-label="Edit incident details">
+            <Edit className="tw-mr-2 tw-h-4 tw-w-4" aria-hidden="true" /> Edit Incident
+          </Button>
+        )}
+      </div>
+      
       <div className="tw-bg-card tw-p-6 tw-rounded-lg tw-shadow-md" aria-labelledby={`incident-title-${incident.id}`}>
         <IncidentCard incident={incident} /> 
       </div>
@@ -367,6 +420,34 @@ const IncidentDetailPage: React.FC = () => {
             <IncidentCard incident={previousIncident} />
           </div>
         </div>
+      )}
+
+      {/* Admin Edit Dialog */}
+      {isAdmin && incident && (
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:tw-max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit Incident: {incident.title}</DialogTitle>
+            </DialogHeader>
+            <IncidentForm
+              formId="edit-incident-detail-form"
+              onSubmit={handleUpdateIncident}
+              isLoading={isUpdatingIncident}
+              initialIncident={incident}
+            />
+            <DialogFooter>
+              <Button 
+                type="submit" 
+                form="edit-incident-detail-form"
+                disabled={isUpdatingIncident} 
+                className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground"
+              >
+                {isUpdatingIncident && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
+                <Save className="tw-mr-2 tw-h-4 tw-w-4" aria-hidden="true" /> Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
