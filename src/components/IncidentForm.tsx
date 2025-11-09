@@ -325,10 +325,13 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
           </div>
         )}
       </div>
-      <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isFormDisabled || !geocodedCoords}>
-        {isFormDisabled && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
-        <Send className="tw-mr-2 tw-h-4 tw-w-4" aria-hidden="true" /> {initialIncident ? 'Update Incident' : 'Submit Incident'}
-      </Button>
+      {/* Only show the submit button if no formId is provided (i.e., when used standalone) */}
+      {!formId && (
+        <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isFormDisabled || !geocodedCoords}>
+          {isFormDisabled && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
+          <Send className="tw-mr-2 tw-h-4 tw-w-4" aria-hidden="true" /> {initialIncident ? 'Update Incident' : 'Submit Incident'}
+        </Button>
+      )}
       {!geocodedCoords && locationWatch && !mapLoading && (
         <p className="tw-text-sm tw-text-destructive tw-text-center">
           Please enter a valid location to enable submission.
