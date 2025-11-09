@@ -71,13 +71,17 @@ const MainContent: React.FC = () => {
           <Route path="/reset-password" element={<Suspense fallback={<PageLoadingFallback />}><ResetPasswordPage /></Suspense>} />
           <Route path="/terms-of-service" element={<Suspense fallback={<PageLoadingFallback />}><TermsOfServicePage /></Suspense>} />
 
+          {/* Public routes that use the main layout (now including FeedbackPage) */}
+          <Route element={<Layout />}>
+            <Route path="home/feedback" element={<Suspense fallback={<PageLoadingFallback />}><FeedbackPage /></Suspense>} />
+          </Route>
+
           {/* Protected routes wrapped by ProtectedRoute */}
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path="home" element={<Suspense fallback={<PageLoadingFallback />}><HomePage /></Suspense>} />
             <Route path="home/incidents" element={<Suspense fallback={<PageLoadingFallback />}><IncidentsPage /></Suspense>} />
             <Route path="home/contact-us" element={<Suspense fallback={<PageLoadingFallback />}><ContactUsPage /></Suspense>} />
             <Route path="home/archive" element={<Suspense fallback={<PageLoadingFallback />}><IncidentArchivePage /></Suspense>} />
-            <Route path="home/feedback" element={<Suspense fallback={<PageLoadingFallback />}><FeedbackPage /></Suspense>} />
             <Route path="profile" element={<Suspense fallback={<PageLoadingFallback />}><ProfilePage /></Suspense>} />
             <Route path="admin" element={<Suspense fallback={<PageLoadingFallback />}><AdminPage /></Suspense>} />
             <Route path="incidents/:incidentId" element={<Suspense fallback={<PageLoadingFallback />}><IncidentDetailPage /></Suspense>} />
