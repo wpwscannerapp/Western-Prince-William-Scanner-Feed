@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { handleError } from '@/utils/errorHandler';
 import { ChromePicker } from 'react-color';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Loader2, RotateCcw, Eye } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { LayoutComponent } from './LayoutEditor';
@@ -340,6 +340,7 @@ const AppSettingsForm: React.FC = () => {
         <DialogContent className="sm:tw-max-w-[800px] tw-max-h-[90vh] tw-flex tw-flex-col">
           <DialogHeader>
             <DialogTitle>Preview Appearance</DialogTitle>
+            <DialogDescription>This preview shows how your current settings will affect the application's appearance and layout.</DialogDescription>
           </DialogHeader>
           <div className="tw-flex-1 tw-overflow-auto tw-p-4 tw-border tw-rounded-md tw-bg-background" style={{ fontFamily: form.watch('font_family') }}>
             <h3 className="tw-lg tw-font-semibold tw-mb-2">Layout Preview</h3>

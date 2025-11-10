@@ -16,7 +16,7 @@ import { IncidentService } from '@/services/IncidentService';
 import { format } from 'date-fns';
 import { Edit, Trash2, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import IncidentForm from './IncidentForm';
 import { AnalyticsService } from '@/services/AnalyticsService';
 import { useQueryClient } from '@tanstack/react-query';
@@ -251,6 +251,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
           <DialogContent className="sm:tw-max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Edit Incident</DialogTitle>
+              <DialogDescription>Update the details, location, or image for this incident.</DialogDescription>
             </DialogHeader>
             <IncidentForm
               formId="edit-incident-form"

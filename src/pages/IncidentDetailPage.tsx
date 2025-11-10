@@ -20,7 +20,7 @@ import { useIsSubscribed } from '@/hooks/useIsSubscribed'; // Import useIsSubscr
 import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin
 import SubscribeOverlay from '@/components/SubscribeOverlay'; // Import SubscribeOverlay
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import IncidentForm from '@/components/IncidentForm'; // Import IncidentForm
 
 const IncidentDetailPage: React.FC = () => {
@@ -428,6 +428,7 @@ const IncidentDetailPage: React.FC = () => {
           <DialogContent className="sm:tw-max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Edit Incident: {incident.title}</DialogTitle>
+              <DialogDescription>Update the details, location, or image for this incident.</DialogDescription>
             </DialogHeader>
             <IncidentForm
               formId="edit-incident-detail-form"

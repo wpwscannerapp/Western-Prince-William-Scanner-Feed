@@ -16,7 +16,7 @@ import { NotificationService } from '@/services/NotificationService';
 import { format } from 'date-fns';
 import { Edit, Trash2, Search, Loader2, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import AlertForm from './AlertForm';
 import { AnalyticsService } from '@/services/AnalyticsService';
 
@@ -217,6 +217,7 @@ const AdminAlertTable: React.FC<AdminAlertTableProps> = ({ onAlertUpdated }) => 
           <DialogContent className="sm:tw-max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Edit Alert</DialogTitle>
+              <DialogDescription>Update the details and location for this real-time alert.</DialogDescription>
             </DialogHeader>
             <AlertForm
               formId="edit-alert-form"
