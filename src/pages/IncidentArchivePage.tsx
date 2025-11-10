@@ -131,7 +131,7 @@ const IncidentArchivePage: React.FC = () => {
             ) : (
               incidents.map((incident, index) => (
                 <div key={incident.id} ref={index === incidents.length - 1 ? lastIncidentRef : null}>
-                  <IncidentCard incident={incident} />
+                  <IncidentCard incident={incident} onActionComplete={refetch} />
                 </div>
               ))
             )}

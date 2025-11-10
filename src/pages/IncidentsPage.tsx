@@ -196,7 +196,7 @@ const IncidentsPage: React.FC = () => {
           
           {incidents.map((incident, index) => (
             <div key={incident.id} ref={index === incidents.length - 1 ? lastIncidentRef : null} className="tw-transition tw-duration-300 hover:tw-shadow-lg">
-              <IncidentCard incident={incident} />
+              <IncidentCard incident={incident} onActionComplete={refetch} />
             </div>
           ))}
           

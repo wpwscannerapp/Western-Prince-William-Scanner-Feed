@@ -15,9 +15,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AnalyticsService } from '@/services/AnalyticsService';
 import { GOOGLE_MAPS_KEY } from '@/config'; // Use GOOGLE_MAPS_KEY
+import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin
+import IncidentActions from './IncidentActions'; // Import IncidentActions
 
 interface IncidentCardProps {
   incident: IncidentRow; // Use IncidentRow
+  // Optional prop to trigger a refresh in the parent component (used by archive/feed)
+  onActionComplete?: () => void; 
 }
 
 // Helper function to generate Google Static Map URL
@@ -31,8 +35,9 @@ const getStaticMapUrl = (latitude: number, longitude: number, type: string): str
   return `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=${size}&${marker}&maptype=hybrid&key=${GOOGLE_MAPS_KEY}`;
 };
 
-const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
+const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident, onActionComplete }) => {
   const { user } = useAuth();
+  const { isAdmin } = useIsAdmin(); // Use useIsAdmin hook
   const isAdminIncident = !!incident.admin_id;
   const navigate = useNavigate();
 
@@ -217,26 +222,33 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident }) => {
       </CardContent>
       <CardFooter className="tw-flex tw-flex-col tw-items-start tw-pt-0 tw-pb-4 tw-px-4">
         <div className="tw-flex tw-justify-between tw-w-full tw-mb-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLikeToggle}
-            disabled={isLiking || !user}
-            className={hasLiked ? 'tw-text-primary hover:tw-text-primary/80 tw-button' : 'tw-text-muted-foreground hover:tw-text-primary tw-button'}
-            aria-label={hasLiked ? `Unlike incident, currently ${likesCount} likes` : `Like incident, currently ${likesCount} likes`}
-          >
-            {isLiking ? <Loader2 className="tw-h-4 tw-w-4 tw-mr-1 tw-animate-spin" aria-hidden="true" /> : <Heart className="tw-h-4 tw-w-4 tw-mr-1" fill={hasLiked ? 'currentColor' : 'none'} aria-hidden="true" />}
-            {likesCount} Like{likesCount !== 1 ? 's' : ''}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleIncidentClick}
-            className="tw-text-muted-foreground hover:tw-text-primary tw-button"
-            aria-label={`View comments for incident, currently ${commentsCount} comments`}
-          >
-            <MessageCircle className="tw-h-4 tw-w-4 tw-mr-1" aria-hidden="true" /> {commentsCount} Comment{commentsCount !== 1 ? 's' : ''}
-          </Button>
+          <div className="tw-flex tw-gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLikeToggle}
+              disabled={isLiking || !user}
+              className={hasLiked ? 'tw-text-primary hover:tw-text-primary/80 tw-button' : 'tw-text-muted-foreground hover:tw-text-primary tw-button'}
+              aria-label={hasLiked ? `Unlike incident, currently ${likesCount} likes` : `Like incident, currently ${likesCount} likes`}
+            >
+              {isLiking ? <Loader2 className="tw-h-4 tw-w-4 tw-mr-1 tw-animate-spin" aria-hidden="true" /> : <Heart className="tw-h-4 tw-w-4 tw-mr-1" fill={hasLiked ? 'currentColor' : 'none'} aria-hidden="true" />}
+              {likesCount} Like{likesCount !== 1 ? 's' : ''}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleIncidentClick}
+              className="tw-text-muted-foreground hover:tw-text-primary tw-button"
+              aria-label={`View comments for incident, currently ${commentsCount} comments`}
+            >
+              <MessageCircle className="tw-h-4 tw-w-4 tw-mr-1" aria-hidden="true" /> {commentsCount} Comment{commentsCount !== 1 ? 's' : ''}
+            </Button>
+          </div>
+          
+          {/* Admin Actions */}
+          {isAdmin && (
+            <IncidentActions incident={incident} onActionComplete={onActionComplete || (() => {})} />
+          )}
         </div>
       </CardFooter>
     </Card>
