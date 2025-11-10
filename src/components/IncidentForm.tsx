@@ -239,7 +239,10 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
     }
   };
 
-  const isFormDisabled = isLoading || mapLoading;
+  // Only disable the form if it's actively submitting (isLoading)
+  const isFormDisabled = isLoading;
+  // Disable the submit button if submitting, geocoding, or coordinates are missing
+  const isSubmitButtonDisabled = isFormDisabled || mapLoading || !geocodedCoords;
 
   return (
     <form id={formId} onSubmit={form.handleSubmit(handleSubmit)} className="tw-space-y-6 tw-p-4 tw-border tw-rounded-lg tw-bg-card tw-shadow-sm">
@@ -266,7 +269,8 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
           placeholder="e.g., 123 Main St, Gainesville"
           {...form.register('location')}
           className="tw-bg-input tw-text-foreground"
-          disabled={isFormDisabled}
+          // IMPORTANT: Do NOT disable this input based on mapLoading
+          disabled={isFormDisabled} 
           aria-invalid={form.formState.errors.location ? "true" : "false"}
           aria-describedby={form.formState.errors.location ? "incident-location-error" : undefined}
         />
@@ -276,9 +280,9 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         
         {/* --- Static Map Preview JSX --- */}
         <div className="tw-mt-2">
-          {mapLoading && <p className="tw-text-sm tw-text-muted-foreground">Generating map...</p>}
+          {mapLoading && <p className="tw-text-sm tw-text-muted-foreground tw-flex tw-items-center tw-gap-1"><Loader2 className="tw-h-4 tw-w-4 tw-animate-spin" /> Generating map...</p>}
 
-          {mapUrl && (
+          {mapUrl && !mapLoading && (
             <div className="tw-mt-4 tw-text-center">
               <img
                 src={mapUrl}
@@ -352,8 +356,8 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
       </div>
       {/* Only show the submit button if no formId is provided (i.e., when used standalone) */}
       {!formId && (
-        <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isFormDisabled || !geocodedCoords}>
-          {isFormDisabled && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
+        <Button type="submit" className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground" disabled={isSubmitButtonDisabled}>
+          {isSubmitButtonDisabled && (isLoading || mapLoading) && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
           <Send className="tw-mr-2 tw-h-4 tw-w-4" aria-hidden="true" /> {initialIncident ? 'Update Incident' : 'Submit Incident'}
         </Button>
       )}
