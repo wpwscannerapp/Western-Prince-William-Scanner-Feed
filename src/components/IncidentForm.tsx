@@ -120,9 +120,12 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
       return;
     }
 
-    // If we are editing and the location hasn't changed, use existing coordinates
-    if (initialIncident && debouncedLocation === originalLocationRef.current) {
+    // Check if we are editing AND the location text has NOT changed
+    const isEditingAndLocationUnchanged = initialIncident && debouncedLocation === originalLocationRef.current;
+
+    if (isEditingAndLocationUnchanged) {
       if (initialIncident.latitude && initialIncident.longitude) {
+        // Use existing coordinates and bypass geocoding
         setGeocodedCoords({
           lat: initialIncident.latitude,
           lng: initialIncident.longitude,
