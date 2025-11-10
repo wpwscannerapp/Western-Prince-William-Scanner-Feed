@@ -92,7 +92,7 @@ const UpdateItem: React.FC<{ update: Comment, onUpdateDeleted: (id: string) => v
             <Textarea
               value={editedContent}
               onChange={(e) => setEditedContent(e.target.value)}
-              className="tw-w-full tw-min-h-[60px]"
+              className="tw-w-full tw-min-h-[60px] tw-text-foreground tw-bg-input"
               disabled={isLoading}
               aria-label="Edit update content"
             />
@@ -222,7 +222,7 @@ const IncidentUpdateSection: React.FC<IncidentUpdateSectionProps> = ({ incidentI
             onChange={(e) => setNewUpdateContent(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isSubmitting}
-            className="tw-flex-1 tw-input tw-min-h-[80px]"
+            className="tw-flex-1 tw-input tw-min-h-[80px] tw-text-foreground tw-bg-input"
             aria-label="New incident update content"
           />
           <Button onClick={handleAddUpdate} disabled={isSubmitting || newUpdateContent.trim() === ''} className="tw-button tw-self-start">
