@@ -248,7 +248,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
 
       {editingIncident && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:tw-max-w-[425px]">
+          <DialogContent className="sm:tw-max-w-lg md:tw-max-w-xl tw-max-h-[90vh] tw-overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Incident</DialogTitle>
               <DialogDescription>Update the details, location, or image for this incident.</DialogDescription>
