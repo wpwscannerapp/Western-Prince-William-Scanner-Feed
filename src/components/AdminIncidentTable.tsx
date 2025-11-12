@@ -82,7 +82,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
 
   const handleEdit = (incident: IncidentRow) => { // Use IncidentRow
     if (import.meta.env.DEV) {
-      console.log(`AdminIncidentTable: handleEdit called for incident ID: ${incident.id}`);
+      console.log(`AdminIncidentTable: handleEdit called for incident ID: ${incident.id}. Setting isEditDialogOpen to true.`);
     }
     setEditingIncident(incident);
     setIsEditDialogOpen(true);
@@ -144,6 +144,12 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
     AnalyticsService.trackEvent({ name: 'admin_incident_table_retry_fetch' });
   };
 
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log(`AdminIncidentTable: isEditDialogOpen state changed to: ${isEditDialogOpen}`);
+    }
+  }, [isEditDialogOpen]);
+
   if (error) {
     return (
       <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-8">
@@ -151,13 +157,6 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
         <Button onClick={handleRetry}>Retry</Button>
       </div>
     );
-  }
-
-  if (import.meta.env.DEV) {
-    console.log(`AdminIncidentTable: Dialog rendering. isEditDialogOpen: ${isEditDialogOpen}, editingIncident: ${editingIncident?.id}`);
-    if (isEditDialogOpen && editingIncident) {
-      console.log(`AdminIncidentTable: DialogContent rendering for incident ID: ${editingIncident.id}`);
-    }
   }
 
   return (

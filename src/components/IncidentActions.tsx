@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, Loader2, Save } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -97,17 +97,16 @@ const IncidentActions: React.FC<IncidentActionsProps> = ({ incident, onActionCom
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click navigation
     if (import.meta.env.DEV) {
-      console.log(`IncidentActions: handleEditClick called for incident ID: ${incident.id}. Setting isEditDialogOpen to true.`);
+      console.log(`IncidentActions: Edit button clicked for incident ID: ${incident.id}.`);
     }
     setIsEditDialogOpen(true);
   };
 
-  if (import.meta.env.DEV) {
-    console.log(`IncidentActions: Dialog rendering. isEditDialogOpen: ${isEditDialogOpen}`);
-    if (isEditDialogOpen) {
-      console.log(`IncidentActions: DialogContent rendering for incident ID: ${incident.id}`);
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log(`IncidentActions: isEditDialogOpen state changed to: ${isEditDialogOpen}`);
     }
-  }
+  }, [isEditDialogOpen]);
 
   return (
     <>
