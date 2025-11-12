@@ -35,7 +35,7 @@ interface IncidentFormProps {
 
 const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initialIncident, formId }) => {
   if (import.meta.env.DEV) {
-    console.log(`IncidentForm: Rendering for incident ID: ${initialIncident?.id || 'new'}. Initial location: ${initialIncident?.location || 'N/A'}`);
+    console.log(`IncidentForm: Component rendering for incident ID: ${initialIncident?.id || 'new'}. Initial location: ${initialIncident?.location || 'N/A'}`);
   }
 
   const form = useForm<IncidentFormValues>({
@@ -74,6 +74,9 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
   }, [imagePreview]);
 
   useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log(`IncidentForm: useEffect for initialIncident triggered. Incident ID: ${initialIncident?.id || 'new'}`);
+    }
     if (initialIncident) {
       form.reset({
         type: initialIncident.type,
@@ -84,21 +87,21 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
       // Update ref for comparison
       originalLocationRef.current = initialIncident.location;
 
-      if (imagePreview && imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(imagePreview);
-      }
-      setImagePreview(initialIncident.image_url || undefined);
-      setImageFile(null);
+      // Temporarily commenting out image and map state updates to isolate the issue
+      // if (imagePreview && imagePreview.startsWith('blob:')) {
+      //   URL.revokeObjectURL(imagePreview);
+      // }
+      // setImagePreview(initialIncident.image_url || undefined);
+      // setImageFile(null);
       
-      // Set initial coordinates if available for map preview
-      if (initialIncident.latitude && initialIncident.longitude) {
-        setGeocodedCoords({
-          lat: initialIncident.latitude,
-          lng: initialIncident.longitude,
-        });
-      } else {
-        setGeocodedCoords(null);
-      }
+      // if (initialIncident.latitude && initialIncident.longitude) {
+      //   setGeocodedCoords({
+      //     lat: initialIncident.latitude,
+      //     lng: initialIncident.longitude,
+      //   });
+      // } else {
+      //   setGeocodedCoords(null);
+      // }
     } else {
       form.reset({
         type: '',
@@ -106,12 +109,13 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         description: '',
         image: undefined,
       });
-      if (imagePreview && imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(imagePreview);
-      }
-      setImagePreview(undefined);
-      setImageFile(null);
-      setGeocodedCoords(null);
+      // Temporarily commenting out image and map state updates to isolate the issue
+      // if (imagePreview && imagePreview.startsWith('blob:')) {
+      //   URL.revokeObjectURL(imagePreview);
+      // }
+      // setImagePreview(undefined);
+      // setImageFile(null);
+      // setGeocodedCoords(null);
       originalLocationRef.current = '';
     }
   }, [initialIncident, form]);
