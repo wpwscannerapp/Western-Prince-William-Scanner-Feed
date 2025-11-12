@@ -81,9 +81,6 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
   };
 
   const handleEdit = (incident: IncidentRow) => { // Use IncidentRow
-    if (import.meta.env.DEV) {
-      console.log(`AdminIncidentTable: handleEdit called for incident ID: ${incident.id}. Setting isEditDialogOpen to true.`);
-    }
     setEditingIncident(incident);
     setIsEditDialogOpen(true);
     AnalyticsService.trackEvent({ name: 'admin_incident_edit_opened', properties: { incidentId: incident.id } });
@@ -143,12 +140,6 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
     fetchIncidents();
     AnalyticsService.trackEvent({ name: 'admin_incident_table_retry_fetch' });
   };
-
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log(`AdminIncidentTable: isEditDialogOpen state changed to: ${isEditDialogOpen}`);
-    }
-  }, [isEditDialogOpen]);
 
   if (error) {
     return (
@@ -256,16 +247,12 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
       )}
 
       {editingIncident && (
-        <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
-          if (import.meta.env.DEV) {
-            console.log(`AdminIncidentTable: Dialog onOpenChange called. New state: ${open}`);
-          }
-          setIsEditDialogOpen(open);
-          if (!open) {
-            setEditingIncident(null); // Clear editing incident when dialog closes
-          }
-        }}>
-          <DialogContent key={editingIncident.id} className="sm:tw-max-w-lg md:tw-max-w-xl tw-max-h-[90vh] tw-overflow-y-auto">
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent 
+            key={editingIncident.id} 
+            className="sm:tw-max-w-lg md:tw-max-w-xl tw-max-h-[90vh] tw-overflow-y-auto"
+            onPointerDownOutside={(e) => e.preventDefault()} // Prevent closing on click outside
+          >
             <DialogHeader>
               <DialogTitle>Edit Incident</DialogTitle>
               <DialogDescription>Update the details, location, or image for this incident.</DialogDescription>

@@ -13,7 +13,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 208 92% 54%; /* Updated HSL for #2196F3 */
+    --primary: 219 70% 14%; /* HSL for #1E3A8A */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 123 51% 50%; /* Updated HSL for #4CAF50 */
@@ -25,7 +25,7 @@
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 359 70% 48%; /* HSL for #B91C1C */
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
@@ -50,9 +50,9 @@
 
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    --app-primary-color-hex: #2196F3; /* Default primary color in hex */
-    --app-primary-color-darker-hex: #1a7ad9; /* Default darker primary color in hex */
-    --app-primary-color-rgb: 33, 150, 243; /* Default primary color in RGB */
+    --app-primary-color-hex: #1E3A8A; /* Default primary color in hex */
+    --app-primary-color-darker-hex: #172e6e; /* Darkened #1E3A8A by 10% */
+    --app-primary-color-rgb: 30, 58, 138; /* RGB for #1E3A8A */
     --app-secondary-color-hex: #4CAF50; /* Default secondary color in hex */
     --app-secondary-color-darker-hex: #3d8b41; /* Default darker secondary color in hex */
     --app-font-family: Inter, sans-serif; /* Default font family */
@@ -68,7 +68,7 @@
     --popover: 220 15% 12%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217.2 91.2% 59.8%; /* Fallback HSL for primary */
+    --primary: 219 70% 14%; /* HSL for #1E3A8A */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 10% 30%;
@@ -80,7 +80,7 @@
     --accent: 48 96% 60%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 359 70% 48%; /* HSL for #B91C1C */
     --destructive-foreground: 210 40% 98%;
 
     --border: 220 15% 20%;
@@ -96,9 +96,9 @@
     --sidebar-border: 220 15% 20%;
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    --app-primary-color-hex: #2196F3; /* Default primary color in hex */
-    --app-primary-color-darker-hex: #1a7ad9; /* Default darker primary color in hex */
-    --app-primary-color-rgb: 33, 150, 243; /* Default primary color in RGB */
+    --app-primary-color-hex: #1E3A8A; /* Default primary color in hex */
+    --app-primary-color-darker-hex: #172e6e; /* Darkened #1E3A8A by 10% */
+    --app-primary-color-rgb: 30, 58, 138; /* RGB for #1E3A8A */
     --app-secondary-color-hex: #4CAF50; /* Default secondary color in hex */
     --app-secondary-color-darker-hex: #3d8b41; /* Default darker secondary color in hex */
     --app-font-family: Inter, sans-serif; /* Default font family */
@@ -137,6 +137,11 @@
   }
   .dark .tw-button:hover {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  }
+
+  /* EMERGENCY OVERLAY KILLER - Added to prevent event blocking */
+  .fixed.inset-0, [data-radix-dialog-overlay] {
+    pointer-events: none !important;
   }
 }
 

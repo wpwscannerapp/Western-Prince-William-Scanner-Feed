@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, Loader2, Save } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -96,17 +96,8 @@ const IncidentActions: React.FC<IncidentActionsProps> = ({ incident, onActionCom
 
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click navigation
-    if (import.meta.env.DEV) {
-      console.log(`IncidentActions: Edit button clicked for incident ID: ${incident.id}.`);
-    }
     setIsEditDialogOpen(true);
   };
-
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log(`IncidentActions: isEditDialogOpen state changed to: ${isEditDialogOpen}`);
-    }
-  }, [isEditDialogOpen]);
 
   return (
     <>
@@ -136,13 +127,12 @@ const IncidentActions: React.FC<IncidentActionsProps> = ({ incident, onActionCom
       </div>
 
       {/* Admin Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
-        if (import.meta.env.DEV) {
-          console.log(`IncidentActions: Dialog onOpenChange called. New state: ${open}. Current isEditDialogOpen: ${isEditDialogOpen}`);
-        }
-        setIsEditDialogOpen(open);
-      }}>
-        <DialogContent key={incident.id} className="sm:tw-max-w-lg md:tw-max-w-xl tw-max-h-[90vh] tw-overflow-y-auto">
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent 
+          key={incident.id} 
+          className="sm:tw-max-w-lg md:tw-max-w-xl tw-max-h-[90vh] tw-overflow-y-auto"
+          onPointerDownOutside={(e) => e.preventDefault()} // Prevent closing on click outside
+        >
           <DialogHeader>
             <DialogTitle>Edit Incident: {incident.title}</DialogTitle>
             <DialogDescription>Update the details, location, or image for this incident.</DialogDescription>
