@@ -97,10 +97,17 @@ const IncidentActions: React.FC<IncidentActionsProps> = ({ incident, onActionCom
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click navigation
     if (import.meta.env.DEV) {
-      console.log(`IncidentActions: handleEditClick called for incident ID: ${incident.id}`);
+      console.log(`IncidentActions: handleEditClick called for incident ID: ${incident.id}. Setting isEditDialogOpen to true.`);
     }
     setIsEditDialogOpen(true);
   };
+
+  if (import.meta.env.DEV) {
+    console.log(`IncidentActions: Dialog rendering. isEditDialogOpen: ${isEditDialogOpen}`);
+    if (isEditDialogOpen) {
+      console.log(`IncidentActions: DialogContent rendering for incident ID: ${incident.id}`);
+    }
+  }
 
   return (
     <>
@@ -130,7 +137,12 @@ const IncidentActions: React.FC<IncidentActionsProps> = ({ incident, onActionCom
       </div>
 
       {/* Admin Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        if (import.meta.env.DEV) {
+          console.log(`IncidentActions: Dialog onOpenChange called. New state: ${open}. Current isEditDialogOpen: ${isEditDialogOpen}`);
+        }
+        setIsEditDialogOpen(open);
+      }}>
         <DialogContent key={incident.id} className="sm:tw-max-w-lg md:tw-max-w-xl tw-max-h-[90vh] tw-overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Incident: {incident.title}</DialogTitle>

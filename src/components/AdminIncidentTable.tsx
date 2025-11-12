@@ -153,6 +153,13 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
     );
   }
 
+  if (import.meta.env.DEV) {
+    console.log(`AdminIncidentTable: Dialog rendering. isEditDialogOpen: ${isEditDialogOpen}, editingIncident: ${editingIncident?.id}`);
+    if (isEditDialogOpen && editingIncident) {
+      console.log(`AdminIncidentTable: DialogContent rendering for incident ID: ${editingIncident.id}`);
+    }
+  }
+
   return (
     <div className="tw-space-y-4">
       <div className="tw-relative tw-w-full">
@@ -250,7 +257,15 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
       )}
 
       {editingIncident && (
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+          if (import.meta.env.DEV) {
+            console.log(`AdminIncidentTable: Dialog onOpenChange called. New state: ${open}`);
+          }
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setEditingIncident(null); // Clear editing incident when dialog closes
+          }
+        }}>
           <DialogContent key={editingIncident.id} className="sm:tw-max-w-lg md:tw-max-w-xl tw-max-h-[90vh] tw-overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Incident</DialogTitle>
