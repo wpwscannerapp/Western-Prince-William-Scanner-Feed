@@ -94,13 +94,21 @@ const IncidentActions: React.FC<IncidentActionsProps> = ({ incident, onActionCom
     }
   };
 
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click navigation
+    if (import.meta.env.DEV) {
+      console.log(`IncidentActions: handleEditClick called for incident ID: ${incident.id}`);
+    }
+    setIsEditDialogOpen(true);
+  };
+
   return (
     <>
       <div className="tw-flex tw-gap-2">
         <Button
           variant="ghost"
           size="sm"
-          onClick={(e) => { e.stopPropagation(); setIsEditDialogOpen(true); }}
+          onClick={handleEditClick}
           disabled={isDeleting}
           className="tw-h-8 tw-w-8 tw-p-0 tw-text-muted-foreground hover:tw-text-primary tw-button"
           aria-label={`Edit incident ${incident.title}`}
@@ -123,7 +131,7 @@ const IncidentActions: React.FC<IncidentActionsProps> = ({ incident, onActionCom
 
       {/* Admin Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:tw-max-w-lg md:tw-max-w-xl tw-max-h-[90vh] tw-overflow-y-auto">
+        <DialogContent key={incident.id} className="sm:tw-max-w-lg md:tw-max-w-xl tw-max-h-[90vh] tw-overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Incident: {incident.title}</DialogTitle>
             <DialogDescription>Update the details, location, or image for this incident.</DialogDescription>

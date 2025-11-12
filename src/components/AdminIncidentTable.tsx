@@ -81,6 +81,9 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
   };
 
   const handleEdit = (incident: IncidentRow) => { // Use IncidentRow
+    if (import.meta.env.DEV) {
+      console.log(`AdminIncidentTable: handleEdit called for incident ID: ${incident.id}`);
+    }
     setEditingIncident(incident);
     setIsEditDialogOpen(true);
     AnalyticsService.trackEvent({ name: 'admin_incident_edit_opened', properties: { incidentId: incident.id } });
@@ -248,7 +251,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
 
       {editingIncident && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:tw-max-w-lg md:tw-max-w-xl tw-max-h-[90vh] tw-overflow-y-auto">
+          <DialogContent key={editingIncident.id} className="sm:tw-max-w-lg md:tw-max-w-xl tw-max-h-[90vh] tw-overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Incident</DialogTitle>
               <DialogDescription>Update the details, location, or image for this incident.</DialogDescription>

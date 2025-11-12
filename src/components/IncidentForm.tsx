@@ -34,6 +34,10 @@ interface IncidentFormProps {
 }
 
 const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initialIncident, formId }) => {
+  if (import.meta.env.DEV) {
+    console.log(`IncidentForm: Rendering for incident ID: ${initialIncident?.id || 'new'}. Initial location: ${initialIncident?.location || 'N/A'}`);
+  }
+
   const form = useForm<IncidentFormValues>({
     resolver: zodResolver(incidentFormSchema),
     defaultValues: {
