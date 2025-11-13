@@ -14,26 +14,15 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import { GOOGLE_MAPS_KEY } from '@/config'; // Use GOOGLE_MAPS_KEY
 import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin
 import IncidentActions from './IncidentActions'; // Import IncidentActions
+import { IncidentService } from '@/services/IncidentService'; // Import IncidentService for getStaticMapUrl
 
 interface IncidentCardProps {
   incident: IncidentRow; // Use IncidentRow
   // Optional prop to trigger a refresh in the parent component (used by archive/feed)
   onActionComplete?: () => void; 
 }
-
-// Helper function to generate Google Static Map URL
-const getStaticMapUrl = (latitude: number, longitude: number, type: string): string => {
-  const markerColor = type.toLowerCase().includes('fire') ? 'red' : 'blue'; // Red for fire, Blue otherwise
-  const marker = `markers=color:${markerColor}%7C${latitude},${longitude}`;
-  const size = '600x300';
-  const zoom = 15;
-  
-  // Changed maptype from 'satellite' to 'hybrid' to include street names and labels
-  return `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=${size}&${marker}&maptype=hybrid&key=${GOOGLE_MAPS_KEY}`;
-};
 
 const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident, onActionComplete }) => {
   const { user } = useAuth();
@@ -155,7 +144,7 @@ const IncidentCard: React.FC<IncidentCardProps> = React.memo(({ incident, onActi
 
   // Determine the static map URL
   const staticMapUrl = (incident.latitude && incident.longitude) 
-    ? getStaticMapUrl(incident.latitude, incident.longitude, incident.type) 
+    ? IncidentService.getStaticMapUrl(incident.latitude, incident.longitude, incident.type) 
     : undefined;
 
   return (

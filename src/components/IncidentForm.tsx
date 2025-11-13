@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { AnalyticsService } from '@/services/AnalyticsService';
 import { IncidentRow } from '@/types/supabase';
 import useDebounce from '@/hooks/useDebounce';
-import { GOOGLE_MAPS_KEY } from '@/config';
+import { IncidentService } from '@/services/IncidentService'; // Import IncidentService for getStaticMapUrl
 
 const incidentFormSchema = z.object({
   type: z.string().min(1, { message: 'Incident type is required.' }).max(100, { message: 'Incident type too long.' }),
@@ -53,13 +53,22 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // --- New Map State ---
-  const [geocodedCoords, setGeocodedCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [mapUrl, setMapUrl] = useState<string | null>(null);
+  const [geocodedCoords, setGeocodedCoords] = useState<{ lat: number; lng: number } | null>(
+    (initialIncident?.latitude && initialIncident?.longitude) 
+      ? { lat: initialIncident.latitude, lng: initialIncident.longitude } 
+      : null
+  );
+  const [mapUrl, setMapUrl] = useState<string | null>(
+    (initialIncident?.latitude && initialIncident?.longitude && initialIncident?.type)
+      ? IncidentService.getStaticMapUrl(initialIncident.latitude, initialIncident.longitude, initialIncident.type)
+      : null
+  );
   const [mapLoading, setMapLoading] = useState(false);
   
   const locationWatch = form.watch('location');
+  const typeWatch = form.watch('type'); // Watch type as well for map generation
   const debouncedLocation = useDebounce(locationWatch, 1000);
-  
+
   // Ref to store the original location text for comparison during editing
   const originalLocationRef = useRef(initialIncident?.location || '');
   // --- End New Map State ---
@@ -84,89 +93,92 @@ const IncidentForm: React.FC<IncidentFormProps> = ({ onSubmit, isLoading, initia
         description: initialIncident.description,
         image: undefined,
       });
-      // Update ref for comparison
+      // IMPORTANT: Update ref here when initialIncident changes
       originalLocationRef.current = initialIncident.location;
 
-      // Temporarily commenting out image and map state updates to isolate the issue
-      // if (imagePreview && imagePreview.startsWith('blob:')) {
-      //   URL.revokeObjectURL(imagePreview);
-      // }
-      // setImagePreview(initialIncident.image_url || undefined);
-      // setImageFile(null);
-      
-      // if (initialIncident.latitude && initialIncident.longitude) {
-      //   setGeocodedCoords({
-      //     lat: initialIncident.latitude,
-      //     lng: initialIncident.longitude,
-      //   });
-      // } else {
-      //   setGeocodedCoords(null);
-      // }
+      // Set image preview and file state
+      setImagePreview(initialIncident.image_url || undefined);
+      setImageFile(null); // Clear any previously selected file
+
+      // Set geocoded coordinates and map URL
+      if (initialIncident.latitude && initialIncident.longitude) {
+        setGeocodedCoords({
+          lat: initialIncident.latitude,
+          lng: initialIncident.longitude,
+        });
+        setMapUrl(IncidentService.getStaticMapUrl(initialIncident.latitude, initialIncident.longitude, initialIncident.type));
+      } else {
+        setGeocodedCoords(null);
+        setMapUrl(null);
+      }
     } else {
+      // Reset for new incident
       form.reset({
         type: '',
         location: '',
         description: '',
         image: undefined,
       });
-      // Temporarily commenting out image and map state updates to isolate the issue
-      // if (imagePreview && imagePreview.startsWith('blob:')) {
-      //   URL.revokeObjectURL(imagePreview);
-      // }
-      // setImagePreview(undefined);
-      // setImageFile(null);
-      // setGeocodedCoords(null);
+      setImagePreview(undefined);
+      setImageFile(null);
+      setGeocodedCoords(null);
+      setMapUrl(null);
       originalLocationRef.current = '';
     }
   }, [initialIncident, form]);
 
   // --- Geocoding and Map Generation Effect ---
   useEffect(() => {
+    // This effect should only run if the location input has actually changed from its initial/previous value
+    // OR if it's a new incident and location is being typed.
+    const isLocationInputChanged = debouncedLocation !== originalLocationRef.current;
+    const isNewIncidentAndTyping = !initialIncident && debouncedLocation.trim();
+
     if (!debouncedLocation.trim()) {
       setMapUrl(null);
       setGeocodedCoords(null);
       return;
     }
 
-    // Check if we are editing AND the location text has NOT changed
-    const isEditingAndLocationUnchanged = initialIncident && debouncedLocation === originalLocationRef.current;
-
-    if (isEditingAndLocationUnchanged) {
+    // If we are editing AND the location text has NOT changed, use existing coordinates
+    if (initialIncident && !isLocationInputChanged) {
       if (initialIncident.latitude && initialIncident.longitude) {
-        // Use existing coordinates and bypass geocoding
         setGeocodedCoords({
           lat: initialIncident.latitude,
           lng: initialIncident.longitude,
         });
-        const url = `https://maps.googleapis.com/maps/api/staticmap?center=${initialIncident.latitude},${initialIncident.longitude}&zoom=15&size=600x300&markers=color:red%7C${initialIncident.latitude},${initialIncident.longitude}&key=${GOOGLE_MAPS_KEY}`;
-        setMapUrl(url);
+        // Ensure mapUrl is generated with the correct type, even if location didn't change
+        setMapUrl(IncidentService.getStaticMapUrl(initialIncident.latitude, initialIncident.longitude, initialIncident.type));
         setMapLoading(false);
         return;
       }
     }
 
-    let cancelled = false;
-    setMapLoading(true);
+    // Only proceed with geocoding if location input has changed or it's a new incident and typing
+    if (isLocationInputChanged || isNewIncidentAndTyping) {
+      let cancelled = false;
+      setMapLoading(true);
 
-    (async () => {
-      const coords = await geocodeAddress(debouncedLocation);
-      if (cancelled) return;
+      (async () => {
+        const coords = await geocodeAddress(debouncedLocation);
+        if (cancelled) return;
 
-      if (coords) {
-        const url = `https://maps.googleapis.com/maps/api/staticmap?center=${coords.lat},${coords.lng}&zoom=15&size=600x300&markers=color:red%7C${coords.lat},${coords.lng}&key=${GOOGLE_MAPS_KEY}`;
-        setMapUrl(url);
-        setGeocodedCoords(coords);
-      } else {
-        setMapUrl(null);
-        setGeocodedCoords(null);
-      }
-      setMapLoading(false);
-    })();
+        if (coords) {
+          const url = IncidentService.getStaticMapUrl(coords.lat, coords.lng, typeWatch); // Use current type from form
+          setMapUrl(url);
+          setGeocodedCoords(coords);
+        } else {
+          setMapUrl(null);
+          setGeocodedCoords(null);
+        }
+        setMapLoading(false);
+      })();
 
-    return () => {
-      cancelled = true;
-    };
-  }, [debouncedLocation, initialIncident]);
+      return () => {
+        cancelled = true;
+      };
+    }
+  }, [debouncedLocation, initialIncident, typeWatch]);
   // --- End Geocoding and Map Generation Effect ---
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {

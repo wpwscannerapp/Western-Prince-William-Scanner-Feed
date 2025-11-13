@@ -8,6 +8,7 @@ import { NotificationService } from './NotificationService';
 import { AnalyticsService } from './AnalyticsService';
 import { ProfileService } from './ProfileService';
 import { IncidentRow, IncidentInsert, IncidentUpdate, NewIncident, IncidentListItem, AlertInsert } from '@/types/supabase';
+import { GOOGLE_MAPS_KEY } from '@/config'; // Import GOOGLE_MAPS_KEY
 
 export type Incident = IncidentRow; // Alias IncidentRow to Incident for existing usage
 
@@ -30,6 +31,17 @@ const logSupabaseError = (functionName: string, error: any) => {
 
 export const IncidentService = {
   INCIDENTS_PER_PAGE,
+
+  // Helper function to generate Google Static Map URL
+  getStaticMapUrl(latitude: number, longitude: number, type: string): string {
+    const markerColor = type.toLowerCase().includes('fire') ? 'red' : 'blue'; // Red for fire, Blue otherwise
+    const marker = `markers=color:${markerColor}%7C${latitude},${longitude}`;
+    const size = '600x300';
+    const zoom = 15;
+    
+    // Changed maptype from 'satellite' to 'hybrid' to include street names and labels
+    return `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=${size}&${marker}&maptype=hybrid&key=${GOOGLE_MAPS_KEY}`;
+  },
 
   async fetchIncidents(offset: number = 0, filters: IncidentFilter = {}, limit?: number): Promise<IncidentListItem[]> {
     const controller = new AbortController();
