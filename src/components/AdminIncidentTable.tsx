@@ -250,7 +250,7 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent 
             key={editingIncident.id} 
-            className="sm:tw-max-w-lg md:tw-max-w-xl tw-max-h-[90vh] tw-overflow-y-auto"
+            className="sm:tw-max-w-lg md:tw-max-w-xl tw-max-h-[90vh] tw-overflow-y-auto tw-z-[50] tw-pointer-events-auto"
             onPointerDownOutside={(e) => e.preventDefault()} // Prevent closing on click outside
           >
             <DialogHeader>
