@@ -131,7 +131,7 @@ const IncidentSearchForm: React.FC<IncidentSearchFormProps> = ({ onFilterChange,
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="tw-w-auto tw-p-0 tw-z-50" align="start">
+            <PopoverContent className="tw-w-auto tw-p-0 tw-z-50 tw-bg-popover" align="start">
               <Calendar
                 initialFocus
                 mode="range"
