@@ -16,8 +16,8 @@ import { IncidentService } from '@/services/IncidentService';
 import { format } from 'date-fns';
 import { Edit, Trash2, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import IncidentForm from './IncidentForm';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
+// Removed: import IncidentForm from './IncidentForm';
 import { AnalyticsService } from '@/services/AnalyticsService';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -29,11 +29,10 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
   const [incidents, setIncidents] = useState<IncidentListItem[]>([]); // Use IncidentListItem
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingIncident, setEditingIncident] = useState<IncidentRow | null>(null); // Use IncidentRow
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Removed: const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const navigate = useNavigate(); // Initialize useNavigate
 
   const fetchIncidents = async () => {
     setLoading(true);
@@ -81,51 +80,8 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
   };
 
   const handleEdit = (incident: IncidentRow) => { // Use IncidentRow
-    setEditingIncident(incident);
-    setIsEditDialogOpen(true);
-    AnalyticsService.trackEvent({ name: 'admin_incident_edit_opened', properties: { incidentId: incident.id } });
-  };
-
-  const handleUpdateIncident = async (type: string, location: string, description: string, imageFile: File | null, currentImageUrl: string | null, latitude: number | undefined, longitude: number | undefined): Promise<boolean> => {
-    if (!editingIncident) return false;
-
-    setIsSubmitting(true);
-    try {
-      toast.loading('Updating incident...', { id: 'update-incident' });
-      const title = `${type} at ${location}`;
-      const updatedIncident = await IncidentService.updateIncident(editingIncident.id, {
-        title,
-        type,
-        location,
-        description,
-        date: editingIncident.date,
-      }, imageFile, currentImageUrl, latitude, longitude);
-      
-      if (updatedIncident) {
-        toast.success('Incident updated successfully!', { id: 'update-incident' });
-        setIsEditDialogOpen(false);
-        setEditingIncident(null);
-        // Invalidate queries for global update
-        queryClient.invalidateQueries({ queryKey: ['incidents'] });
-        queryClient.invalidateQueries({ queryKey: ['incidents', 'latest'] });
-        queryClient.invalidateQueries({ queryKey: ['incidents', 'archive'] });
-        queryClient.invalidateQueries({ queryKey: ['incidents', updatedIncident.id] }); // Invalidate specific incident detail cache
-        fetchIncidents(); // Re-fetch for the admin table itself
-        onIncidentUpdated(); // Notify parent component (AdminDashboardTabs)
-        AnalyticsService.trackEvent({ name: 'admin_incident_updated', properties: { incidentId: updatedIncident.id } });
-        return true;
-      } else {
-        toast.error('Failed to update incident.', { id: 'update-incident' });
-        AnalyticsService.trackEvent({ name: 'admin_incident_update_failed', properties: { incidentId: editingIncident.id } });
-        return false;
-      }
-    } catch (err) {
-      toast.error('An error occurred while updating the incident.', { id: 'update-incident' });
-      AnalyticsService.trackEvent({ name: 'admin_incident_update_error', properties: { incidentId: editingIncident.id, error: (err as Error).message } });
-      return false; // Explicitly return false on error
-    } finally {
-      setIsSubmitting(false);
-    }
+    navigate(`/incidents/edit/${incident.id}`); // Navigate to the new edit page
+    AnalyticsService.trackEvent({ name: 'admin_incident_edit_navigated', properties: { incidentId: incident.id } });
   };
 
   const filteredIncidents = incidents.filter(incident =>
@@ -244,38 +200,6 @@ const AdminIncidentTable: React.FC<AdminIncidentTableProps> = ({ onIncidentUpdat
             </TableBody>
           </Table>
         </div>
-      )}
-
-      {editingIncident && (
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent 
-            key={editingIncident.id} 
-            className="sm:tw-max-w-lg md:tw-max-w-xl tw-max-h-[90vh] tw-overflow-y-auto tw-z-[50] tw-pointer-events-auto"
-            onPointerDownOutside={(e) => e.preventDefault()} // Prevent closing on click outside
-          >
-            <DialogHeader>
-              <DialogTitle>Edit Incident</DialogTitle>
-              <DialogDescription>Update the details, location, or image for this incident.</DialogDescription>
-            </DialogHeader>
-            <IncidentForm
-              formId="edit-incident-form"
-              onSubmit={handleUpdateIncident}
-              isLoading={isSubmitting}
-              initialIncident={editingIncident}
-            />
-            <DialogFooter>
-              <Button 
-                type="submit" 
-                form="edit-incident-form"
-                disabled={isSubmitting} 
-                className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground"
-              >
-                {isSubmitting && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
-                Update Incident
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       )}
     </div>
   );
