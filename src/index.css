@@ -138,11 +138,6 @@
   .dark .tw-button:hover {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   }
-
-  /* EMERGENCY OVERLAY KILLER - Added to prevent event blocking */
-  .fixed.inset-0, [data-radix-dialog-overlay] {
-    pointer-events: none !important;
-  }
 }
 
 @layer components {
