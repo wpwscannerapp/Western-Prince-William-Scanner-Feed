@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button'; // Import Button
 import { CheckCircle2, XCircle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleError } from '@/utils/errorHandler';
@@ -59,26 +59,43 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
   const preferPushNotifications = watch('prefer_push_notifications');
   const { notificationPermission, requestNotificationPermission } = useNotificationPermissions();
 
+  const handleEnableNotifications = async (checked: boolean) => {
+    setValue('enabled', checked);
+    if (checked && notificationPermission === 'default') {
+      const permission = await requestNotificationPermission();
+      if (permission !== 'granted') {
+        setValue('enabled', false);
+        toast.error('Notifications disabled due to permission denial.');
+      }
+    }
+  };
+
   return (
     <>
       <div className="tw-flex tw-items-center tw-justify-between">
         <Label htmlFor="enabled" className="tw-text-base">Enable Push Notifications</Label>
-        <Switch
-          id="enabled"
-          checked={enabled}
-          onCheckedChange={async (checked) => {
-            setValue('enabled', checked);
-            if (checked && notificationPermission === 'default') {
-              const permission = await requestNotificationPermission();
-              if (permission !== 'granted') {
-                setValue('enabled', false);
-                toast.error('Notifications disabled due to permission denial.');
-              }
-            }
-          }}
-          disabled={isFormDisabled || notificationPermission === 'denied'}
-          aria-label="Toggle push notifications"
-        />
+        <div className="tw-flex tw-gap-2">
+          <Button
+            variant={enabled ? 'default' : 'outline'}
+            onClick={() => handleEnableNotifications(true)}
+            disabled={isFormDisabled || notificationPermission === 'denied'}
+            aria-pressed={enabled}
+            aria-label="Enable push notifications"
+            className={enabled ? 'tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground' : 'tw-text-muted-foreground hover:tw-text-primary'}
+          >
+            On
+          </Button>
+          <Button
+            variant={!enabled ? 'default' : 'outline'}
+            onClick={() => handleEnableNotifications(false)}
+            disabled={isFormDisabled}
+            aria-pressed={!enabled}
+            aria-label="Disable push notifications"
+            className={!enabled ? 'tw-bg-destructive hover:tw-bg-destructive/90 tw-text-destructive-foreground' : 'tw-text-muted-foreground hover:tw-text-destructive'}
+          >
+            Off
+          </Button>
+        </div>
       </div>
       {notificationPermission === 'denied' && (
         <p className="tw-text-destructive tw-text-sm tw-flex tw-items-center tw-gap-1">
@@ -98,13 +115,28 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
 
       <div className="tw-flex tw-items-center tw-justify-between">
         <Label htmlFor="prefer_push_notifications" className="tw-text-base">Prefer Push Notifications (Suppress in-app toasts)</Label>
-        <Switch
-          id="prefer_push_notifications"
-          checked={preferPushNotifications}
-          onCheckedChange={(checked) => setValue('prefer_push_notifications', checked)}
-          disabled={isFormDisabled || !enabled}
-          aria-label="Toggle preference for push notifications over in-app toasts"
-        />
+        <div className="tw-flex tw-gap-2">
+          <Button
+            variant={preferPushNotifications ? 'default' : 'outline'}
+            onClick={() => setValue('prefer_push_notifications', true)}
+            disabled={isFormDisabled || !enabled}
+            aria-pressed={preferPushNotifications}
+            aria-label="Prefer push notifications"
+            className={preferPushNotifications ? 'tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground' : 'tw-text-muted-foreground hover:tw-text-primary'}
+          >
+            On
+          </Button>
+          <Button
+            variant={!preferPushNotifications ? 'default' : 'outline'}
+            onClick={() => setValue('prefer_push_notifications', false)}
+            disabled={isFormDisabled || !enabled}
+            aria-pressed={!preferPushNotifications}
+            aria-label="Do not prefer push notifications"
+            className={!preferPushNotifications ? 'tw-bg-destructive hover:tw-bg-destructive/90 tw-text-destructive-foreground' : 'tw-text-muted-foreground hover:tw-text-destructive'}
+          >
+            Off
+          </Button>
+        </div>
       </div>
     </>
   );
