@@ -68,12 +68,22 @@ const ProfilePage: React.FC = () => {
     return (
       <div className="tw-min-h-screen tw-flex tw-items-center tw-justify-center tw-bg-background tw-text-foreground tw-p-4">
         <div className="tw-text-center">
-          <h1 className="tw-text-2xl tw-font-bold tw-text-destructive tw-mb-4">Error Loading Profile</h1>
+          <h1 className="tw-2xl tw-font-bold tw-text-destructive tw-mb-4">Error Loading Profile</h1>
           <p className="tw-text-muted-foreground">{handleError(profileError, 'Failed to load your profile.')}</p>
         </div>
       </div>
     );
   }
+
+  // --- NEW DEBUG LOG ---
+  if (import.meta.env.DEV) {
+    console.log('ProfilePage Render Check (Final Values):', {
+      finalIsSubscribed: isSubscribed,
+      finalIsAdmin: isAdmin,
+      conditionForOverlay: !isSubscribed && !isAdmin
+    });
+  }
+  // --- END NEW DEBUG LOG ---
 
   return (
     <div className="tw-container tw-mx-auto tw-p-4 tw-max-w-3xl">
