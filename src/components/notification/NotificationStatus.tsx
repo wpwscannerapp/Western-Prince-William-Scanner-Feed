@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalyticsService } from '@/services/AnalyticsService';
 import { IDLE_TIMEOUT_MS, NotificationSettingsFormValues, UseRealtimeAlertsResult } from './types';
+import { useAuth } from '@/context/AuthContext'; // Import useAuth
 
 // --- Custom Hooks ---
 
@@ -31,7 +32,16 @@ const useRealtimeAlerts = (user: any, preferPushNotifications: boolean): UseReal
   }, []);
 
   const subscribeToAlerts = useCallback(() => {
-    if (!user) return;
+    if (!user) {
+      // If no user, ensure status is not active and no channel is subscribed
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      setAlertRealtimeStatus('connecting'); // Or 'inactive' if we want a distinct state for no user
+      return;
+    }
+
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
     }
@@ -92,7 +102,8 @@ interface NotificationStatusProps {
 export const NotificationStatus: React.FC<NotificationStatusProps> = ({ isWebPushInitialized }) => {
   const { watch } = useFormContext<NotificationSettingsFormValues>();
   const preferPushNotifications = watch('prefer_push_notifications');
-  const { alertRealtimeStatus } = useRealtimeAlerts(supabase.auth.getUser(), preferPushNotifications);
+  const { user } = useAuth(); // Get user from AuthContext
+  const { alertRealtimeStatus } = useRealtimeAlerts(user, preferPushNotifications); // Pass user from context
 
   return (
     <div className="tw-space-y-2">
