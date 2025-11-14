@@ -7,8 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox'; // Import Checkbox
-import { Loader2, Send, User } from 'lucide-react'; // Removed Mail and Phone icons as they are not directly used in JSX
+import { Loader2, Send, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleError } from '@/utils/errorHandler';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,6 +38,7 @@ const FeedbackForm: React.FC = () => {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const allowContact = form.watch('allow_contact'); // Watch the state of allow_contact
 
   const onSubmit = async (values: FeedbackFormValues) => {
     setIsSubmitting(true);
@@ -147,19 +147,32 @@ const FeedbackForm: React.FC = () => {
                 <p className="tw-text-destructive tw-text-sm tw-mt-1">{form.formState.errors.contact_phone.message}</p>
               )}
             </div>
-            <div className="tw-flex tw-items-center tw-space-x-2">
-              <Checkbox
-                id="allow_contact"
-                checked={form.watch('allow_contact')}
-                onCheckedChange={(checked) => form.setValue('allow_contact', checked as boolean)}
-                disabled={isSubmitting}
-              />
-              <Label
-                htmlFor="allow_contact"
-                className="tw-text-sm tw-font-medium tw-leading-none peer-disabled:tw-cursor-not-allowed peer-disabled:tw-opacity-70"
-              >
-                I would like to be contacted regarding my feedback.
-              </Label>
+            <div className="tw-flex tw-items-center tw-justify-between">
+              <Label className="tw-text-base">Would you like to be contacted regarding your feedback?</Label>
+              <div className="tw-flex tw-gap-2">
+                <Button
+                  type="button"
+                  variant={allowContact ? 'default' : 'outline'}
+                  onClick={() => form.setValue('allow_contact', true)}
+                  disabled={isSubmitting}
+                  className={allowContact ? 'tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground' : 'tw-text-muted-foreground hover:tw-text-primary'}
+                  aria-pressed={allowContact}
+                  aria-label="Yes, contact me"
+                >
+                  Yes
+                </Button>
+                <Button
+                  type="button"
+                  variant={!allowContact ? 'default' : 'outline'}
+                  onClick={() => form.setValue('allow_contact', false)}
+                  disabled={isSubmitting}
+                  aria-pressed={!allowContact}
+                  aria-label="No, do not contact me"
+                  className={!allowContact ? 'tw-bg-destructive hover:tw-bg-destructive/90 tw-text-destructive-foreground' : 'tw-text-muted-foreground hover:tw-text-destructive'}
+                >
+                  No
+                </Button>
+              </div>
             </div>
           </div>
 
