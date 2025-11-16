@@ -18,7 +18,14 @@ export type FeedbackRow             = PublicSchema['Tables']['feedback_and_sugge
 export type IncidentRow             = PublicSchema['Tables']['incidents']['Row']
 export type LikeRow                 = PublicSchema['Tables']['likes']['Row']
 export type ProfileRow              = PublicSchema['Tables']['profiles']['Row']
-export type PushSubscriptionRow     = PublicSchema['Tables']['push_subscriptions']['Row'] // Re-added: Push Subscription Row
+
+// Manually defined PushSubscription types as database.types.ts is out of sync
+export type PushSubscriptionRow = {
+  id: string;
+  user_id: string;
+  subscription: Json;
+  created_at: string | null;
+};
 
 // Utility type for incidents guaranteed to have coordinates
 export type IncidentWithCoords = IncidentRow & {
@@ -47,8 +54,21 @@ export type ContactSettingsInsert = PublicSchema['Tables']['contact_settings']['
 export type ContactSettingsUpdate = PublicSchema['Tables']['contact_settings']['Update']
 export type IncidentInsert = PublicSchema['Tables']['incidents']['Insert']
 export type IncidentUpdate = PublicSchema['Tables']['incidents']['Update']
-export type PushSubscriptionInsert = PublicSchema['Tables']['push_subscriptions']['Insert'] // Re-added: Push Subscription Insert
-export type PushSubscriptionUpdate = PublicSchema['Tables']['push_subscriptions']['Update'] // Re-added: Push Subscription Update
+
+// Manually defined PushSubscription types as database.types.ts is out of sync
+export type PushSubscriptionInsert = {
+  id?: string;
+  user_id: string;
+  subscription: Json;
+  created_at?: string | null;
+};
+export type PushSubscriptionUpdate = {
+  id?: string;
+  user_id?: string;
+  subscription?: Json;
+  created_at?: string | null;
+};
+
 export type ProfileInsert = PublicSchema['Tables']['profiles']['Insert']
 export type ProfileUpdate = PublicSchema['Tables']['profiles']['Update']
 
