@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { StorageService } from './StorageService';
-import { NotificationService } from './NotificationService';
+import { NotificationService } from './NotificationService'; // Re-import NotificationService
 import { AnalyticsService } from './AnalyticsService';
 import { ProfileService } from './ProfileService';
 import { IncidentRow, IncidentInsert, IncidentUpdate, NewIncident, IncidentListItem, AlertInsert } from '@/types/supabase';
@@ -280,7 +280,7 @@ export const IncidentService = {
           latitude: data.latitude || 0,
           longitude: data.longitude || 0,
         };
-        await NotificationService.createAlert(alertInsert);
+        await NotificationService.createAlert(alertInsert); // Re-enabled
         AnalyticsService.trackEvent({ name: 'incident_created', properties: { incidentId: data.id, adminId, type: data.type } });
         if (import.meta.env.DEV) {
           console.log('IncidentService: Alert notification created.');

@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS on_new_alert ON public.alerts;

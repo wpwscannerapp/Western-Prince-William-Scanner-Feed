@@ -3,51 +3,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button'; // Import Button
+import { Button } from '@/components/ui/button';
 import { CheckCircle2, XCircle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleError } from '@/utils/errorHandler';
 import { AnalyticsService } from '@/services/AnalyticsService';
 import { NotificationSettingsFormValues, UseNotificationPermissionsResult } from './types';
-
-// --- Custom Hooks ---
-
-const useNotificationPermissions = (): UseNotificationPermissionsResult => {
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
-
-  useEffect(() => {
-    setNotificationPermission(Notification.permission);
-  }, []);
-
-  const requestNotificationPermission = useCallback(async () => {
-    if (!('Notification' in window)) {
-      handleError(null, 'Notifications are not supported by your browser.');
-      AnalyticsService.trackEvent({ name: 'notification_permission_request_failed', properties: { reason: 'not_supported' } });
-      return 'denied';
-    }
-
-    try {
-      const permission = await Notification.requestPermission();
-      setNotificationPermission(permission);
-      if (permission === 'granted') {
-        toast.success('Notification permission granted!');
-        AnalyticsService.trackEvent({ name: 'notification_permission_granted' });
-      } else {
-        toast.info('Notification permission denied or dismissed.');
-        AnalyticsService.trackEvent({ name: 'notification_permission_denied' });
-      }
-      return permission;
-    } catch (err) {
-      handleError(err, 'Failed to request notification permission.');
-      AnalyticsService.trackEvent({ name: 'notification_permission_request_error', properties: { error: (err as Error).message } });
-      return 'denied';
-    }
-  }, []);
-
-  return { notificationPermission, requestNotificationPermission };
-};
-
-// --- Component ---
 
 interface NotificationPreferencesProps {
   isFormDisabled: boolean;
@@ -140,4 +101,39 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
       </div>
     </>
   );
+};
+
+const useNotificationPermissions = (): UseNotificationPermissionsResult => {
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+
+  useEffect(() => {
+    setNotificationPermission(Notification.permission);
+  }, []);
+
+  const requestNotificationPermission = useCallback(async () => {
+    if (!('Notification' in window)) {
+      handleError(null, 'Notifications are not supported by your browser.');
+      AnalyticsService.trackEvent({ name: 'notification_permission_request_failed', properties: { reason: 'not_supported' } });
+      return 'denied';
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      if (permission === 'granted') {
+        toast.success('Notification permission granted!');
+        AnalyticsService.trackEvent({ name: 'notification_permission_granted' });
+      } else {
+        toast.info('Notification permission denied or dismissed.');
+        AnalyticsService.trackEvent({ name: 'notification_permission_denied' });
+      }
+      return permission;
+    } catch (err) {
+      handleError(err, 'Failed to request notification permission.');
+      AnalyticsService.trackEvent({ name: 'notification_permission_request_error', properties: { error: (err as Error).message } });
+      return 'denied';
+    }
+  }, []);
+
+  return { notificationPermission, requestNotificationPermission };
 };

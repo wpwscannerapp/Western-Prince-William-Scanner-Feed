@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.notify_web_push_on_new_alert();

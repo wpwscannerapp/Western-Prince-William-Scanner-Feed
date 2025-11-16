@@ -6,11 +6,9 @@ import { SUPABASE_API_TIMEOUT } from '@/config';
 import { AnalyticsService } from './AnalyticsService';
 import { PushSubJson, NotificationSettingsUpdate, AlertRow, AlertUpdate, NewAlert, NotificationSettingsInsert, NotificationSettingsRow } from '@/types/supabase';
 
-export type PushSubscription = PushSubJson; // Alias PushSubJson to PushSubscription for existing usage
-
-export type UserNotificationSettings = NotificationSettingsRow; // Alias NotificationSettingsRow to UserNotificationSettings for existing usage
-
-export type Alert = AlertRow; // Alias AlertRow to Alert for existing usage
+export type PushSubscription = PushSubJson;
+export type UserNotificationSettings = NotificationSettingsRow;
+export type Alert = AlertRow;
 
 const logSupabaseError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
@@ -124,7 +122,7 @@ export const NotificationService = {
         .select('*')
         .eq('user_id', userId)
         .abortSignal(controller.signal)
-        .single(); // Changed from .limit(1) to .single()
+        .single();
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -135,7 +133,7 @@ export const NotificationService = {
         AnalyticsService.trackEvent({ name: 'fetch_notification_settings_failed', properties: { userId, error: error.message } });
         return null;
       }
-      const settings = data as NotificationSettingsRow; // data is already a single object due to .single()
+      const settings = data as NotificationSettingsRow;
       AnalyticsService.trackEvent({ name: 'notification_settings_fetched', properties: { userId, enabled: settings?.enabled } });
       return settings;
     } catch (err: any) {
@@ -160,11 +158,10 @@ export const NotificationService = {
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
-      // Fetch existing settings or create a default one if none exist
       const existingSettings = await NotificationService.getUserNotificationSettings(userId);
 
-      const defaultSettings: NotificationSettingsInsert = { // Changed type to NotificationSettingsInsert
-        user_id: userId, // user_id is required for NotificationSettingsInsert
+      const defaultSettings: NotificationSettingsInsert = {
+        user_id: userId,
         enabled: false,
         push_subscription: null,
         receive_all_alerts: true,
@@ -179,13 +176,12 @@ export const NotificationService = {
         radius_miles: 5,
       };
 
-      // Merge existing settings (if any) with defaults, then apply updates
       const mergedSettings: NotificationSettingsInsert = {
         ...defaultSettings,
-        ...(existingSettings || {}), // Use existing settings if available
+        ...(existingSettings || {}),
         ...updates,
         updated_at: new Date().toISOString(),
-        user_id: userId, // Ensure user_id is always present for upsert
+        user_id: userId,
       };
 
       const { data, error } = await supabase

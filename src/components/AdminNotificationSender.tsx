@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
-import { NotificationService } from '@/services/NotificationService';
+import { NotificationService } from '@/services/NotificationService'; // Re-import NotificationService
 import { handleError } from '@/utils/errorHandler';
 import { useAuth } from '@/hooks/useAuth';
 import { AnalyticsService } from '@/services/AnalyticsService';

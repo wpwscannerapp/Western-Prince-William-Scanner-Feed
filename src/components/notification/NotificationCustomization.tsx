@@ -9,8 +9,6 @@ import { Info, Clock, CalendarDays } from 'lucide-react';
 import { AnalyticsService } from '@/services/AnalyticsService';
 import { daysOfWeek, NotificationSettingsFormValues } from './types';
 
-// --- Component ---
-
 interface NotificationCustomizationProps {
   isCustomizationDisabled: boolean;
 }

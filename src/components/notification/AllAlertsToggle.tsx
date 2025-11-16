@@ -3,11 +3,9 @@
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button'; // Import Button
+import { Button } from '@/components/ui/button';
 import { CardDescription } from '@/components/ui/card';
 import { NotificationSettingsFormValues } from './types';
-
-// --- Component ---
 
 interface AllAlertsToggleProps {
   isFormDisabled: boolean;

@@ -2,11 +2,10 @@
 
 import React, { useEffect } from 'react';
 import ProfileForm from '@/components/ProfileForm';
-import NotificationSettingsForm from '@/components/notification/NotificationSettingsForm';
 import { PROFILE_TITLE, PROFILE_DESCRIPTION } from '@/lib/constants';
 import { Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import { ProfileService, Profile } from '@/services/ProfileService';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -104,7 +103,8 @@ const ProfilePage: React.FC = () => {
                   <ProfileForm />
                 </TabsContent>
                 <TabsContent value="notification-settings" className="tw-mt-6">
-                  <NotificationSettingsForm isWebPushInitialized={isWebPushInitialized} />
+                  {/* NotificationSettingsForm will be re-added here later */}
+                  <p className="tw-text-muted-foreground tw-text-center tw-py-8">Notification settings coming soon...</p>
                 </TabsContent>
               </Tabs>
             </div>

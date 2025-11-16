@@ -18,9 +18,7 @@ export type FeedbackRow             = PublicSchema['Tables']['feedback_and_sugge
 export type IncidentRow             = PublicSchema['Tables']['incidents']['Row']
 export type LikeRow                 = PublicSchema['Tables']['likes']['Row']
 export type ProfileRow              = PublicSchema['Tables']['profiles']['Row']
-export type NotificationSettingsRow = PublicSchema['Tables']['user_notification_settings']['Row'] & {
-  receive_all_alerts: boolean; // Explicitly added to resolve TS2339
-}
+export type NotificationSettingsRow = PublicSchema['Tables']['user_notification_settings']['Row']
 
 // Utility type for incidents guaranteed to have coordinates
 export type IncidentWithCoords = IncidentRow & {
@@ -49,12 +47,8 @@ export type ContactSettingsInsert = PublicSchema['Tables']['contact_settings']['
 export type ContactSettingsUpdate = PublicSchema['Tables']['contact_settings']['Update']
 export type IncidentInsert = PublicSchema['Tables']['incidents']['Insert']
 export type IncidentUpdate = PublicSchema['Tables']['incidents']['Update']
-export type NotificationSettingsInsert = PublicSchema['Tables']['user_notification_settings']['Insert'] & {
-  receive_all_alerts?: boolean; // Explicitly added to resolve TS2353
-}
-export type NotificationSettingsUpdate = PublicSchema['Tables']['user_notification_settings']['Update'] & {
-  receive_all_alerts?: boolean; // Explicitly added for consistency
-}
+export type NotificationSettingsInsert = PublicSchema['Tables']['user_notification_settings']['Insert']
+export type NotificationSettingsUpdate = PublicSchema['Tables']['user_notification_settings']['Update']
 export type ProfileInsert = PublicSchema['Tables']['profiles']['Insert']
 export type ProfileUpdate = PublicSchema['Tables']['profiles']['Update']
 
