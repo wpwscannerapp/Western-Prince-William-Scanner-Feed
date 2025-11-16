@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Settings, BellRing, Menu, Phone, Siren, AlertTriangle } from 'lucide-react'; // Removed MessageSquare icon
+import { LayoutDashboard, Settings, BellRing, Menu, Phone, Siren, AlertTriangle, MessageSquare } from 'lucide-react'; // Re-added MessageSquare icon
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { AnalyticsService } from '@/services/AnalyticsService';
@@ -18,7 +18,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, onTabChange }) =
   const navItems = [
     { name: 'Incidents', icon: Siren, tab: 'incidents' },
     { name: 'Alerts', icon: AlertTriangle, tab: 'alerts' },
-    // Removed: { name: 'Feedback', icon: MessageSquare, tab: 'feedback' },
+    { name: 'Feedback', icon: MessageSquare, tab: 'feedback' }, // Re-added Feedback as a top-level tab
     { name: 'Analytics', icon: LayoutDashboard, tab: 'analytics' },
     { name: 'Settings', icon: Settings, tab: 'settings' },
     { name: 'Notifications', icon: BellRing, tab: 'notifications' },
