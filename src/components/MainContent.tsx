@@ -50,7 +50,8 @@ const SignupPage = lazyLoad(() => import('@/pages/SignupPage'), '@/pages/SignupP
 const SubscriptionPage = lazyLoad(() => import('@/pages/SubscriptionPage'), '@/pages/SubscriptionPage');
 const ResetPasswordPage = lazyLoad(() => import('@/pages/ResetPasswordPage'), '@/pages/ResetPasswordPage');
 const TermsOfServicePage = lazyLoad(() => import('@/pages/TermsOfServicePage'), '@/pages/TermsOfServicePage');
-const EditIncidentPage = lazyLoad(() => import('@/pages/EditIncidentPage'), '@/pages/EditIncidentPage'); // New: Lazy load EditIncidentPage
+const EditIncidentPage = lazyLoad(() => import('@/pages/EditIncidentPage'), '@/pages/EditIncidentPage');
+const FeedbackDetailPage = lazyLoad(() => import('@/pages/FeedbackDetailPage'), '@/pages/FeedbackDetailPage'); // New: Lazy load FeedbackDetailPage
 const NotFound = lazyLoad(() => import('@/pages/NotFound'), '@/pages/NotFound');
 
 
@@ -86,7 +87,8 @@ const MainContent: React.FC = () => {
             <Route path="profile" element={<Suspense fallback={<PageLoadingFallback />}><ProfilePage /></Suspense>} />
             <Route path="admin" element={<Suspense fallback={<PageLoadingFallback />}><AdminPage /></Suspense>} />
             <Route path="incidents/:incidentId" element={<Suspense fallback={<PageLoadingFallback />}><IncidentDetailPage /></Suspense>} />
-            <Route path="incidents/edit/:incidentId" element={<Suspense fallback={<PageLoadingFallback />}><EditIncidentPage /></Suspense>} /> {/* New: Edit Incident Page */}
+            <Route path="incidents/edit/:incidentId" element={<Suspense fallback={<PageLoadingFallback />}><EditIncidentPage /></Suspense>} />
+            <Route path="admin/feedback/:feedbackId" element={<Suspense fallback={<PageLoadingFallback />}><FeedbackDetailPage /></Suspense>} /> {/* New: Feedback Detail Page */}
           </Route>
 
           {/* Catch-all for 404 - wrapped in Suspense */}

@@ -17,16 +17,15 @@ import { handleError } from '@/utils/errorHandler';
 import { AnalyticsService } from '@/services/AnalyticsService';
 import { FeedbackWithProfile } from '@/types/supabase';
 import { FeedbackService } from '@/services/FeedbackService'; // Import the new service
-import FeedbackDetailDialog from './FeedbackDetailDialog'; // Import the new dialog component
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const AdminFeedbackTable: React.FC = () => {
   const [feedback, setFeedback] = useState<FeedbackWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
-  const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const navigate = useNavigate(); // Initialize useNavigate
 
   const fetchFeedback = async () => {
     setLoading(true);
@@ -47,14 +46,9 @@ const AdminFeedbackTable: React.FC = () => {
     fetchFeedback();
   }, []);
 
-  const handleOpenDetail = (id: string) => {
-    setSelectedFeedbackId(id);
-    setIsDetailDialogOpen(true);
-  };
-
-  const handleCloseDetail = () => {
-    setIsDetailDialogOpen(false);
-    setSelectedFeedbackId(null);
+  const handleViewDetails = (id: string) => {
+    navigate(`/admin/feedback/${id}`); // Navigate to the new FeedbackDetailPage
+    AnalyticsService.trackEvent({ name: 'admin_feedback_view_details_navigated', properties: { feedbackId: id } });
   };
 
   const handleDelete = async (feedbackId: string) => {
@@ -131,7 +125,7 @@ const AdminFeedbackTable: React.FC = () => {
                 <TableHead className="tw-whitespace-nowrap">Date</TableHead>
                 <TableHead className="tw-min-w-[120px]">User</TableHead>
                 <TableHead className="tw-min-w-[150px]">Subject</TableHead>
-                <TableHead className="tw-min-w-[250px]">Description</TableHead> {/* New Description column */}
+                <TableHead className="tw-min-w-[250px]">Description</TableHead> {/* Truncated message */}
                 <TableHead className="tw-whitespace-nowrap">Email</TableHead>
                 <TableHead className="tw-whitespace-nowrap">Phone</TableHead>
                 <TableHead className="tw-text-center tw-whitespace-nowrap">Contact?</TableHead>
@@ -170,7 +164,7 @@ const AdminFeedbackTable: React.FC = () => {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          onClick={() => handleOpenDetail(entry.id)}
+                          onClick={() => handleViewDetails(entry.id)}
                           className="tw-h-8 tw-w-8"
                           aria-label={`View details for feedback from ${entry.profiles?.[0]?.username || 'Anonymous'}`}
                           disabled={isDeleting}
@@ -198,13 +192,6 @@ const AdminFeedbackTable: React.FC = () => {
           </Table>
         </div>
       )}
-
-      <FeedbackDetailDialog
-        feedbackId={selectedFeedbackId}
-        isOpen={isDetailDialogOpen}
-        onClose={handleCloseDetail}
-        onDeleteSuccess={fetchFeedback} // Re-fetch table data after successful deletion from dialog
-      />
     </div>
   );
 };
