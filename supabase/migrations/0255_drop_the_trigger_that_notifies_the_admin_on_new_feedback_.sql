@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS on_new_feedback ON public.feedback_and_suggestions;

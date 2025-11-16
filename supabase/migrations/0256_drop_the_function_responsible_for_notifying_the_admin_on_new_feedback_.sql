@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.notify_admin_on_new_feedback();
