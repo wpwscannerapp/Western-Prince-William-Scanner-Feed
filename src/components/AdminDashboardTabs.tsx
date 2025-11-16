@@ -40,6 +40,13 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTa
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const [activeIncidentSubTab, setActiveIncidentSubTab] = useState('submit-incident'); // New state for nested tabs
 
+  // Effect to reset activeIncidentSubTab when the main activeTab changes to 'incidents'
+  useEffect(() => {
+    if (activeTab === 'incidents') {
+      setActiveIncidentSubTab('submit-incident');
+    }
+  }, [activeTab]);
+
   const invalidateIncidentQueries = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['incidents'] });
     queryClient.invalidateQueries({ queryKey: ['incidents', 'latest'] }); // Invalidate latest incident query
