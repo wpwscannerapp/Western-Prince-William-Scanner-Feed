@@ -10,7 +10,6 @@ import { ProfileService, Profile } from '@/services/ProfileService';
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useProfilePageContext } from '@/context/ProfilePageContext';
 import { useIsSubscribed } from '@/hooks/useIsSubscribed';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import SubscribeOverlay from '@/components/SubscribeOverlay';
@@ -19,7 +18,6 @@ import { AnalyticsService } from '@/services/AnalyticsService'; // Import Analyt
 
 const ProfilePage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
-  const isWebPushInitialized = useProfilePageContext();
   const { isSubscribed, loading: isSubscribedLoading } = useIsSubscribed();
   const { isAdmin, loading: isAdminLoading } = useIsAdmin();
   const navigate = useNavigate();

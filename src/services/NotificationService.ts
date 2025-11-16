@@ -164,7 +164,6 @@ export const NotificationService = {
         user_id: userId,
         enabled: false,
         push_subscription: null,
-        receive_all_alerts: true,
         preferred_start_time: null,
         preferred_end_time: null,
         preferred_days: [],

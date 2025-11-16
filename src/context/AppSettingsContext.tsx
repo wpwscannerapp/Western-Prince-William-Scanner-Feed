@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { useAppSettings } from '@/hooks/useAppSettings';
-import { SUPABASE_API_TIMEOUT } from '@/config';
 import { ProfilePageContext } from './ProfilePageContext';
-import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
 
 const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useAppSettings();
