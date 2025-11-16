@@ -38,6 +38,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTa
   const [incidentFormLoading, setIncidentFormLoading] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData[]>([]);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
+  const [activeIncidentSubTab, setActiveIncidentSubTab] = useState('submit-incident'); // New state for nested tabs
 
   const invalidateIncidentQueries = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['incidents'] });
@@ -141,7 +142,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTa
         <TabsList className="tw-inline-flex tw-h-auto tw-justify-start tw-gap-2 tw-rounded-md tw-p-1"> {/* Adjusted TabsList for horizontal scroll */}
           <TabsTrigger value="incidents" aria-label="Incidents tab" className="tw-whitespace-nowrap">Incidents</TabsTrigger>
           <TabsTrigger value="alerts" aria-label="Alerts tab" className="tw-whitespace-nowrap">Alerts</TabsTrigger>
-          <TabsTrigger value="feedback" aria-label="Feedback tab" className="tw-whitespace-nowrap">Feedback</TabsTrigger>
+          {/* Removed: <TabsTrigger value="feedback" aria-label="Feedback tab" className="tw-whitespace-nowrap">Feedback</TabsTrigger> */}
           <TabsTrigger value="analytics" aria-label="Analytics tab" className="tw-whitespace-nowrap">Analytics</TabsTrigger>
           <TabsTrigger value="settings" aria-label="Settings tab" className="tw-whitespace-nowrap">Settings</TabsTrigger>
           <TabsTrigger value="notifications" aria-label="Notifications tab" className="tw-whitespace-nowrap">Notifications</TabsTrigger>
@@ -149,27 +150,49 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTa
         </TabsList>
       </div>
       <TabsContent value="incidents" className="tw-space-y-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Submit New Incident</CardTitle>
-            <CardDescription>Report a new incident for the scanner feed</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <IncidentForm
-              onSubmit={handleCreateIncident}
-              isLoading={incidentFormLoading}
-            />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Manage Incidents</CardTitle>
-            <CardDescription>View, edit, or delete existing incidents</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AdminIncidentTable onIncidentUpdated={invalidateIncidentQueries} />
-          </CardContent>
-        </Card>
+        <Tabs value={activeIncidentSubTab} onValueChange={setActiveIncidentSubTab}>
+          <TabsList className="tw-grid tw-w-full tw-grid-cols-3">
+            <TabsTrigger value="submit-incident" aria-label="Submit new incident tab">Submit New Incident</TabsTrigger>
+            <TabsTrigger value="manage-incidents" aria-label="Manage incidents tab">Manage Incidents</TabsTrigger>
+            <TabsTrigger value="feedback-and-suggestions" aria-label="Feedback and suggestions tab">Feedback</TabsTrigger>
+          </TabsList>
+          <TabsContent value="submit-incident" className="tw-mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Submit New Incident</CardTitle>
+                <CardDescription>Report a new incident for the scanner feed</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <IncidentForm
+                  onSubmit={handleCreateIncident}
+                  isLoading={incidentFormLoading}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="manage-incidents" className="tw-mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Incidents</CardTitle>
+                <CardDescription>View, edit, or delete existing incidents</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AdminIncidentTable onIncidentUpdated={invalidateIncidentQueries} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="feedback-and-suggestions" className="tw-mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Feedback & Suggestions</CardTitle>
+                <CardDescription>View all submitted feedback and suggestions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AdminFeedbackTable />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </TabsContent>
       <TabsContent value="alerts" className="tw-space-y-8">
         <Card>
@@ -182,7 +205,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTa
           </CardContent>
         </Card>
       </TabsContent>
-      <TabsContent value="feedback" className="tw-space-y-8">
+      {/* Removed: <TabsContent value="feedback" className="tw-space-y-8">
         <Card>
           <CardHeader>
             <CardTitle>User Feedback & Suggestions</CardTitle>
@@ -192,7 +215,7 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTa
             <AdminFeedbackTable />
           </CardContent>
         </Card>
-      </TabsContent>
+      </TabsContent> */}
       <TabsContent value="analytics" className="tw-space-y-8">
         {analyticsError ? (
           <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-8">
