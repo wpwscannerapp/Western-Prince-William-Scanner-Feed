@@ -37,8 +37,15 @@ const FeedbackDetailDialog: React.FC<FeedbackDetailDialogProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log('FeedbackDetailDialog: useEffect triggered. isOpen:', isOpen, 'feedbackId:', feedbackId);
+    }
+
     const fetchFeedbackDetails = async () => {
       if (!feedbackId) {
+        if (import.meta.env.DEV) {
+          console.log('FeedbackDetailDialog: No feedbackId provided, skipping fetch.');
+        }
         setFeedback(null);
         setLoading(false);
         return;
@@ -46,15 +53,27 @@ const FeedbackDetailDialog: React.FC<FeedbackDetailDialogProps> = ({
 
       setLoading(true);
       setError(null);
+      if (import.meta.env.DEV) {
+        console.log('FeedbackDetailDialog: Fetching details for feedbackId:', feedbackId);
+      }
       try {
         const fetchedFeedback = await FeedbackService.fetchFeedbackById(feedbackId);
         setFeedback(fetchedFeedback);
         AnalyticsService.trackEvent({ name: 'feedback_detail_dialog_opened', properties: { feedbackId } });
+        if (import.meta.env.DEV) {
+          console.log('FeedbackDetailDialog: Fetched feedback:', fetchedFeedback);
+        }
       } catch (err) {
         setError(handleError(err, 'Failed to load feedback details.'));
         AnalyticsService.trackEvent({ name: 'feedback_detail_dialog_load_failed', properties: { feedbackId, error: (err as Error).message } });
+        if (import.meta.env.DEV) {
+          console.error('FeedbackDetailDialog: Error fetching feedback:', err);
+        }
       } finally {
         setLoading(false);
+        if (import.meta.env.DEV) {
+          console.log('FeedbackDetailDialog: Loading finished.');
+        }
       }
     };
 
@@ -62,6 +81,9 @@ const FeedbackDetailDialog: React.FC<FeedbackDetailDialogProps> = ({
       fetchFeedbackDetails();
     } else {
       // Reset state when dialog closes
+      if (import.meta.env.DEV) {
+        console.log('FeedbackDetailDialog: Dialog closed, resetting state.');
+      }
       setFeedback(null);
       setLoading(true);
       setDeleting(false);
@@ -75,6 +97,9 @@ const FeedbackDetailDialog: React.FC<FeedbackDetailDialogProps> = ({
     }
 
     setDeleting(true);
+    if (import.meta.env.DEV) {
+      console.log('FeedbackDetailDialog: Attempting to delete feedback:', feedbackId);
+    }
     try {
       toast.loading('Deleting feedback...', { id: 'delete-feedback-detail' });
       const success = await FeedbackService.deleteFeedback(feedbackId);
@@ -83,15 +108,27 @@ const FeedbackDetailDialog: React.FC<FeedbackDetailDialogProps> = ({
         onDeleteSuccess();
         onClose();
         AnalyticsService.trackEvent({ name: 'feedback_deleted_from_detail', properties: { feedbackId } });
+        if (import.meta.env.DEV) {
+          console.log('FeedbackDetailDialog: Feedback deleted successfully.');
+        }
       } else {
         toast.error('Failed to delete feedback.', { id: 'delete-feedback-detail' });
         AnalyticsService.trackEvent({ name: 'feedback_delete_failed_from_detail', properties: { feedbackId } });
+        if (import.meta.env.DEV) {
+          console.error('FeedbackDetailDialog: Failed to delete feedback.');
+        }
       }
     } catch (err) {
       toast.error('An error occurred while deleting feedback.', { id: 'delete-feedback-detail' });
       AnalyticsService.trackEvent({ name: 'feedback_delete_error_from_detail', properties: { feedbackId, error: (err as Error).message } });
+      if (import.meta.env.DEV) {
+        console.error('FeedbackDetailDialog: Error during deletion:', err);
+      }
     } finally {
       setDeleting(false);
+      if (import.meta.env.DEV) {
+        console.log('FeedbackDetailDialog: Deletion process finished.');
+      }
     }
   };
 
@@ -155,7 +192,7 @@ const FeedbackDetailDialog: React.FC<FeedbackDetailDialogProps> = ({
                   {feedback.allow_contact ? (
                     <CheckCircle2 className="tw-h-4 tw-w-4 tw-text-green-500 tw-inline-block tw-ml-1" aria-label="Yes" />
                   ) : (
-                    <XCircle className="tw-h-4 tw-w-4 tw-text-destructive tw-inline-block tw-ml-1" aria-label="No" />
+                    <XCircle className="tw-h-4 tw-w-4" tw-text-destructive tw-inline-block tw-ml-1" aria-label="No" />
                   )}
                 </span>
               </div>
