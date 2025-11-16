@@ -4,10 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { AnalyticsService } from './AnalyticsService';
-import { PushSubJson, NotificationSettingsUpdate, AlertRow, AlertUpdate, NewAlert, NotificationSettingsInsert, NotificationSettingsRow } from '@/types/supabase';
+import { AlertRow, AlertUpdate, NewAlert, PushSubscriptionInsert, PushSubscriptionRow } from '@/types/supabase';
 
-export type PushSubscription = PushSubJson;
-export type UserNotificationSettings = NotificationSettingsRow;
+export type PushSubscription = PushSubscriptionRow['subscription'];
 export type Alert = AlertRow;
 
 const logSupabaseError = (functionName: string, error: any) => {
@@ -34,6 +33,7 @@ export const NotificationService = {
     }
 
     try {
+      // Register the service worker (VitePWA handles the file generation)
       await navigator.serviceWorker.register('/service-worker.js');
       AnalyticsService.trackEvent({ name: 'web_push_service_worker_registered' });
       return true;
@@ -44,18 +44,16 @@ export const NotificationService = {
     }
   },
 
-  async subscribeUserToPush(): Promise<PushSubscription | null> {
+  async subscribeUserToPush(userId: string): Promise<PushSubscription | null> {
     const vapidPublicKey = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY;
 
     if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
       handleError(null, 'VAPID Public Key is missing or invalid. Cannot subscribe.');
-      AnalyticsService.trackEvent({ name: 'push_subscribe_failed', properties: { reason: 'invalid_vapid_key' } });
       return null;
     }
 
     if (Notification.permission !== 'granted') {
       handleError(null, 'Notification permission not granted. Please allow notifications to subscribe.');
-      AnalyticsService.trackEvent({ name: 'push_subscribe_failed', properties: { reason: 'permission_not_granted' } });
       return null;
     }
 
@@ -69,8 +67,28 @@ export const NotificationService = {
           applicationServerKey: NotificationService.urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
         });
       }
-      AnalyticsService.trackEvent({ name: 'push_subscribed', properties: { endpoint: subscription.endpoint } });
-      return subscription.toJSON() as PushSubscription;
+      
+      const pushSubJson = subscription.toJSON() as PushSubscription;
+
+      // Save subscription to Supabase
+      const subscriptionInsert: PushSubscriptionInsert = {
+        user_id: userId,
+        subscription: pushSubJson,
+      };
+
+      const { error } = await supabase
+        .from('push_subscriptions')
+        .upsert(subscriptionInsert, { onConflict: 'user_id, subscription->>endpoint' });
+
+      if (error) {
+        logSupabaseError('subscribeUserToPush - DB Save', error);
+        // Non-critical error, but log it
+        AnalyticsService.trackEvent({ name: 'push_subscribe_db_save_failed', properties: { userId, error: error.message } });
+        return null;
+      }
+
+      AnalyticsService.trackEvent({ name: 'push_subscribed', properties: { userId, endpoint: subscription.endpoint } });
+      return pushSubJson;
     } catch (err: any) {
       handleError(err, 'Failed to subscribe to push notifications. Please ensure your VAPID keys are correct and try again.');
       AnalyticsService.trackEvent({ name: 'push_subscribe_unexpected_error', properties: { error: err.message } });
@@ -80,7 +98,6 @@ export const NotificationService = {
 
   async unsubscribeWebPush(userId: string): Promise<boolean> {
     if (!('serviceWorker' in navigator)) {
-      AnalyticsService.trackEvent({ name: 'push_unsubscribe_skipped', properties: { reason: 'service_worker_not_supported' } });
       return false;
     }
 
@@ -90,21 +107,23 @@ export const NotificationService = {
 
       if (subscription) {
         await subscription.unsubscribe();
-        await NotificationService.updateUserNotificationSettings(userId, {
-          push_subscription: null,
-          enabled: false,
-        });
-        AnalyticsService.trackEvent({ name: 'push_unsubscribed', properties: { userId } });
-        return true;
-      } else {
-        // If no subscription found, but DB still thinks there is one, update DB
-        await NotificationService.updateUserNotificationSettings(userId, {
-          push_subscription: null,
-          enabled: false,
-        });
-        AnalyticsService.trackEvent({ name: 'push_unsubscribed_no_active_sub', properties: { userId } });
-        return true;
       }
+      
+      // Remove all subscriptions for this user/endpoint combination from DB
+      const { error } = await supabase
+        .from('push_subscriptions')
+        .delete()
+        .eq('user_id', userId)
+        .eq('subscription->>endpoint', subscription?.endpoint || '');
+
+      if (error) {
+        logSupabaseError('unsubscribeWebPush - DB Delete', error);
+        AnalyticsService.trackEvent({ name: 'push_unsubscribe_db_delete_failed', properties: { userId, error: error.message } });
+        return false;
+      }
+
+      AnalyticsService.trackEvent({ name: 'push_unsubscribed', properties: { userId } });
+      return true;
     } catch (err: any) {
       handleError(err, 'Failed to unsubscribe from push notifications.');
       AnalyticsService.trackEvent({ name: 'push_unsubscribe_failed', properties: { userId, error: err.message } });
@@ -112,107 +131,7 @@ export const NotificationService = {
     }
   },
 
-  async getUserNotificationSettings(userId: string): Promise<NotificationSettingsRow | null> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
-
-    try {
-      const { data, error } = await supabase
-        .from('user_notification_settings')
-        .select('*')
-        .eq('user_id', userId)
-        .abortSignal(controller.signal)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          AnalyticsService.trackEvent({ name: 'fetch_notification_settings_not_found', properties: { userId } });
-          return null;
-        }
-        logSupabaseError('getUserNotificationSettings', error);
-        AnalyticsService.trackEvent({ name: 'fetch_notification_settings_failed', properties: { userId, error: error.message } });
-        return null;
-      }
-      const settings = data as NotificationSettingsRow;
-      AnalyticsService.trackEvent({ name: 'notification_settings_fetched', properties: { userId, enabled: settings?.enabled } });
-      return settings;
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
-        handleError(new Error('Request timed out'), 'Fetching notification settings timed out.');
-        AnalyticsService.trackEvent({ name: 'fetch_notification_settings_timeout', properties: { userId } });
-      } else {
-        logSupabaseError('getUserNotificationSettings', err);
-        AnalyticsService.trackEvent({ name: 'fetch_notification_settings_unexpected_error', properties: { userId, error: err.message } });
-      }
-      return null;
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  },
-
-  async updateUserNotificationSettings(
-    userId: string,
-    updates: Partial<Omit<NotificationSettingsUpdate, 'user_id' | 'updated_at'>>
-  ): Promise<NotificationSettingsRow | null> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
-
-    try {
-      const existingSettings = await NotificationService.getUserNotificationSettings(userId);
-
-      const defaultSettings: NotificationSettingsInsert = {
-        user_id: userId,
-        enabled: false,
-        push_subscription: null,
-        preferred_start_time: null,
-        preferred_end_time: null,
-        preferred_days: [],
-        prefer_push_notifications: false,
-        latitude: null,
-        longitude: null,
-        manual_location_address: null,
-        preferred_types: [],
-        radius_miles: 5,
-      };
-
-      const mergedSettings: NotificationSettingsInsert = {
-        ...defaultSettings,
-        ...(existingSettings || {}),
-        ...updates,
-        updated_at: new Date().toISOString(),
-        user_id: userId,
-      };
-
-      const { data, error } = await supabase
-        .from('user_notification_settings')
-        .upsert(
-          mergedSettings as NotificationSettingsInsert,
-          { onConflict: 'user_id' }
-        )
-        .abortSignal(controller.signal)
-        .select()
-        .single();
-
-      if (error) {
-        logSupabaseError('updateUserNotificationSettings', error);
-        AnalyticsService.trackEvent({ name: 'update_notification_settings_failed', properties: { userId, updates: Object.keys(updates), error: error.message } });
-        return null;
-      }
-      AnalyticsService.trackEvent({ name: 'notification_settings_updated', properties: { userId, enabled: data?.enabled } });
-      return data;
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
-        handleError(new Error('Request timed out'), 'Updating notification settings timed out.');
-        AnalyticsService.trackEvent({ name: 'update_notification_settings_timeout', properties: { userId } });
-      } else {
-        logSupabaseError('updateUserNotificationSettings', err);
-        AnalyticsService.trackEvent({ name: 'update_notification_settings_unexpected_error', properties: { userId, error: err.message } });
-      }
-      return null;
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  },
+  // --- Alert Management (Kept from previous implementation) ---
 
   async createAlert(alert: NewAlert): Promise<AlertRow | null> {
     const controller = new AbortController();

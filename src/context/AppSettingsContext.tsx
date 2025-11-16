@@ -1,24 +1,22 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { ProfilePageContext } from './ProfilePageContext';
+import { NotificationService } from '@/services/NotificationService';
 
 const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  useAppSettings();
-  // Removed isWebPushInitialized state and related logic
-  // This will be re-added when the new NotificationService is implemented
+  useAppSettings(); 
+  const [isWebPushInitialized, setIsWebPushInitialized] = useState(false);
 
   useEffect(() => {
-    // Placeholder for web push initialization logic
-    // This will be re-implemented when the new NotificationService is created
-    if (import.meta.env.DEV) {
-      console.log('AppSettingsContext: Web Push initialization currently disabled.');
-    }
+    NotificationService.ensureWebPushReady().then(ready => {
+      setIsWebPushInitialized(ready);
+    });
   }, []);
 
   return (
-    <ProfilePageContext.Provider value={false}> {/* Temporarily set to false */}
+    <ProfilePageContext.Provider value={isWebPushInitialized}>
       {children}
     </ProfilePageContext.Provider>
   );

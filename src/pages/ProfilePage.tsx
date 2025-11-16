@@ -15,6 +15,7 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import SubscribeOverlay from '@/components/SubscribeOverlay';
 import { useNavigate } from 'react-router-dom';
 import { AnalyticsService } from '@/services/AnalyticsService'; // Import AnalyticsService
+import NotificationSettingsForm from '@/components/NotificationSettingsForm'; // Import new component
 
 const ProfilePage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -101,8 +102,7 @@ const ProfilePage: React.FC = () => {
                   <ProfileForm />
                 </TabsContent>
                 <TabsContent value="notification-settings" className="tw-mt-6">
-                  {/* NotificationSettingsForm will be re-added here later */}
-                  <p className="tw-text-muted-foreground tw-text-center tw-py-8">Notification settings coming soon...</p>
+                  <NotificationSettingsForm />
                 </TabsContent>
               </Tabs>
             </div>

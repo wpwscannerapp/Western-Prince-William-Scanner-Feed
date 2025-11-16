@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AnalyticsCard from '@/components/AnalyticsCard';
 import AppSettingsForm from '@/components/AppSettingsForm';
-import AdminNotificationSender from '@/components/AdminNotificationSender';
 import ContactSettingsForm from '@/components/ContactSettingsForm';
 import IncidentForm from '@/components/IncidentForm';
 import AdminIncidentTable from '@/components/AdminIncidentTable';
@@ -20,6 +19,8 @@ import { Button } from '@/components/ui/button';
 import { handleError } from '@/utils/errorHandler';
 import { AnalyticsService } from '@/services/AnalyticsService';
 import { useQueryClient } from '@tanstack/react-query'; // Import useQueryClient
+import NotificationSettingsForm from './NotificationSettingsForm'; // Import new component
+import AdminNotificationSender from './AdminNotificationSender'; // Import new component
 
 interface AdminDashboardTabsProps {
   activeTab: string;
@@ -275,10 +276,19 @@ const AdminDashboardTabs: React.FC<AdminDashboardTabsProps> = ({ activeTab, onTa
         <Card>
           <CardHeader>
             <CardTitle>Send Push Notifications</CardTitle>
-            <CardDescription>Reach out to your subscribers</CardDescription>
+            <CardDescription>Create and send broadcast alerts to subscribed users.</CardDescription>
           </CardHeader>
           <CardContent>
             <AdminNotificationSender />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>User Notification Settings</CardTitle>
+            <CardDescription>Manage your own push notification subscription status.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <NotificationSettingsForm />
           </CardContent>
         </Card>
       </TabsContent>
