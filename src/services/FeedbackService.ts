@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { AnalyticsService } from './AnalyticsService';
-import { FeedbackRow, FeedbackWithProfile } from '@/types/supabase';
+import { FeedbackWithProfile } from '@/types/supabase'; // Removed FeedbackRow
 
 const logSupabaseError = (functionName: string, error: any) => {
   handleError(error, `Error in ${functionName}`);
