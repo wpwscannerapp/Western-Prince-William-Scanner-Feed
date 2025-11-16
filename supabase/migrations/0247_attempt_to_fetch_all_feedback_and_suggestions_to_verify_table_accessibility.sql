@@ -1,1 +1,0 @@
-SELECT * FROM public.feedback_and_suggestions;
