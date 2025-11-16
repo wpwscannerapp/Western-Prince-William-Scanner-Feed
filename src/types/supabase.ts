@@ -18,7 +18,7 @@ export type FeedbackRow             = PublicSchema['Tables']['feedback_and_sugge
 export type IncidentRow             = PublicSchema['Tables']['incidents']['Row']
 export type LikeRow                 = PublicSchema['Tables']['likes']['Row']
 export type ProfileRow              = PublicSchema['Tables']['profiles']['Row']
-// export type PushSubscriptionRow     = PublicSchema['Tables']['push_subscriptions']['Row'] // Removed to fix TS error
+export type PushSubscriptionRow     = PublicSchema['Tables']['push_subscriptions']['Row'] // Re-added: Push Subscription Row
 
 // Utility type for incidents guaranteed to have coordinates
 export type IncidentWithCoords = IncidentRow & {
@@ -47,8 +47,8 @@ export type ContactSettingsInsert = PublicSchema['Tables']['contact_settings']['
 export type ContactSettingsUpdate = PublicSchema['Tables']['contact_settings']['Update']
 export type IncidentInsert = PublicSchema['Tables']['incidents']['Insert']
 export type IncidentUpdate = PublicSchema['Tables']['incidents']['Update']
-// export type PushSubscriptionInsert = PublicSchema['Tables']['push_subscriptions']['Insert'] // Removed to fix TS error
-// export type PushSubscriptionUpdate = PublicSchema['Tables']['push_subscriptions']['Update'] // Removed to fix TS error
+export type PushSubscriptionInsert = PublicSchema['Tables']['push_subscriptions']['Insert'] // Re-added: Push Subscription Insert
+export type PushSubscriptionUpdate = PublicSchema['Tables']['push_subscriptions']['Update'] // Re-added: Push Subscription Update
 export type ProfileInsert = PublicSchema['Tables']['profiles']['Insert']
 export type ProfileUpdate = PublicSchema['Tables']['profiles']['Update']
 
@@ -66,7 +66,7 @@ export type NewComment = RequiredInsert<Omit<CommentInsert, 'id' | 'created_at'>
 export type LayoutJson = Array<{ id: string; type: string; content: string }> | null;
 export type ContactCard = { id: string; name: string; title?: string; email?: string; phone?: string }; // Made 'id' non-optional
 export type ContactCardsJson = Array<ContactCard> | null;
-// export type PushSubJson = PushSubscriptionRow['subscription']; // Removed to fix TS error
+export type PushSubJson = PushSubscriptionRow['subscription']; // Re-added: Use the JSONB type from the new table
 
 export type CommentWithProfile = CommentRow & {
   profiles: Pick<ProfileRow, 'username' | 'avatar_url'> | null;
