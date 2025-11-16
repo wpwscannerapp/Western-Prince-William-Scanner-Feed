@@ -13,6 +13,7 @@ import { handleError } from '@/utils/errorHandler';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { AnalyticsService } from '@/services/AnalyticsService';
+import { Switch } from '@/components/ui/switch'; // Import Switch
 
 const feedbackSchema = z.object({
   subject: z.string().max(100, { message: 'Subject too long.' }).optional().or(z.literal('')),
@@ -148,31 +149,14 @@ const FeedbackForm: React.FC = () => {
               )}
             </div>
             <div className="tw-flex tw-items-center tw-justify-between">
-              <Label className="tw-text-base">Would you like to be contacted regarding your feedback?</Label>
-              <div className="tw-flex tw-gap-2">
-                <Button
-                  type="button"
-                  variant={allowContact ? 'default' : 'outline'}
-                  onClick={() => form.setValue('allow_contact', true)}
-                  disabled={isSubmitting}
-                  className={allowContact ? 'tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground' : 'tw-text-muted-foreground hover:tw-text-primary'}
-                  aria-pressed={allowContact}
-                  aria-label="Yes, contact me"
-                >
-                  Yes
-                </Button>
-                <Button
-                  type="button"
-                  variant={!allowContact ? 'default' : 'outline'}
-                  onClick={() => form.setValue('allow_contact', false)}
-                  disabled={isSubmitting}
-                  aria-pressed={!allowContact}
-                  aria-label="No, do not contact me"
-                  className={!allowContact ? 'tw-bg-destructive hover:tw-bg-destructive/90 tw-text-destructive-foreground' : 'tw-text-muted-foreground hover:tw-text-destructive'}
-                >
-                  No
-                </Button>
-              </div>
+              <Label htmlFor="allow_contact_switch" className="tw-text-base">Would you like to be contacted regarding your feedback?</Label>
+              <Switch
+                id="allow_contact_switch"
+                checked={allowContact}
+                onCheckedChange={(checked) => form.setValue('allow_contact', checked)}
+                disabled={isSubmitting}
+                aria-label="Toggle contact preference"
+              />
             </div>
           </div>
 
