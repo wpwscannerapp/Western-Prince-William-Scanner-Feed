@@ -43,10 +43,11 @@ const FeedbackForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const allowContact = form.watch('allow_contact'); // Watch the state of allow_contact
 
-  // Temporary debug log to confirm component rendering and state
+  // Debug log to confirm component rendering and state
   useEffect(() => {
     if (import.meta.env.DEV) {
       console.log('FeedbackForm rendering. allowContact:', allowContact, 'isSubmitting:', isSubmitting);
+      console.log('Rendering Switch component in FeedbackForm.'); // Moved here
     }
   }, [allowContact, isSubmitting]);
 
@@ -165,8 +166,6 @@ const FeedbackForm: React.FC = () => {
                 onCheckedChange={(checked) => form.setValue('allow_contact', checked)}
                 disabled={isSubmitting}
                 aria-label="Toggle contact preference"
-                // Temporary debug styles:
-                className="tw-w-10 tw-h-6 tw-bg-red-500 data-[state=checked]:tw-bg-green-500 tw-border tw-border-yellow-300" 
               />
             </div>
           </div>
