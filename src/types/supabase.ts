@@ -1,4 +1,4 @@
-import type { Database } from '@/types/database.types'
+import type { Database, Json } from '@/types/database.types'
 
 export type PublicSchema = Database['public']
 
