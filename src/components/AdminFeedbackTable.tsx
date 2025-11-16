@@ -12,41 +12,28 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
-import { Search, Loader2, CheckCircle2, XCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Search, Loader2, CheckCircle2, XCircle, Trash2, Eye } from 'lucide-react';
 import { handleError } from '@/utils/errorHandler';
 import { AnalyticsService } from '@/services/AnalyticsService';
-import { FeedbackWithProfile } from '@/types/supabase'; // Import FeedbackWithProfile
+import { FeedbackWithProfile } from '@/types/supabase';
+import { FeedbackService } from '@/services/FeedbackService'; // Import the new service
+import FeedbackDetailDialog from './FeedbackDetailDialog'; // Import the new dialog component
 
 const AdminFeedbackTable: React.FC = () => {
   const [feedback, setFeedback] = useState<FeedbackWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchFeedback = async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase
-        .from('feedback_and_suggestions')
-        .select(`
-          id,
-          user_id,
-          subject,
-          message,
-          contact_email,
-          contact_phone,
-          allow_contact,
-          created_at,
-          profiles (username, id)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-      setFeedback(data as FeedbackWithProfile[]);
+      const data = await FeedbackService.fetchAllFeedback();
+      setFeedback(data);
       AnalyticsService.trackEvent({ name: 'admin_feedback_table_loaded', properties: { count: data.length } });
     } catch (err) {
       setError(handleError(err, 'Failed to load feedback. Please try again.'));
@@ -60,6 +47,37 @@ const AdminFeedbackTable: React.FC = () => {
     fetchFeedback();
   }, []);
 
+  const handleOpenDetail = (id: string) => {
+    setSelectedFeedbackId(id);
+    setIsDetailDialogOpen(true);
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailDialogOpen(false);
+    setSelectedFeedbackId(null);
+  };
+
+  const handleDelete = async (feedbackId: string) => {
+    if (window.confirm('Are you sure you want to delete this feedback? This action cannot be undone.')) {
+      setIsDeleting(true);
+      try {
+        const success = await FeedbackService.deleteFeedback(feedbackId);
+        if (success) {
+          fetchFeedback(); // Re-fetch to update the table
+          AnalyticsService.trackEvent({ name: 'admin_feedback_deleted_from_table', properties: { feedbackId } });
+        } else {
+          handleError(null, 'Failed to delete feedback.');
+          AnalyticsService.trackEvent({ name: 'admin_feedback_delete_failed_from_table', properties: { feedbackId } });
+        }
+      } catch (err) {
+        handleError(err, 'An error occurred while deleting feedback.');
+        AnalyticsService.trackEvent({ name: 'admin_feedback_delete_error_from_table', properties: { feedbackId, error: (err as Error).message } });
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
+
   const filteredFeedback = feedback.filter(entry =>
     (entry.subject?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
     entry.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -72,6 +90,11 @@ const AdminFeedbackTable: React.FC = () => {
     setError(null);
     fetchFeedback();
     AnalyticsService.trackEvent({ name: 'admin_feedback_table_retry_fetch' });
+  };
+
+  const truncateMessage = (message: string, maxLength: number = 100) => {
+    if (message.length <= maxLength) return message;
+    return message.substring(0, maxLength) + '...';
   };
 
   if (error) {
@@ -108,22 +131,23 @@ const AdminFeedbackTable: React.FC = () => {
                 <TableHead className="tw-whitespace-nowrap">Date</TableHead>
                 <TableHead className="tw-min-w-[120px]">User</TableHead>
                 <TableHead className="tw-min-w-[150px]">Subject</TableHead>
-                <TableHead className="tw-min-w-[250px]">Message</TableHead>
+                <TableHead className="tw-min-w-[250px]">Description</TableHead> {/* New Description column */}
                 <TableHead className="tw-whitespace-nowrap">Email</TableHead>
                 <TableHead className="tw-whitespace-nowrap">Phone</TableHead>
                 <TableHead className="tw-text-center tw-whitespace-nowrap">Contact?</TableHead>
+                <TableHead className="tw-text-right tw-whitespace-nowrap">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredFeedback.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="tw-h-24 tw-text-center tw-text-muted-foreground">
+                  <TableCell colSpan={8} className="tw-h-24 tw-text-center tw-text-muted-foreground">
                     {searchTerm ? 'No feedback matches your search.' : 'No feedback found.'}
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredFeedback.map((entry) => (
-                  <TableRow key={entry.id} className="tw-break-words">
+                  <TableRow key={entry.id} className="tw-break-words hover:tw-bg-muted/50">
                     <TableCell className="tw-font-medium tw-whitespace-nowrap">
                       {format(new Date(entry.created_at!), 'MMM dd, yyyy, hh:mm a')}
                     </TableCell>
@@ -131,7 +155,7 @@ const AdminFeedbackTable: React.FC = () => {
                       {entry.profiles?.[0]?.username || 'Anonymous'}
                     </TableCell>
                     <TableCell className="tw-max-w-xs tw-truncate">{entry.subject || '-'}</TableCell>
-                    <TableCell className="tw-max-w-xs tw-truncate">{entry.message}</TableCell>
+                    <TableCell className="tw-max-w-xs">{truncateMessage(entry.message)}</TableCell> {/* Truncated message */}
                     <TableCell className="tw-whitespace-nowrap">{entry.contact_email || '-'}</TableCell>
                     <TableCell className="tw-whitespace-nowrap">{entry.contact_phone || '-'}</TableCell>
                     <TableCell className="tw-text-center">
@@ -141,6 +165,32 @@ const AdminFeedbackTable: React.FC = () => {
                         <XCircle className="tw-h-5 tw-w-5 tw-text-destructive tw-mx-auto" aria-label="User does not wish to be contacted" />
                       )}
                     </TableCell>
+                    <TableCell className="tw-text-right tw-whitespace-nowrap">
+                      <div className="tw-flex tw-justify-end tw-gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleOpenDetail(entry.id)}
+                          className="tw-h-8 tw-w-8"
+                          aria-label={`View details for feedback from ${entry.profiles?.[0]?.username || 'Anonymous'}`}
+                          disabled={isDeleting}
+                        >
+                          <Eye className="tw-h-4 tw-w-4" aria-hidden="true" />
+                          <span className="tw-sr-only">View</span>
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleDelete(entry.id)}
+                          className="tw-h-8 tw-w-8"
+                          aria-label={`Delete feedback from ${entry.profiles?.[0]?.username || 'Anonymous'}`}
+                          disabled={isDeleting}
+                        >
+                          {isDeleting ? <Loader2 className="tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" /> : <Trash2 className="tw-h-4 tw-w-4 tw-text-destructive" aria-hidden="true" />}
+                          <span className="tw-sr-only">Delete</span>
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -148,6 +198,13 @@ const AdminFeedbackTable: React.FC = () => {
           </Table>
         </div>
       )}
+
+      <FeedbackDetailDialog
+        feedbackId={selectedFeedbackId}
+        isOpen={isDetailDialogOpen}
+        onClose={handleCloseDetail}
+        onDeleteSuccess={fetchFeedback} // Re-fetch table data after successful deletion from dialog
+      />
     </div>
   );
 };
