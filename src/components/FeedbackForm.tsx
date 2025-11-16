@@ -28,6 +28,10 @@ const feedbackSchema = z.object({
 type FeedbackFormValues = z.infer<typeof feedbackSchema>;
 
 const FeedbackForm: React.FC = () => {
+  if (import.meta.env.DEV) {
+    console.log('FeedbackForm component function executed.');
+  }
+
   const { user } = useAuth();
   // Simplified state for the switch
   const [allowContact, setAllowContact] = useState(false);
@@ -36,7 +40,7 @@ const FeedbackForm: React.FC = () => {
   // Debug log to confirm component rendering and state
   useEffect(() => {
     if (import.meta.env.DEV) {
-      console.log('FeedbackForm (Simplified) rendering. allowContact:', allowContact, 'isSubmitting:', isSubmitting);
+      console.log('FeedbackForm (Simplified) useEffect executed. allowContact:', allowContact, 'isSubmitting:', isSubmitting);
       console.log('Rendering Switch component in FeedbackForm (Simplified).');
     }
   }, [allowContact, isSubmitting]);
@@ -118,7 +122,6 @@ const FeedbackForm: React.FC = () => {
                 onCheckedChange={setAllowContact}
                 disabled={isSubmitting}
                 aria-label="Toggle contact preference"
-                // Removed temporary debug styles
               />
             </div>
           </div>
