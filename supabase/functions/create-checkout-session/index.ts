@@ -1,3 +1,4 @@
+"use client";
 // @ts-ignore
 /// <reference lib="deno.ns" />
 // @ts-ignore
@@ -34,8 +35,19 @@ serve(async (req: Request) => {
     // Authenticate the user
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      console.error('Edge Function Error: Unauthorized - User not authenticated.', userError);
+      return new Response(JSON.stringify({ error: { message: 'Unauthorized: User not authenticated.' } }), {
         status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { priceId, userId, userEmail } = await req.json();
+
+    if (!priceId || !userId || !userEmail) {
+      console.error('Edge Function Error: Bad Request - Missing priceId, userId, or userEmail.', { priceId, userId, userEmail });
+      return new Response(JSON.stringify({ error: { message: 'Bad Request: Missing priceId, userId, or userEmail.' } }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -46,10 +58,12 @@ serve(async (req: Request) => {
       httpClient: Stripe.createFetchHttpClient(),
     });
 
-    const { priceId, userId, userEmail } = await req.json();
-
-    if (!priceId || !userId || !userEmail) {
-      return new Response(JSON.stringify({ error: 'Missing priceId, userId, or userEmail' }), {
+    // Validate priceId by attempting to retrieve it from Stripe
+    try {
+      await stripe.prices.retrieve(priceId);
+    } catch (priceError: any) {
+      console.error('Edge Function Error: Stripe Price ID validation failed:', priceError);
+      return new Response(JSON.stringify({ error: { message: 'Bad Request: Invalid Stripe Price ID provided.' } }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -57,19 +71,9 @@ serve(async (req: Request) => {
 
     // Validate that the userId from the request matches the authenticated user's ID
     if (userId !== user.id) {
-      return new Response(JSON.stringify({ error: 'Forbidden: User ID mismatch' }), {
+      console.error('Edge Function Error: Forbidden - User ID mismatch.', { requestedUserId: userId, authenticatedUserId: user.id });
+      return new Response(JSON.stringify({ error: { message: 'Forbidden: User ID mismatch.' } }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Validate priceId by attempting to retrieve it from Stripe
-    try {
-      await stripe.prices.retrieve(priceId);
-    } catch (priceError: any) {
-      console.error('Stripe Price ID validation failed:', priceError);
-      return new Response(JSON.stringify({ error: 'Invalid Stripe Price ID provided.' }), {
-        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -100,8 +104,8 @@ serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {
-    console.error('Stripe checkout session creation failed:', error);
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
+    console.error('Edge Function Error: Stripe checkout session creation failed:', error);
+    return new Response(JSON.stringify({ error: { message: (error as Error).message } }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
