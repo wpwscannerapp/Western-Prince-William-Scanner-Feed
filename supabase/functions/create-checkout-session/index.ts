@@ -1,3 +1,5 @@
+"use client";
+
 // @ts-ignore
 /// <reference lib="deno.ns" />
 // @ts-ignore
@@ -13,7 +15,7 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  console.log('Edge Function: create-checkout-session invoked.'); // Log at the very beginning
+  console.log('Edge Function: create-checkout-session invoked.');
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -26,14 +28,16 @@ serve(async (req: Request) => {
 
   try {
     rawBody = await req.text(); // Read raw body first
+    console.log('Edge Function: Raw request body received:', rawBody); // Log raw body
     const parsedBody = JSON.parse(rawBody);
+    console.log('Edge Function: Parsed request body:', parsedBody); // Log parsed body
     priceId = parsedBody.priceId;
     userId = parsedBody.userId;
     userEmail = parsedBody.userEmail;
-    console.log('Edge Function: Successfully parsed request body.');
+    console.log('Edge Function: Successfully extracted parameters from parsed body.');
   } catch (jsonError: any) {
     console.error('Edge Function Error: Failed to parse request body as JSON.', jsonError);
-    console.error('Edge Function: Raw request body received:', rawBody); // Log raw body
+    console.error('Edge Function: Raw request body received:', rawBody);
     return new Response(JSON.stringify({ error: { message: 'Bad Request: Invalid JSON in request body.' } }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
