@@ -3,13 +3,15 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bell, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, Bell, CheckCircle2, XCircle, Shield } from 'lucide-react'; // Added Shield icon
 import { useAuth } from '@/hooks/useAuth';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { AnalyticsService } from '@/services/AnalyticsService';
+import { useIsAdmin } from '@/hooks/useIsAdmin'; // Import useIsAdmin
 
 const NotificationSettingsForm: React.FC = () => {
   const { user } = useAuth();
+  const { isAdmin, loading: isAdminLoading } = useIsAdmin(); // Use useIsAdmin hook
   const {
     isSupported,
     isSubscribed,
@@ -51,6 +53,17 @@ const NotificationSettingsForm: React.FC = () => {
     );
   }
 
+  if (isAdminLoading) {
+    return (
+      <Card className="tw-bg-card tw-border-border tw-shadow-lg">
+        <CardContent className="tw-py-8 tw-text-center">
+          <Loader2 className="tw-h-8 tw-w-8 tw-animate-spin tw-text-primary tw-mx-auto" aria-label="Loading admin status" />
+          <p className="tw-mt-2 tw-text-muted-foreground">Checking admin status...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="tw-bg-card tw-border-border tw-shadow-lg">
       <CardHeader>
@@ -62,6 +75,15 @@ const NotificationSettingsForm: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="tw-space-y-4">
+        {isAdmin && (
+          <div className="tw-bg-blue-100 dark:tw-bg-blue-900 tw-text-blue-800 dark:tw-text-blue-200 tw-p-3 tw-rounded-md tw-flex tw-items-start tw-gap-2">
+            <Shield className="tw-h-5 tw-w-5 tw-flex-shrink-0 tw-mt-0.5" />
+            <p className="tw-text-sm">
+              As an administrator, you can send broadcast alerts to all subscribed users from the 'Send Push Notification' section. This section allows you to manage your *personal* subscription to receive alerts on this device.
+            </p>
+          </div>
+        )}
+
         <div className="tw-flex tw-items-center tw-justify-between tw-p-3 tw-border tw-rounded-md">
           <div className="tw-space-y-1">
             <p className="tw-font-medium tw-text-foreground">Subscription Status</p>
