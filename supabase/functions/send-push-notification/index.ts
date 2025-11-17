@@ -99,6 +99,7 @@ serve(async (req: Request) => {
       body: alert.description,
       icon: '/Logo.png', // Path to your app icon
       badge: '/Logo.png', // Path to your app badge icon
+      sound: 'default', // Added to play default notification sound
       data: {
         url: `${Deno.env.get('VITE_APP_URL')}/incidents/${alert.id}`, // Link to incident detail page
         incidentId: alert.id,
