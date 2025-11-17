@@ -13,8 +13,31 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
+  console.log('Edge Function: create-checkout-session invoked.'); // Log at the very beginning
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  let priceId: string;
+  let userId: string;
+  let userEmail: string;
+  let rawBody: string;
+
+  try {
+    rawBody = await req.text(); // Read raw body first
+    const parsedBody = JSON.parse(rawBody);
+    priceId = parsedBody.priceId;
+    userId = parsedBody.userId;
+    userEmail = parsedBody.userEmail;
+    console.log('Edge Function: Successfully parsed request body.');
+  } catch (jsonError: any) {
+    console.error('Edge Function Error: Failed to parse request body as JSON.', jsonError);
+    console.error('Edge Function: Raw request body received:', rawBody); // Log raw body
+    return new Response(JSON.stringify({ error: { message: 'Bad Request: Invalid JSON in request body.' } }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   try {
@@ -41,10 +64,8 @@ serve(async (req: Request) => {
       });
     }
 
-    const { priceId, userId, userEmail } = await req.json();
-
     // Log the received parameters for debugging
-    console.log('Edge Function: Received parameters:', { priceId, userId, userEmail });
+    console.log('Edge Function: Extracted parameters:', { priceId, userId, userEmail });
 
     if (!priceId) {
       console.error('Edge Function Error: Bad Request - Missing priceId.');
