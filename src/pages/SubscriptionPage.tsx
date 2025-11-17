@@ -38,10 +38,10 @@ const SubscriptionPage = () => {
 
     try {
       const priceId = import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID;
-      // CRITICAL DEBUG LOG: Log the priceId being used by the client
-      if (import.meta.env.DEV) {
-        console.log('SubscriptionPage: Client-side VITE_STRIPE_MONTHLY_PRICE_ID:', priceId);
-      }
+      
+      // CRITICAL DEBUG LOGS: Always log these values
+      console.log('SubscriptionPage Debug: import.meta.env.DEV is', import.meta.env.DEV);
+      console.log('SubscriptionPage Debug: Client-side VITE_STRIPE_MONTHLY_PRICE_ID is', priceId);
 
       if (!priceId) {
         handleError(null, 'Stripe price ID is not configured. Please contact support.');
