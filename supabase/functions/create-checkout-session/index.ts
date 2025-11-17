@@ -1,4 +1,3 @@
-"use client";
 // @ts-ignore
 /// <reference lib="deno.ns" />
 // @ts-ignore
@@ -35,7 +34,7 @@ serve(async (req: Request) => {
     // Authenticate the user
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) {
-      console.error('Edge Function Error: Unauthorized - User not authenticated.', userError);
+      console.error('Edge Function Error: Unauthorized - User not authenticated.', userError?.message || 'No user found.');
       return new Response(JSON.stringify({ error: { message: 'Unauthorized: User not authenticated.' } }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -44,12 +43,26 @@ serve(async (req: Request) => {
 
     const { priceId, userId, userEmail } = await req.json();
 
-    // Log the received priceId for debugging
-    console.log('Edge Function: Received priceId:', priceId);
+    // Log the received parameters for debugging
+    console.log('Edge Function: Received parameters:', { priceId, userId, userEmail });
 
-    if (!priceId || !userId || !userEmail) {
-      console.error('Edge Function Error: Bad Request - Missing priceId, userId, or userEmail.', { priceId, userId, userEmail });
-      return new Response(JSON.stringify({ error: { message: 'Bad Request: Missing priceId, userId, or userEmail.' } }), {
+    if (!priceId) {
+      console.error('Edge Function Error: Bad Request - Missing priceId.');
+      return new Response(JSON.stringify({ error: { message: 'Bad Request: Missing priceId.' } }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (!userId) {
+      console.error('Edge Function Error: Bad Request - Missing userId.');
+      return new Response(JSON.stringify({ error: { message: 'Bad Request: Missing userId.' } }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (!userEmail) {
+      console.error('Edge Function Error: Bad Request - Missing userEmail.');
+      return new Response(JSON.stringify({ error: { message: 'Bad Request: Missing userEmail.' } }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
