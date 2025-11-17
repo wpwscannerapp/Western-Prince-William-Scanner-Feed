@@ -46,7 +46,8 @@ const SignupPage: React.FC = () => {
       const { error } = await signUp(values.email, values.password);
       if (!error) {
         AnalyticsService.trackEvent({ name: 'user_signed_up', properties: { email: values.email } });
-        // Navigation handled by useEffect after successful signup and email confirmation
+        // Navigate to login page after successful signup to prompt email confirmation
+        navigate('/auth/login', { replace: true }); 
       } else {
         AnalyticsService.trackEvent({ name: 'sign_up_failed', properties: { email: values.email, error: error.message } });
       }
