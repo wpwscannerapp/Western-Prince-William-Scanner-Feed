@@ -3,12 +3,12 @@
 import React, { useEffect } from 'react';
 import Tile from '@/components/Tile';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { Loader2, AlertCircle, Info } from 'lucide-react';
+import { Loader2, Info, AlertCircle } from 'lucide-react'; // Added AlertCircle import
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { IncidentService } from '@/services/IncidentService';
+import { IncidentService } from '@/services/IncidentService'; // Removed INCIDENTS_PER_PAGE
 import { handleError } from '@/utils/errorHandler';
 import { Card, CardContent } from '@/components/ui/card';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import IncidentCard from '@/components/IncidentCard';
 import { supabase } from '@/integrations/supabase/client';
 import { IncidentRow } from '@/types/supabase'; // Import IncidentRow
@@ -195,6 +195,12 @@ const HomePage: React.FC = () => {
             />
           </>
         )}
+      </div>
+      <div className="tw-text-center tw-text-xs tw-text-muted-foreground tw-mt-8 tw-px-4">
+        <p>
+          The Western Prince William Scanner Feed is not affiliated with any local, state, or federal agency.
+          Not all calls will be reported; it is the sole discretion of Western Prince William Scanner Feed to post or not to post incidents.
+        </p>
       </div>
     </div>
   );
