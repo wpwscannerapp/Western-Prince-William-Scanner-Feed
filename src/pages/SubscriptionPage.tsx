@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Lock, Loader2 } from 'lucide-react';
+import { CheckCircle, Lock, Loader2, AlertTriangle } from 'lucide-react'; // Added AlertTriangle
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,6 +17,7 @@ const SubscriptionPage = () => {
   const { user, loading: authLoading } = useAuth();
   const { isSubscribed, loading: isSubscribedLoading } = useIsSubscribed();
   const [isLoading, setIsLoading] = React.useState(false);
+  const [stripeConfigError, setStripeConfigError] = React.useState<string | null>(null); // New state for config error
 
   useEffect(() => {
     if (!authLoading && !isSubscribedLoading && isSubscribed) {
@@ -44,7 +45,9 @@ const SubscriptionPage = () => {
       console.log('SubscriptionPage Debug: Client-side VITE_STRIPE_MONTHLY_PRICE_ID is', priceId);
 
       if (!priceId) {
-        handleError(null, 'Stripe price ID is not configured. Please contact support.');
+        const errorMessage = 'Stripe price ID is not configured. Please set VITE_STRIPE_MONTHLY_PRICE_ID in your .env file.';
+        handleError(null, errorMessage);
+        setStripeConfigError(errorMessage); // Set the error to display on the page
         toast.dismiss('sub-loading');
         setIsLoading(false);
         AnalyticsService.trackEvent({ name: 'start_free_trial_failed', properties: { reason: 'missing_price_id' } });
@@ -89,6 +92,13 @@ const SubscriptionPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="tw-space-y-6">
+          {stripeConfigError && (
+            <div className="tw-bg-destructive/10 tw-border tw-border-destructive tw-text-destructive tw-p-4 tw-rounded-md tw-flex tw-items-center tw-gap-2">
+              <AlertTriangle className="tw-h-5 tw-w-5" />
+              <p className="tw-text-sm">{stripeConfigError}</p>
+            </div>
+          )}
+
           {/* Plan Comparison */}
           <div className="tw-grid tw-grid-cols-1 tw-gap-4 tw-mb-6 tw-justify-center" role="grid" aria-label="Subscription Plan Comparison">
             <Card className="tw-border-primary tw-border-2 tw-shadow-md tw-max-w-md tw-mx-auto" role="rowheader">
@@ -125,7 +135,7 @@ const SubscriptionPage = () => {
           <Button
             onClick={handleStartFreeTrial}
             className="tw-w-full tw-bg-primary hover:tw-bg-primary/90 tw-text-primary-foreground tw-text-lg tw-py-6 tw-transition tw-duration-300 hover:tw-shadow-glow tw-button"
-            disabled={isLoading}
+            disabled={isLoading || !!stripeConfigError} // Disable if there's a config error
             aria-label="Start free trial subscription"
           >
             {isLoading && <Loader2 className="tw-mr-2 tw-h-4 tw-w-4 tw-animate-spin" aria-hidden="true" />}
@@ -133,7 +143,7 @@ const SubscriptionPage = () => {
           </Button>
 
           <p className="tw-text-xs tw-text-muted-foreground tw-mt-4">
-            By subscribing, you agree to our <Link to="/terms-of-service" className="tw-underline hover:tw-text-primary">Terms of Service</Link>.
+            By subscribing, you agree to our <Link to="/terms-of-service" className="tw-underline hover:tw-primary">Terms of Service</Link>.
           </p>
           {/* Trust Signals */}
           <p className="tw-text-sm tw-text-muted-foreground tw-flex tw-items-center tw-justify-center">
