@@ -38,6 +38,11 @@ const SubscriptionPage = () => {
 
     try {
       const priceId = import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID;
+      // CRITICAL DEBUG LOG: Log the priceId being used by the client
+      if (import.meta.env.DEV) {
+        console.log('SubscriptionPage: Client-side VITE_STRIPE_MONTHLY_PRICE_ID:', priceId);
+      }
+
       if (!priceId) {
         handleError(null, 'Stripe price ID is not configured. Please contact support.');
         toast.dismiss('sub-loading');
