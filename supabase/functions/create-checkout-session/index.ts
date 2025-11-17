@@ -24,7 +24,7 @@ serve(async (req: Request) => {
   let priceId: string;
   let userId: string;
   let userEmail: string;
-  let rawBody: string;
+  let rawBody: string = ''; // Initialize rawBody to an empty string
 
   try {
     rawBody = await req.text(); // Read raw body first
