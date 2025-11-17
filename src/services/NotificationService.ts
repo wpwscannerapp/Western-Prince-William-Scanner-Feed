@@ -23,12 +23,14 @@ export const NotificationService = {
     if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
       handleError(null, 'Invalid VAPID Public Key configuration. Push notifications will not work.');
       AnalyticsService.trackEvent({ name: 'web_push_init_failed', properties: { reason: 'invalid_vapid_key' } });
+      if (import.meta.env.DEV) console.warn('NotificationService: VAPID Public Key is missing or invalid.');
       return false;
     }
 
     if (!('serviceWorker' in navigator)) {
       handleError(null, 'Push notifications are not supported by your browser.');
       AnalyticsService.trackEvent({ name: 'web_push_init_failed', properties: { reason: 'service_worker_not_supported' } });
+      if (import.meta.env.DEV) console.warn('NotificationService: Service Worker not supported.');
       return false;
     }
 
@@ -36,36 +38,44 @@ export const NotificationService = {
       // Register the service worker (VitePWA handles the file generation)
       await navigator.serviceWorker.register('/service-worker.js');
       AnalyticsService.trackEvent({ name: 'web_push_service_worker_registered' });
+      if (import.meta.env.DEV) console.log('NotificationService: Service Worker registered successfully.');
       return true;
     } catch (err: any) {
       handleError(err, 'Failed to register service worker for push notifications.');
       AnalyticsService.trackEvent({ name: 'web_push_service_worker_registration_failed', properties: { error: err.message } });
+      if (import.meta.env.DEV) console.error('NotificationService: Service Worker registration failed:', err);
       return false;
     }
   },
 
   async subscribeUserToPush(userId: string): Promise<PushSubscription | null> {
     const vapidPublicKey = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY;
+    if (import.meta.env.DEV) console.log('NotificationService: Attempting to subscribe user to push notifications.');
 
     if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
       handleError(null, 'VAPID Public Key is missing or invalid. Cannot subscribe.');
+      if (import.meta.env.DEV) console.warn('NotificationService: VAPID Public Key is missing or invalid during subscription attempt.');
       return null;
     }
 
     if (Notification.permission !== 'granted') {
       handleError(null, 'Notification permission not granted. Please allow notifications to subscribe.');
+      if (import.meta.env.DEV) console.warn('NotificationService: Notification permission not granted.');
       return null;
     }
 
     try {
       const registration = await navigator.serviceWorker.ready;
       let subscription = await registration.pushManager.getSubscription();
+      if (import.meta.env.DEV) console.log('NotificationService: Existing subscription found:', subscription);
 
       if (!subscription) {
+        if (import.meta.env.DEV) console.log('NotificationService: No existing subscription, attempting to create new one.');
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: NotificationService.urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
         });
+        if (import.meta.env.DEV) console.log('NotificationService: New subscription created:', subscription);
       }
       
       const pushSubJson = subscription.toJSON() as PushSubscription;
@@ -82,31 +92,37 @@ export const NotificationService = {
 
       if (error) {
         logSupabaseError('subscribeUserToPush - DB Save', error);
-        // Non-critical error, but log it
         AnalyticsService.trackEvent({ name: 'push_subscribe_db_save_failed', properties: { userId, error: error.message } });
+        if (import.meta.env.DEV) console.error('NotificationService: Failed to save subscription to DB:', error);
         return null;
       }
 
       AnalyticsService.trackEvent({ name: 'push_subscribed', properties: { userId, endpoint: subscription.endpoint } });
+      if (import.meta.env.DEV) console.log('NotificationService: User subscribed and saved to DB.');
       return pushSubJson;
     } catch (err: any) {
       handleError(err, 'Failed to subscribe to push notifications. Please ensure your VAPID keys are correct and try again.');
       AnalyticsService.trackEvent({ name: 'push_subscribe_unexpected_error', properties: { error: err.message } });
+      if (import.meta.env.DEV) console.error('NotificationService: Unexpected error during subscription:', err);
       return null;
     }
   },
 
   async unsubscribeWebPush(userId: string): Promise<boolean> {
+    if (import.meta.env.DEV) console.log('NotificationService: Attempting to unsubscribe user from push notifications.');
     if (!('serviceWorker' in navigator)) {
+      if (import.meta.env.DEV) console.warn('NotificationService: Service Worker not supported, cannot unsubscribe.');
       return false;
     }
 
     try {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
+      if (import.meta.env.DEV) console.log('NotificationService: Found existing subscription for unsubscribe:', subscription);
 
       if (subscription) {
         await subscription.unsubscribe();
+        if (import.meta.env.DEV) console.log('NotificationService: Browser subscription unsubscribed.');
       }
       
       // Remove all subscriptions for this user/endpoint combination from DB
@@ -119,14 +135,17 @@ export const NotificationService = {
       if (error) {
         logSupabaseError('unsubscribeWebPush - DB Delete', error);
         AnalyticsService.trackEvent({ name: 'push_unsubscribe_db_delete_failed', properties: { userId, error: error.message } });
+        if (import.meta.env.DEV) console.error('NotificationService: Failed to delete subscription from DB:', error);
         return false;
       }
 
       AnalyticsService.trackEvent({ name: 'push_unsubscribed', properties: { userId } });
+      if (import.meta.env.DEV) console.log('NotificationService: User unsubscribed and removed from DB.');
       return true;
     } catch (err: any) {
       handleError(err, 'Failed to unsubscribe from push notifications.');
       AnalyticsService.trackEvent({ name: 'push_unsubscribe_failed', properties: { userId, error: err.message } });
+      if (import.meta.env.DEV) console.error('NotificationService: Unexpected error during unsubscription:', err);
       return false;
     }
   },
