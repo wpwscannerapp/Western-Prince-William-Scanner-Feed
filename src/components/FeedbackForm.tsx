@@ -159,19 +159,24 @@ const FeedbackForm: React.FC = () => {
             </div>
             <div className="tw-flex tw-items-center tw-justify-between">
               <Label htmlFor="allow_contact_switch" className="tw-text-base">Would you like to be contacted regarding your feedback?</Label>
-              <Controller
-                name="allow_contact"
-                control={form.control}
-                render={({ field }) => (
-                  <Switch
-                    id="allow_contact_switch"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                    disabled={isSubmitting}
-                    aria-label="Toggle contact preference"
-                  />
-                )}
-              />
+              <div className="tw-flex tw-items-center tw-gap-2"> {/* Added a div to group switch and text */}
+                <Controller
+                  name="allow_contact"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Switch
+                      id="allow_contact_switch"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={isSubmitting}
+                      aria-label="Toggle contact preference"
+                    />
+                  )}
+                />
+                <span className="tw-text-sm tw-font-medium tw-text-foreground">
+                  {allowContact ? 'Yes' : 'No'}
+                </span>
+              </div>
             </div>
           </div>
 
