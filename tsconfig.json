@@ -23,11 +23,9 @@
     /* Path Aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
-    },
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+      "@/*": ["src/*"]
+    }
   },
-  "include": ["src", "netlify", "supabase/functions"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": ["src", "src/types"],
+  "exclude": ["node_modules", "dist", "supabase/functions"] // Exclude supabase/functions
 }
