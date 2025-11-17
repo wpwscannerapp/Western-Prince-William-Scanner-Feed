@@ -156,6 +156,8 @@ export const NotificationService = {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
+    if (import.meta.env.DEV) console.log('NotificationService: Attempting to create alert:', alert);
+
     try {
       const { data, error } = await supabase
         .from('alerts')
@@ -167,21 +169,26 @@ export const NotificationService = {
       if (error) {
         logSupabaseError('createAlert', error);
         AnalyticsService.trackEvent({ name: 'create_alert_failed', properties: { type: alert.type, error: error.message } });
+        if (import.meta.env.DEV) console.error('NotificationService: Failed to insert alert:', error);
         return null;
       }
       AnalyticsService.trackEvent({ name: 'alert_created', properties: { alertId: data.id, type: data.type } });
+      if (import.meta.env.DEV) console.log('NotificationService: Alert inserted successfully:', data);
       return data;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Creating alert timed out.');
         AnalyticsService.trackEvent({ name: 'create_alert_timeout', properties: { type: alert.type } });
+        if (import.meta.env.DEV) console.error('NotificationService: Creating alert timed out.');
       } else {
         logSupabaseError('createAlert', err);
         AnalyticsService.trackEvent({ name: 'create_alert_unexpected_error', properties: { type: alert.type, error: err.message } });
+        if (import.meta.env.DEV) console.error('NotificationService: Unexpected error creating alert:', err);
       }
       return null;
     } finally {
       clearTimeout(timeoutId);
+      if (import.meta.env.DEV) console.log('NotificationService: createAlert finished.');
     }
   },
 

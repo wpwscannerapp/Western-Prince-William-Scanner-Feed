@@ -280,11 +280,15 @@ export const IncidentService = {
           latitude: data.latitude || 0,
           longitude: data.longitude || 0,
         };
-        await NotificationService.createAlert(alertInsert); // Re-enabled
-        AnalyticsService.trackEvent({ name: 'incident_created', properties: { incidentId: data.id, adminId, type: data.type } });
+        const createdAlert = await NotificationService.createAlert(alertInsert); // Re-enabled
         if (import.meta.env.DEV) {
-          console.log('IncidentService: Alert notification created.');
+          if (createdAlert) {
+            console.log('IncidentService: Alert notification created successfully:', createdAlert);
+          } else {
+            console.error('IncidentService: Failed to create alert notification.');
+          }
         }
+        AnalyticsService.trackEvent({ name: 'incident_created', properties: { incidentId: data.id, adminId, type: data.type } });
       }
 
       return data;
