@@ -46,8 +46,8 @@ const SignupPage: React.FC = () => {
       const { error } = await signUp(values.email, values.password);
       if (!error) {
         AnalyticsService.trackEvent({ name: 'user_signed_up', properties: { email: values.email } });
-        // Navigate to login page after successful signup to prompt email confirmation
-        navigate('/auth/login', { replace: true }); 
+        // Navigate to subscribe page after successful signup
+        navigate('/subscribe', { replace: true }); 
       } else {
         AnalyticsService.trackEvent({ name: 'sign_up_failed', properties: { email: values.email, error: error.message } });
       }
