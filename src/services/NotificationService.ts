@@ -93,7 +93,7 @@ export const NotificationService = {
       // Save subscription to Supabase, including the endpoint
       const subscriptionInsert: PushSubscriptionInsert = {
         user_id: userId,
-        subscription: pushSubJson as Json, // Store the full JSON object
+        subscription: pushSubJson as unknown as Json, // Store the full JSON object
         endpoint: pushSubJson.endpoint, // Store the endpoint separately for easier querying and unique constraint
       };
 
