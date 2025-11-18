@@ -4,15 +4,7 @@ export type PublicSchema = Database['public']
 
 export type { Json } from './database.types'; // Explicitly export Json with 'type' keyword
 
-// Define PushSubscriptionJSON structure for client-side usage
-export interface PushSubscriptionJSON {
-  endpoint?: string;
-  expirationTime?: number | null;
-  keys?: { // Make the entire 'keys' object optional
-    p256dh: string;
-    auth: string;
-  };
-}
+// Removed PushSubscriptionJSON as it's now defined locally in NotificationService.ts
 
 // ---------------------------------------------------------------
 // 2. Handy Row aliases (used everywhere)

@@ -4,9 +4,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { AnalyticsService } from './AnalyticsService';
-import { AlertRow, AlertUpdate, NewAlert, PushSubscriptionInsert, PushSubscriptionJSON, Json } from '@/types/supabase'; // Import PushSubscriptionJSON and Json
+import { AlertRow, AlertUpdate, NewAlert, PushSubscriptionInsert, Json } from '@/types/supabase';
 
-export type PushSubscription = PushSubscriptionJSON; // Alias PushSubscription to the JSON structure
+// Define the expected structure of PushSubscription from web-push
+interface WebPushSubscriptionJSON {
+  endpoint: string;
+  expirationTime: number | null;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
+export type PushSubscription = WebPushSubscriptionJSON; // Alias to this specific type
 export type Alert = AlertRow;
 
 const logSupabaseError = (functionName: string, error: any) => {
@@ -78,7 +88,8 @@ export const NotificationService = {
         if (import.meta.env.DEV) console.log('NotificationService: New subscription created:', subscription);
       }
       
-      const pushSubJson: PushSubscription = subscription.toJSON(); // Explicitly type as PushSubscriptionJSON
+      // Explicitly cast to our defined PushSubscription type
+      const pushSubJson: PushSubscription = subscription.toJSON() as PushSubscription;
 
       // Explicitly remove the 'endpoint' property from the JSON object
       // as it's a generated column in the database and cannot be inserted directly.
