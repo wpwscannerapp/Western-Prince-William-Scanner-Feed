@@ -8,7 +8,10 @@ export type { Json } from './database.types'; // Explicitly export Json with 'ty
 export interface PushSubscriptionJSON {
   endpoint?: string;
   expirationTime?: number | null;
-  keys?: Record<string, string>; // Made optional and more generic
+  keys?: { // Make the entire 'keys' object optional
+    p256dh: string;
+    auth: string;
+  };
 }
 
 // ---------------------------------------------------------------
