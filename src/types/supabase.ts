@@ -7,11 +7,8 @@ export type { Json } from './database.types'; // Explicitly export Json with 'ty
 // Define PushSubscriptionJSON structure for client-side usage
 export interface PushSubscriptionJSON {
   endpoint?: string;
-  expirationTime?: number | null; // Made optional to include 'undefined'
-  keys: {
-    p256dh: string;
-    auth: string;
-  };
+  expirationTime?: number | null;
+  keys?: Record<string, string>; // Made optional and more generic
 }
 
 // ---------------------------------------------------------------
