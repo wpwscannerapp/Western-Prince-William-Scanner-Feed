@@ -5,7 +5,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 // @ts-ignore
-import webpush from 'https://deno.land/x/web_push@0.1.0/mod.ts'; // Switched to Deno-native web_push
+import webpush from 'https://esm.sh/web-push@3.6.7?bundle'; // Using esm.sh with ?bundle
 
 // Explicitly declare Deno global for TypeScript
 declare const Deno: {
