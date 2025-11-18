@@ -25,6 +25,7 @@ export type PushSubscriptionRow = {
   user_id: string;
   subscription: Json;
   created_at: string | null;
+  endpoint: string; // Added the new generated column
 };
 
 // Utility type for incidents guaranteed to have coordinates
@@ -61,12 +62,14 @@ export type PushSubscriptionInsert = {
   user_id: string;
   subscription: Json;
   created_at?: string | null;
+  endpoint?: string; // Added the new generated column (optional for insert)
 };
 export type PushSubscriptionUpdate = {
   id?: string;
   user_id?: string;
   subscription?: Json;
   created_at?: string | null;
+  endpoint?: string; // Added the new generated column
 };
 
 export type ProfileInsert = PublicSchema['Tables']['profiles']['Insert']

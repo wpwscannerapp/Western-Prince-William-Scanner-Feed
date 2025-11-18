@@ -125,7 +125,7 @@ const FeedbackForm: React.FC = () => {
             )}
           </div>
 
-          <div className="tw-space-y-4 tw-p-4 tw-border tw-rounded-md tw-bg-muted/20">
+          <div className="tw-space-y-4 tw-p-4 tw-border tw-rounded-md tw-bg-muted/20" aria-live="polite">
             <h3 className="tw-text-lg tw-font-semibold tw-flex tw-items-center tw-gap-2">
               <User className="tw-h-5 tw-w-5" /> Contact Information (Optional)
             </h3>
@@ -158,7 +158,7 @@ const FeedbackForm: React.FC = () => {
               )}
             </div>
             <div className="tw-flex tw-items-center tw-justify-between">
-              <Label htmlFor="allow_contact_switch" className="tw-text-base">Would you like to be contacted regarding your feedback?</Label>
+              <Label htmlFor="allow_contact_switch" className="tw-text-base tw-text-foreground">Would you like to be contacted regarding your feedback?</Label>
               <div className="tw-flex tw-items-center tw-gap-2"> {/* Added a div to group switch and text */}
                 <Controller
                   name="allow_contact"

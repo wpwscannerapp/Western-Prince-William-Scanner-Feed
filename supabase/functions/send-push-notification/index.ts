@@ -7,14 +7,35 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 // @ts-ignore
 import webpush from 'https://esm.sh/web-push@3.6.7?target=deno'; // Explicitly target Deno
 
+// Explicitly declare Deno global for TypeScript
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+};
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Define a local interface for the subscription object from the database
+interface DbPushSubscription {
+  subscription: webpush.PushSubscription;
+}
+
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Explicitly reject non-POST requests
+  if (req.method !== 'POST') {
+    console.error(`Edge Function Error: Method Not Allowed - Received ${req.method} request, expected POST.`);
+    return new Response(JSON.stringify({ error: { message: 'Method Not Allowed: Only POST requests are supported.' } }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   try {
@@ -106,7 +127,7 @@ serve(async (req: Request) => {
       },
     });
 
-    const sendPromises = subscriptions.map(async (sub) => {
+    const sendPromises = subscriptions.map(async (sub: DbPushSubscription) => {
       try {
         // @ts-ignore
         await webpush.sendNotification(sub.subscription, notificationPayload);

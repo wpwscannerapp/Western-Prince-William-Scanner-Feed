@@ -84,11 +84,12 @@ export const NotificationService = {
       const subscriptionInsert: PushSubscriptionInsert = {
         user_id: userId,
         subscription: pushSubJson,
+        endpoint: subscription.endpoint, // Include the new endpoint column
       };
 
       const { error } = await supabase
         .from('push_subscriptions')
-        .upsert(subscriptionInsert, { onConflict: 'user_id, subscription->>endpoint' });
+        .upsert(subscriptionInsert, { onConflict: 'user_id, endpoint' }); // Use the new endpoint column for onConflict
 
       if (error) {
         logSupabaseError('subscribeUserToPush - DB Save', error);
@@ -130,7 +131,7 @@ export const NotificationService = {
         .from('push_subscriptions')
         .delete()
         .eq('user_id', userId)
-        .eq('subscription->>endpoint', subscription?.endpoint || '');
+        .eq('endpoint', subscription?.endpoint || ''); // Use the new endpoint column for deletion
 
       if (error) {
         logSupabaseError('unsubscribeWebPush - DB Delete', error);
