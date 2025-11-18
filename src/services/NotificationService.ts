@@ -22,14 +22,14 @@ export const NotificationService = {
 
     if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
       handleError(null, 'Invalid VAPID Public Key configuration. Push notifications will not work.');
-      AnalyticsService.trackEvent({ name: 'web_push_init_failed', properties: { reason: 'invalid_vapid_key' });
+      AnalyticsService.trackEvent({ name: 'web_push_init_failed', properties: { reason: 'invalid_vapid_key' } });
       if (import.meta.env.DEV) console.warn('NotificationService: VAPID Public Key is missing or invalid.');
       return false;
     }
 
     if (!('serviceWorker' in navigator)) {
       handleError(null, 'Push notifications are not supported by your browser.');
-      AnalyticsService.trackEvent({ name: 'web_push_init_failed', properties: { reason: 'service_worker_not_supported' });
+      AnalyticsService.trackEvent({ name: 'web_push_init_failed', properties: { reason: 'service_worker_not_supported' } });
       if (import.meta.env.DEV) console.warn('NotificationService: Service Worker not supported.');
       return false;
     }
