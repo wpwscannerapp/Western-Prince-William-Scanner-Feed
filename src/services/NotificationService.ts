@@ -32,14 +32,14 @@ export const NotificationService = {
 
     if (!vapidPublicKey || !/^[A-Za-z0-9\-_]+={0,2}$/.test(vapidPublicKey)) {
       handleError(null, 'Invalid VAPID Public Key configuration. Push notifications will not work.');
-      AnalyticsService.trackEvent({ name: 'web_push_init_failed', properties: { reason: 'invalid_vapid_key' } });
+      AnalyticsService.trackEvent({ name: 'web_push_init_failed', properties: { reason: 'invalid_vapid_key' });
       if (import.meta.env.DEV) console.warn('NotificationService: VAPID Public Key is missing or invalid.');
       return false;
     }
 
     if (!('serviceWorker' in navigator)) {
       handleError(null, 'Push notifications are not supported by your browser.');
-      AnalyticsService.trackEvent({ name: 'web_push_init_failed', properties: { reason: 'service_worker_not_supported' } });
+      AnalyticsService.trackEvent({ name: 'web_push_init_failed', properties: { reason: 'service_worker_not_supported' });
       if (import.meta.env.DEV) console.warn('NotificationService: Service Worker not supported.');
       return false;
     }
@@ -88,22 +88,18 @@ export const NotificationService = {
         if (import.meta.env.DEV) console.log('NotificationService: New subscription created:', subscription);
       }
       
-      // Explicitly cast to our defined PushSubscription type
       const pushSubJson: PushSubscription = subscription.toJSON() as PushSubscription;
 
-      // Explicitly remove the 'endpoint' property from the JSON object
-      // as it's a generated column in the database and cannot be inserted directly.
-      const { endpoint: _, ...subscriptionWithoutEndpoint } = pushSubJson; // This destructuring now works
-
-      // Save subscription to Supabase
+      // Save subscription to Supabase, including the endpoint
       const subscriptionInsert: PushSubscriptionInsert = {
         user_id: userId,
-        subscription: subscriptionWithoutEndpoint as Json, // Cast to Json
+        subscription: pushSubJson as unknown as Json, // Store the full JSON object
+        endpoint: pushSubJson.endpoint, // Store the endpoint separately for easier querying and unique constraint
       };
 
       const { error } = await supabase
         .from('push_subscriptions')
-        .upsert(subscriptionInsert, { onConflict: 'user_id, endpoint' }); // Keep onConflict with endpoint
+        .upsert(subscriptionInsert, { onConflict: 'user_id, endpoint' });
 
       if (error) {
         logSupabaseError('subscribeUserToPush - DB Save', error);

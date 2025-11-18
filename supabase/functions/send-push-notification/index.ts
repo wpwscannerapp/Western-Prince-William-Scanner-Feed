@@ -14,6 +14,15 @@ declare const Deno: {
   };
 };
 
+// Define Json type locally for the Edge Function
+type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -21,7 +30,8 @@ const corsHeaders = {
 
 // Define a local interface for the subscription object from the database
 interface DbPushSubscription {
-  subscription: webpush.PushSubscription;
+  subscription: Json; // This will be the JSONB object
+  endpoint: string; // This will be the top-level endpoint column
 }
 
 serve(async (req: Request) => {
@@ -102,10 +112,10 @@ serve(async (req: Request) => {
       Deno.env.get('WEB_PUSH_PRIVATE_KEY')! // Private key from Supabase secret
     );
 
-    // Fetch all push subscriptions
+    // Fetch all push subscriptions, including the top-level endpoint
     const { data: subscriptions, error: fetchError } = await supabaseAdmin
       .from('push_subscriptions')
-      .select('subscription');
+      .select('subscription, endpoint');
 
     if (fetchError) {
       console.error('Error fetching subscriptions:', fetchError);
@@ -129,18 +139,24 @@ serve(async (req: Request) => {
 
     const sendPromises = subscriptions.map(async (sub: DbPushSubscription) => {
       try {
+        // Reconstruct the webpush.PushSubscription object using the fetched endpoint and keys from the JSONB
+        const pushSubscriptionToSend: webpush.PushSubscription = {
+          endpoint: sub.endpoint,
+          keys: (sub.subscription as any).keys, // Assuming keys are directly under subscription JSONB
+          expirationTime: (sub.subscription as any).expirationTime || null, // Include expirationTime if present
+        };
         // @ts-ignore
-        await webpush.sendNotification(sub.subscription, notificationPayload);
-        console.log('Notification sent to:', sub.subscription.endpoint);
+        await webpush.sendNotification(pushSubscriptionToSend, notificationPayload);
+        console.log('Notification sent to:', sub.endpoint);
       } catch (sendError: any) {
-        console.error('Error sending notification to subscription:', sub.subscription.endpoint, sendError);
+        console.error('Error sending notification to subscription:', sub.endpoint, sendError);
         // Handle specific errors, e.g., delete expired subscriptions
         if (sendError.statusCode === 410 || sendError.statusCode === 404) { // GONE or NOT_FOUND
-          console.log('Subscription expired or not found, deleting from DB:', sub.subscription.endpoint);
+          console.log('Subscription expired or not found, deleting from DB:', sub.endpoint);
           await supabaseAdmin
             .from('push_subscriptions')
             .delete()
-            .eq('subscription->>endpoint', sub.subscription.endpoint);
+            .eq('endpoint', sub.endpoint); // Use the top-level endpoint for deletion
         }
       }
     });

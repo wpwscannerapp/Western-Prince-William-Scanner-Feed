@@ -66,7 +66,7 @@ export type PushSubscriptionInsert = {
   user_id: string;
   subscription: Json;
   created_at?: string | null;
-  // endpoint is a GENERATED column, so it should not be in the Insert type
+  endpoint: string; // Added the new generated column
 };
 export type PushSubscriptionUpdate = {
   id?: string;
