@@ -72,9 +72,9 @@ serve(async (req: Request) => {
     webpush.setVapidDetails(
       'mailto:wpwscannerfeed@gmail.com', // Contact email for VAPID
       // @ts-ignore
-      Deno.env.get('WEB_PUSH_PUBLIC_KEY')!, // Public key from Supabase secret (removed VITE_ prefix)
+      Deno.env.get('WEB_PUSH_PUBLIC_KEY')!, // Public key from Supabase secret
       // @ts-ignore
-      Deno.env.get('WEB_PUSH_PRIVATE_KEY')! // Private key from Supabase secret
+      Deno.env.get('WEB_PUSH_SECRET_KEY')! // Corrected: Use WEB_PUSH_SECRET_KEY for the private key
     );
 
     // Fetch all push subscriptions, including the top-level endpoint
