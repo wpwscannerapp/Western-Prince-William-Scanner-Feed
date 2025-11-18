@@ -197,9 +197,10 @@ export const NotificationService = {
     const timeoutId = setTimeout(() => controller.abort(), SUPABASE_API_TIMEOUT);
 
     try {
+      // Querying the alerts_safe view instead of the raw alerts table
       const { data, error } = await supabase
-        .from('alerts')
-        .select('id, title, description, type, latitude, longitude, created_at') // Explicitly selected columns
+        .from('alerts_safe') // Changed to alerts_safe view
+        .select('*') // Now safe to use '*' with the view
         .order('created_at', { ascending: false })
         .abortSignal(controller.signal);
 
