@@ -199,7 +199,7 @@ export const NotificationService = {
     try {
       const { data, error } = await supabase
         .from('alerts')
-        .select('*')
+        .select('id, title, description, type, latitude, longitude, created_at') // Explicitly selected columns
         .order('created_at', { ascending: false })
         .abortSignal(controller.signal);
 
@@ -209,7 +209,7 @@ export const NotificationService = {
         return [];
       }
       AnalyticsService.trackEvent({ name: 'alerts_fetched', properties: { count: data.length } });
-      return data;
+      return data as AlertRow[];
     } catch (err: any) {
       if (err.name === 'AbortError') {
         handleError(new Error('Request timed out'), 'Fetching alerts timed out.');
