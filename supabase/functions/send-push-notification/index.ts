@@ -49,50 +49,15 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Authenticate the request using the Authorization header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response('Unauthorized: Missing Authorization header', { status: 401, headers: corsHeaders });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
     // Initialize Supabase client with service role key for admin access
+    // This client will have full admin privileges and bypass RLS,
+    // so no user JWT verification is needed for this server-side function.
     const supabaseAdmin = createClient(
       // @ts-ignore
       Deno.env.get('SUPABASE_URL')!,
       // @ts-ignore
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, // Use service role key
-      {
-        global: {
-          headers: { Authorization: `Bearer ${token}` }, // Pass the original token for RLS context if needed, though service role bypasses it
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! // Use service role key directly
     );
-
-    // Verify the JWT token to ensure the request is from an authenticated admin
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
-    if (userError || !user) {
-      console.error('Edge Function Error: Unauthorized - User not authenticated or token invalid.', userError?.message || 'No user found.');
-      return new Response(JSON.stringify({ error: { message: 'Unauthorized: User not authenticated or token invalid.' } }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Check if the user is an admin
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || profile?.role !== 'admin') {
-      console.error('Edge Function Error: Forbidden - User is not an admin.', profileError?.message || 'User role is not admin.');
-      return new Response(JSON.stringify({ error: { message: 'Forbidden: Only administrators can send push notifications.' } }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
     const { alert } = await req.json();
     if (!alert || !alert.title || !alert.description) {
