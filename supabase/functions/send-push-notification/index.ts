@@ -5,7 +5,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 // @ts-ignore
-import webpush from 'https://esm.sh/web-push@3.6.7?target=deno'; // Explicitly target Deno
+import webpush from 'https://esm.sh/web-push@3.7.0?target=deno'; // Updated web-push version
 
 // Explicitly declare Deno global for TypeScript
 declare const Deno: {
@@ -74,7 +74,7 @@ serve(async (req: Request) => {
       // @ts-ignore
       Deno.env.get('WEB_PUSH_PUBLIC_KEY')!, // Public key from Supabase secret
       // @ts-ignore
-      Deno.env.get('WEB_PUSH_SECRET_KEY')! // Corrected: Use WEB_PUSH_SECRET_KEY for the private key
+      Deno.env.get('WEB_PUSH_SECRET_KEY')! // Private key from Supabase secret
     );
 
     // Fetch all push subscriptions, including the top-level endpoint
