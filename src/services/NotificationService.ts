@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { AnalyticsService } from './AnalyticsService';
-import { AlertRow, AlertUpdate, NewAlert, PushSubscriptionInsert, PushSubscriptionRow } from '@/types/supabase';
+import { AlertRow, AlertUpdate, NewAlert, PushSubscriptionInsert, PushSubscriptionRow, Json } from '@/types/supabase'; // Import Json type
 
 export type PushSubscription = PushSubscriptionRow['subscription'];
 export type Alert = AlertRow;
@@ -80,12 +80,14 @@ export const NotificationService = {
       
       const pushSubJson = subscription.toJSON() as PushSubscription;
 
+      // Explicitly remove the 'endpoint' property from the JSON object
+      // as it's a generated column in the database and cannot be inserted directly.
+      const { endpoint: _, ...subscriptionWithoutEndpoint } = pushSubJson;
+
       // Save subscription to Supabase
       const subscriptionInsert: PushSubscriptionInsert = {
         user_id: userId,
-        subscription: pushSubJson,
-        // Omit 'endpoint' here, as it's a GENERATED ALWAYS AS column in the DB
-        // The database will automatically derive it from the 'subscription' JSONB field.
+        subscription: subscriptionWithoutEndpoint as Json, // Cast to Json as endpoint is removed
       };
 
       const { error } = await supabase
