@@ -2,11 +2,11 @@ import type { Database, Json } from '@/types/database.types'
 
 export type PublicSchema = Database['public']
 
-export { Json } from './database.types'; // Explicitly export Json
+export type { Json } from './database.types'; // Explicitly export Json with 'type' keyword
 
 // Define PushSubscriptionJSON structure for client-side usage
 export interface PushSubscriptionJSON {
-  endpoint: string;
+  endpoint?: string; // Made optional as it can be undefined
   expirationTime: number | null;
   keys: {
     p256dh: string;
