@@ -1,0 +1,105 @@
+-- 1. Drop the http extension (CASCADE will remove dependent objects like functions)
+DROP EXTENSION IF EXISTS http CASCADE;
+
+-- 2. Recreate the http extension in the extensions schema
+CREATE EXTENSION http WITH SCHEMA extensions;
+
+-- 3. Grant usage on the extensions schema to ensure roles can access functions within it
+GRANT USAGE ON SCHEMA extensions TO authenticated, service_role;
+
+-- 4. Drop existing public.http_post functions (if any survived CASCADE)
+DROP FUNCTION IF EXISTS public.http_post(url text, headers jsonb, body text);
+DROP FUNCTION IF EXISTS public.http_post(url text, body text, content_type text);
+
+-- 5. Recreate public.http_post wrapper functions with explicit search_path and correct security settings
+CREATE OR REPLACE FUNCTION public.http_post(url text, headers jsonb, body text)
+ RETURNS extensions.http_response
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'extensions'
+AS $$
+BEGIN
+  RETURN extensions.http_post(url := url, headers := headers, body := body);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.http_post(url text, body text, content_type text)
+ RETURNS extensions.http_response
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'extensions'
+AS $$
+BEGIN
+  RETURN extensions.http_post(url := url, body := body, content_type := content_type);
+END;
+$$;
+
+-- 6. Grant execute permissions on the public.http_post functions
+GRANT EXECUTE ON FUNCTION public.http_post(url text, headers jsonb, body text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.http_post(url text, body text, content_type text) TO authenticated, service_role;
+
+-- 7. Drop existing notify_web_push_on_new_alert function and its trigger (if any survived CASCADE)
+DROP TRIGGER IF EXISTS on_alert_created ON public.alerts;
+DROP FUNCTION IF EXISTS public.notify_web_push_on_new_alert();
+
+-- 8. Recreate notify_web_push_on_new_alert function
+CREATE OR REPLACE FUNCTION public.notify_web_push_on_new_alert()
+RETURNS TRIGGER
+LANGUAGE PLPGSQL
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  project_ref TEXT := 'wvvxkwvliogulfqmkaqb'; -- Your Supabase Project ID
+  edge_function_url TEXT;
+  auth_token TEXT;
+  res_status INT;
+  res_body TEXT;
+BEGIN
+  -- Construct the Edge Function URL
+  edge_function_url := 'https://' || project_ref || '.supabase.co/functions/v1/send-push-notification';
+
+  -- Get the JWT token of the user who initiated the database change
+  -- This token is needed by the Edge Function to authenticate and verify admin role
+  SELECT current_setting('request.jwt.arr', true) INTO auth_token;
+
+  RAISE NOTICE 'notify_web_push_on_new_alert: Auth Token: %', auth_token;
+  RAISE NOTICE 'notify_web_push_on_new_alert: Edge Function URL: %', edge_function_url;
+
+  -- Call the public.http_post wrapper function
+  SELECT
+    status,
+    content
+  INTO
+    res_status,
+    res_body
+  FROM
+    public.http_post(
+      url := edge_function_url,
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer ' || auth_token -- Pass the JWT token for authentication
+      ),
+      body := jsonb_build_object(
+        'alert', jsonb_build_object(
+          'id', NEW.id,
+          'title', NEW.title,
+          'description', NEW.description,
+          'type', NEW.type,
+          'latitude', NEW.latitude,
+          'longitude', NEW.longitude
+        )
+      )::TEXT
+    );
+
+  RAISE NOTICE 'notify_web_push_on_new_alert: Edge Function Response Status: %', res_status;
+  RAISE NOTICE 'notify_web_push_on_new_alert: Edge Function Response Body: %', res_body;
+
+  RETURN NEW;
+END;
+$$;
+
+-- 9. Recreate the trigger on_alert_created
+CREATE TRIGGER on_alert_created
+  AFTER INSERT ON public.alerts
+  FOR EACH ROW EXECUTE FUNCTION public.notify_web_push_on_new_alert();
