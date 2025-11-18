@@ -2,6 +2,18 @@ import type { Database, Json } from '@/types/database.types'
 
 export type PublicSchema = Database['public']
 
+export { Json } from './database.types'; // Explicitly export Json
+
+// Define PushSubscriptionJSON structure for client-side usage
+export interface PushSubscriptionJSON {
+  endpoint: string;
+  expirationTime: number | null;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
 // ---------------------------------------------------------------
 // 2. Handy Row aliases (used everywhere)
 // ---------------------------------------------------------------
@@ -62,7 +74,7 @@ export type PushSubscriptionInsert = {
   user_id: string;
   subscription: Json;
   created_at?: string | null;
-  endpoint?: string; // Added the new generated column (optional for insert)
+  // endpoint is a GENERATED column, so it should not be in the Insert type
 };
 export type PushSubscriptionUpdate = {
   id?: string;

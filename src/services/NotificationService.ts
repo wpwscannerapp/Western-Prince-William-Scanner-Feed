@@ -4,9 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/utils/errorHandler';
 import { SUPABASE_API_TIMEOUT } from '@/config';
 import { AnalyticsService } from './AnalyticsService';
-import { AlertRow, AlertUpdate, NewAlert, PushSubscriptionInsert, PushSubscriptionRow, Json } from '@/types/supabase'; // Import Json type
+import { AlertRow, AlertUpdate, NewAlert, PushSubscriptionInsert, PushSubscriptionJSON, Json } from '@/types/supabase'; // Import PushSubscriptionJSON and Json
 
-export type PushSubscription = PushSubscriptionRow['subscription'];
+export type PushSubscription = PushSubscriptionJSON; // Alias PushSubscription to the JSON structure
 export type Alert = AlertRow;
 
 const logSupabaseError = (functionName: string, error: any) => {
@@ -78,16 +78,16 @@ export const NotificationService = {
         if (import.meta.env.DEV) console.log('NotificationService: New subscription created:', subscription);
       }
       
-      const pushSubJson = subscription.toJSON() as PushSubscription;
+      const pushSubJson: PushSubscription = subscription.toJSON(); // Explicitly type as PushSubscriptionJSON
 
       // Explicitly remove the 'endpoint' property from the JSON object
       // as it's a generated column in the database and cannot be inserted directly.
-      const { endpoint: _, ...subscriptionWithoutEndpoint } = pushSubJson;
+      const { endpoint: _, ...subscriptionWithoutEndpoint } = pushSubJson; // This destructuring now works
 
       // Save subscription to Supabase
       const subscriptionInsert: PushSubscriptionInsert = {
         user_id: userId,
-        subscription: subscriptionWithoutEndpoint as Json, // Cast to Json as endpoint is removed
+        subscription: subscriptionWithoutEndpoint as Json, // Cast to Json
       };
 
       const { error } = await supabase
