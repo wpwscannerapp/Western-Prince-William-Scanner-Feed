@@ -1,10 +1,4 @@
-[?25l[?2004h
-                                                                                                                      
-  >  1. wvvxkwvliogulfqmkaqb [name: Western Prince William Scanner Feed, org: zybqkcdzmyzmydpuvugb, region: us-east-1]
-                                                                                                                      
-                                                                                                                      
-    ↑/k up • ↓/j down • / filter • q quit • ? more                                                                    
-                                                                                                                      [6A [J[2K[?2004l[?25h[?1002l[?1003l[?1006lexport type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -350,18 +344,21 @@ export type Database = {
       push_subscriptions: {
         Row: {
           created_at: string | null
+          endpoint: string
           id: string
           subscription: Json
           user_id: string
         }
         Insert: {
           created_at?: string | null
+          endpoint?: string
           id?: string
           subscription: Json
           user_id: string
         }
         Update: {
           created_at?: string | null
+          endpoint?: string
           id?: string
           subscription?: Json
           user_id?: string
@@ -578,15 +575,11 @@ export type Database = {
         | { Args: { data: Json }; Returns: string }
         | {
             Args: { string: string }
-            Returns: {
-              error: true
-            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+            Returns: string
           }
         | {
             Args: { string: string }
-            Returns: {
-              error: true
-            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+            Returns: string
           }
     }
     Enums: {
