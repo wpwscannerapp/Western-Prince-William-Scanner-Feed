@@ -306,6 +306,24 @@ serve(async (req: Request) => {
   }
   // --- END NEW: Internal Secret Validation ---
 
+  let rawBody: string = ''; // Initialize rawBody to an empty string
+
+  try {
+    rawBody = await req.text(); // Read raw body first
+    console.log('Edge Function: Raw request body received:', rawBody); // Log raw body
+    const parsedBody = JSON.parse(rawBody);
+    console.log('Edge Function: Parsed request body:', parsedBody); // Log parsed body
+    // Removed userId and userEmail extraction as they are no longer needed for authentication
+    console.log('Edge Function: Successfully extracted parameters from parsed body.');
+  } catch (jsonError: any) {
+    console.error('Edge Function Error: Failed to parse request body as JSON.', jsonError);
+    console.error('Edge Function: Raw request body received:', rawBody);
+    return new Response(JSON.stringify({ error: { message: 'Bad Request: Invalid JSON in request body.' } }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     console.log('Edge Function: Initializing Supabase client.');
     const supabaseAdmin = createClient(
@@ -315,7 +333,7 @@ serve(async (req: Request) => {
     console.log('Edge Function: Supabase client initialized.');
 
     console.log('Edge Function: Parsing request body.');
-    const { alert } = await req.json();
+    const { alert } = JSON.parse(rawBody); // Use rawBody here
     if (!alert || !alert.title || !alert.title.trim() || !alert.description || !alert.description.trim()) {
       console.error('Edge Function Error: Bad Request - Missing or empty alert title or description.');
       return new Response(JSON.stringify({ error: { message: 'Bad Request: Missing or empty alert title or description.' } }), {
