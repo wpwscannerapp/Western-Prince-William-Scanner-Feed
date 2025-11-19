@@ -57,14 +57,16 @@ async function encryptWebPushPayload(
   const authSecret = urlBase64ToUint8Array(userAuthSecret);
   const publicKey = urlBase64ToUint8Array(userPublicKey);
 
-  const localKeyPair = await crypto.subtle.generateKeyPair(
+  // FIX 1: Changed generateKeyPair to generateKey
+  const localKeyPair = await crypto.subtle.generateKey(
     { name: 'ECDH', namedCurve: 'P-256' },
     true,
     ['deriveBits']
   );
 
+  // FIX 2: Explicitly cast publicKey.buffer to ArrayBuffer
   const sharedSecret = await crypto.subtle.deriveBits(
-    { name: 'ECDH', public: await crypto.subtle.importKey('raw', publicKey, { name: 'ECDH', namedCurve: 'P-256' }, true, []) },
+    { name: 'ECDH', public: await crypto.subtle.importKey('raw', publicKey.buffer as ArrayBuffer, { name: 'ECDH', namedCurve: 'P-256' }, true, []) },
     localKeyPair.privateKey,
     256
   );
@@ -159,7 +161,13 @@ async function signVAPID(
   };
 }
 
-Deno.serve(async (req: Request) => {
+// FIX 3: Use 'serve' directly, not 'Deno.serve'
+// FIX 4: Add @ts-ignore for the Supabase import
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+// @ts-ignore
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+
+serve(async (req: Request) => {
   console.log('Edge Function: send-push-notification invoked. Using self-contained Web Crypto implementation.');
 
   if (req.method === 'OPTIONS') {
@@ -175,7 +183,6 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -190,10 +197,10 @@ Deno.serve(async (req: Request) => {
     }
 
     const vapidPublicKey = Deno.env.get('WEB_PUSH_PUBLIC_KEY')!;
-    const vapidPrivateKeyJwk = Deno.env.get('WEB_PUSH_PRIVATE_KEY')!; // Expecting JWK string for private key
+    const vapidPrivateKeyJwk = Deno.env.get('WEB_PUSH_SECRET_KEY')!;
 
     if (!vapidPublicKey || !vapidPrivateKeyJwk) {
-      console.error('Edge Function Error: VAPID keys are not configured. Ensure WEB_PUSH_PUBLIC_KEY and WEB_PUSH_PRIVATE_KEY are set as secrets.');
+      console.error('Edge Function Error: VAPID keys are not configured. Ensure WEB_PUSH_PUBLIC_KEY and WEB_PUSH_SECRET_KEY are set as secrets.');
       return new Response(JSON.stringify({ error: { message: 'Server Error: VAPID keys are not configured.' } }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
