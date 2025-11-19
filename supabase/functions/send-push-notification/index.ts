@@ -57,14 +57,12 @@ async function encryptWebPushPayload(
   const authSecret = urlBase64ToUint8Array(userAuthSecret);
   const publicKey = urlBase64ToUint8Array(userPublicKey);
 
-  // FIX 1: Changed generateKeyPair to generateKey
   const localKeyPair = await crypto.subtle.generateKey(
     { name: 'ECDH', namedCurve: 'P-256' },
     true,
     ['deriveBits']
   );
 
-  // FIX 2: Use publicKey.slice().buffer to ensure a plain ArrayBuffer
   const sharedSecret = await crypto.subtle.deriveBits(
     { name: 'ECDH', public: await crypto.subtle.importKey('raw', publicKey.slice().buffer, { name: 'ECDH', namedCurve: 'P-256' }, true, []) },
     localKeyPair.privateKey,
@@ -114,8 +112,8 @@ async function encryptWebPushPayload(
 async function signVAPID(
   audience: string,
   subject: string,
-  privateKeyJwk: string, // Expecting JWK string for private key
-  publicKeyBase64Url: string, // Expecting base64url for public key
+  privateKeyBase64Url: string, // Renamed parameter to reflect expected format
+  publicKeyBase64Url: string,
   expiration: number
 ): Promise<{ Authorization: string; 'Crypto-Key': string }> {
   const header = {
@@ -138,11 +136,19 @@ async function signVAPID(
   dataToSign.set(textEncoder.encode('.'), encodedHeader.length);
   dataToSign.set(encodedClaims, encodedHeader.length + 1);
 
+  // Debug log for private key
+  console.log('Edge Function: VAPID Private Key (first 20 chars):', privateKeyBase64Url.substring(0, 20) + '...');
+  console.log('Edge Function: VAPID Private Key (last 20 chars):', privateKeyBase64Url.slice(-20));
+
+  // Convert the base64url private key string to a Uint8Array
+  const privateKeyBuffer = urlBase64ToUint8Array(privateKeyBase64Url);
+
+  // Import the private key as 'raw' format
   const importedPrivateKey = await crypto.subtle.importKey(
-    'jwk',
-    JSON.parse(atob(privateKeyJwk)), // Decode base64 JWK string
+    'raw', // Import as raw bytes
+    privateKeyBuffer,
     { name: 'ECDSA', namedCurve: 'P-256' },
-    false,
+    true, // extractable
     ['sign']
   );
 
@@ -161,6 +167,7 @@ async function signVAPID(
   };
 }
 
+// @ts-ignore
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
@@ -181,41 +188,50 @@ serve(async (req: Request) => {
   }
 
   try {
+    console.log('Edge Function: Initializing Supabase client.');
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+    console.log('Edge Function: Supabase client initialized.');
 
+    console.log('Edge Function: Parsing request body.');
     const { alert } = await req.json();
     if (!alert || !alert.title || !alert.title.trim() || !alert.description || !alert.description.trim()) {
+      console.error('Edge Function Error: Bad Request - Missing or empty alert title or description.');
       return new Response(JSON.stringify({ error: { message: 'Bad Request: Missing or empty alert title or description.' } }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    console.log('Edge Function: Alert data received:', alert.title);
 
+    console.log('Edge Function: Retrieving VAPID keys from environment.');
     const vapidPublicKey = Deno.env.get('WEB_PUSH_PUBLIC_KEY')!;
-    const vapidPrivateKeyJwk = Deno.env.get('WEB_PUSH_SECRET_KEY')!;
+    const vapidPrivateKeyBase64Url = Deno.env.get('WEB_PUSH_SECRET_KEY')!; // Renamed variable
 
-    if (!vapidPublicKey || !vapidPrivateKeyJwk) {
+    if (!vapidPublicKey || !vapidPrivateKeyBase64Url) {
       console.error('Edge Function Error: VAPID keys are not configured. Ensure WEB_PUSH_PUBLIC_KEY and WEB_PUSH_SECRET_KEY are set as secrets.');
       return new Response(JSON.stringify({ error: { message: 'Server Error: VAPID keys are not configured.' } }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    console.log('Edge Function: VAPID keys retrieved.');
 
+    console.log('Edge Function: Fetching push subscriptions from database.');
     const { data: subscriptions, error: fetchError } = await supabaseAdmin
       .from('push_subscriptions')
       .select('subscription, endpoint');
 
     if (fetchError) {
-      console.error('Error fetching subscriptions:', fetchError);
+      console.error('Edge Function Error: Failed to fetch subscriptions:', fetchError);
       return new Response(JSON.stringify({ error: { message: 'Failed to fetch subscriptions.' } }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    console.log(`Edge Function: Found ${subscriptions.length} subscriptions.`);
 
     const notificationPayload = JSON.stringify({
       title: alert.title,
@@ -228,28 +244,35 @@ serve(async (req: Request) => {
         incidentId: alert.id,
       },
     });
+    console.log('Edge Function: Notification payload prepared.');
 
     const sendPromises = subscriptions.map(async (sub: DbPushSubscription) => {
       try {
+        console.log(`Edge Function: Processing subscription for endpoint: ${sub.endpoint}`);
         const subscriptionKeys = (sub.subscription as any).keys;
         if (!subscriptionKeys || !subscriptionKeys.p256dh || !subscriptionKeys.auth) {
-          console.warn('Skipping subscription due to missing keys:', sub.endpoint);
+          console.warn('Edge Function Warning: Skipping subscription due to missing keys:', sub.endpoint);
           return;
         }
+        console.log('Edge Function: Subscription keys found.');
 
+        console.log('Edge Function: Signing VAPID headers.');
         const vapidHeaders = await signVAPID(
           sub.endpoint,
           'mailto:wpwscannerfeed@gmail.com',
-          vapidPrivateKeyJwk,
+          vapidPrivateKeyBase64Url, // Use the base64url private key
           vapidPublicKey,
           12 * 60 * 60
         );
+        console.log('Edge Function: VAPID headers signed.');
 
+        console.log('Edge Function: Encrypting Web Push payload.');
         const { cipherText, salt, rs, localPublicKey } = await encryptWebPushPayload(
           notificationPayload,
           subscriptionKeys.p256dh,
           subscriptionKeys.auth,
         );
+        console.log('Edge Function: Web Push payload encrypted.');
 
         const headers = new Headers({
           'Content-Type': 'application/octet-stream',
@@ -258,37 +281,42 @@ serve(async (req: Request) => {
           'Crypto-Key': `p256dh=${vapidPublicKey};dh=${btoa(String.fromCharCode(...localPublicKey)).replace(/=/g, '')}`,
           'TTL': '2419200',
         });
+        console.log('Edge Function: Request headers prepared.');
 
+        console.log(`Edge Function: Sending fetch request to ${sub.endpoint}`);
         const response = await fetch(sub.endpoint, {
           method: 'POST',
           headers: headers,
           body: new Uint8Array([...salt, ...rs, ...new Uint8Array(cipherText)]),
         });
+        console.log(`Edge Function: Fetch response received for ${sub.endpoint}: ${response.status} ${response.statusText}`);
 
         if (!response.ok) {
-          console.error(`Failed to send notification to ${sub.endpoint}: ${response.status} ${response.statusText}`);
+          console.error(`Edge Function Error: Failed to send notification to ${sub.endpoint}: ${response.status} ${response.statusText}`);
           if (response.status === 410 || response.status === 404) {
-            console.log('Subscription expired or not found, deleting from DB:', sub.endpoint);
+            console.log('Edge Function: Subscription expired or not found, deleting from DB:', sub.endpoint);
             await supabaseAdmin
               .from('push_subscriptions')
               .delete()
               .eq('endpoint', sub.endpoint);
           }
         } else {
-          console.log('Notification sent to:', sub.endpoint);
+          console.log('Edge Function: Notification sent to:', sub.endpoint);
         }
       } catch (sendError: any) {
-        console.error('Error sending notification to subscription:', sub.endpoint, sendError);
+        console.error('Edge Function Error: Error sending notification to subscription:', sub.endpoint, sendError);
       }
     });
 
+    console.log('Edge Function: Waiting for all notification send promises to settle.');
     await Promise.allSettled(sendPromises);
+    console.log('Edge Function: All notification send promises settled.');
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
-    console.error('Unexpected error in send-push-notification Edge Function:', error);
+    console.error('Edge Function FATAL Error: Unexpected error in send-push-notification Edge Function:', error);
     return new Response(JSON.stringify({ error: { message: error.message } }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
