@@ -112,7 +112,7 @@ async function encryptWebPushPayload(
 async function signVAPID(
   audience: string,
   subject: string,
-  privateKeyBase64Url: string, // Renamed parameter to reflect expected format
+  privateKeyBase64Url: string,
   publicKeyBase64Url: string,
   expiration: number
 ): Promise<{ Authorization: string; 'Crypto-Key': string }> {
@@ -140,13 +140,18 @@ async function signVAPID(
   console.log('Edge Function: VAPID Private Key (first 20 chars):', privateKeyBase64Url.substring(0, 20) + '...');
   console.log('Edge Function: VAPID Private Key (last 20 chars):', privateKeyBase64Url.slice(-20));
 
-  // Convert the base64url private key string to a Uint8Array
-  const privateKeyBuffer = urlBase64ToUint8Array(privateKeyBase64Url);
+  // Construct JWK from the base64url-encoded raw private key
+  const jwkPrivateKey = {
+    kty: 'EC',
+    crv: 'P-256',
+    d: privateKeyBase64Url, // This is the base64url-encoded raw private key
+    ext: true,
+    key_ops: ['sign'],
+  };
 
-  // Import the private key as 'raw' format
   const importedPrivateKey = await crypto.subtle.importKey(
-    'raw', // Import as raw bytes
-    privateKeyBuffer,
+    'jwk', // Changed to jwk format
+    jwkPrivateKey,
     { name: 'ECDSA', namedCurve: 'P-256' },
     true, // extractable
     ['sign']
