@@ -2,12 +2,12 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 import { VitePWA } from 'vite-plugin-pwa';
-import netlifyPlugin from '@netlify/vite-plugin'; // Import the Netlify Vite plugin
+import netlifyPlugin from '@netlify/vite-plugin';
 
 export default defineConfig(({ command, mode }) => {
   // Load environment variables based on the current mode
   const env = loadEnv(mode, process.cwd(), 'VITE_');
-  const supabaseUrl = env.VITE_SUPABASE_URL; 
+  // const supabaseUrl = env.VITE_SUPABASE_URL; // Removed unused variable
 
   const plugins = [
     react(),
@@ -20,57 +20,13 @@ export default defineConfig(({ command, mode }) => {
     plugins.push(
       VitePWA({
         registerType: 'autoUpdate',
-        injectRegister: 'auto',
-        filename: 'service-worker.js',
-        workbox: {
-          clientsClaim: true,
-          skipWaiting: true,
+        // Change to injectManifest to use a custom service worker file
+        injectManifest: {
+          swSrc: 'src/service-worker.ts', // Point to our custom SW file
+          // Ensure the manifest is generated and injected
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
-          runtimeCaching: [
-            {
-              urlPattern: ({ url }) => url.origin === location.origin,
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'static-assets-cache',
-                expiration: {
-                  maxEntries: 50,
-                  maxAgeSeconds: 60 * 60 * 24 * 7,
-                },
-              },
-            },
-            {
-              // Corrected: Use supabaseUrl for the regex pattern
-              urlPattern: new RegExp(`^${supabaseUrl}/rest/v1/incidents`),
-              handler: 'StaleWhileRevalidate',
-              options: {
-                cacheName: 'supabase-incidents-api-cache',
-                expiration: {
-                  maxEntries: 50,
-                  maxAgeSeconds: 60 * 60 * 24,
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-            {
-              // FIX: Updated to use 'incident_images' bucket instead of 'post_images'
-              urlPattern: new RegExp(`^${supabaseUrl}/storage/v1/object/public/incident_images/`),
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'supabase-incident-images-cache', // Renamed cache name for clarity
-                expiration: {
-                  maxEntries: 100,
-                  maxAgeSeconds: 60 * 60 * 24 * 30,
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-          ],
         },
-        // devOptions are not needed if the plugin is only enabled for build
+        // Remove workbox config as its functionality is now integrated into swSrc
         manifest: {
           name: "Western Prince William Scanner Feed",
           short_name: "WPW Scanner",

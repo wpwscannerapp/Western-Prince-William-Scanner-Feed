@@ -113,6 +113,21 @@ importers:
       '@types/web-push':
         specifier: ^3.6.4
         version: 3.6.4
+      '@types/workbox-cacheable-response':
+        specifier: ^5.0.0
+        version: 5.0.0
+      '@types/workbox-expiration':
+        specifier: ^5.0.0
+        version: 5.0.0
+      '@types/workbox-precaching':
+        specifier: ^5.0.0
+        version: 5.0.0
+      '@types/workbox-routing':
+        specifier: ^5.0.0
+        version: 5.0.0
+      '@types/workbox-strategies':
+        specifier: ^5.0.0
+        version: 5.0.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -2680,6 +2695,26 @@ packages:
 
   '@types/web-push@3.6.4':
     resolution: {integrity: sha512-GnJmSr40H3RAnj0s34FNTcJi1hmWFV5KXugE0mYWnYhgTAHLJ/dJKAwDmvPJYMke0RplY2XE9LnM4hqSqKIjhQ==}
+
+  '@types/workbox-cacheable-response@5.0.0':
+    resolution: {integrity: sha512-8cOIP0LWrnb2DI74esrPP6JUDUn+uherulZuuM5F65mvCaL0PmwpOaU27/Q6J4DfULs1ulzvm+VNq4NuAwUAuQ==}
+    deprecated: This is a stub types definition. workbox-cacheable-response provides its own type definitions, so you do not need this installed.
+
+  '@types/workbox-expiration@5.0.0':
+    resolution: {integrity: sha512-/Q3n7KXnmgiuFRMWveOF4O7O5X4zIHnQrRF054eIu7NhNIGCoG/RapFO/KrguDpEB4BDpTF0mwVWWMdEDMFRqQ==}
+    deprecated: This is a stub types definition. workbox-expiration provides its own type definitions, so you do not need this installed.
+
+  '@types/workbox-precaching@5.0.0':
+    resolution: {integrity: sha512-Oytxs/I0nE6oM3p4vJsYyLcLldFb9tyG+WBk+UrL2aWizEdpTeVeV+CYG5/lWBhCyXaiEQPgYzWaf3kzLFZAiQ==}
+    deprecated: This is a stub types definition. workbox-precaching provides its own type definitions, so you do not need this installed.
+
+  '@types/workbox-routing@5.0.0':
+    resolution: {integrity: sha512-Ls2HNqL0OKYab8SQ0pCIzoobjXgZa+E2mXucY6cjPkV0ziEhvyubU0bNetR2Aed0n+Kdc++T4BML9Bzapcmp4A==}
+    deprecated: This is a stub types definition. workbox-routing provides its own type definitions, so you do not need this installed.
+
+  '@types/workbox-strategies@5.0.0':
+    resolution: {integrity: sha512-uW1mZ++ZOGEHafE4OWbfVqJ4I+6zWJfoWeepz49a9Zhxm0GtyQ1amTMXTCprhaI+ueYypbUN/pVrnfhFJTig9Q==}
+    deprecated: This is a stub types definition. workbox-strategies provides its own type definitions, so you do not need this installed.
 
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
@@ -8430,6 +8465,26 @@ snapshots:
   '@types/web-push@3.6.4':
     dependencies:
       '@types/node': 22.18.12
+
+  '@types/workbox-cacheable-response@5.0.0':
+    dependencies:
+      workbox-cacheable-response: 7.3.0
+
+  '@types/workbox-expiration@5.0.0':
+    dependencies:
+      workbox-expiration: 7.3.0
+
+  '@types/workbox-precaching@5.0.0':
+    dependencies:
+      workbox-precaching: 7.3.0
+
+  '@types/workbox-routing@5.0.0':
+    dependencies:
+      workbox-routing: 7.3.0
+
+  '@types/workbox-strategies@5.0.0':
+    dependencies:
+      workbox-strategies: 7.3.0
 
   '@types/ws@8.18.1':
     dependencies:
