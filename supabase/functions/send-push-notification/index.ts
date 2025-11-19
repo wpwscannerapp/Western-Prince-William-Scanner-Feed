@@ -151,6 +151,7 @@ async function signVAPID(
 
   // 2. Export the public key as JWK to get x and y
   const publicJwk = await crypto.subtle.exportKey('jwk', importedPublicKey);
+  console.log('Edge Function: Public JWK x:', publicJwk.x, 'y:', publicJwk.y); // NEW DEBUG LOG
 
   // 3. Construct the complete private JWK
   const jwkPrivateKey = {
