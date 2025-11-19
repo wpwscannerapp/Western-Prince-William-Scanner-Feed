@@ -64,9 +64,9 @@ async function encryptWebPushPayload(
     ['deriveBits']
   );
 
-  // FIX 2: Explicitly cast publicKey.buffer to ArrayBuffer
+  // FIX 2: Use publicKey.slice().buffer to ensure a plain ArrayBuffer
   const sharedSecret = await crypto.subtle.deriveBits(
-    { name: 'ECDH', public: await crypto.subtle.importKey('raw', publicKey.buffer as ArrayBuffer, { name: 'ECDH', namedCurve: 'P-256' }, true, []) },
+    { name: 'ECDH', public: await crypto.subtle.importKey('raw', publicKey.slice().buffer, { name: 'ECDH', namedCurve: 'P-256' }, true, []) },
     localKeyPair.privateKey,
     256
   );
@@ -161,8 +161,6 @@ async function signVAPID(
   };
 }
 
-// FIX 3: Use 'serve' directly, not 'Deno.serve'
-// FIX 4: Add @ts-ignore for the Supabase import
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
