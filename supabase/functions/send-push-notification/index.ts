@@ -64,7 +64,7 @@ async function encryptWebPushPayload(
   );
 
   const sharedSecret = await crypto.subtle.deriveBits(
-    { name: 'ECDH', public: await crypto.subtle.importKey('raw', publicKey.slice().buffer, { name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']) }, // Added 'deriveBits' usage here
+    { name: 'ECDH', public: await crypto.subtle.importKey('raw', publicKey.slice().buffer, { name: 'ECDH', namedCurve: 'P-256' }, false, []) }, // Changed extractable to false and removed 'deriveBits' usage
     localKeyPair.privateKey,
     256
   );
@@ -145,7 +145,7 @@ async function signVAPID(
     'raw',
     urlBase64ToUint8Array(publicKeyBase64Url).slice(), // Use .slice() to ensure ArrayBuffer compatibility
     { name: 'ECDSA', namedCurve: 'P-256' },
-    true, // extractable
+    false, // Changed 'extractable' to false
     ['verify']
   );
 
@@ -342,5 +342,4 @@ serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
-  // This closing brace and semicolon are critical.
 });
