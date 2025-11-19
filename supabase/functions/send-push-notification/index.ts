@@ -60,27 +60,29 @@ async function encryptWebPushPayload(
   const localKeyPair = await crypto.subtle.generateKey(
     { name: 'ECDH', namedCurve: 'P-256' },
     true,
-    ['deriveBits']
+    ['deriveBits'] // privateKey will have deriveBits
   );
 
+  // --- START EDITS ---
   const clientPublicCryptoKey = await crypto.subtle.importKey(
     'raw',
     publicKey.slice().buffer,
     { name: 'ECDH', namedCurve: 'P-256' },
-    true, // Changed from 'false' to 'true'
-    ['deriveBits']
+    false,
+    [] // keep empty for raw public key import to avoid SyntaxError
   );
 
-  // Defensive runtime check
-  if (!clientPublicCryptoKey.usages.includes('deriveBits') || !localKeyPair.privateKey.usages.includes('deriveBits')) {
-    throw new Error('Imported/generated keys must include deriveBits usage for ECDH deriveBits.');
+  // Defensive check: ensure private key supports deriveBits (baseKey requirement)
+  if (!localKeyPair.privateKey.usages.includes('deriveBits')) {
+    throw new Error('Local private key must include deriveBits usage for ECDH deriveBits.');
   }
 
   const sharedSecret = await crypto.subtle.deriveBits(
     { name: 'ECDH', public: clientPublicCryptoKey },
-    localKeyPair.privateKey,
+    localKeyPair.privateKey, // baseKey must include deriveBits (it does)
     256
   );
+  // --- END EDITS ---
 
   const keyInfo = new Uint8Array(textEncoder.encode('WebPush: info\0'));
   const keyInfoWithAuth = new Uint8Array(keyInfo.length + authSecret.length);
