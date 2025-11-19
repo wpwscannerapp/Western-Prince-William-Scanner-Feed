@@ -62,16 +62,18 @@ async function encryptWebPushPayload(
   const localKeyPair = await crypto.subtle.generateKey(
     { name: 'ECDH', namedCurve: 'P-256' },
     true,
-    ['deriveBits'] // ensures privateKey has deriveBits usage
+    ['deriveBits'] // ensures privateKey.usages includes 'deriveBits'
   );
-  // import subscriber/public key as raw; keep usages empty to avoid SyntaxError in this runtime
+  // import subscriber public key as raw; keep usages empty to avoid SyntaxError in some runtimes
   const clientPublicCryptoKey = await crypto.subtle.importKey(
     'raw',
     publicKey.slice().buffer,
     { name: 'ECDH', namedCurve: 'P-256' },
     false,
-    [] // keep empty for raw public key import (Deno may reject non-empty usages here)
+    []
   );
+  // sanity log to confirm usages on the generated private key
+  console.log('Edge Function: localKeyPair.privateKey.usages =', localKeyPair.privateKey.usages);
   // Defensive check: privateKey must include deriveBits
   if (!localKeyPair.privateKey.usages.includes('deriveBits')) {
     throw new Error('Local private key must include deriveBits usage for ECDH deriveBits.');
