@@ -1,13 +1,5 @@
 // @ts-ignore
 /// <reference lib="deno.ns" />
-// @ts-ignore
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-// @ts-ignore
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-// @ts-ignore
-import { signVAPID } from 'https://deno.land/x/vapid@v1.0.0/mod.ts'; // Deno-native VAPID signing
-// @ts-ignore
-import { encrypt } from 'https://deno.land/x/web_push_encryption@v0.1.0/mod.ts'; // Deno-native payload encryption
 
 // Explicitly declare Deno global for TypeScript
 declare const Deno: {
@@ -36,9 +28,138 @@ interface DbPushSubscription {
   endpoint: string; // This will be the top-level endpoint column
 }
 
-serve(async (req: Request) => {
+// Helper function to convert URL-safe base64 to Uint8Array
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+// Helper function for Web Push encryption (simplified for Deno's Web Crypto)
+async function encryptWebPushPayload(
+  payload: string,
+  userPublicKey: string,
+  userAuthSecret: string
+): Promise<{ cipherText: ArrayBuffer; salt: Uint8Array; rs: Uint8Array }> {
+  const textEncoder = new TextEncoder();
+  const payloadBytes = textEncoder.encode(payload);
+
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const rs = crypto.getRandomValues(new Uint8Array(16)); // Record Size (16 bytes for 4096)
+
+  const authSecret = urlBase64ToUint8Array(userAuthSecret);
+  const publicKey = urlBase64ToUint8Array(userPublicKey);
+
+  const keyPair = await crypto.subtle.generateKeyPair(
+    { name: 'ECDH', namedCurve: 'P-256' },
+    true,
+    ['deriveBits']
+  );
+
+  const sharedSecret = await crypto.subtle.deriveBits(
+    { name: 'ECDH', public: await crypto.subtle.importKey('raw', publicKey, { name: 'ECDH', namedCurve: 'P-256' }, true, []) },
+    keyPair.privateKey,
+    256
+  );
+
+  const keyInfo = new Uint8Array(textEncoder.encode('WebPush: info\0'));
+  const keyInfoWithAuth = new Uint8Array(keyInfo.length + authSecret.length);
+  keyInfoWithAuth.set(keyInfo);
+  keyInfoWithAuth.set(authSecret, keyInfo.length);
+
+  const prk = await crypto.subtle.importKey('raw', sharedSecret, { name: 'HKDF' }, false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey(
+    { name: 'HKDF', hash: 'SHA-256', salt: salt, info: keyInfoWithAuth },
+    prk,
+    { name: 'AES-GCM', length: 128 },
+    false,
+    ['encrypt']
+  );
+
+  const nonceInfo = new Uint8Array(textEncoder.encode('WebPush: nonce\0'));
+  const nonceInfoWithAuth = new Uint8Array(nonceInfo.length + authSecret.length);
+  nonceInfoWithAuth.set(nonceInfo);
+  nonceInfoWithAuth.set(authSecret, nonceInfo.length);
+
+  const nonce = await crypto.subtle.deriveBits(
+    { name: 'HKDF', hash: 'SHA-256', salt: salt, info: nonceInfoWithAuth },
+    prk,
+    96
+  );
+
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv: new Uint8Array(nonce) },
+    key,
+    payloadBytes
+  );
+
+  return {
+    cipherText: encrypted,
+    salt: salt,
+    rs: new Uint8Array(await crypto.subtle.exportKey('raw', keyPair.publicKey)),
+  };
+}
+
+// Helper function for VAPID signing (simplified for Deno's Web Crypto)
+async function signVAPID(
+  audience: string,
+  subject: string,
+  privateKey: string,
+  publicKey: string,
+  expiration: number
+): Promise<{ Authorization: string; 'Crypto-Key': string }> {
+  const header = {
+    typ: 'JWT',
+    alg: 'ES256',
+  };
+  const now = Math.floor(Date.now() / 1000);
+  const claims = {
+    aud: audience,
+    exp: now + expiration,
+    sub: subject,
+  };
+
+  const textEncoder = new TextEncoder();
+  const encodedHeader = urlBase64ToUint8Array(btoa(JSON.stringify(header)).replace(/=/g, ''));
+  const encodedClaims = urlBase64ToUint8Array(btoa(JSON.stringify(claims)).replace(/=/g, ''));
+
+  const dataToSign = new Uint8Array(encodedHeader.length + 1 + encodedClaims.length);
+  dataToSign.set(encodedHeader);
+  dataToSign.set(textEncoder.encode('.'), encodedHeader.length);
+  dataToSign.set(encodedClaims, encodedHeader.length + 1);
+
+  const importedPrivateKey = await crypto.subtle.importKey(
+    'jwk',
+    JSON.parse(atob(privateKey)), // Decode base64 private key
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    false,
+    ['sign']
+  );
+
+  const signature = await crypto.subtle.sign(
+    { name: 'ECDSA', hash: 'SHA-256' },
+    importedPrivateKey,
+    dataToSign
+  );
+
+  const jwt = `${btoa(JSON.stringify(header)).replace(/=/g, '')}.${btoa(JSON.stringify(claims)).replace(/=/g, '')}.${btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/=/g, '')}`;
+
+  return {
+    Authorization: `WebPush ${jwt}`,
+    'Crypto-Key': `p256dh=${publicKey}`,
+  };
+}
+
+Deno.serve(async (req: Request) => {
   // Debug log to trigger redeployment
-  console.log('Edge Function: send-push-notification invoked. Attempting to resolve module dependencies.');
+  console.log('Edge Function: send-push-notification invoked. Using self-contained implementation.');
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -72,7 +193,7 @@ serve(async (req: Request) => {
 
     // Retrieve VAPID keys from environment variables
     const vapidPublicKey = Deno.env.get('WEB_PUSH_PUBLIC_KEY')!;
-    const vapidPrivateKey = Deno.env.get('WEB_PUSH_SECRET_KEY')!;
+    const vapidPrivateKey = Deno.env.get('WEB_PUSH_PRIVATE_KEY')!; // Ensure this is the base64url encoded JWK private key
 
     if (!vapidPublicKey || !vapidPrivateKey) {
       console.error('Edge Function Error: VAPID keys are not configured.');
@@ -116,23 +237,23 @@ serve(async (req: Request) => {
         }
 
         // Generate VAPID JWT
-        const vapidHeaders = await signVAPID({
-          aud: sub.endpoint,
-          sub: 'mailto:wpwscannerfeed@gmail.com', // VAPID contact email
-          privateKey: vapidPrivateKey,
-          publicKey: vapidPublicKey,
-          expiration: 12 * 60 * 60, // 12 hours
-        });
+        const vapidHeaders = await signVAPID(
+          sub.endpoint,
+          'mailto:wpwscannerfeed@gmail.com', // VAPID contact email
+          vapidPrivateKey,
+          vapidPublicKey,
+          12 * 60 * 60 // 12 hours expiration
+        );
 
         // Encrypt the payload
-        const encryptedPayload = await encrypt(
+        const { cipherText, salt, rs } = await encryptWebPushPayload(
           notificationPayload,
           subscriptionKeys.p256dh,
           subscriptionKeys.auth,
         );
 
         const headers = new Headers({
-          'Content-Type': 'application/octet-stream', // Corrected Content-Type
+          'Content-Type': 'application/octet-stream',
           'Content-Encoding': 'aesgcm',
           'Authorization': vapidHeaders.Authorization,
           'Crypto-Key': vapidHeaders['Crypto-Key'],
@@ -142,7 +263,7 @@ serve(async (req: Request) => {
         const response = await fetch(sub.endpoint, {
           method: 'POST',
           headers: headers,
-          body: encryptedPayload,
+          body: new Uint8Array([...salt, ...rs, ...new Uint8Array(cipherText)]),
         });
 
         if (!response.ok) {
