@@ -140,17 +140,31 @@ async function signVAPID(
   console.log('Edge Function: VAPID Private Key (first 20 chars):', privateKeyBase64Url.substring(0, 20) + '...');
   console.log('Edge Function: VAPID Private Key (last 20 chars):', privateKeyBase64Url.slice(-20));
 
-  // Construct JWK from the base64url-encoded raw private key
+  // 1. Import the public key (raw format) to extract x and y
+  const importedPublicKey = await crypto.subtle.importKey(
+    'raw',
+    urlBase64ToUint8Array(publicKeyBase64Url).slice(), // Use .slice() to ensure ArrayBuffer compatibility
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    true, // extractable
+    ['verify']
+  );
+
+  // 2. Export the public key as JWK to get x and y
+  const publicJwk = await crypto.subtle.exportKey('jwk', importedPublicKey);
+
+  // 3. Construct the complete private JWK
   const jwkPrivateKey = {
     kty: 'EC',
     crv: 'P-256',
+    x: publicJwk.x, // Add x from public key
+    y: publicJwk.y, // Add y from public key
     d: privateKeyBase64Url, // This is the base64url-encoded raw private key
     ext: true,
     key_ops: ['sign'],
   };
 
   const importedPrivateKey = await crypto.subtle.importKey(
-    'jwk', // Changed to jwk format
+    'jwk', // Import as JWK format
     jwkPrivateKey,
     { name: 'ECDSA', namedCurve: 'P-256' },
     true, // extractable
