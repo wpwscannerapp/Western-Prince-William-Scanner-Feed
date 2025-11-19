@@ -4,33 +4,22 @@ export type PublicSchema = Database['public']
 
 export type { Json } from './database.types'; // Explicitly export Json with 'type' keyword
 
-// Removed PushSubscriptionJSON as it's now defined locally in NotificationService.ts
-
 // ---------------------------------------------------------------
 // 2. Handy Row aliases (used everywhere)
 // ---------------------------------------------------------------
 export type AlertRow                = PublicSchema['Tables']['alerts']['Row']
 export type AppSettingsRow          = PublicSchema['Tables']['app_settings']['Row']
 export type AppSettingsHistoryRow   = PublicSchema['Tables']['app_settings_history']['Row']
-export type CommentRow              = PublicSchema['Tables']['comments']['Row'] & {
-  parent_comment_id: string | null; // Added parent_comment_id
-  category: string; // Added category
-  media_url: string | null; // Added media_url
-}
+export type CommentRow              = PublicSchema['Tables']['comments']['Row']
 export type ContactSettingsRow      = PublicSchema['Tables']['contact_settings']['Row']
 export type FeedbackRow             = PublicSchema['Tables']['feedback_and_suggestions']['Row']
 export type IncidentRow             = PublicSchema['Tables']['incidents']['Row']
 export type LikeRow                 = PublicSchema['Tables']['likes']['Row']
 export type ProfileRow              = PublicSchema['Tables']['profiles']['Row']
 
-// Manually defined PushSubscription types as database.types.ts is out of sync
-export type PushSubscriptionRow = {
-  id: string;
-  user_id: string;
-  subscription: Json;
-  created_at: string | null;
-  endpoint: string; // Added the new generated column
-};
+// Using generated type for PushSubscriptionRow
+export type PushSubscriptionRow = PublicSchema['Tables']['push_subscriptions']['Row'];
+
 
 // Utility type for incidents guaranteed to have coordinates
 export type IncidentWithCoords = IncidentRow & {
@@ -45,36 +34,20 @@ export type AlertInsert = PublicSchema['Tables']['alerts']['Insert']
 export type AlertUpdate = PublicSchema['Tables']['alerts']['Update']
 export type AppSettingsInsert = PublicSchema['Tables']['app_settings']['Insert']
 export type AppSettingsUpdate = PublicSchema['Tables']['app_settings']['Update']
-export type CommentInsert = PublicSchema['Tables']['comments']['Insert'] & {
-  parent_comment_id?: string | null; // Added parent_comment_id
-  category?: string; // Added category
-  media_url?: string | null; // Added media_url
-}
-export type CommentUpdate = PublicSchema['Tables']['comments']['Update'] & {
-  parent_comment_id?: string | null; // Added parent_comment_id
-  category?: string; // Added category
-  media_url?: string | null; // Added media_url
-}
+// Using generated type for CommentInsert
+export type CommentInsert = PublicSchema['Tables']['comments']['Insert']
+// Using generated type for CommentUpdate
+export type CommentUpdate = PublicSchema['Tables']['comments']['Update']
+
 export type ContactSettingsInsert = PublicSchema['Tables']['contact_settings']['Insert']
 export type ContactSettingsUpdate = PublicSchema['Tables']['contact_settings']['Update']
 export type IncidentInsert = PublicSchema['Tables']['incidents']['Insert']
 export type IncidentUpdate = PublicSchema['Tables']['incidents']['Update']
 
-// Manually defined PushSubscription types as database.types.ts is out of sync
-export type PushSubscriptionInsert = {
-  id?: string;
-  user_id: string;
-  subscription: Json;
-  created_at?: string | null;
-  endpoint: string; // Added the new generated column
-};
-export type PushSubscriptionUpdate = {
-  id?: string;
-  user_id?: string;
-  subscription?: Json;
-  created_at?: string | null;
-  endpoint?: string; // Added the new generated column
-};
+// Using generated types for PushSubscriptionInsert and PushSubscriptionUpdate
+export type PushSubscriptionInsert = PublicSchema['Tables']['push_subscriptions']['Insert'];
+export type PushSubscriptionUpdate = PublicSchema['Tables']['push_subscriptions']['Update'];
+
 
 export type ProfileInsert = PublicSchema['Tables']['profiles']['Insert']
 export type ProfileUpdate = PublicSchema['Tables']['profiles']['Update']
