@@ -64,7 +64,7 @@ async function encryptWebPushPayload(
   );
 
   const sharedSecret = await crypto.subtle.deriveBits(
-    { name: 'ECDH', public: await crypto.subtle.importKey('raw', publicKey.slice().buffer, { name: 'ECDH', namedCurve: 'P-256' }, false, []) }, // Changed extractable to false and removed 'deriveBits' usage
+    { name: 'ECDH', public: await crypto.subtle.importKey('raw', publicKey.slice().buffer, { name: 'ECDH', namedCurve: 'P-256' }, false, []) }, // Corrected: no 'deriveBits' usage for public key
     localKeyPair.privateKey,
     256
   );
