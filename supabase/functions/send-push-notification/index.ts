@@ -42,22 +42,22 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
-// Helper function for Web Push encryption (simplified for Deno's Web Crypto)
+// Helper function for Web Push encryption (using Deno's Web Crypto)
 async function encryptWebPushPayload(
   payload: string,
   userPublicKey: string,
   userAuthSecret: string
-): Promise<{ cipherText: ArrayBuffer; salt: Uint8Array; rs: Uint8Array }> {
+): Promise<{ cipherText: ArrayBuffer; salt: Uint8Array; rs: Uint8Array; localPublicKey: Uint8Array }> {
   const textEncoder = new TextEncoder();
   const payloadBytes = textEncoder.encode(payload);
 
   const salt = crypto.getRandomValues(new Uint8Array(16));
-  const rs = crypto.getRandomValues(new Uint8Array(16)); // Record Size (16 bytes for 4096)
+  const rs = new Uint8Array([0x00, 0x00, 0x10, 0x00]); // Record Size (4096 bytes)
 
   const authSecret = urlBase64ToUint8Array(userAuthSecret);
   const publicKey = urlBase64ToUint8Array(userPublicKey);
 
-  const keyPair = await crypto.subtle.generateKeyPair(
+  const localKeyPair = await crypto.subtle.generateKeyPair(
     { name: 'ECDH', namedCurve: 'P-256' },
     true,
     ['deriveBits']
@@ -65,7 +65,7 @@ async function encryptWebPushPayload(
 
   const sharedSecret = await crypto.subtle.deriveBits(
     { name: 'ECDH', public: await crypto.subtle.importKey('raw', publicKey, { name: 'ECDH', namedCurve: 'P-256' }, true, []) },
-    keyPair.privateKey,
+    localKeyPair.privateKey,
     256
   );
 
@@ -103,16 +103,17 @@ async function encryptWebPushPayload(
   return {
     cipherText: encrypted,
     salt: salt,
-    rs: new Uint8Array(await crypto.subtle.exportKey('raw', keyPair.publicKey)),
+    rs: rs,
+    localPublicKey: new Uint8Array(await crypto.subtle.exportKey('raw', localKeyPair.publicKey)),
   };
 }
 
-// Helper function for VAPID signing (simplified for Deno's Web Crypto)
+// Helper function for VAPID signing (using Deno's Web Crypto)
 async function signVAPID(
   audience: string,
   subject: string,
-  privateKey: string,
-  publicKey: string,
+  privateKeyJwk: string, // Expecting JWK string for private key
+  publicKeyBase64Url: string, // Expecting base64url for public key
   expiration: number
 ): Promise<{ Authorization: string; 'Crypto-Key': string }> {
   const header = {
@@ -137,7 +138,7 @@ async function signVAPID(
 
   const importedPrivateKey = await crypto.subtle.importKey(
     'jwk',
-    JSON.parse(atob(privateKey)), // Decode base64 private key
+    JSON.parse(atob(privateKeyJwk)), // Decode base64 JWK string
     { name: 'ECDSA', namedCurve: 'P-256' },
     false,
     ['sign']
@@ -149,23 +150,22 @@ async function signVAPID(
     dataToSign
   );
 
-  const jwt = `${btoa(JSON.stringify(header)).replace(/=/g, '')}.${btoa(JSON.stringify(claims)).replace(/=/g, '')}.${btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/=/g, '')}`;
+  const signatureBase64Url = btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/=/g, '');
+  const jwt = `${btoa(JSON.stringify(header)).replace(/=/g, '')}.${btoa(JSON.stringify(claims)).replace(/=/g, '')}.${signatureBase64Url}`;
 
   return {
     Authorization: `WebPush ${jwt}`,
-    'Crypto-Key': `p256dh=${publicKey}`,
+    'Crypto-Key': `p256dh=${publicKeyBase64Url}`,
   };
 }
 
 Deno.serve(async (req: Request) => {
-  // Debug log to trigger redeployment
-  console.log('Edge Function: send-push-notification invoked. Using self-contained implementation.');
+  console.log('Edge Function: send-push-notification invoked. Using self-contained Web Crypto implementation.');
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Explicitly reject non-POST requests
   if (req.method !== 'POST') {
     console.error(`Edge Function Error: Method Not Allowed - Received ${req.method} request, expected POST.`);
     return new Response(JSON.stringify({ error: { message: 'Method Not Allowed: Only POST requests are supported.' } }), {
@@ -175,35 +175,31 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // Initialize Supabase client with service role key for admin access
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
     const supabaseAdmin = createClient(
-      // @ts-ignore
       Deno.env.get('SUPABASE_URL')!,
-      // @ts-ignore
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! // Use service role key directly
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
     const { alert } = await req.json();
-    if (!alert || !alert.title || !alert.description) {
-      return new Response(JSON.stringify({ error: { message: 'Bad Request: Missing alert title or description.' } }), {
+    if (!alert || !alert.title || !alert.title.trim() || !alert.description || !alert.description.trim()) {
+      return new Response(JSON.stringify({ error: { message: 'Bad Request: Missing or empty alert title or description.' } }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Retrieve VAPID keys from environment variables
     const vapidPublicKey = Deno.env.get('WEB_PUSH_PUBLIC_KEY')!;
-    const vapidPrivateKey = Deno.env.get('WEB_PUSH_PRIVATE_KEY')!; // Ensure this is the base64url encoded JWK private key
+    const vapidPrivateKeyJwk = Deno.env.get('WEB_PUSH_PRIVATE_KEY')!; // Expecting JWK string for private key
 
-    if (!vapidPublicKey || !vapidPrivateKey) {
-      console.error('Edge Function Error: VAPID keys are not configured.');
+    if (!vapidPublicKey || !vapidPrivateKeyJwk) {
+      console.error('Edge Function Error: VAPID keys are not configured. Ensure WEB_PUSH_PUBLIC_KEY and WEB_PUSH_PRIVATE_KEY are set as secrets.');
       return new Response(JSON.stringify({ error: { message: 'Server Error: VAPID keys are not configured.' } }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Fetch all push subscriptions, including the top-level endpoint
     const { data: subscriptions, error: fetchError } = await supabaseAdmin
       .from('push_subscriptions')
       .select('subscription, endpoint');
@@ -219,11 +215,11 @@ Deno.serve(async (req: Request) => {
     const notificationPayload = JSON.stringify({
       title: alert.title,
       body: alert.description,
-      icon: '/Logo.png', // Path to your app icon
-      badge: '/Logo.png', // Path to your app badge icon
-      sound: 'default', // Added to play default notification sound
+      icon: '/Logo.png',
+      badge: '/Logo.png',
+      sound: 'default',
       data: {
-        url: `${Deno.env.get('VITE_APP_URL')}/incidents/${alert.id}`, // Link to incident detail page
+        url: `${Deno.env.get('VITE_APP_URL')}/incidents/${alert.id}`,
         incidentId: alert.id,
       },
     });
@@ -236,17 +232,15 @@ Deno.serve(async (req: Request) => {
           return;
         }
 
-        // Generate VAPID JWT
         const vapidHeaders = await signVAPID(
           sub.endpoint,
-          'mailto:wpwscannerfeed@gmail.com', // VAPID contact email
-          vapidPrivateKey,
+          'mailto:wpwscannerfeed@gmail.com',
+          vapidPrivateKeyJwk,
           vapidPublicKey,
-          12 * 60 * 60 // 12 hours expiration
+          12 * 60 * 60
         );
 
-        // Encrypt the payload
-        const { cipherText, salt, rs } = await encryptWebPushPayload(
+        const { cipherText, salt, rs, localPublicKey } = await encryptWebPushPayload(
           notificationPayload,
           subscriptionKeys.p256dh,
           subscriptionKeys.auth,
@@ -256,8 +250,8 @@ Deno.serve(async (req: Request) => {
           'Content-Type': 'application/octet-stream',
           'Content-Encoding': 'aesgcm',
           'Authorization': vapidHeaders.Authorization,
-          'Crypto-Key': vapidHeaders['Crypto-Key'],
-          'TTL': '2419200', // 4 weeks
+          'Crypto-Key': `p256dh=${vapidPublicKey};dh=${btoa(String.fromCharCode(...localPublicKey)).replace(/=/g, '')}`,
+          'TTL': '2419200',
         });
 
         const response = await fetch(sub.endpoint, {
@@ -268,8 +262,7 @@ Deno.serve(async (req: Request) => {
 
         if (!response.ok) {
           console.error(`Failed to send notification to ${sub.endpoint}: ${response.status} ${response.statusText}`);
-          // Handle specific errors, e.g., delete expired subscriptions
-          if (response.status === 410 || response.status === 404) { // GONE or NOT_FOUND
+          if (response.status === 410 || response.status === 404) {
             console.log('Subscription expired or not found, deleting from DB:', sub.endpoint);
             await supabaseAdmin
               .from('push_subscriptions')
@@ -284,7 +277,7 @@ Deno.serve(async (req: Request) => {
       }
     });
 
-    await Promise.allSettled(sendPromises); // Use allSettled to ensure all promises run
+    await Promise.allSettled(sendPromises);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
