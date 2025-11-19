@@ -35,7 +35,8 @@ export function useIsSubscribed(): UseIsSubscribedResult {
           handleError(error, 'Failed to fetch subscription status.');
           setIsSubscribed(false);
         } else if (profile) {
-          setIsSubscribed(profile.subscription_status === 'trialing' || profile.subscription_status === 'active');
+          // Include 'tester' as a status that grants full access
+          setIsSubscribed(profile.subscription_status === 'trialing' || profile.subscription_status === 'active' || profile.subscription_status === 'tester');
         } else {
           setIsSubscribed(false); // No profile found
         }
