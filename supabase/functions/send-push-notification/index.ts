@@ -342,4 +342,5 @@ serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
-}
+  // This closing brace and semicolon are critical.
+});
