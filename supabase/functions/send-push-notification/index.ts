@@ -132,7 +132,7 @@ serve(async (req: Request) => {
         );
 
         const headers = new Headers({
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/octet-stream', // Corrected Content-Type
           'Content-Encoding': 'aesgcm',
           'Authorization': vapidHeaders.Authorization,
           'Crypto-Key': vapidHeaders['Crypto-Key'],
