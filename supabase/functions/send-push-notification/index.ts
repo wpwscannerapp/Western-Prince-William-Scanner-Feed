@@ -64,7 +64,7 @@ async function encryptWebPushPayload(
   );
 
   const sharedSecret = await crypto.subtle.deriveBits(
-    { name: 'ECDH', public: await crypto.subtle.importKey('raw', publicKey.slice().buffer, { name: 'ECDH', namedCurve: 'P-256' }, false, []) }, // Corrected: no 'deriveBits' usage for public key
+    { name: 'ECDH', public: await crypto.subtle.importKey('raw', publicKey.slice().buffer, { name: 'ECDH', namedCurve: 'P-256' }, false, []) },
     localKeyPair.privateKey,
     256
   );
@@ -343,3 +343,5 @@ serve(async (req: Request) => {
     });
   }
 });
+
+export {}; // Explicitly declare as a module
