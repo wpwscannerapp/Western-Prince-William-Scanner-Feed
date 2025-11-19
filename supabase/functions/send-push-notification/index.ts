@@ -64,7 +64,7 @@ async function encryptWebPushPayload(
   );
 
   const sharedSecret = await crypto.subtle.deriveBits(
-    { name: 'ECDH', public: await crypto.subtle.importKey('raw', publicKey.slice().buffer, { name: 'ECDH', namedCurve: 'P-256' }, true, []) },
+    { name: 'ECDH', public: await crypto.subtle.importKey('raw', publicKey.slice().buffer, { name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']) }, // Added 'deriveBits' usage here
     localKeyPair.privateKey,
     256
   );
@@ -342,4 +342,4 @@ serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
-});
+}
