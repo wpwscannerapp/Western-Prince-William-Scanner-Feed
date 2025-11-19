@@ -42,6 +42,20 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+// Helper function to normalize EC public key for Web Crypto API
+function normalizeEcPublicKey(rawKeyBytes: Uint8Array): Uint8Array {
+  // P-256 uncompressed public keys are 65 bytes: 0x04 || X (32 bytes) || Y (32 bytes)
+  // Some Web Push libraries (like web-push-libs) might provide p256dh as 64 bytes (X || Y)
+  // The Web Crypto API's 'raw' format for ECDH/ECDSA P-256 expects the 65-byte uncompressed format.
+  if (rawKeyBytes.length === 64) {
+    const normalized = new Uint8Array(65);
+    normalized[0] = 0x04; // Uncompressed point indicator
+    normalized.set(rawKeyBytes, 1);
+    return normalized;
+  }
+  return rawKeyBytes;
+}
+
 // Helper function for Web Push encryption (using Deno's Web Crypto)
 async function encryptWebPushPayload(
   payload: string,
@@ -55,7 +69,13 @@ async function encryptWebPushPayload(
   const rs = new Uint8Array([0x00, 0x00, 0x10, 0x00]); // Record Size (4096 bytes)
 
   const authSecret = urlBase64ToUint8Array(userAuthSecret);
-  const publicKey = urlBase64ToUint8Array(userPublicKey);
+  
+  const publicKeyBytes = urlBase64ToUint8Array(userPublicKey);
+  const normalizedUserPublicKeyBytes = normalizeEcPublicKey(publicKeyBytes);
+
+  console.log('DEBUG: User Public Key (raw bytes length):', publicKeyBytes.length);
+  console.log('DEBUG: User Public Key (normalized bytes length):', normalizedUserPublicKeyBytes.length);
+  console.log('DEBUG: User Public Key (normalized bytes prefix):', normalizedUserPublicKeyBytes.slice(0, 4));
 
   // === Begin replace block: Import EC private key and derive shared secret ===
   // Expect SUPABASE_PUSH_EC_PRIVATE_KEY env var to contain base64-encoded PKCS8 DER of the EC private key (P-256)
@@ -75,7 +95,7 @@ async function encryptWebPushPayload(
   // Import subscriber public key (raw) — keep empty usages
   const clientPublicCryptoKey = await crypto.subtle.importKey(
     'raw',
-    publicKey.slice().buffer,
+    normalizedUserPublicKeyBytes.buffer, // Use the normalized buffer
     { name: 'ECDH', namedCurve: 'P-256' },
     false,
     []
@@ -160,10 +180,17 @@ async function signVAPID(
   console.log('Edge Function: VAPID Private Key (first 20 chars):', privateKeyBase64Url.substring(0, 20) + '...');
   console.log('Edge Function: VAPID Private Key (last 20 chars):', privateKeyBase64Url.slice(-20));
 
+  const rawVapidPublicKeyBytes = urlBase64ToUint8Array(publicKeyBase64Url);
+  const normalizedVapidPublicKeyBytes = normalizeEcPublicKey(rawVapidPublicKeyBytes);
+
+  console.log('DEBUG: VAPID Public Key (raw bytes length):', rawVapidPublicKeyBytes.length);
+  console.log('DEBUG: VAPID Public Key (normalized bytes length):', normalizedVapidPublicKeyBytes.length);
+  console.log('DEBUG: VAPID Public Key (normalized bytes prefix):', normalizedVapidPublicKeyBytes.slice(0, 4));
+
   // 1. Import the public key (raw format) to extract x and y
   const importedPublicKey = await crypto.subtle.importKey(
     'raw',
-    urlBase64ToUint8Array(publicKeyBase64Url).slice(), // Use .slice() to ensure ArrayBuffer compatibility
+    normalizedVapidPublicKeyBytes.buffer, // Use the normalized buffer
     { name: 'ECDSA', namedCurve: 'P-256' },
     true, // Changed 'extractable' to true to allow exportKey
     ['verify']
