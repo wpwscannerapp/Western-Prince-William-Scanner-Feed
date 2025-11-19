@@ -5,9 +5,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 // @ts-ignore
-import { signVAPID } from 'https://deno.land/x/vapid@v1.0.0/mod.ts'; // Deno-native VAPID signing
-// @ts-ignore
-import { encrypt } from 'https://deno.land/x/web_push_encryption@v0.1.0/mod.ts'; // Deno-native payload encryption
+import webpush from 'https://esm.sh/web-push@3.6.7?bundle&target=deno'; // Using esm.sh with ?bundle and &target=deno
 
 // Explicitly declare Deno global for TypeScript
 declare const Deno: {
@@ -32,7 +30,7 @@ const corsHeaders = {
 
 // Define a local interface for the subscription object from the database
 interface DbPushSubscription {
-  subscription: Json; // This will be the JSONB object containing keys
+  subscription: Json; // This will be the JSONB object
   endpoint: string; // This will be the top-level endpoint column
 }
 
@@ -52,6 +50,8 @@ serve(async (req: Request) => {
 
   try {
     // Initialize Supabase client with service role key for admin access
+    // This client will have full admin privileges and bypass RLS,
+    // so no user JWT verification is needed for this server-side function.
     const supabaseAdmin = createClient(
       // @ts-ignore
       Deno.env.get('SUPABASE_URL')!,
@@ -67,17 +67,15 @@ serve(async (req: Request) => {
       });
     }
 
-    // Retrieve VAPID keys from environment variables
-    const vapidPublicKey = Deno.env.get('WEB_PUSH_PUBLIC_KEY')!;
-    const vapidPrivateKey = Deno.env.get('WEB_PUSH_SECRET_KEY')!;
-
-    if (!vapidPublicKey || !vapidPrivateKey) {
-      console.error('Edge Function Error: VAPID keys are not configured.');
-      return new Response(JSON.stringify({ error: { message: 'Server Error: VAPID keys are not configured.' } }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Set VAPID keys
+    // @ts-ignore
+    webpush.setVapidDetails(
+      'mailto:wpwscannerfeed@gmail.com', // Contact email for VAPID
+      // @ts-ignore
+      Deno.env.get('WEB_PUSH_PUBLIC_KEY')!, // Public key from Supabase secret
+      // @ts-ignore
+      Deno.env.get('WEB_PUSH_SECRET_KEY')! // Private key from Supabase secret
+    );
 
     // Fetch all push subscriptions, including the top-level endpoint
     const { data: subscriptions, error: fetchError } = await supabaseAdmin
@@ -106,57 +104,25 @@ serve(async (req: Request) => {
 
     const sendPromises = subscriptions.map(async (sub: DbPushSubscription) => {
       try {
-        const subscriptionKeys = (sub.subscription as any).keys;
-        if (!subscriptionKeys || !subscriptionKeys.p256dh || !subscriptionKeys.auth) {
-          console.warn('Skipping subscription due to missing keys:', sub.endpoint);
-          return;
-        }
-
-        // Generate VAPID JWT
-        const vapidHeaders = await signVAPID({
-          aud: sub.endpoint,
-          sub: 'mailto:wpwscannerfeed@gmail.com', // VAPID contact email
-          privateKey: vapidPrivateKey,
-          publicKey: vapidPublicKey,
-          expiration: 12 * 60 * 60, // 12 hours
-        });
-
-        // Encrypt the payload
-        const encryptedPayload = await encrypt(
-          notificationPayload,
-          subscriptionKeys.p256dh,
-          subscriptionKeys.auth,
-        );
-
-        const headers = new Headers({
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Content-Encoding': 'aesgcm',
-          'Authorization': vapidHeaders.Authorization,
-          'Crypto-Key': vapidHeaders['Crypto-Key'],
-          'TTL': '2419200', // 4 weeks
-        });
-
-        const response = await fetch(sub.endpoint, {
-          method: 'POST',
-          headers: headers,
-          body: encryptedPayload,
-        });
-
-        if (!response.ok) {
-          console.error(`Failed to send notification to ${sub.endpoint}: ${response.status} ${response.statusText}`);
-          // Handle specific errors, e.g., delete expired subscriptions
-          if (response.status === 410 || response.status === 404) { // GONE or NOT_FOUND
-            console.log('Subscription expired or not found, deleting from DB:', sub.endpoint);
-            await supabaseAdmin
-              .from('push_subscriptions')
-              .delete()
-              .eq('endpoint', sub.endpoint);
-          }
-        } else {
-          console.log('Notification sent to:', sub.endpoint);
-        }
+        // Reconstruct the webpush.PushSubscription object using the fetched endpoint and keys from the JSONB
+        const pushSubscriptionToSend: webpush.PushSubscription = {
+          endpoint: sub.endpoint,
+          keys: (sub.subscription as any).keys, // Assuming keys are directly under subscription JSONB
+          expirationTime: (sub.subscription as any).expirationTime || null, // Include expirationTime if present
+        };
+        // @ts-ignore
+        await webpush.sendNotification(pushSubscriptionToSend, notificationPayload);
+        console.log('Notification sent to:', sub.endpoint);
       } catch (sendError: any) {
         console.error('Error sending notification to subscription:', sub.endpoint, sendError);
+        // Handle specific errors, e.g., delete expired subscriptions
+        if (sendError.statusCode === 410 || sendError.statusCode === 404) { // GONE or NOT_FOUND
+          console.log('Subscription expired or not found, deleting from DB:', sub.endpoint);
+          await supabaseAdmin
+            .from('push_subscriptions')
+            .delete()
+            .eq('endpoint', sub.endpoint); // Use the top-level endpoint for deletion
+        }
       }
     });
 
