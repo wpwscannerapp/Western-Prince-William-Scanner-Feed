@@ -57,39 +57,34 @@ async function encryptWebPushPayload(
   const authSecret = urlBase64ToUint8Array(userAuthSecret);
   const publicKey = urlBase64ToUint8Array(userPublicKey);
 
-  // === Begin replace block: ECDH key generation / import / derive (with runtime debug) ===
-  // generate local ECDH key pair (privateKey will include 'deriveBits')
-  const localKeyPair = await crypto.subtle.generateKey(
+  // === Begin replace block: Import EC private key and derive shared secret ===
+  // Expect SUPABASE_PUSH_EC_PRIVATE_KEY env var to contain base64-encoded PKCS8 DER of the EC private key (P-256)
+  const b64PrivateKey = Deno.env.get('WEB_PUSH_PRIVATE_KEY'); // Changed to WEB_PUSH_PRIVATE_KEY as per common practice
+  if (!b64PrivateKey) throw new Error('Missing WEB_PUSH_PRIVATE_KEY env var (base64 PKCS8 DER)');
+  // Decode base64 to Uint8Array
+  const pkDer = Uint8Array.from(atob(b64PrivateKey), c => c.charCodeAt(0));
+  // Import as ECDH key with deriveBits usage
+  const ecdhPrivateKey = await crypto.subtle.importKey(
+    'pkcs8',
+    pkDer.buffer,
     { name: 'ECDH', namedCurve: 'P-256' },
-    true,
-    ['deriveBits'] // ensure privateKey.usages includes 'deriveBits'
+    false,
+    ['deriveBits']
   );
-  // log usages for debugging (visible in function logs)
-  console.log('DEBUG: localKeyPair.privateKey.usages =', localKeyPair.privateKey.usages);
-  // import subscriber public key as raw; keep usages empty to avoid SyntaxError in some Deno builds
+  console.log('DEBUG: ecdhPrivateKey.usages =', ecdhPrivateKey.usages);
+  // Import subscriber public key (raw) — keep empty usages
   const clientPublicCryptoKey = await crypto.subtle.importKey(
     'raw',
     publicKey.slice().buffer,
     { name: 'ECDH', namedCurve: 'P-256' },
     false,
-    [] // empty usages for raw public key import
+    []
   );
-  // log imported public key meta for debugging
-  console.log('DEBUG: clientPublicCryptoKey:', {
-    type: clientPublicCryptoKey.type,
-    algorithm: clientPublicCryptoKey.algorithm,
-    usages: clientPublicCryptoKey.usages,
-  });
-  // Defensive check: privateKey must include deriveBits
-  if (!localKeyPair.privateKey.usages || !localKeyPair.privateKey.usages.includes('deriveBits')) {
-    // Log full object for diagnosis then throw a clear error
-    console.log('DEBUG: localKeyPair.privateKey object =', localKeyPair.privateKey);
-    throw new Error("Local private key does not include 'deriveBits' usage — deriveBits will fail. Aborting.");
-  }
-  // deriveBits using the privateKey as baseKey (must include deriveBits)
+  console.log('DEBUG: clientPublicCryptoKey.usages =', clientPublicCryptoKey.usages);
+  // Derive shared secret using the imported private key
   const sharedSecret = await crypto.subtle.deriveBits(
     { name: 'ECDH', public: clientPublicCryptoKey },
-    localKeyPair.privateKey,
+    ecdhPrivateKey,
     256
   );
   // === End replace block ===
@@ -129,7 +124,7 @@ async function encryptWebPushPayload(
     cipherText: encrypted,
     salt: salt,
     rs: rs,
-    localPublicKey: new Uint8Array(await crypto.subtle.exportKey('raw', localKeyPair.publicKey)),
+    localPublicKey: new Uint8Array(await crypto.subtle.exportKey('raw', ecdhPrivateKey.publicKey)), // Export public key from the imported private key pair
   };
 }
 
