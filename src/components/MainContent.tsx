@@ -14,8 +14,13 @@ const lazyLoad = (factory: () => Promise<any>, path: string) => {
   console.log(`[LAZY] Defining: ${path}`);
   const LazyComponent = React.lazy(() => factory().then(module => {
     if (!module.default) {
-      console.error(`CRITICAL ERROR: Missing default export in ${path}`, module);
+      console.error(`[LAZY] CRITICAL ERROR: Missing default export in ${path}`, module);
       throw new Error(`Missing default export in ${path}`);
+    }
+    // Explicitly check if module.default is a function or object (for functional or class components)
+    if (typeof module.default !== 'function' && typeof module.default !== 'object') {
+      console.error(`[LAZY] CRITICAL ERROR: Default export in ${path} is not a function or object (expected React component), got ${typeof module.default}`, module.default);
+      throw new Error(`Invalid default export in ${path}: Expected a React component.`);
     }
     console.log(`[LAZY] SUCCESS: ${path} loaded`);
     return { default: module.default };
