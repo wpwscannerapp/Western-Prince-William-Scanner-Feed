@@ -293,6 +293,19 @@ serve(async (req: Request) => {
     });
   }
 
+  // --- NEW: Internal Secret Validation ---
+  const internalSecret = Deno.env.get('WEB_PUSH_INTERNAL_SECRET');
+  const receivedSecret = req.headers.get('X-Internal-Secret');
+
+  if (!internalSecret || receivedSecret !== internalSecret) {
+    console.error('Edge Function Error: Forbidden - Invalid or missing internal secret.');
+    return new Response(JSON.stringify({ error: { message: 'Forbidden: Invalid or missing internal secret.' } }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  // --- END NEW: Internal Secret Validation ---
+
   try {
     console.log('Edge Function: Initializing Supabase client.');
     const supabaseAdmin = createClient(

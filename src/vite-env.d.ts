@@ -15,6 +15,7 @@ interface ImportMetaEnv {
   readonly VITE_NETLIFY_SITE_ID: string; // Added Netlify Site ID
   readonly VITE_MAPQUEST_API_KEY: string; // Added MapQuest API Key
   readonly VITE_GOOGLE_MAPS_KEY: string; // Added Google Maps API Key
+  readonly WEB_PUSH_INTERNAL_SECRET: string; // NEW: Internal secret for push notification Edge Function
   readonly DEV: boolean;
 }
 
