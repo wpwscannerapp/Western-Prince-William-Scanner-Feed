@@ -37,6 +37,9 @@ interface DbPushSubscription {
 }
 
 serve(async (req: Request) => {
+  // Debug log to trigger redeployment
+  console.log('Edge Function: send-push-notification invoked. Attempting to resolve module dependencies.');
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
