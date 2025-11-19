@@ -145,7 +145,7 @@ async function signVAPID(
     'raw',
     urlBase64ToUint8Array(publicKeyBase64Url).slice(), // Use .slice() to ensure ArrayBuffer compatibility
     { name: 'ECDSA', namedCurve: 'P-256' },
-    false, // Changed 'extractable' to false
+    true, // Changed 'extractable' to true to allow exportKey
     ['verify']
   );
 
