@@ -57,34 +57,42 @@ async function encryptWebPushPayload(
   const authSecret = urlBase64ToUint8Array(userAuthSecret);
   const publicKey = urlBase64ToUint8Array(userPublicKey);
 
-  // --- START EDITS ---
-  // generate an ECDH key pair where privateKey supports deriveBits
+  // === Begin replace block: ECDH key generation / import / derive (with runtime debug) ===
+  // generate local ECDH key pair (privateKey will include 'deriveBits')
   const localKeyPair = await crypto.subtle.generateKey(
     { name: 'ECDH', namedCurve: 'P-256' },
     true,
-    ['deriveBits'] // ensures privateKey.usages includes 'deriveBits'
+    ['deriveBits'] // ensure privateKey.usages includes 'deriveBits'
   );
-  // import subscriber public key as raw; keep usages empty to avoid SyntaxError in some runtimes
+  // log usages for debugging (visible in function logs)
+  console.log('DEBUG: localKeyPair.privateKey.usages =', localKeyPair.privateKey.usages);
+  // import subscriber public key as raw; keep usages empty to avoid SyntaxError in some Deno builds
   const clientPublicCryptoKey = await crypto.subtle.importKey(
     'raw',
     publicKey.slice().buffer,
     { name: 'ECDH', namedCurve: 'P-256' },
     false,
-    []
+    [] // empty usages for raw public key import
   );
-  // sanity log to confirm usages on the generated private key
-  console.log('Edge Function: localKeyPair.privateKey.usages =', localKeyPair.privateKey.usages);
+  // log imported public key meta for debugging
+  console.log('DEBUG: clientPublicCryptoKey:', {
+    type: clientPublicCryptoKey.type,
+    algorithm: clientPublicCryptoKey.algorithm,
+    usages: clientPublicCryptoKey.usages,
+  });
   // Defensive check: privateKey must include deriveBits
-  if (!localKeyPair.privateKey.usages.includes('deriveBits')) {
-    throw new Error('Local private key must include deriveBits usage for ECDH deriveBits.');
+  if (!localKeyPair.privateKey.usages || !localKeyPair.privateKey.usages.includes('deriveBits')) {
+    // Log full object for diagnosis then throw a clear error
+    console.log('DEBUG: localKeyPair.privateKey object =', localKeyPair.privateKey);
+    throw new Error("Local private key does not include 'deriveBits' usage — deriveBits will fail. Aborting.");
   }
-  // derive shared secret using the privateKey (baseKey) that includes deriveBits
+  // deriveBits using the privateKey as baseKey (must include deriveBits)
   const sharedSecret = await crypto.subtle.deriveBits(
     { name: 'ECDH', public: clientPublicCryptoKey },
     localKeyPair.privateKey,
     256
   );
-  // --- END EDITS ---
+  // === End replace block ===
 
   const keyInfo = new Uint8Array(textEncoder.encode('WebPush: info\0'));
   const keyInfoWithAuth = new Uint8Array(keyInfo.length + authSecret.length);
