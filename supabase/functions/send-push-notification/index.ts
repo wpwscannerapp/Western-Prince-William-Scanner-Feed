@@ -63,11 +63,26 @@ async function encryptWebPushPayload(
     ['deriveBits']
   );
 
+  // --- START EDITS ---
+  const clientPublicCryptoKey = await crypto.subtle.importKey(
+    'raw',
+    publicKey.slice().buffer,
+    { name: 'ECDH', namedCurve: 'P-256' },
+    false,
+    ['deriveBits'] // Added 'deriveBits' usage
+  );
+
+  // Defensive runtime check
+  if (!clientPublicCryptoKey.usages.includes('deriveBits') || !localKeyPair.privateKey.usages.includes('deriveBits')) {
+    throw new Error('Imported/generated keys must include deriveBits usage for ECDH deriveBits.');
+  }
+
   const sharedSecret = await crypto.subtle.deriveBits(
-    { name: 'ECDH', public: await crypto.subtle.importKey('raw', publicKey.slice().buffer, { name: 'ECDH', namedCurve: 'P-256' }, false, []) },
+    { name: 'ECDH', public: clientPublicCryptoKey },
     localKeyPair.privateKey,
     256
   );
+  // --- END EDITS ---
 
   const keyInfo = new Uint8Array(textEncoder.encode('WebPush: info\0'));
   const keyInfoWithAuth = new Uint8Array(keyInfo.length + authSecret.length);
@@ -173,9 +188,9 @@ async function signVAPID(
   const importedPrivateKey = await crypto.subtle.importKey(
     'jwk', // Import as JWK format
     jwkPrivateKey,
-    { name: 'ECDSA', namedCurve: 'P-256' },
+    { name: 'ECDSA', namedCurve: 'P-256' }, // Algorithm name remains ECDSA for signing
     true, // extractable
-    ['sign']
+    ['sign'] // Usages remain 'sign' for ECDSA
   );
 
   const signature = await crypto.subtle.sign(
