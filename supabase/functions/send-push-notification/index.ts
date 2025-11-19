@@ -63,13 +63,12 @@ async function encryptWebPushPayload(
     ['deriveBits']
   );
 
-  // --- START EDITS ---
   const clientPublicCryptoKey = await crypto.subtle.importKey(
     'raw',
     publicKey.slice().buffer,
     { name: 'ECDH', namedCurve: 'P-256' },
-    false,
-    ['deriveBits'] // Added 'deriveBits' usage
+    true, // Changed from 'false' to 'true'
+    ['deriveBits']
   );
 
   // Defensive runtime check
@@ -82,7 +81,6 @@ async function encryptWebPushPayload(
     localKeyPair.privateKey,
     256
   );
-  // --- END EDITS ---
 
   const keyInfo = new Uint8Array(textEncoder.encode('WebPush: info\0'));
   const keyInfoWithAuth = new Uint8Array(keyInfo.length + authSecret.length);
