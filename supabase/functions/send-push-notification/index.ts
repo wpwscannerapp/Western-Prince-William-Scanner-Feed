@@ -254,10 +254,10 @@ serve(async (req: Request) => {
 
     console.log('Edge Function: Retrieving VAPID keys from environment.');
     const vapidPublicKey = Deno.env.get('WEB_PUSH_PUBLIC_KEY')!;
-    const vapidPrivateKeyBase64Url = Deno.env.get('WEB_PUSH_SECRET_KEY')!; // Renamed variable
+    const vapidPrivateKeyBase64Url = Deno.env.get('WEB_PUSH_PRIVATE_KEY')!; // Corrected to WEB_PUSH_PRIVATE_KEY
 
     if (!vapidPublicKey || !vapidPrivateKeyBase64Url) {
-      console.error('Edge Function Error: VAPID keys are not configured. Ensure WEB_PUSH_PUBLIC_KEY and WEB_PUSH_SECRET_KEY are set as secrets.');
+      console.error('Edge Function Error: VAPID keys are not configured. Ensure WEB_PUSH_PUBLIC_KEY and WEB_PUSH_PRIVATE_KEY are set as secrets.');
       return new Response(JSON.stringify({ error: { message: 'Server Error: VAPID keys are not configured.' } }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
