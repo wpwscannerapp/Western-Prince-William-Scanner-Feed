@@ -128,9 +128,18 @@ async function buildVapidAuth(privateKeyInput: unknown, subject: string, aud: st
   const signKey = await importVapidPrivateKey(privateKeyInput);
   debug('Private key imported successfully.');
 
-  const derSig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, signKey, new TextEncoder().encode(signingInput)));
-  debug('DER signature generated. Length:', derSig.length, 'First bytes:', derSig.slice(0, 10), 'Full DER (hex):', Array.from(derSig).map(b => b.toString(16).padStart(2, '0')).join('')); // Added full hex log
-  const rawSig = derToRawSignature(derSig);
+  const signature = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, signKey, new TextEncoder().encode(signingInput)));
+  debug('Signature generated. Length:', signature.length, 'First bytes:', signature.slice(0, 10), 'Full (hex):', Array.from(signature).map(b => b.toString(16).padStart(2, '0')).join(''));
+
+  let rawSig: Uint8Array;
+  if (signature.length === 64) {
+    debug('Signature is 64 bytes, assuming raw R||S format.');
+    rawSig = signature; // Use directly if it's already raw R||S
+  } else {
+    debug('Signature is not 64 bytes, attempting DER parsing.');
+    rawSig = derToRawSignature(signature); // Otherwise, try to parse as DER
+  }
+  
   debug('Raw signature converted.');
   const encodedSig = uint8ArrayToB64Url(rawSig);
   const jwt = `${signingInput}.${encodedSig}`;
