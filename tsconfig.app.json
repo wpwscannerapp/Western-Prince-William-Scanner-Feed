@@ -6,8 +6,7 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-    "jsx": "react-jsx",
-    "types": ["react", "react-dom", "react-beautiful-dnd", "react-color", "web-push", "workbox-precaching", "workbox-routing", "workbox-strategies", "workbox-expiration", "workbox-cacheable-response"]
+    "jsx": "react-jsx"
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"]

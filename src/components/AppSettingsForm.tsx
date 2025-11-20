@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import React, { useState, useCallback, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -31,7 +31,11 @@ const settingsSchema = z.object({
   logo_url: z.string().url().optional().or(z.literal('')).nullable(),
   favicon_url: z.string().url().optional().or(z.literal('')).nullable(),
   custom_css: z.string().optional().nullable(),
-  layout: z.array(z.object({ id: z.string(), type: z.string(), content: z.string() })).optional().nullable(),
+  layout: z.array(z.object({ 
+    id: z.string().min(1, 'ID is required'), 
+    type: z.string().min(1, 'Type is required'), 
+    content: z.string().min(1, 'Content is required') 
+  })).optional().nullable(),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
