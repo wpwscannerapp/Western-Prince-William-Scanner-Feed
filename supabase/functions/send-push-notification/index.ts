@@ -65,26 +65,68 @@ async function importVapidPrivateKey(key: unknown): Promise<CryptoKey> {
     if (key.includes('-----BEGIN')) {
       debug('Importing key as PEM (PKCS8).');
       const pem = key.replace(/-----(BEGIN|END) [A-Z ]+-----/g, '').replace(/\s+/g, '');
-      const raw = b64ToUint8Array(pem);
-      return await crypto.subtle.importKey('pkcs8', raw.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+      const der = decodeBase64ToUint8Array(pem);
+      try {
+        const cryptoKey = await crypto.subtle.importKey('pkcs8', der.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+        return cryptoKey;
+      } catch (err) {
+        throw new Error(`Failed to import VAPID key as PKCS#8 PEM: ${(err as Error).message}`);
+      }
     }
 
-    // Assume it's base64url-encoded raw private key (32 bytes) from web-push, or another PKCS8 format
-    const norm = key.includes('-') || key.includes('_') ? b64UrlToB64(key) : key;
-    const rawBytes = b64ToUint8Array(norm);
-
-    console.log(`[push] DEBUG: Decoded private key length: ${rawBytes.length} bytes.`); // Added explicit console.log
-
-    if (rawBytes.length === 32) {
-      debug('Importing key as RAW (32 bytes). This is the expected format from `web-push generate-vapid-keys`.');
-      console.log(`[push] DEBUG: Attempting importKey with format 'raw', algorithm { name: 'ECDSA', namedCurve: 'P-256' }, extractable: true, usages: ['sign']. Key data length: ${rawBytes.length}, first 8 bytes: ${Array.from(rawBytes.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join('')}`);
-      return await crypto.subtle.importKey('raw', rawBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']);
-    } else if (rawBytes.length === 118) { // Typical PKCS8 length for P-256
-      debug('Importing key as PKCS8 (118 bytes).');
-      return await crypto.subtle.importKey('pkcs8', rawBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
-    } else {
-      throw new Error(`VAPID private key has unexpected length (${rawBytes.length} bytes). Expected 32 bytes (raw) or 118 bytes (PKCS8 PEM decoded). Please ensure WEB_PUSH_PRIVATE_KEY is correctly configured.`);
+    // Otherwise assume base64 / base64url raw
+    let normalized = key.trim();
+    if (normalized.includes('-') || normalized.includes('_')) {
+      normalized = b64UrlToB64(normalized);
     }
+    
+    let rawBytes: Uint8Array;
+    try {
+      rawBytes = decodeBase64ToUint8Array(normalized);
+    } catch (err) {
+      throw new Error(`VAPID key base64 decode failed: ${(err as Error).message}`);
+    }
+    
+    console.log(`[push] DEBUG: Decoded private key length: ${rawBytes.length} bytes.`);
+
+    // Prioritize PKCS8 import for 32-byte keys, then fallback to raw
+    if (rawBytes.byteLength === 32) {
+      debug('Attempting to import 32-byte key as PKCS8 first, then RAW.');
+      try {
+        // Try PKCS8 first for 32-byte keys
+        const key = await crypto.subtle.importKey('pkcs8', rawBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+        debug('Successfully imported 32-byte key as PKCS8.');
+        return key;
+      } catch (pkcs8Err) {
+        debug(`PKCS8 import failed for 32-byte key: ${(pkcs8Err as Error).message}. Falling back to RAW.`);
+        try {
+          // Fallback to RAW if PKCS8 fails
+          const key = await crypto.subtle.importKey('raw', rawBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+          debug('Successfully imported 32-byte key as RAW.');
+          return key;
+        } catch (rawErr) {
+          const msg = (rawErr as Error).message || String(rawErr);
+          throw new Error(`Failed to import VAPID 32-byte key as RAW: ${msg}`);
+        }
+      }
+    }
+    
+    // If length looks like DER (> 32 bytes) try pkcs8 import
+    if (rawBytes.byteLength > 32) {
+      debug('Attempting to import key as PKCS8 (length > 32 bytes).');
+      try {
+        const key = await crypto.subtle.importKey('pkcs8', rawBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+        debug('Successfully imported key as PKCS8 (length > 32 bytes).');
+        return key;
+      } catch (err) {
+        const msg = (err as Error).message || String(err);
+        throw new Error(`Failed to import VAPID key as PKCS#8 DER: ${msg}`);
+      }
+    }
+
+    throw new Error(
+      `Unsupported VAPID key format or invalid size (${rawBytes.byteLength} bytes). Expected 32-byte raw key (base64/base64url) or PKCS#8 PEM/DER.`
+    );
   }
 
   throw new Error('Unsupported VAPID private key format. Please ensure WEB_PUSH_PRIVATE_KEY is a base64url-encoded raw key (32 bytes) or a valid PEM/JWK string.');
