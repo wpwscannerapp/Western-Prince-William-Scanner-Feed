@@ -73,7 +73,7 @@ async function importVapidPrivateKey(key: unknown): Promise<CryptoKey> {
     const norm = key.includes('-') || key.includes('_') ? b64UrlToB64(key) : key;
     const rawBytes = b64ToUint8Array(norm);
 
-    debug(`Decoded private key length: ${rawBytes.length} bytes.`);
+    console.log(`[push] DEBUG: Decoded private key length: ${rawBytes.length} bytes.`); // Added explicit console.log
 
     if (rawBytes.length === 32) {
       debug('Importing key as RAW (32 bytes). This is the expected format from `web-push generate-vapid-keys`.');
