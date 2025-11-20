@@ -1,9 +1,9 @@
 // index.ts
 // Supabase Edge Function — Web Push sender (RFC8291 / aes128gcm)
 // Supports VAPID keys: JWK, PKCS8 (base64/base64url), PEM
-// Debug: set SUPABASE_PUSH_DEBUG=true in secrets to enable console logs
+// Debug: set WEB_PUSH_DEBUG=true in secrets to enable console logs
 
-const DEBUG = Deno.env.get('SUPABASE_PUSH_DEBUG') === 'true';
+const DEBUG = Deno.env.get('WEB_PUSH_DEBUG') === 'true'; // Changed from SUPABASE_PUSH_DEBUG
 function debug(...args: unknown[]) { if (DEBUG) console.debug('[push]', ...args); }
 
 // Utilities
@@ -181,7 +181,7 @@ async function encryptForWebPush(payload: string, subscription: any) {
   const sharedSecret = new Uint8Array(sharedSecretBits);
 
   // Fix for TS2769: Pass Uint8Array directly instead of its buffer
-  const hmacKey = await crypto.subtle.importKey('raw', authSecret, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const hmacKey = await crypto.subtle.importKey('raw', authSecret.buffer, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const prkRaw = new Uint8Array(await crypto.subtle.sign('HMAC', hmacKey, sharedSecret)); // Fix: Pass Uint8Array directly
 
   const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -229,7 +229,7 @@ async function sendWebPushRequest(endpoint: string, salt: Uint8Array, senderPubl
   const resp = await fetch(endpoint, {
     method: 'POST',
     headers,
-    body: cipherBytes, // Fix for TS2769: Pass Uint8Array directly instead of its buffer
+    body: cipherBytes.buffer, // Fix for TS2769: Pass Uint8Array directly instead of its buffer
   });
 
   const ok = resp.ok;
