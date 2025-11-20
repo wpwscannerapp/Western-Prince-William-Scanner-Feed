@@ -7,7 +7,7 @@
 /// <reference types="workbox-core" />
 
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
-import { clientsClaim } from 'workbox-core'; // Corrected import source
+import { clientsClaim } from 'workbox-core';
 import { registerRoute } from 'workbox-routing';
 import { NetworkFirst, StaleWhileRevalidate, CacheFirst } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';

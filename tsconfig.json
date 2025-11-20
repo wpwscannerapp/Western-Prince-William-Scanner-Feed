@@ -25,8 +25,7 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "types": ["node", "vite/client", "vite-plugin-pwa/client"],
-    "typeRoots": ["./node_modules/@types", "./src/types"]
+    "types": ["node", "vite/client", "vite-plugin-pwa/client"]
   },
   "include": ["src", "src/vite-env.d.ts", "src/types/**/*.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
