@@ -41,41 +41,52 @@ function concatUint8Arrays(...arrays: Uint8Array[]) {
 async function importVapidPrivateKey(key: unknown): Promise<CryptoKey> {
   debug('Attempting to import VAPID private key. Type:', typeof key, 'Value (first 50 chars):', String(key).substring(0, 50));
 
-  // JWK object
+  // Handle JWK object directly if it's already parsed
   if (typeof key === 'object' && key !== null) {
     const jwk = key as JsonWebKey;
-    debug('Importing key as JWK:', jwk);
+    debug('Importing key as JWK object.');
     return await crypto.subtle.importKey('jwk', jwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
   }
 
   if (typeof key === 'string') {
+    // Try to parse as JSON first, in case it's a JWK string
+    try {
+      const parsedKey = JSON.parse(key);
+      if (typeof parsedKey === 'object' && parsedKey !== null && 'kty' in parsedKey && parsedKey.kty === 'EC') {
+        debug('Importing key as JWK string (parsed from JSON).');
+        return await crypto.subtle.importKey('jwk', parsedKey as JsonWebKey, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+      }
+    } catch (e) {
+      // Not a JSON string, proceed to other formats
+      debug('Key is not a JSON string, trying other formats.');
+    }
+
     // PEM format
     if (key.includes('-----BEGIN')) {
-      debug('Importing key as PEM.');
+      debug('Importing key as PEM (PKCS8).');
       const pem = key.replace(/-----(BEGIN|END) [A-Z ]+-----/g, '').replace(/\s+/g, '');
       const raw = b64ToUint8Array(pem);
       return await crypto.subtle.importKey('pkcs8', raw.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
     }
 
-    // Base64 or base64url
+    // Assume it's base64url-encoded raw private key (32 bytes) from web-push, or another PKCS8 format
     const norm = key.includes('-') || key.includes('_') ? b64UrlToB64(key) : key;
     const rawBytes = b64ToUint8Array(norm);
 
-    // Heuristic: PKCS8 for P-256 is typically 118 bytes. Raw is 32 bytes.
+    debug(`Decoded private key length: ${rawBytes.length} bytes.`);
+
     if (rawBytes.length === 32) {
-      debug('Importing key as RAW (32 bytes).');
+      debug('Importing key as RAW (32 bytes). This is the expected format from `web-push generate-vapid-keys`.');
       return await crypto.subtle.importKey('raw', rawBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
-    } else if (rawBytes.length === 118) { // Typical PKCS8 length for P-256
-      debug('Importing key as PKCS8 (118 bytes).');
+    } else if (rawBytes.length === 118 || rawBytes.length === 138) { // Explicitly handle 138 as PKCS8
+      debug(`Importing key as PKCS8 (${rawBytes.length} bytes).`);
       return await crypto.subtle.importKey('pkcs8', rawBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
     } else {
-      debug(`Unknown key length: ${rawBytes.length} bytes. Attempting PKCS8 import as fallback.`);
-      // Fallback to PKCS8 if length is not 32, as it's more common for generated keys
-      return await crypto.subtle.importKey('pkcs8', rawBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+      throw new Error(`VAPID private key has unexpected length (${rawBytes.length} bytes). Expected 32 bytes (raw) or a valid PKCS8/PEM/JWK format.`);
     }
   }
 
-  throw new Error('Unsupported VAPID private key format');
+  throw new Error('Unsupported VAPID private key format. Please ensure WEB_PUSH_PRIVATE_KEY is a base64url-encoded raw key (32 bytes) or a valid PEM/JWK string.');
 }
 
 // Import subscription public key (p256dh) from base64url -> CryptoKey
@@ -144,7 +155,21 @@ async function buildVapidAuth(privateKeyInput: unknown, subject: string, aud: st
   const encodedSig = uint8ArrayToB64Url(rawSig);
   const jwt = `${signingInput}.${encodedSig}`;
 
-  return jwt; // Only return the JWT
+  let pubKeyRawNoPrefix: Uint8Array | null = null;
+
+  if (typeof privateKeyInput === 'object' && privateKeyInput !== null && 'x' in (privateKeyInput as any) && 'y' in (privateKeyInput as any)) {
+    const jwk = privateKeyInput as any as JsonWebKey;
+    const x = b64UrlToUint8Array(jwk.x as string);
+    const y = b64UrlToUint8Array(jwk.y as string);
+    pubKeyRawNoPrefix = concatUint8Arrays(x, y);
+  } else {
+    // If not JWK, we need to derive the public key from the private key
+    // This is more complex and usually requires exporting the public key from the generated key pair
+    // For simplicity, if privateKeyInput is not JWK, we assume vapid.publicKey is provided separately
+    pubKeyRawNoPrefix = null; // Indicate that public key cannot be derived from this private key format
+  }
+
+  return { jwt, vapidPublicKeyB64u: pubKeyRawNoPrefix ? uint8ArrayToB64Url(pubKeyRawNoPrefix) : null };
 }
 
 function createInfo(type: string, clientPublic: Uint8Array, serverPublic: Uint8Array) {
