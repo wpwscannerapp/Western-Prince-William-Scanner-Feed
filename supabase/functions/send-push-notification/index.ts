@@ -3,7 +3,7 @@
 // Supports VAPID keys: JWK, PKCS8 (base64/base64url), PEM
 // Debug: set WEB_PUSH_DEBUG=true in secrets to enable console logs
 
-const DEBUG = Deno.env.get('WEB_PUSH_DEBUG') === 'true'; // Changed from SUPABASE_PUSH_DEBUG
+const DEBUG = Deno.env.get('WEB_PUSH_DEBUG') === 'true';
 function debug(...args: unknown[]) { if (DEBUG) console.debug('[push]', ...args); }
 
 // Utilities
@@ -49,7 +49,7 @@ async function importVapidPrivateKey(key: unknown): Promise<CryptoKey> {
   }
 
   if (typeof key === 'string') {
-    // PEM
+    // PEM format
     if (key.includes('-----BEGIN')) {
       debug('Importing key as PEM.');
       const pem = key.replace(/-----(BEGIN|END) [A-Z ]+-----/g, '').replace(/\s+/g, '');
@@ -57,12 +57,22 @@ async function importVapidPrivateKey(key: unknown): Promise<CryptoKey> {
       return await crypto.subtle.importKey('pkcs8', raw.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
     }
 
-    // Base64 or base64url PKCS8
-    debug('Importing key as Base64/Base64url PKCS8.');
-    const maybeB64 = key;
-    const norm = maybeB64.includes('-') || maybeB64.includes('_') ? b64UrlToB64(maybeB64) : maybeB64;
-    const raw = b64ToUint8Array(norm);
-    return await crypto.subtle.importKey('pkcs8', raw.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+    // Base64 or base64url
+    const norm = key.includes('-') || key.includes('_') ? b64UrlToB64(key) : key;
+    const rawBytes = b64ToUint8Array(norm);
+
+    // Heuristic: PKCS8 for P-256 is typically 118 bytes. Raw is 32 bytes.
+    if (rawBytes.length === 32) {
+      debug('Importing key as RAW (32 bytes).');
+      return await crypto.subtle.importKey('raw', rawBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+    } else if (rawBytes.length === 118) { // Typical PKCS8 length for P-256
+      debug('Importing key as PKCS8 (118 bytes).');
+      return await crypto.subtle.importKey('pkcs8', rawBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+    } else {
+      debug(`Unknown key length: ${rawBytes.length} bytes. Attempting PKCS8 import as fallback.`);
+      // Fallback to PKCS8 if length is not 32, as it's more common for generated keys
+      return await crypto.subtle.importKey('pkcs8', rawBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+    }
   }
 
   throw new Error('Unsupported VAPID private key format');
@@ -90,7 +100,7 @@ function parseAuthSecret(authB64u: string): Uint8Array {
 
 // Convert ECDSA-JWT signature (DER) to raw 64-byte R||S
 function derToRawSignature(der: Uint8Array): Uint8Array {
-  debug('derToRawSignature: Input DER signature (first 10 bytes):', der.slice(0, 10));
+  debug('derToRawSignature: Input DER signature (first 10 bytes):', der.slice(0, 10), 'Full DER (hex):', Array.from(der).map(b => b.toString(16).padStart(2, '0')).join(''));
   if (der[0] !== 0x30) throw new Error('Invalid DER signature: Does not start with 0x30');
   let idx = 2;
   if (der[idx] !== 0x02) throw new Error('Invalid DER format for R: Does not contain 0x02 at expected position');
@@ -119,7 +129,7 @@ async function buildVapidAuth(privateKeyInput: unknown, subject: string, aud: st
   debug('Private key imported successfully.');
 
   const derSig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, signKey, new TextEncoder().encode(signingInput)));
-  debug('DER signature generated. Length:', derSig.length, 'First bytes:', derSig.slice(0, 10));
+  debug('DER signature generated. Length:', derSig.length, 'First bytes:', derSig.slice(0, 10), 'Full DER (hex):', Array.from(derSig).map(b => b.toString(16).padStart(2, '0')).join('')); // Added full hex log
   const rawSig = derToRawSignature(derSig);
   debug('Raw signature converted.');
   const encodedSig = uint8ArrayToB64Url(rawSig);
