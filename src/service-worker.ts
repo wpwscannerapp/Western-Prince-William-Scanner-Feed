@@ -1,4 +1,10 @@
 /// <reference lib="webworker" />
+/// <reference types="workbox-precaching" />
+/// <reference types="workbox-routing" />
+/// <reference types="workbox-strategies" />
+/// <reference types="workbox-expiration" />
+/// <reference types="workbox-cacheable-response" />
+
 import { precacheAndRoute, cleanupOutdatedCaches, clientsClaim } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
 import { NetworkFirst, StaleWhileRevalidate, CacheFirst } from 'workbox-strategies';
