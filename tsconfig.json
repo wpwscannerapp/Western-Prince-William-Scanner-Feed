@@ -21,11 +21,11 @@
     "noFallthroughCasesInSwitch": true,
 
     /* Path Aliases */
-    "baseUrl": ".",
+    "baseUrl": ".", 
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"] 
     }
   },
-  "include": ["src", "src/types"],
-  "exclude": ["node_modules", "dist", "supabase/functions"] // Exclude supabase/functions
+  "include": ["src", "src/types", "src/vite-env.d.ts", "netlify/functions/**/*.ts", "netlify/functions/**/*.mts"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }
