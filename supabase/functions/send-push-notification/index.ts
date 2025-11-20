@@ -114,7 +114,7 @@ function derToRawSignature(der: Uint8Array): Uint8Array {
   return concatUint8Arrays(rPad, sPad);
 }
 
-// Build VAPID JWT (ES256) and return Authorization header value and public key (base64url)
+// Build VAPID JWT (ES256) and return Authorization header value
 async function buildVapidAuth(privateKeyInput: unknown, subject: string, aud: string) {
   const header = { alg: 'ES256', typ: 'JWT' };
   const now = Math.floor(Date.now() / 1000);
@@ -144,21 +144,7 @@ async function buildVapidAuth(privateKeyInput: unknown, subject: string, aud: st
   const encodedSig = uint8ArrayToB64Url(rawSig);
   const jwt = `${signingInput}.${encodedSig}`;
 
-  let pubKeyRawNoPrefix: Uint8Array | null = null;
-
-  if (typeof privateKeyInput === 'object' && privateKeyInput !== null && 'x' in (privateKeyInput as any) && 'y' in (privateKeyInput as any)) {
-    const jwk = privateKeyInput as any as JsonWebKey;
-    const x = b64UrlToUint8Array(jwk.x as string);
-    const y = b64UrlToUint8Array(jwk.y as string);
-    pubKeyRawNoPrefix = concatUint8Arrays(x, y);
-  } else {
-    // If not JWK, we need to derive the public key from the private key
-    // This is more complex and usually requires exporting the public key from the generated key pair
-    // For simplicity, if privateKeyInput is not JWK, we assume vapid.publicKey is provided separately
-    pubKeyRawNoPrefix = null; // Indicate that public key cannot be derived from this private key format
-  }
-
-  return { jwt, vapidPublicKeyB64u: pubKeyRawNoPrefix ? uint8ArrayToB64Url(pubKeyRawNoPrefix) : null };
+  return jwt; // Only return the JWT
 }
 
 function createInfo(type: string, clientPublic: Uint8Array, serverPublic: Uint8Array) {
@@ -228,10 +214,10 @@ async function encryptForWebPush(payload: string, subscription: any) {
   };
 }
 
-async function sendWebPushRequest(endpoint: string, salt: Uint8Array, senderPublicNoPrefix: Uint8Array, cipherBytes: Uint8Array, vapidJwt: string, vapidPublicKeyB64u: string | null) {
+async function sendWebPushRequest(endpoint: string, salt: Uint8Array, senderPublicNoPrefix: Uint8Array, cipherBytes: Uint8Array, vapidJwt: string, vapidPublicKeyB64u: string) {
   const cryptoKeyHeaderParts: string[] = [];
   cryptoKeyHeaderParts.push(`dh=${uint8ArrayToB64Url(senderPublicNoPrefix)}`);
-  if (vapidPublicKeyB64u) cryptoKeyHeaderParts.push(`p256ecdsa=${vapidPublicKeyB64u}`);
+  cryptoKeyHeaderParts.push(`p256ecdsa=${vapidPublicKeyB64u}`); // Use the provided public key directly
   const cryptoKeyHeader = cryptoKeyHeaderParts.join(';');
 
   const headers: Record<string,string> = {
@@ -248,7 +234,7 @@ async function sendWebPushRequest(endpoint: string, salt: Uint8Array, senderPubl
   const resp = await fetch(endpoint, {
     method: 'POST',
     headers,
-    body: cipherBytes.buffer, // Fix for TS2769: Pass Uint8Array directly instead of its buffer
+    body: cipherBytes.buffer,
   });
 
   const ok = resp.ok;
@@ -264,13 +250,10 @@ async function sendPush(subscription: DbPushSubscription, payload: string, vapid
   const { salt, senderPublicNoPrefix, cipherBytes } = await encryptForWebPush(payload, subscription.subscription);
 
   const aud = new URL(subscription.endpoint).origin;
-  const { jwt, vapidPublicKeyB64u } = await buildVapidAuth(vapidConfig.privateKeyPkcs8, vapidConfig.subject, aud);
-  const publicKeyToUse = vapidConfig.publicKey ?? vapidPublicKeyB64u;
-  if (!publicKeyToUse) {
-    throw new Error('VAPID public key required: Provide vapid.publicKey (base64url x||y) when private key cannot derive public key');
-  }
-
-  await sendWebPushRequest(subscription.endpoint, salt, senderPublicNoPrefix, cipherBytes, jwt, publicKeyToUse);
+  const jwt = await buildVapidAuth(vapidConfig.privateKeyPkcs8, vapidConfig.subject, aud);
+  
+  // Use the public key from vapidConfig directly
+  await sendWebPushRequest(subscription.endpoint, salt, senderPublicNoPrefix, cipherBytes, jwt, vapidConfig.publicKey);
 }
 
 
