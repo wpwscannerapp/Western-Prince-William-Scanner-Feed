@@ -65,11 +65,11 @@ function decodeBase64ToUint8Array(b64: string) {
  * Returns a CryptoKey usable for ECDSA P-256 signing.
  */
 async function importVapidPrivateKey(keyString: string): Promise<CryptoKey> {
-  if (!keyString || typeof keyString !== 'string') {
-    throw new Error('VAPID private key is not provided or not a string');
-  }
+  debug('importVapidPrivateKey: Attempting to import key. String length:', keyString.length);
+
   // Detect PEM
   if (isPem(keyString)) {
+    debug('importVapidPrivateKey: Detected PEM format.');
     // Strip PEM header/footer and decode
     const pemContents = keyString
       .replace(/-----BEGIN [A-Z ]+PRIVATE KEY-----/, '')
@@ -85,31 +85,36 @@ async function importVapidPrivateKey(keyString: string): Promise<CryptoKey> {
         false,
         ['sign']
       );
+      debug('importVapidPrivateKey: Successfully imported PEM key.');
       return cryptoKey;
     } catch (err) {
+      debug('importVapidPrivateKey: PEM import failed:', err);
       throw new Error(
         `Failed to import VAPID key as PKCS#8 PEM: ${(err as Error).message}`
       );
     }
   }
+  
   // Otherwise assume base64 / base64url raw
-  // Normalize base64url -> base64
   let normalized = keyString.trim();
-  // If it looks like base64url (contains - or _), convert
   if (normalized.includes('-') || normalized.includes('_')) {
     normalized = base64UrlToBase64(normalized);
+    debug('importVapidPrivateKey: Normalized base64url to base64.');
   }
-  // Try decode as base64
+
   let rawBytes: Uint8Array;
   try {
     rawBytes = decodeBase64ToUint8Array(normalized);
+    debug('importVapidPrivateKey: Decoded to raw bytes. Length:', rawBytes.byteLength);
   } catch (err) {
+    debug('importVapidPrivateKey: Base64 decode failed:', err);
     throw new Error(
       `VAPID key base64 decode failed: ${(err as Error).message}`
     );
   }
-  // If it's 32 bytes, import as "raw" private key for ECDSA P-256
+
   if (rawBytes.byteLength === 32) {
+    debug('importVapidPrivateKey: Attempting to import 32-byte raw key as ECDSA P-256 private key for signing.');
     try {
       const key = await crypto.subtle.importKey(
         'raw',
@@ -118,17 +123,17 @@ async function importVapidPrivateKey(keyString: string): Promise<CryptoKey> {
         false,
         ['sign']
       );
+      debug('importVapidPrivateKey: Successfully imported 32-byte raw key.');
       return key;
     } catch (err) {
-      // Fallthrough to try pkcs8 if raw import fails
       const msg = (err as Error).message || String(err);
+      debug('importVapidPrivateKey: Failed to import 32-byte raw key:', err);
       throw new Error(
         `Failed to import VAPID raw key (32 bytes) as EC private key: ${msg}`
       );
     }
-  }
-  // If length looks like DER (e.g., > 32) try pkcs8 import
-  if (rawBytes.byteLength > 32) {
+  } else if (rawBytes.byteLength > 32) {
+    debug('importVapidPrivateKey: Attempting to import >32-byte key as PKCS#8 DER.');
     try {
       const key = await crypto.subtle.importKey(
         'pkcs8',
@@ -137,17 +142,21 @@ async function importVapidPrivateKey(keyString: string): Promise<CryptoKey> {
         false,
         ['sign']
       );
+      debug('importVapidPrivateKey: Successfully imported PKCS#8 DER key.');
       return key;
     } catch (err) {
       const msg = (err as Error).message || String(err);
+      debug('importVapidPrivateKey: Failed to import PKCS#8 DER key:', err);
       throw new Error(
         `Failed to import VAPID key as PKCS#8 DER: ${msg}`
       );
     }
+  } else {
+    debug('importVapidPrivateKey: Unsupported key size:', rawBytes.byteLength);
+    throw new Error(
+      `Unsupported VAPID key format or invalid size (${rawBytes.byteLength} bytes). Expected 32-byte raw key (base64/base64url) or PKCS#8 PEM/DER.`
+    );
   }
-  throw new Error(
-    `Unsupported VAPID key format or invalid size (${rawBytes.byteLength} bytes). Expected 32-byte raw key (base64/base64url) or PKCS#8 PEM/DER.`
-  );
 }
 
 // Convert ECDSA-JWT signature (DER) to raw 64-byte R||S
