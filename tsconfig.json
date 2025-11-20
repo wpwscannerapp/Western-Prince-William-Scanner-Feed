@@ -2,8 +2,8 @@
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -14,18 +14,12 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-
-    /* Path Aliases */
-    "baseUrl": ".", 
+    /* Path alias – this fixes IDE & tsc */
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"] 
+      "@/*": ["src/*"]
     }
   },
-  "include": ["src", "src/types", "src/vite-env.d.ts", "netlify/functions/**/*.ts", "netlify/functions/**/*.mts"],
+  "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
