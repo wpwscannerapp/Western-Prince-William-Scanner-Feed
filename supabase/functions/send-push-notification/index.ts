@@ -150,7 +150,6 @@ async function importVapidPrivateKey(keyString: string): Promise<CryptoKey> {
   );
 }
 
-
 // Convert ECDSA-JWT signature (DER) to raw 64-byte R||S
 function derToRawSignature(der: Uint8Array): Uint8Array {
   debug('derToRawSignature: Input DER signature (first 10 bytes):', der.slice(0, 10), 'Full DER (hex):', Array.from(der).map(b => b.toString(16).padStart(2, '0')).join(''));
@@ -199,6 +198,26 @@ async function buildVapidAuth(privateKeyInput: unknown, subject: string, aud: st
 
   return jwt; // Only return the JWT
 }
+
+// --- NEW: Helper functions for Web Push encryption ---
+async function importSubscriptionPublicKey(p256dh: string): Promise<CryptoKey> {
+  const keyBytes = b64UrlToUint8Array(p256dh);
+  // Add the 0x04 prefix for uncompressed EC public key format
+  const prefixedKeyBytes = concatUint8Arrays(new Uint8Array([0x04]), keyBytes);
+  return crypto.subtle.importKey(
+    'raw',
+    prefixedKeyBytes.buffer,
+    { name: 'ECDH', namedCurve: 'P-256' },
+    true,
+    []
+  );
+}
+
+function parseAuthSecret(auth: string): Uint8Array {
+  return b64UrlToUint8Array(auth);
+}
+// --- END NEW: Helper functions for Web Push encryption ---
+
 
 function createInfo(type: string, clientPublic: Uint8Array, serverPublic: Uint8Array) {
   function lenPrefix(u8: Uint8Array) {
