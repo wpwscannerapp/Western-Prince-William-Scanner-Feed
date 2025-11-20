@@ -78,11 +78,11 @@ async function importVapidPrivateKey(key: unknown): Promise<CryptoKey> {
     if (rawBytes.length === 32) {
       debug('Importing key as RAW (32 bytes). This is the expected format from `web-push generate-vapid-keys`.');
       return await crypto.subtle.importKey('raw', rawBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
-    } else if (rawBytes.length === 118 || rawBytes.length === 138) { // Explicitly handle 138 as PKCS8
-      debug(`Importing key as PKCS8 (${rawBytes.length} bytes).`);
+    } else if (rawBytes.length === 118) { // Typical PKCS8 length for P-256
+      debug('Importing key as PKCS8 (118 bytes).');
       return await crypto.subtle.importKey('pkcs8', rawBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
     } else {
-      throw new Error(`VAPID private key has unexpected length (${rawBytes.length} bytes). Expected 32 bytes (raw) or a valid PKCS8/PEM/JWK format.`);
+      throw new Error(`VAPID private key has unexpected length (${rawBytes.length} bytes). Expected 32 bytes (raw) or 118 bytes (PKCS8 PEM decoded). Please ensure WEB_PUSH_PRIVATE_KEY is correctly configured.`);
     }
   }
 
@@ -155,21 +155,7 @@ async function buildVapidAuth(privateKeyInput: unknown, subject: string, aud: st
   const encodedSig = uint8ArrayToB64Url(rawSig);
   const jwt = `${signingInput}.${encodedSig}`;
 
-  let pubKeyRawNoPrefix: Uint8Array | null = null;
-
-  if (typeof privateKeyInput === 'object' && privateKeyInput !== null && 'x' in (privateKeyInput as any) && 'y' in (privateKeyInput as any)) {
-    const jwk = privateKeyInput as any as JsonWebKey;
-    const x = b64UrlToUint8Array(jwk.x as string);
-    const y = b64UrlToUint8Array(jwk.y as string);
-    pubKeyRawNoPrefix = concatUint8Arrays(x, y);
-  } else {
-    // If not JWK, we need to derive the public key from the private key
-    // This is more complex and usually requires exporting the public key from the generated key pair
-    // For simplicity, if privateKeyInput is not JWK, we assume vapid.publicKey is provided separately
-    pubKeyRawNoPrefix = null; // Indicate that public key cannot be derived from this private key format
-  }
-
-  return { jwt, vapidPublicKeyB64u: pubKeyRawNoPrefix ? uint8ArrayToB64Url(pubKeyRawNoPrefix) : null };
+  return jwt; // Only return the JWT
 }
 
 function createInfo(type: string, clientPublic: Uint8Array, serverPublic: Uint8Array) {
