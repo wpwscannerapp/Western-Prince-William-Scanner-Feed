@@ -4,8 +4,10 @@
 /// <reference types="workbox-strategies" />
 /// <reference types="workbox-expiration" />
 /// <reference types="workbox-cacheable-response" />
+/// <reference types="workbox-core" />
 
-import { precacheAndRoute, cleanupOutdatedCaches, clientsClaim } from 'workbox-precaching';
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+import { clientsClaim } from 'workbox-core'; // Corrected import source
 import { registerRoute } from 'workbox-routing';
 import { NetworkFirst, StaleWhileRevalidate, CacheFirst } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';

@@ -98,6 +98,7 @@
     "workbox-routing": "^7.2.0",
     "workbox-strategies": "^7.2.0",
     "workbox-expiration": "^7.2.0",
-    "workbox-cacheable-response": "^7.2.0"
+    "workbox-cacheable-response": "^7.2.0",
+    "workbox-core": "^7.2.0"
   }
 }
