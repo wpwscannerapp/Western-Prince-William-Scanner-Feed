@@ -39,22 +39,26 @@ function concatUint8Arrays(...arrays: Uint8Array[]) {
 
 // Import VAPID private key (supports JWK object, PKCS8 base64/base64url, PEM)
 async function importVapidPrivateKey(key: unknown): Promise<CryptoKey> {
+  debug('Attempting to import VAPID private key. Type:', typeof key, 'Value (first 50 chars):', String(key).substring(0, 50));
+
   // JWK object
   if (typeof key === 'object' && key !== null) {
     const jwk = key as JsonWebKey;
-    // ensure proper alg/crv
+    debug('Importing key as JWK:', jwk);
     return await crypto.subtle.importKey('jwk', jwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
   }
 
   if (typeof key === 'string') {
     // PEM
     if (key.includes('-----BEGIN')) {
+      debug('Importing key as PEM.');
       const pem = key.replace(/-----(BEGIN|END) [A-Z ]+-----/g, '').replace(/\s+/g, '');
       const raw = b64ToUint8Array(pem);
       return await crypto.subtle.importKey('pkcs8', raw.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
     }
 
     // Base64 or base64url PKCS8
+    debug('Importing key as Base64/Base64url PKCS8.');
     const maybeB64 = key;
     const norm = maybeB64.includes('-') || maybeB64.includes('_') ? b64UrlToB64(maybeB64) : maybeB64;
     const raw = b64ToUint8Array(norm);
@@ -86,12 +90,13 @@ function parseAuthSecret(authB64u: string): Uint8Array {
 
 // Convert ECDSA-JWT signature (DER) to raw 64-byte R||S
 function derToRawSignature(der: Uint8Array): Uint8Array {
-  if (der[0] !== 0x30) throw new Error('Invalid DER signature');
+  debug('derToRawSignature: Input DER signature (first 10 bytes):', der.slice(0, 10));
+  if (der[0] !== 0x30) throw new Error('Invalid DER signature: Does not start with 0x30');
   let idx = 2;
-  if (der[idx] !== 0x02) throw new Error('Invalid DER format for R');
+  if (der[idx] !== 0x02) throw new Error('Invalid DER format for R: Does not contain 0x02 at expected position');
   const rlen = der[idx + 1]; idx += 2;
   const r = der.slice(idx, idx + rlen); idx += rlen;
-  if (der[idx] !== 0x02) throw new Error('Invalid DER format for S');
+  if (der[idx] !== 0x02) throw new Error('Invalid DER format for S: Does not contain 0x02 at expected position');
   const slen = der[idx + 1]; idx += 2;
   const s = der.slice(idx, idx + slen);
   const rPad = new Uint8Array(32); rPad.set(r, 32 - r.length);
@@ -108,11 +113,15 @@ async function buildVapidAuth(privateKeyInput: unknown, subject: string, aud: st
   const encodedHeader = uint8ArrayToB64Url(new TextEncoder().encode(JSON.stringify(header)));
   const encodedPayload = uint8ArrayToB64Url(new TextEncoder().encode(JSON.stringify(payload)));
   const signingInput = `${encodedHeader}.${encodedPayload}`;
+  debug('Signing input:', signingInput);
 
   const signKey = await importVapidPrivateKey(privateKeyInput);
+  debug('Private key imported successfully.');
 
   const derSig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, signKey, new TextEncoder().encode(signingInput)));
+  debug('DER signature generated. Length:', derSig.length, 'First bytes:', derSig.slice(0, 10));
   const rawSig = derToRawSignature(derSig);
+  debug('Raw signature converted.');
   const encodedSig = uint8ArrayToB64Url(rawSig);
   const jwt = `${signingInput}.${encodedSig}`;
 
@@ -328,6 +337,8 @@ serve(async (req: Request) => {
     console.log('Edge Function: Retrieving VAPID keys from environment.');
     const vapidPublicKey = Deno.env.get('WEB_PUSH_PUBLIC_KEY')!;
     const vapidPrivateKeyBase64Url = Deno.env.get('WEB_PUSH_PRIVATE_KEY')!;
+    debug('VAPID Public Key (first 20 chars):', vapidPublicKey.substring(0, 20) + '...');
+    debug('VAPID Private Key (first 20 chars):', vapidPrivateKeyBase64Url.substring(0, 20) + '...');
 
     if (!vapidPublicKey || !vapidPrivateKeyBase64Url) {
       console.error('Edge Function Error: VAPID keys are not configured. Ensure WEB_PUSH_PUBLIC_KEY and WEB_PUSH_PRIVATE_KEY are set as secrets.');
