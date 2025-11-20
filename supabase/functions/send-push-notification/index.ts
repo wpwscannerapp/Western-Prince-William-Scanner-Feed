@@ -80,7 +80,7 @@ async function importVapidPrivateKey(keyString: string): Promise<CryptoKey> {
     try {
       const cryptoKey = await crypto.subtle.importKey(
         'pkcs8',
-        der.buffer,
+        der.buffer as ArrayBuffer, // Explicit cast to ArrayBuffer
         { name: 'ECDSA', namedCurve: 'P-256' },
         false,
         ['sign']
@@ -118,7 +118,7 @@ async function importVapidPrivateKey(keyString: string): Promise<CryptoKey> {
     try {
       const key = await crypto.subtle.importKey(
         'raw',
-        rawBytes.buffer,
+        rawBytes.buffer as ArrayBuffer, // Explicit cast to ArrayBuffer
         { name: 'ECDSA', namedCurve: 'P-256' },
         false,
         ['sign']
@@ -137,7 +137,7 @@ async function importVapidPrivateKey(keyString: string): Promise<CryptoKey> {
     try {
       const key = await crypto.subtle.importKey(
         'pkcs8',
-        rawBytes.buffer,
+        rawBytes.buffer as ArrayBuffer, // Explicit cast to ArrayBuffer
         { name: 'ECDSA', namedCurve: 'P-256' },
         false,
         ['sign']
