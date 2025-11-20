@@ -202,11 +202,13 @@ async function buildVapidAuth(privateKeyInput: unknown, subject: string, aud: st
 // --- NEW: Helper functions for Web Push encryption ---
 async function importSubscriptionPublicKey(p256dh: string): Promise<CryptoKey> {
   const keyBytes = b64UrlToUint8Array(p256dh);
-  // Add the 0x04 prefix for uncompressed EC public key format
-  const prefixedKeyBytes = concatUint8Arrays(new Uint8Array([0x04]), keyBytes);
+  // The p256dh key from PushSubscription.toJSON().keys is already in uncompressed format,
+  // which means it already starts with 0x04. Adding it again makes it invalid.
+  // So, we should use keyBytes directly.
+  debug('importSubscriptionPublicKey: keyBytes length:', keyBytes.length, 'first byte:', keyBytes[0]); // Add debug
   return crypto.subtle.importKey(
     'raw',
-    prefixedKeyBytes.buffer,
+    keyBytes.buffer, // Use keyBytes directly
     { name: 'ECDH', namedCurve: 'P-256' },
     true,
     []
