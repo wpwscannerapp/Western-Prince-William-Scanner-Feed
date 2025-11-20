@@ -23,10 +23,11 @@
     /* Path Aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["src/*"]
     },
-    "types": ["react", "react-dom", "react-beautiful-dnd", "react-color", "web-push", "workbox-precaching", "workbox-routing", "workbox-strategies", "workbox-expiration", "workbox-cacheable-response"]
+    "types": ["node", "vite/client", "vite-plugin-pwa/client"],
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
-  "include": ["src", "src/types"],
+  "include": ["src", "src/vite-env.d.ts", "src/types/**/*.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
