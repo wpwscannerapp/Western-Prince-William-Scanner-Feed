@@ -77,7 +77,8 @@ async function importVapidPrivateKey(key: unknown): Promise<CryptoKey> {
 
     if (rawBytes.length === 32) {
       debug('Importing key as RAW (32 bytes). This is the expected format from `web-push generate-vapid-keys`.');
-      return await crypto.subtle.importKey('raw', rawBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+      console.log(`[push] DEBUG: Attempting importKey with format 'raw', algorithm { name: 'ECDSA', namedCurve: 'P-256' }, extractable: true, usages: ['sign']. Key data length: ${rawBytes.length}, first 8 bytes: ${Array.from(rawBytes.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join('')}`);
+      return await crypto.subtle.importKey('raw', rawBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']);
     } else if (rawBytes.length === 118) { // Typical PKCS8 length for P-256
       debug('Importing key as PKCS8 (118 bytes).');
       return await crypto.subtle.importKey('pkcs8', rawBytes.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
@@ -197,7 +198,7 @@ async function encryptForWebPush(payload: string, subscription: any) {
   const sharedSecret = new Uint8Array(sharedSecretBits);
 
   // Fix for TS2769: Pass Uint8Array directly instead of its buffer
-  const hmacKey = await crypto.subtle.importKey('raw', authSecret.buffer, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const hmacKey = await crypto.subtle.importKey('raw', authSecret.buffer as ArrayBuffer, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const prkRaw = new Uint8Array(await crypto.subtle.sign('HMAC', hmacKey, sharedSecret)); // Fix: Pass Uint8Array directly
 
   const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -245,7 +246,7 @@ async function sendWebPushRequest(endpoint: string, salt: Uint8Array, senderPubl
   const resp = await fetch(endpoint, {
     method: 'POST',
     headers,
-    body: cipherBytes.buffer,
+    body: cipherBytes.buffer as ArrayBuffer, // Explicitly cast to ArrayBuffer
   });
 
   const ok = resp.ok;
