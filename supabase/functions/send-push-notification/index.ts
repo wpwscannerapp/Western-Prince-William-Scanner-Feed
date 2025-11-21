@@ -410,18 +410,20 @@ serve(async (req: Request) => {
     console.log('Edge Function: Alert data received:', alert.title);
 
     console.log('Edge Function: Retrieving VAPID keys from environment.');
-    const vapidPublicKey = Deno.env.get('VITE_WEB_PUSH_PUBLIC_KEY')!;
-    const vapidPrivateKeyBase64Url = Deno.env.get('WEB_PUSH_PRIVATE_KEY')!;
-    debug('VAPID Public Key (first 20 chars):', vapidPublicKey.substring(0, 20) + '...');
-    debug('VAPID Private Key (first 20 chars):', vapidPrivateKeyBase64Url.substring(0, 20) + '...');
+    const vapidPublicKey = Deno.env.get('VITE_WEB_PUSH_PUBLIC_KEY'); // Removed '!'
+    const vapidPrivateKeyBase64Url = Deno.env.get('WEB_PUSH_PRIVATE_KEY'); // Removed '!'
 
     if (!vapidPublicKey || !vapidPrivateKeyBase64Url) {
-      console.error('Edge Function Error: VAPID keys are not configured. Ensure WEB_PUSH_PUBLIC_KEY and WEB_PUSH_PRIVATE_KEY are set as secrets.');
+      console.error('Edge Function Error: VAPID keys are not configured. Ensure VITE_WEB_PUSH_PUBLIC_KEY and WEB_PUSH_PRIVATE_KEY are set as secrets.');
       return new Response(JSON.stringify({ error: { message: 'Server Error: VAPID keys are not configured.' } }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    
+    // Now that we've checked, it's safe to use substring
+    debug('VAPID Public Key (first 20 chars):', vapidPublicKey.substring(0, 20) + '...');
+    debug('VAPID Private Key (first 20 chars):', vapidPrivateKeyBase64Url.substring(0, 20) + '...');
     console.log('Edge Function: VAPID keys retrieved.');
 
     console.log('Edge Function: Fetching push subscriptions from database.');
