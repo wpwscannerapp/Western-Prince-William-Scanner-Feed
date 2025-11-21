@@ -26,7 +26,8 @@ function uint8ArrayToB64(u8: Uint8Array) {
   for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]);
   return btoa(s);
 }
-function uint8ArrayToB64Url(u8: Uint8Array) {
+// Renamed uint8ArrayToB64Url to base64UrlEncode for consistency
+function base64UrlEncode(u8: Uint8Array) {
   return uint8ArrayToB64(u8).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 function concatUint8Arrays(...arrays: Uint8Array[]) {
@@ -68,7 +69,7 @@ function wrapRawPrivateKeyToPkcs8(rawPrivateKey: Uint8Array): Uint8Array {
     }
     hexLen.reverse();
     // Corrected: Use spread operator for Uint8Array.from
-    return Uint8Array.from([0x80 | hexLen.length, ...hexLen]);
+    return Uint8Arrays.from([0x80 | hexLen.length, ...hexLen]);
   };
 
   // Precomputed pieces:
@@ -187,9 +188,20 @@ export async function importVapidPrivateKey(keyString: string): Promise<CryptoKe
   throw new Error(`Unsupported VAPID key format or invalid size (${rawBytes.length} bytes). Expected 32-byte raw key or PKCS#8 PEM/DER.`);
 }
 
+// --- NEW CANONICAL HELPERS ---
+function utf8ToUint8Array(str: string): Uint8Array {
+  return new TextEncoder().encode(str);
+}
+
+function leftPad(input: Uint8Array, pad: number): Uint8Array {
+  const output = new Uint8Array(pad);
+  output.set(input, pad - input.length);
+  return output;
+}
+
 // Convert ECDSA-JWT signature (DER) to raw 64-byte R||S
-function derToRawSignature(der: Uint8Array): Uint8Array {
-  debug('derToRawSignature: Input DER signature (first 10 bytes):', der.slice(0, 10), 'Full DER (hex):', Array.from(der).map(b => b.toString(16).padStart(2, '0')).join(''));
+function derToConcat(der: Uint8Array): Uint8Array {
+  debug('derToConcat: Input DER signature (first 10 bytes):', der.slice(0, 10), 'Full DER (hex):', Array.from(der).map(b => b.toString(16).padStart(2, '0')).join(''));
   if (der[0] !== 0x30) throw new Error('Invalid DER signature: Does not start with 0x30');
   let idx = 2;
   if (der[idx] !== 0x02) throw new Error('Invalid DER format for R: Does not contain 0x02 at expected position');
@@ -198,43 +210,62 @@ function derToRawSignature(der: Uint8Array): Uint8Array {
   if (der[idx] !== 0x02) throw new Error('Invalid DER format for S: Does not contain 0x02 at expected position');
   const slen = der[idx + 1]; idx += 2;
   const s = der.slice(idx, idx + slen);
-  const rPad = new Uint8Array(32); rPad.set(r, 32 - r.length);
-  const sPad = new Uint8Array(32); sPad.set(s, 32 - s.length);
+  
+  const rPad = leftPad(r, 32);
+  const sPad = leftPad(s, 32);
   return concatUint8Arrays(rPad, sPad);
 }
 
-// Build VAPID JWT (ES256) and return Authorization header value
-async function buildVapidAuth(privateKeyInput: unknown, subject: string, aud: string) {
+// New core VAPID signing function
+async function signVapid(privateKey: CryptoKey, aud: string, sub: string, exp: number): Promise<string> {
   const header = { alg: 'ES256', typ: 'JWT' };
-  const now = Math.floor(Date.now() / 1000);
-  const payload = { aud, exp: now + 12 * 60 * 60, sub: subject };
+  const payload = { aud, exp, sub };
 
-  const encodedHeader = uint8ArrayToB64Url(new TextEncoder().encode(JSON.stringify(header)));
-  const encodedPayload = uint8ArrayToB64Url(new TextEncoder().encode(JSON.stringify(payload)));
+  const encodedHeader = base64UrlEncode(utf8ToUint8Array(JSON.stringify(header)));
+  const encodedPayload = base64UrlEncode(utf8ToUint8Array(JSON.stringify(payload)));
   const signingInput = `${encodedHeader}.${encodedPayload}`;
-  debug('Signing input:', signingInput);
+  debug('signVapid: Signing input:', signingInput);
 
-  const signKey = await importVapidPrivateKey(privateKeyInput as string); // Cast to string for the new function
-  debug('Private key imported successfully.');
+  const signature = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privateKey, utf8ToUint8Array(signingInput)));
+  debug('signVapid: Signature generated. DER Length:', signature.length, 'First bytes:', signature.slice(0, 10));
 
-  const signature = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, signKey, new TextEncoder().encode(signingInput)));
-  debug('Signature generated. DER Length:', signature.length, 'First bytes:', signature.slice(0, 10), 'Full (hex):', Array.from(signature).map(b => b.toString(16).padStart(2, '0')).join(''));
-
-  let rawSig: Uint8Array;
-  if (signature.length === 64) {
-    debug('Signature is 64 bytes, assuming raw R||S format.');
-    rawSig = signature; // Use directly if it's already raw R||S
-  } else {
-    debug('Signature is not 64 bytes, attempting DER parsing.');
-    rawSig = derToRawSignature(signature); // Otherwise, try to parse as DER
-  }
-  
-  debug('Raw signature converted. Raw Length:', rawSig.length); // Added raw length log
-  const encodedSig = uint8ArrayToB64Url(rawSig);
+  const rawSig = derToConcat(signature);
+  debug('signVapid: Raw signature converted. Raw Length:', rawSig.length);
+  const encodedSig = base64UrlEncode(rawSig);
   const jwt = `${signingInput}.${encodedSig}`;
 
-  return jwt; // Only return the JWT
+  return jwt;
 }
+// --- END NEW CANONICAL HELPERS ---
+
+
+// Build VAPID JWT (ES256) and return Authorization header value
+async function buildVapidAuth(privateKeyInput: unknown, subject: string, aud: string) {
+  const now = Math.floor(Date.now() / 1000);
+  const exp = now + 12 * 60 * 60; // 12 hours expiration
+
+  const signKey = await importVapidPrivateKey(privateKeyInput as string);
+  debug('buildVapidAuth: Private key imported successfully.');
+
+  const jwt = await signVapid(signKey, aud, subject, exp);
+  return jwt;
+}
+
+// Convert ECDSA-JWT signature (DER) to raw 64-byte R||S
+// function derToRawSignature(der: Uint8Array): Uint8Array {
+//   debug('derToRawSignature: Input DER signature (first 10 bytes):', der.slice(0, 10), 'Full DER (hex):', Array.from(der).map(b => b.toString(16).padStart(2, '0')).join(''));
+//   if (der[0] !== 0x30) throw new Error('Invalid DER signature: Does not start with 0x30');
+//   let idx = 2;
+//   if (der[idx] !== 0x02) throw new Error('Invalid DER format for R: Does not contain 0x02 at expected position');
+//   const rlen = der[idx + 1]; idx += 2;
+//   const r = der.slice(idx, idx + rlen); idx += rlen;
+//   if (der[idx] !== 0x02) throw new Error('Invalid DER format for S: Does not contain 0x02 at expected position');
+//   const slen = der[idx + 1]; idx += 2;
+//   const s = der.slice(idx, idx + slen);
+//   const rPad = new Uint8Array(32); rPad.set(r, 32 - r.length);
+//   const sPad = new Uint8Array(32); sPad.set(s, 32 - s.length);
+//   return concatUint8Arrays(rPad, sPad);
+// }
 
 // --- NEW: Helper functions for Web Push encryption ---
 async function importSubscriptionPublicKey(p256dh: string): Promise<CryptoKey> {
@@ -311,7 +342,7 @@ async function encryptForWebPush(payload: string, subscription: any) {
   const nonceBits = await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: salt.buffer, info: infoNonce.buffer }, prkKey, 96);
   const nonce = new Uint8Array(nonceBits);
 
-  const payloadBytes = new TextEncoder().encode(payload);
+  const payloadBytes = utf8ToUint8Array(payload); // Use new helper
   const record = createPaddingAndRecord(payloadBytes);
 
   const aesKey = await crypto.subtle.importKey('raw', cek.buffer, { name: 'AES-GCM' }, false, ['encrypt']);
@@ -327,14 +358,14 @@ async function encryptForWebPush(payload: string, subscription: any) {
 
 async function sendWebPushRequest(endpoint: string, salt: Uint8Array, senderPublicNoPrefix: Uint8Array, cipherBytes: Uint8Array, vapidJwt: string, vapidPublicKeyB64u: string) {
   const cryptoKeyHeaderParts: string[] = [];
-  cryptoKeyHeaderParts.push(`dh=${uint8ArrayToB64Url(senderPublicNoPrefix)}`);
+  cryptoKeyHeaderParts.push(`dh=${base64UrlEncode(senderPublicNoPrefix)}`); // Use new helper
   cryptoKeyHeaderParts.push(`p256ecdsa=${vapidPublicKeyB64u}`); // Use the provided public key directly
   const cryptoKeyHeader = cryptoKeyHeaderParts.join(';');
 
   const headers: Record<string,string> = {
     TTL: '2419200',
     'Content-Encoding': 'aes128gcm',
-    Encryption: `salt=${uint8ArrayToB64Url(salt)}`,
+    Encryption: `salt=${base64UrlEncode(salt)}`, // Use new helper
     'Crypto-Key': cryptoKeyHeader,
     Authorization: `WebPush ${vapidJwt}`,
     'Content-Type': 'application/octet-stream',
