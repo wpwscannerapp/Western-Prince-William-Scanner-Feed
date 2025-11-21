@@ -152,25 +152,16 @@ export async function importVapidPrivateKey(keyString: string): Promise<CryptoKe
 
   console.info('[push] importVapidPrivateKey: decoded length', rawBytes.length);
 
-  // First, try importing as raw (some runtimes accept this)
+  // NEW LOGIC: If 32 bytes, always wrap to PKCS#8
   if (rawBytes.length === 32) {
-    try {
-      const key = await crypto.subtle.importKey('raw', rawBytes.buffer as ArrayBuffer, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']);
-      console.info('[push] importVapidPrivateKey: imported raw key successfully');
-      return key;
-    } catch (err) {
-      console.info('[push] importVapidPrivateKey: raw import failed, will try pkcs8 wrapper -', (err as Error).message);
-      // fall through to wrapping into pkcs8
-    }
-
-    // Wrap into PKCS#8 DER and try importing
+    console.info('[push] importVapidPrivateKey: detected 32-byte raw key, wrapping to PKCS#8 DER.');
     try {
       const pkcs8Der = wrapRawPrivateKeyToPkcs8(rawBytes);
       const key = await crypto.subtle.importKey('pkcs8', pkcs8Der.buffer as ArrayBuffer, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']);
-      console.info('[push] importVapidPrivateKey: imported wrapped pkcs8 key successfully');
+      console.info('[push] importVapidPrivateKey: imported wrapped pkcs8 key successfully.');
       return key;
     } catch (err) {
-      throw new Error(`Failed to import VAPID raw key (32 bytes) as EC private key after wrapping to PKCS#8: ${(err as Error).message}`);
+      throw new Error(`Failed to import VAPID raw key (32 bytes) after wrapping to PKCS#8: ${(err as Error).message}`);
     }
   }
 
@@ -219,6 +210,8 @@ function derToConcat(der: Uint8Array): Uint8Array {
 // New core VAPID signing function
 async function signVapid(privateKey: CryptoKey, signingInput: string): Promise<string> {
   debug('signVapid: Signing input:', signingInput);
+  debug('signVapid: Private key details (type, algorithm, usages):', privateKey.type, privateKey.algorithm, privateKey.usages);
+
 
   const signature = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privateKey, utf8ToUint8Array(signingInput).buffer as ArrayBuffer));
   debug('signVapid: Signature generated. DER Length:', signature.length, 'First bytes:', signature.slice(0, 10));
