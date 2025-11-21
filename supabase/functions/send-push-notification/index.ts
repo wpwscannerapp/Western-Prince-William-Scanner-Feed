@@ -131,7 +131,7 @@ export async function importVapidPrivateKey(keyString: string): Promise<CryptoKe
     // try pkcs8 import
     try {
       console.info('[push] importVapidPrivateKey: detected PEM, length', der.length);
-      const key = await crypto.subtle.importKey('pkcs8', der.buffer as ArrayBuffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+      const key = await crypto.subtle.importKey('pkcs8', der.buffer as ArrayBuffer, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']);
       return key;
     } catch (err) {
       throw new Error(`Failed to import VAPID key as PKCS#8 PEM: ${(err as Error).message}`);
@@ -155,7 +155,7 @@ export async function importVapidPrivateKey(keyString: string): Promise<CryptoKe
   // First, try importing as raw (some runtimes accept this)
   if (rawBytes.length === 32) {
     try {
-      const key = await crypto.subtle.importKey('raw', rawBytes.buffer as ArrayBuffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+      const key = await crypto.subtle.importKey('raw', rawBytes.buffer as ArrayBuffer, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']);
       console.info('[push] importVapidPrivateKey: imported raw key successfully');
       return key;
     } catch (err) {
@@ -166,7 +166,7 @@ export async function importVapidPrivateKey(keyString: string): Promise<CryptoKe
     // Wrap into PKCS#8 DER and try importing
     try {
       const pkcs8Der = wrapRawPrivateKeyToPkcs8(rawBytes);
-      const key = await crypto.subtle.importKey('pkcs8', pkcs8Der.buffer as ArrayBuffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+      const key = await crypto.subtle.importKey('pkcs8', pkcs8Der.buffer as ArrayBuffer, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']);
       console.info('[push] importVapidPrivateKey: imported wrapped pkcs8 key successfully');
       return key;
     } catch (err) {
@@ -177,7 +177,7 @@ export async function importVapidPrivateKey(keyString: string): Promise<CryptoKe
   // If longer than 32, maybe it's DER PKCS#8 bytes already
   if (rawBytes.length > 32) {
     try {
-      const key = await crypto.subtle.importKey('pkcs8', rawBytes.buffer as ArrayBuffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+      const key = await crypto.subtle.importKey('pkcs8', rawBytes.buffer as ArrayBuffer, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']);
       console.info('[push] importVapidPrivateKey: imported DER pkcs8 bytes successfully');
       return key;
     } catch (err) {
@@ -220,7 +220,6 @@ function derToConcat(der: Uint8Array): Uint8Array {
 async function signVapid(privateKey: CryptoKey, signingInput: string): Promise<string> {
   debug('signVapid: Signing input:', signingInput);
 
-  // Fix 1: Explicitly cast buffer to ArrayBuffer
   const signature = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privateKey, utf8ToUint8Array(signingInput).buffer as ArrayBuffer));
   debug('signVapid: Signature generated. DER Length:', signature.length, 'First bytes:', signature.slice(0, 10));
 
@@ -321,27 +320,6 @@ export async function buildVapidAuth(
   };
 }
 
-// --- NEW: Helper functions for Web Push encryption ---
-async function importSubscriptionPublicKey(p256dh: string): Promise<CryptoKey> {
-  const keyBytes = b64UrlToUint8Array(p256dh);
-  // The p256dh key from PushSubscription.toJSON().keys is already in uncompressed format,
-  // which means it already starts with 0x04. Adding it again makes it invalid.
-  // So, we should use keyBytes directly.
-  debug('importSubscriptionPublicKey: keyBytes length:', keyBytes.length, 'first byte:', keyBytes[0]); // Add debug
-  return crypto.subtle.importKey(
-    'raw',
-    keyBytes.buffer as ArrayBuffer, // Explicitly cast to ArrayBuffer
-    { name: 'ECDH', namedCurve: 'P-256' },
-    true,
-    []
-  );
-}
-
-function parseAuthSecret(auth: string): Uint8Array {
-  return b64UrlToUint8Array(auth);
-}
-// --- END NEW: Helper functions for Web Push encryption ---
-
 
 function createInfo(type: string, clientPublic: Uint8Array, serverPublic: Uint8Array) {
   function lenPrefix(u8: Uint8Array) {
@@ -366,7 +344,6 @@ function createPaddingAndRecord(payloadBytes: Uint8Array) {
 }
 
 async function encryptForWebPush(payload: string, subscription: any) {
-  // Fix 2 & 3: Moved importSubscriptionPublicKey and parseAuthSecret definitions above this function.
   const userPublic = await importSubscriptionPublicKey(subscription.keys.p256dh);
   const userPublicRaw = new Uint8Array(await crypto.subtle.exportKey('raw', userPublic));
   debug('userPublicRaw length', userPublicRaw.length);
@@ -415,7 +392,8 @@ async function sendWebPushRequest(endpoint: string, salt: Uint8Array, senderPubl
   const cryptoKeyHeaderParts: string[] = [];
   cryptoKeyHeaderParts.push(`dh=${base64UrlEncode(senderPublicNoPrefix)}`); // Use new helper
   cryptoKeyHeaderParts.push(`p256ecdsa=${vapidPublicKeyB64u}`); // Use the provided public key directly
-  const cryptoKeyHeader = cryptoKeyHeaderParts.join(';');
+  // Changed the delimiter from ';' to '; ' for broader compatibility
+  const cryptoKeyHeader = cryptoKeyHeaderParts.join('; ');
 
   const headers: Record<string,string> = {
     TTL: '2419200',
