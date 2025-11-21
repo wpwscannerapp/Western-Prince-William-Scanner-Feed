@@ -69,7 +69,7 @@ function wrapRawPrivateKeyToPkcs8(rawPrivateKey: Uint8Array): Uint8Array {
     }
     hexLen.reverse();
     // Corrected: Use spread operator for Uint8Array.from
-    return Uint8Arrays.from([0x80 | hexLen.length, ...hexLen]);
+    return Uint8Array.from([0x80 | hexLen.length, ...hexLen]);
   };
 
   // Precomputed pieces:
@@ -217,13 +217,7 @@ function derToConcat(der: Uint8Array): Uint8Array {
 }
 
 // New core VAPID signing function
-async function signVapid(privateKey: CryptoKey, aud: string, sub: string, exp: number): Promise<string> {
-  const header = { alg: 'ES256', typ: 'JWT' };
-  const payload = { aud, exp, sub };
-
-  const encodedHeader = base64UrlEncode(utf8ToUint8Array(JSON.stringify(header)));
-  const encodedPayload = base64UrlEncode(utf8ToUint8Array(JSON.stringify(payload)));
-  const signingInput = `${encodedHeader}.${encodedPayload}`;
+async function signVapid(privateKey: CryptoKey, signingInput: string): Promise<string> {
   debug('signVapid: Signing input:', signingInput);
 
   const signature = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privateKey, utf8ToUint8Array(signingInput)));
@@ -232,61 +226,99 @@ async function signVapid(privateKey: CryptoKey, aud: string, sub: string, exp: n
   const rawSig = derToConcat(signature);
   debug('signVapid: Raw signature converted. Raw Length:', rawSig.length);
   const encodedSig = base64UrlEncode(rawSig);
-  const jwt = `${signingInput}.${encodedSig}`;
-
-  return jwt;
+  
+  return encodedSig;
 }
 // --- END NEW CANONICAL HELPERS ---
 
+// Helper to convert base64url string -> Uint8Array
+// This is already defined as b64UrlToUint8Array, but keeping the user's provided version for clarity if they intended a specific one.
+// I'll ensure the existing b64UrlToUint8Array is used.
 
-// Build VAPID JWT (ES256) and return Authorization header value
-async function buildVapidAuth(privateKeyInput: unknown, subject: string, aud: string) {
+async function derivePublicKeyBase64Url(privateKey: CryptoKey): Promise<string> {
+  try {
+    const jwk = await crypto.subtle.exportKey('jwk', privateKey);
+    if (typeof jwk === 'object' && 'x' in jwk && 'y' in jwk) {
+      const x = (jwk as any).x as string;
+      const y = (jwk as any).y as string;
+      const xb = b64UrlToUint8Array(x);
+      const yb = b64UrlToUint8Array(y);
+      const publicRaw = concatUint8Arrays(Uint8Array.from([0x04]), xb, yb); // 65 bytes
+      return base64UrlEncode(publicRaw);
+    }
+  } catch (err) {
+    console.info('[push] derivePublicKeyBase64Url: exportKey jwk failed or missing x/y:', (err as Error).message);
+  }
+  throw new Error('Could not derive public key from private key in this runtime; provide VAPID_PUBLIC_KEY in env.');
+}
+
+// Build VAPID Authorization & Crypto-Key headers
+export async function buildVapidAuth(
+  {
+    vapidPrivateKeyString,
+    vapidPublicKeyString, // optional base64url public key (uncompressed, leading 0x04, base64url)
+    audience, // push service origin (e.g., 'https://fcm.googleapis.com')
+    subject,  // contact (mailto: or URL)
+    expirationSeconds = 12 * 60 * 60 // default 12 hours
+  }: {
+    vapidPrivateKeyString: string,
+    vapidPublicKeyString?: string,
+    audience: string,
+    subject: string,
+    expirationSeconds?: number
+  }
+): Promise<{ Authorization: string; 'Crypto-Key': string }> {
+  if (!vapidPrivateKeyString) throw new Error('VAPID private key string required');
+  
+  // Import private key (handles PEM/DER/32-byte raw)
+  const privateKey = await importVapidPrivateKey(vapidPrivateKeyString);
+  console.info('[push] Private key imported successfully.');
+  
+  // Get base64url public key: prefer provided vapidPublicKeyString else derive/export
+  let publicKeyBase64Url = vapidPublicKeyString;
+  if (!publicKeyBase64Url) {
+    try {
+      publicKeyBase64Url = await derivePublicKeyBase64Url(privateKey);
+      console.info('[push] Derived public key from private key.');
+    } catch (err) {
+      throw new Error('VAPID public key missing and could not be derived: ' + (err as Error).message);
+    }
+  }
+  
+  // Build JWT header and payload
   const now = Math.floor(Date.now() / 1000);
-  const exp = now + 12 * 60 * 60; // 12 hours expiration
-
-  const signKey = await importVapidPrivateKey(privateKeyInput as string);
-  debug('buildVapidAuth: Private key imported successfully.');
-
-  const jwt = await signVapid(signKey, aud, subject, exp);
-  return jwt;
+  const exp = now + expirationSeconds;
+  const header = { alg: 'ES256', typ: 'JWT' };
+  const payload = {
+    aud: audience,
+    exp: exp,
+    sub: subject
+  };
+  
+  const encodedHeader = base64UrlEncode(utf8ToUint8Array(JSON.stringify(header)));
+  const encodedPayload = base64UrlEncode(utf8ToUint8Array(JSON.stringify(payload)));
+  const signingInput = `${encodedHeader}.${encodedPayload}`;
+  console.info('[push] Signing input length:', signingInput.length);
+  
+  // Sign and get base64url-encoded raw r||s signature
+  const signatureBase64Url = await signVapid(privateKey, signingInput);
+  
+  // Build JWT compact form: header.payload.signature
+  const jwt = `${signingInput}.${signatureBase64Url}`;
+  
+  // Build headers required by Web Push
+  const authorizationHeader = `WebPush ${jwt}`;
+  const cryptoKeyHeader = `p256ecdsa=${publicKeyBase64Url}`;
+  
+  // Non-secret logs
+  console.info('[push] VAPID public key (first 20 chars):', publicKeyBase64Url.slice(0, 20));
+  console.info('[push] JWT length:', jwt.length);
+  
+  return {
+    Authorization: authorizationHeader,
+    'Crypto-Key': cryptoKeyHeader
+  };
 }
-
-// Convert ECDSA-JWT signature (DER) to raw 64-byte R||S
-// function derToRawSignature(der: Uint8Array): Uint8Array {
-//   debug('derToRawSignature: Input DER signature (first 10 bytes):', der.slice(0, 10), 'Full DER (hex):', Array.from(der).map(b => b.toString(16).padStart(2, '0')).join(''));
-//   if (der[0] !== 0x30) throw new Error('Invalid DER signature: Does not start with 0x30');
-//   let idx = 2;
-//   if (der[idx] !== 0x02) throw new Error('Invalid DER format for R: Does not contain 0x02 at expected position');
-//   const rlen = der[idx + 1]; idx += 2;
-//   const r = der.slice(idx, idx + rlen); idx += rlen;
-//   if (der[idx] !== 0x02) throw new Error('Invalid DER format for S: Does not contain 0x02 at expected position');
-//   const slen = der[idx + 1]; idx += 2;
-//   const s = der.slice(idx, idx + slen);
-//   const rPad = new Uint8Array(32); rPad.set(r, 32 - r.length);
-//   const sPad = new Uint8Array(32); sPad.set(s, 32 - s.length);
-//   return concatUint8Arrays(rPad, sPad);
-// }
-
-// --- NEW: Helper functions for Web Push encryption ---
-async function importSubscriptionPublicKey(p256dh: string): Promise<CryptoKey> {
-  const keyBytes = b64UrlToUint8Array(p256dh);
-  // The p256dh key from PushSubscription.toJSON().keys is already in uncompressed format,
-  // which means it already starts with 0x04. Adding it again makes it invalid.
-  // So, we should use keyBytes directly.
-  debug('importSubscriptionPublicKey: keyBytes length:', keyBytes.length, 'first byte:', keyBytes[0]); // Add debug
-  return crypto.subtle.importKey(
-    'raw',
-    keyBytes.buffer as ArrayBuffer, // Explicitly cast to ArrayBuffer
-    { name: 'ECDH', namedCurve: 'P-256' },
-    true,
-    []
-  );
-}
-
-function parseAuthSecret(auth: string): Uint8Array {
-  return b64UrlToUint8Array(auth);
-}
-// --- END NEW: Helper functions for Web Push encryption ---
 
 
 function createInfo(type: string, clientPublic: Uint8Array, serverPublic: Uint8Array) {
@@ -392,10 +424,18 @@ async function sendPush(subscription: DbPushSubscription, payload: string, vapid
   const { salt, senderPublicNoPrefix, cipherBytes } = await encryptForWebPush(payload, subscription.subscription);
 
   const aud = new URL(subscription.endpoint).origin;
-  const jwt = await buildVapidAuth(vapidConfig.privateKeyPkcs8, vapidConfig.subject, aud);
+  const { Authorization, 'Crypto-Key': CryptoKeyHeader } = await buildVapidAuth({
+    vapidPrivateKeyString: vapidConfig.privateKeyPkcs8,
+    vapidPublicKeyString: vapidConfig.publicKey,
+    audience: aud,
+    subject: vapidConfig.subject,
+  });
+
+  // Extract JWT and public key from the headers
+  const vapidJwt = Authorization.replace('WebPush ', '');
+  const vapidPublicKeyB64u = CryptoKeyHeader.replace('p256ecdsa=', '');
   
-  // Use the public key from vapidConfig directly
-  await sendWebPushRequest(subscription.endpoint, salt, senderPublicNoPrefix, cipherBytes, jwt, vapidConfig.publicKey);
+  await sendWebPushRequest(subscription.endpoint, salt, senderPublicNoPrefix, cipherBytes, vapidJwt, vapidPublicKeyB64u);
 }
 
 
