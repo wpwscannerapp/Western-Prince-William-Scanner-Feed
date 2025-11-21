@@ -67,7 +67,8 @@ function wrapRawPrivateKeyToPkcs8(rawPrivateKey: Uint8Array): Uint8Array {
       l >>= 8;
     }
     hexLen.reverse();
-    return concatUint8Arrays(Uint8Array.from([0x80 | hexLen.length]), Uint8Array.from(hexLen));
+    // Corrected: Use spread operator for Uint8Array.from
+    return Uint8Array.from([0x80 | hexLen.length, ...hexLen]);
   };
 
   // Precomputed pieces:
@@ -82,16 +83,19 @@ function wrapRawPrivateKeyToPkcs8(rawPrivateKey: Uint8Array): Uint8Array {
   const oid_ecPublicKey = Uint8Array.from([0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01]); // OID 1.2.840.10045.2.1
   const oid_prime256v1 = Uint8Array.from([0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07]); // OID 1.2.840.10045.3.1.7
 
+  // Corrected: Use spread arguments for concatUint8Arrays
   const algIdInner = concatUint8Arrays(oid_ecPublicKey, oid_prime256v1);
   const algId = wrapAsSequence(algIdInner);
 
   // PrivateKey OCTET STRING inner: Sequence { INTEGER 1, OCTET STRING (privateKey) }
   const intOne = Uint8Array.from([0x02, 0x01, 0x01]); // INTEGER 1
   const privateKeyOctet = wrapAsOctetString(rawPrivateKey);
+  // Corrected: Use spread arguments for concatUint8Arrays
   const innerSequence = wrapAsSequence(concatUint8Arrays(intOne, privateKeyOctet));
   const privateKeyOctetWrapped = wrapAsOctetString(innerSequence);
 
   // Build main sequence: version + algId + privateKeyOctetWrapped
+  // Corrected: Use spread arguments for concatUint8Arrays
   const mainInner = concatUint8Arrays(version, algId, privateKeyOctetWrapped);
   const pkcs8 = wrapAsSequence(mainInner);
 
@@ -100,10 +104,12 @@ function wrapRawPrivateKeyToPkcs8(rawPrivateKey: Uint8Array): Uint8Array {
   // local helpers used above
   function wrapAsSequence(content: Uint8Array) {
     const len = encodeLength(content.length);
+    // Corrected: Use spread arguments for concatUint8Arrays
     return concatUint8Arrays(Uint8Array.from([0x30]), len, content);
   }
   function wrapAsOctetString(content: Uint8Array) {
     const len = encodeLength(content.length);
+    // Corrected: Use spread arguments for concatUint8Arrays
     return concatUint8Arrays(Uint8Array.from([0x04]), len, content);
   }
 }
@@ -212,7 +218,7 @@ async function buildVapidAuth(privateKeyInput: unknown, subject: string, aud: st
   debug('Private key imported successfully.');
 
   const signature = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, signKey, new TextEncoder().encode(signingInput)));
-  debug('Signature generated. Length:', signature.length, 'First bytes:', signature.slice(0, 10), 'Full (hex):', Array.from(signature).map(b => b.toString(16).padStart(2, '0')).join(''));
+  debug('Signature generated. DER Length:', signature.length, 'First bytes:', signature.slice(0, 10), 'Full (hex):', Array.from(signature).map(b => b.toString(16).padStart(2, '0')).join(''));
 
   let rawSig: Uint8Array;
   if (signature.length === 64) {
@@ -223,7 +229,7 @@ async function buildVapidAuth(privateKeyInput: unknown, subject: string, aud: st
     rawSig = derToRawSignature(signature); // Otherwise, try to parse as DER
   }
   
-  debug('Raw signature converted.');
+  debug('Raw signature converted. Raw Length:', rawSig.length); // Added raw length log
   const encodedSig = uint8ArrayToB64Url(rawSig);
   const jwt = `${signingInput}.${encodedSig}`;
 
@@ -494,7 +500,14 @@ serve(async (req: Request) => {
         await sendPush(sub, notificationPayload, vapidConfig); // Call the new sendPush function
       } catch (sendError: any) {
         console.error('Edge Function Error: Error sending notification to subscription:', sub.endpoint, sendError);
-        if (sendError.message.includes('410') || sendError.message.includes('404')) {
+        // Check for InvalidCharacterError or other decoding issues
+        if (sendError instanceof DOMException && sendError.name === 'InvalidCharacterError') {
+          console.error('Edge Function: Malformed subscription data detected, deleting from DB:', sub.endpoint);
+          await supabaseAdmin
+            .from('push_subscriptions')
+            .delete()
+            .eq('endpoint', sub.endpoint);
+        } else if (sendError.message.includes('410') || sendError.message.includes('404')) {
           console.log('Edge Function: Subscription expired or not found, deleting from DB:', sub.endpoint);
           await supabaseAdmin
             .from('push_subscriptions')
