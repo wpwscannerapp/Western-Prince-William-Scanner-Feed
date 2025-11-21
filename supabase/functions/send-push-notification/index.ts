@@ -231,6 +231,26 @@ async function signVapid(privateKey: CryptoKey, signingInput: string): Promise<s
 }
 // --- END NEW CANONICAL HELPERS ---
 
+// --- NEW: importSubscriptionPublicKey function ---
+async function importSubscriptionPublicKey(base64UrlKey: string): Promise<CryptoKey> {
+  const raw = b64UrlToUint8Array(base64UrlKey);
+  return await crypto.subtle.importKey(
+    'raw',
+    raw.buffer as ArrayBuffer,
+    { name: 'ECDH', namedCurve: 'P-256' },
+    true, // extractable if you need to export; set false if not needed
+    []
+  );
+}
+// --- END NEW: importSubscriptionPublicKey function ---
+
+
+// Convert ECDSA-JWT signature (DER) to raw 64-byte R||S
+// This function is already defined as derToConcat, so no need to redefine.
+
+// New core VAPID signing function
+// This function is already defined as signVapid, so no need to redefine.
+
 // Helper to convert base64url string -> Uint8Array
 // This is already defined as b64UrlToUint8Array, but keeping the user's provided version for clarity if they intended a specific one.
 // I'll ensure the existing b64UrlToUint8Array is used.
@@ -332,6 +352,7 @@ function createInfo(type: string, clientPublic: Uint8Array, serverPublic: Uint8A
   const info = concatUint8Arrays(
     enc.encode(`Content-Encoding: ${type}\0`),
     enc.encode('P-256\0'),
+    enc.encode('auth\0'), // Added 'auth' info for HKDF
     lenPrefix(clientPublic),
     lenPrefix(serverPublic)
   );
@@ -350,7 +371,7 @@ async function encryptForWebPush(payload: string, subscription: any) {
 
   const userPublicNoPrefix = userPublicRaw[0] === 0x04 ? userPublicRaw.slice(1) : userPublicRaw;
 
-  const authSecret = parseAuthSecret(subscription.keys.auth);
+  const authSecret = b64UrlToUint8Array(subscription.keys.auth); // Use b64UrlToUint8Array directly
 
   const senderKeyPair = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']);
   const senderPublicRawFull = new Uint8Array(await crypto.subtle.exportKey('raw', senderKeyPair.publicKey));
