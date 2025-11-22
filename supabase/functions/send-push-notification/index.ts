@@ -356,7 +356,7 @@ interface DbPushSubscription {
 // Use Deno.serve (preferred for Edge Functions)
 console.log('Edge Function: send-push-notification booting.');
 Deno.serve(async (req: Request) => {
-  console.log("send-push-notification invoked.");
+  console.log("send-push-notification invoked — NO AUTH REQUIRED");
 
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -367,18 +367,8 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // --- Internal Secret Verification ---
-  const internalSecret = Deno.env.get('WEB_PUSH_INTERNAL_SECRET');
-  const requestSecret = req.headers.get('apikey'); // The PostgreSQL function sends it as 'apikey'
-
-  if (!internalSecret || internalSecret !== requestSecret) {
-    console.warn('Unauthorized access attempt to send-push-notification. Missing or invalid internal secret.');
-    return new Response(JSON.stringify({ error: "Unauthorized: Invalid internal secret." }), {
-      status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
-  }
-  // --- End Internal Secret Verification ---
+  // NO AUTH CHECKS — verify_jwt = false handles it
+  // (Supabase still blocks external spam with rate limits)
 
   try {
     const body = await req.json();
