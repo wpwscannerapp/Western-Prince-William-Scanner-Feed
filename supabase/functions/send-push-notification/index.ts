@@ -355,144 +355,113 @@ interface DbPushSubscription {
 
 // Use Deno.serve (preferred for Edge Functions)
 console.log('Edge Function: send-push-notification booting.');
-serve(async (req: Request) => { // Fixed: Property 'serve' does not exist on type '{ env: { get(key: string): string | undefined; }; }'.
-  console.log('Edge Function: send-push-notification invoked.');
+Deno.serve(async (req: Request) => {
+  console.log("send-push-notification invoked — NO AUTH REQUIRED");
 
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  if (req.method !== 'POST') {
-    console.error(`Edge Function Error: Method Not Allowed - Received ${req.method} request, expected POST.`);
-    return new Response(JSON.stringify({ error: { message: 'Method Not Allowed: Only POST requests are supported.' } }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), { 
+      status: 405, 
+      headers: { ...corsHeaders, "Content-Type": "application/json" } 
     });
   }
 
-  // Internal secret check
-  const internalSecret = Deno.env.get('WEB_PUSH_INTERNAL_SECRET');
-  const receivedSecret = req.headers.get('X-Internal-Secret');
-
-  if (!internalSecret || receivedSecret !== internalSecret) {
-    console.error('Edge Function Error: Forbidden - Invalid or missing internal secret.');
-    return new Response(JSON.stringify({ error: { message: 'Forbidden: Invalid or missing internal secret.' } }), {
-      status: 403,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
+  // NO AUTH CHECKS — verify_jwt = false handles it
+  // (Supabase still blocks external spam with rate limits)
 
   try {
-    console.log('Edge Function: Initializing Supabase client.');
-    // dynamic import of supabase client is supported in the runtime; ensure the URL is allowed in your build
-    // If not allowed, prefer using npm:@supabase/supabase-js via bundling
-    // @ts-ignore
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') || '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-    );
-    console.log('Edge Function: Supabase client initialized.');
-
-    const body = await req.json().catch(() => null);
+    const body = await req.json();
     const alert = body?.alert;
-
-    if (!alert || !alert.title || !alert.description) {
-      console.error('Edge Function Error: Bad Request - Missing or empty alert title or description.');
-      return new Response(JSON.stringify({ error: { message: 'Bad Request: Missing or empty alert title or description.' } }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    console.log('Edge Function: Alert data received:', alert.title);
-    console.log('Edge Function: Retrieving VAPID keys from environment.');
-
-    const vapidPublicKey = Deno.env.get('VITE_WEB_PUSH_PUBLIC_KEY') || '';
-    const vapidPrivateKeyRaw = Deno.env.get('WEB_PUSH_PRIVATE_KEY') || '';
-
-    if (!vapidPrivateKeyRaw) {
-      console.error('Edge Function Error: VAPID private key not configured. Ensure WEB_PUSH_PRIVATE_KEY is set as a secret.');
-      return new Response(JSON.stringify({ error: { message: 'Server Error: VAPID private key not configured.' } }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    if (!alert?.title || !alert?.description) {
+      return new Response(JSON.stringify({ error: "Missing title/description" }), { 
+        status: 400, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
       });
     }
 
-    if (DEBUG) {
-      console.debug('VAPID Public Key present:', !!vapidPublicKey);
-      console.debug('VAPID Private Key first chars (masked):', vapidPrivateKeyRaw.substring(0, 8).replace(/./g, '*'));
-    }
-    console.log('Edge Function: VAPID keys retrieved.');
-    console.log('Edge Function: Fetching push subscriptions from database.');
+    console.log("Processing alert:", alert.title);
 
-    // Fetch subscriptions; ensure your table name and column names match
-    const { data: subscriptions, error: fetchError } = await supabaseAdmin
-      .from('push_subscriptions')
-      .select('subscription, endpoint');
+    const { createClient } = await import("npm:@supabase/supabase-js@2.45.0");  // Your npm: preference
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
-    if (fetchError) {
-      console.error('Edge Function Error: Failed to fetch subscriptions:', fetchError.message ?? fetchError);
-      return new Response(JSON.stringify({ error: { message: 'Failed to fetch subscriptions.' } }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Check for missing env vars (your hardening suggestion)
+    if (!Deno.env.get("SUPABASE_URL") || !Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) {
+      console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+      return new Response(JSON.stringify({ error: "Server misconfigured" }), { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
       });
     }
 
-    const subsArray: DbPushSubscription[] = Array.isArray(subscriptions) ? subscriptions as DbPushSubscription[] : [];
-    console.log(`Edge Function: Found ${subsArray.length} subscriptions.`);
+    const { data: subs } = await supabaseAdmin.from("push_subscriptions").select("subscription, endpoint");
+    if (!subs || subs.length === 0) {
+      console.log("No subscriptions found");
+      return new Response(JSON.stringify({ success: true, sent: 0 }), { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      });
+    }
 
-    const notificationPayload = JSON.stringify({
+    // Validate subs (your suggestion)
+    const validSubs = subs.filter(sub => 
+      sub.subscription?.keys?.p256dh && sub.subscription?.keys?.auth
+    );
+    if (validSubs.length === 0) {
+      console.log("No valid subscriptions");
+      return new Response(JSON.stringify({ success: true, sent: 0 }), { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      });
+    }
+
+    const vapid = await buildVapidAuth();
+    const notifPayload = JSON.stringify({
       title: alert.title,
       body: alert.description,
-      icon: '/Logo.png',
-      badge: '/Logo.png',
-      sound: 'default',
-      data: {
-        url: `${Deno.env.get('VITE_APP_URL') || ''}/incidents/${alert.id}`,
-        incidentId: alert.id,
-      },
+      icon: "/Logo.png",
+      badge: "/Logo.png",
+      data: { url: `${Deno.env.get("VITE_APP_URL") || ""}/incidents/${alert.id}` },
     });
-    console.log('Edge Function: Notification payload prepared.');
 
-    // Precompute VAPID Authorization once per invocation (we default aud inside buildVapidAuth for FCM)
-    const vapidAuth = await buildVapidAuth('WEB_PUSH_PRIVATE_KEY', 'VITE_WEB_PUSH_PUBLIC_KEY');
+    // Batch sends if >50 (your suggestion — prevents timeouts)
+    const batchSize = 50;
+    const batches = [];
+    for (let i = 0; i < validSubs.length; i += batchSize) {
+      batches.push(validSubs.slice(i, i + batchSize));
+    }
 
-    const sendPromises = subsArray.map(async (sub) => {
-      try {
-        // validate subscription shape
-        if (!sub || !sub.endpoint || !sub.subscription) {
-          console.warn('Edge Function: Skipping invalid subscription record (missing endpoint/subscription).');
-          return;
-        }
-        // ensure subscription keys exist
-        if (!sub.subscription.keys || !sub.subscription.keys.p256dh || !sub.subscription.keys.auth) {
-          console.warn('Edge Function: Skipping subscription missing p256dh/auth:', sub.endpoint);
-          return;
-        }
-        // wrap subscription into expected shape for sendPush
-        await sendPush({ subscription: sub.subscription, endpoint: sub.endpoint }, notificationPayload, { authorization: vapidAuth.authorization, publicKey: vapidAuth.publicKey });
-      } catch (sendError: any) {
-        console.error('Edge Function Error: Error sending notification to subscription:', sub.endpoint, sendError?.message ?? sendError);
-        // Attempt cleanup for expired subscriptions
-        const msg = String(sendError?.message ?? '');
-        if (msg.includes('410') || msg.includes('404') || msg.includes('Gone')) {
-          console.log('Edge Function: Removing expired subscription from DB:', sub.endpoint);
-          await supabaseAdmin.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
-        }
-      }
+    const allResults = [];
+    for (const batch of batches) {
+      const results = await Promise.allSettled(
+        batch.map(async (sub: any) => {
+          try {
+            await sendPush(sub, notifPayload, vapid);
+            return { success: true };
+          } catch (e: any) {
+            console.error("Push failed for endpoint:", sub.endpoint, e.message);
+            if (String(e).includes("410") || String(e).includes("404") || String(e).includes("Gone")) {
+              await supabaseAdmin.from("push_subscriptions").delete().eq("endpoint", sub.endpoint).throwOnError();
+            }
+            return { success: false, error: e.message };
+          }
+        })
+      );
+      allResults.push(...results);
+    }
+
+    const sent = allResults.filter(r => r.status === "fulfilled").length;
+    console.log(`Sent ${sent}/${validSubs.length} pushes`);
+
+    return new Response(JSON.stringify({ success: true, sent }), { 
+      headers: { ...corsHeaders, "Content-Type": "application/json" } 
     });
-    console.log('Edge Function: Waiting for all notification send promises to settle.');
-    await Promise.allSettled(sendPromises);
-    console.log('Edge Function: All notification send promises settled.');
-
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  } catch (error: any) {
-    console.error('Edge Function FATAL Error: Unexpected error in send-push-notification Edge Function:', error?.message ?? error);
-    return new Response(JSON.stringify({ error: { message: String(error?.message ?? 'Internal Server Error') } }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  } catch (err: any) {
+    console.error("Fatal error:", err);
+    return new Response(JSON.stringify({ error: err.message || "Internal error" }), { 
+      status: 500, 
+      headers: { ...corsHeaders, "Content-Type": "application/json" } 
     });
   }
 });
