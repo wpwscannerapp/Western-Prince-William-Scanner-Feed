@@ -1,4 +1,4 @@
-// index.ts (fixed)
+// index.ts (final working version)
 
 // Supabase Edge Function — Web Push sender (RFC8291 / aes128gcm)
 
@@ -13,7 +13,6 @@ function debug(...args: unknown[]) {
 // Utilities
 
 const textEncoder = new TextEncoder();
-// const textDecoder = new TextDecoder(); // Removed: 'textDecoder' is declared but its value is never read.
 
 function base64UrlToBase64(s: string): string {
   if (!s || typeof s !== 'string') throw new Error('Invalid base64url input');
@@ -92,15 +91,6 @@ function parsePrivateKeyInput(input: string): Uint8Array {
 function wrapRawPrivateKeyToPkcs8(rawKey: Uint8Array): Uint8Array {
   if (!rawKey || rawKey.length !== 32) throw new Error("Expected 32-byte raw private key");
 
-  // const pkcs8Prefix = new Uint8Array([ // Removed: 'pkcs8Prefix' is declared but its value is never read.
-  //   0x30, 0x2e + 0x20, // adjust lengths later if needed; this prefix works for P-256 raw key length
-  //   0x02, 0x01, 0x00,
-  //   0x30, 0x07,
-  //   0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x0a, // fallback OID (not always used) - safe to ignore in many environments
-  //   0x04, 0x20,
-  // ]);
-
-  // For reliability, use the previously defined longer prefix used in your original code:
   const stablePrefix = new Uint8Array([
     0x30, 0x81, 0x87,
     0x02, 0x01, 0x00,
@@ -135,10 +125,10 @@ async function importVapidPrivateKeyFromEnv(envName = "WEB_PUSH_PRIVATE_KEY"): P
   }
 
   try {
-    const alg = { name: "ECDSA", namedCurve: "P-256" } as EcKeyImportParams; // Fixed: Cannot find name 'EcdsaImportParams'. Did you mean 'EcKeyImportParams'?
+    const alg = { name: "ECDSA", namedCurve: "P-256" } as EcKeyImportParams;
     const cryptoKey = await crypto.subtle.importKey(
       "pkcs8",
-      keyDer.buffer as ArrayBuffer, // Fixed: Argument of type 'ArrayBufferLike' is not assignable to parameter of type 'BufferSource'.
+      keyDer.buffer as ArrayBuffer,
       alg,
       false, // not extractable
       ["sign"]
@@ -148,16 +138,6 @@ async function importVapidPrivateKeyFromEnv(envName = "WEB_PUSH_PRIVATE_KEY"): P
     throw new Error(`Failed to import VAPID private key as pkcs8: ${(err as Error).message}`);
   }
 }
-
-// Export public key (raw uncompressed) from private key by deriving ECDH public key then exporting
-// async function derivePublicKeyFromPrivate(cryptoPrivateKey: CryptoKey): Promise<string> { // Removed: 'derivePublicKeyFromPrivate' is declared but its value is never read.
-//   // Web Crypto doesn't allow extracting public key from private ECDSA key directly.
-//   // Workaround: import the private key as PKCS8 to get a CryptoKeyPair is not possible.
-//   // Instead, attempt to convert the PKCS8 DER to a JWK or re-import as 'ECDH' private key.
-//   // Simpler approach: accept VITE_WEB_PUSH_PUBLIC_KEY in env; if missing, try best-effort and return empty string.
-//   // NOTE: Deriving public key reliably in pure WebCrypto is complex; recommend setting public key secret.
-//   return '';
-// }
 
 // Convert DER signature (ASN.1 SEQUENCE of r and s) -> raw 64-byte R||S
 function derSigToRaw(der: Uint8Array): Uint8Array {
@@ -188,15 +168,13 @@ function derSigToRaw(der: Uint8Array): Uint8Array {
 // Sign data with ECDSA P-256 and return base64url signature (raw R||S)
 async function signVapid(cryptoKey: CryptoKey, data: string | Uint8Array) {
   const payload = typeof data === "string" ? textEncoder.encode(data) : data;
-  const derSig = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, cryptoKey, payload.buffer as ArrayBuffer)); // Fixed: No overload matches this call.
+  const derSig = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, cryptoKey, payload.buffer as ArrayBuffer));
   const raw = derSigToRaw(derSig);
   return uint8ArrayToBase64Url(raw);
 }
 
 // Build VAPID Authorization header (returns { authorization, publicKey })
 export async function buildVapidAuth(envPrivateName = "WEB_PUSH_PRIVATE_KEY", envPublicName = "VITE_WEB_PUSH_PUBLIC_KEY") {
-  // aud will be computed per push endpoint; here we default to FCM origin if needed
-  // For token claims we'll set aud to the FCM origin. Caller may override.
   const aud = "https://fcm.googleapis.com";
   const sub = Deno.env.get("VITE_ADMIN_EMAIL") ? `mailto:${Deno.env.get("VITE_ADMIN_EMAIL")}` : undefined;
   const cryptoKey = await importVapidPrivateKeyFromEnv(envPrivateName);
@@ -219,7 +197,6 @@ async function importSubscriptionPublicKey(base64UrlKey: string): Promise<Crypto
   if (!base64UrlKey || typeof base64UrlKey !== 'string') throw new Error('Missing subscription public key (p256dh)');
   const b64 = base64UrlToBase64(base64UrlKey);
   const rawBytes = base64ToUint8Array(b64);
-  // webcrypto expects raw format uncompressed (may include 0x04 prefix)
   const rawBuffer = rawBytes.buffer;
   return await crypto.subtle.importKey(
     'raw',
@@ -316,36 +293,24 @@ async function sendWebPushRequest(endpoint: string, salt: Uint8Array, senderPubl
   return { status, text };
 }
 
-// New helper function to orchestrate encryption and sending
 async function sendPush(subscription: DbPushSubscription, payload: string, vapidConfig: { publicKey?: string; privateKeyPkcs8?: string; subject?: string; authorization?: string }) {
   if (!subscription || !subscription.endpoint || !subscription.subscription) throw new Error('Invalid subscription object');
   if (!subscription.subscription.keys?.p256dh || !subscription.subscription.keys?.auth) throw new Error('Subscription missing keys');
   const { salt, senderPublicNoPrefix, cipherBytes } = await encryptForWebPush(payload, subscription.subscription);
-  // const aud = new URL(subscription.endpoint).origin; // Removed: 'aud' is declared but its value is never read.
-  // Use precomputed authorization if provided; otherwise build one (note buildVapidAuth uses FCM origin default)
   const vapid = vapidConfig.authorization ? { authorization: vapidConfig.authorization, publicKey: vapidConfig.publicKey ?? '' } : await buildVapidAuth('WEB_PUSH_PRIVATE_KEY', 'VITE_WEB_PUSH_PUBLIC_KEY');
   await sendWebPushRequest(subscription.endpoint, salt, senderPublicNoPrefix, cipherBytes, vapid.authorization, vapid.publicKey ?? '');
 }
 
-// Explicitly declare Deno global for TypeScript
 declare const Deno: {
   env: {
     get(key: string): string | undefined;
   };
-  serve: (handler: (request: Request) => Promise<Response>) => Promise<void>; // Added serve to Deno type
+  serve: (handler: (request: Request) => Promise<Response>) => Promise<void>;
 };
 
-// type Json = // Removed: 'Json' is declared but never used.
-//   | string
-//   | number
-//   | boolean
-//   | null
-//   | { [key: string]: Json | undefined }
-//   | Json[];
-
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 interface DbPushSubscription {
@@ -353,71 +318,51 @@ interface DbPushSubscription {
   endpoint: string;
 }
 
-// Use Deno.serve (preferred for Edge Functions)
-console.log('Edge Function: send-push-notification booting.');
 Deno.serve(async (req: Request) => {
   console.log("send-push-notification invoked — NO AUTH REQUIRED");
 
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), { 
-      status: 405, 
-      headers: { ...corsHeaders, "Content-Type": "application/json" } 
-    });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
   }
 
-  // NO AUTH CHECKS — verify_jwt = false handles it
-  // (Supabase still blocks external spam with rate limits)
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const body = await req.json();
     const alert = body?.alert;
     if (!alert?.title || !alert?.description) {
-      return new Response(JSON.stringify({ error: "Missing title/description" }), { 
-        status: 400, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      return new Response(JSON.stringify({ error: "Missing title/description" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log("Processing alert:", alert.title);
+    console.log("Sending push for:", alert.title);
 
-    const { createClient } = await import("npm:@supabase/supabase-js@2.45.0");  // Your npm: preference
+    const { createClient } = await import("npm:@supabase/supabase-js@2.45.0");
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Check for missing env vars (your hardening suggestion)
-    if (!Deno.env.get("SUPABASE_URL") || !Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) {
-      console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-      return new Response(JSON.stringify({ error: "Server misconfigured" }), { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
-    }
+    const { data: subs } = await supabaseAdmin
+      .from("push_subscriptions")
+      .select("subscription, endpoint");
 
-    const { data: subs } = await supabaseAdmin.from("push_subscriptions").select("subscription, endpoint");
     if (!subs || subs.length === 0) {
-      console.log("No subscriptions found");
-      return new Response(JSON.stringify({ success: true, sent: 0 }), { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
-    }
-
-    // Validate subs (your suggestion)
-    const validSubs = subs.filter(sub => 
-      sub.subscription?.keys?.p256dh && sub.subscription?.keys?.auth
-    );
-    if (validSubs.length === 0) {
-      console.log("No valid subscriptions");
-      return new Response(JSON.stringify({ success: true, sent: 0 }), { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      console.log("No subscriptions");
+      return new Response(JSON.stringify({ success: true, sent: 0 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const vapid = await buildVapidAuth();
-    const notifPayload = JSON.stringify({
+    const payload = JSON.stringify({
       title: alert.title,
       body: alert.description,
       icon: "/Logo.png",
@@ -425,43 +370,28 @@ Deno.serve(async (req: Request) => {
       data: { url: `${Deno.env.get("VITE_APP_URL") || ""}/incidents/${alert.id}` },
     });
 
-    // Batch sends if >50 (your suggestion — prevents timeouts)
-    const batchSize = 50;
-    const batches = [];
-    for (let i = 0; i < validSubs.length; i += batchSize) {
-      batches.push(validSubs.slice(i, i + batchSize));
+    let sent = 0;
+    for (const sub of subs) {
+      try {
+        await sendPush(sub, payload, vapid);
+        sent++;
+      } catch (e: any) {
+        console.error("Failed for one sub:", e.message);
+        if (e.message.includes("410") || e.message.includes("404")) {
+          await supabaseAdmin.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+        }
+      }
     }
 
-    const allResults = [];
-    for (const batch of batches) {
-      const results = await Promise.allSettled(
-        batch.map(async (sub: any) => {
-          try {
-            await sendPush(sub, notifPayload, vapid);
-            return { success: true };
-          } catch (e: any) {
-            console.error("Push failed for endpoint:", sub.endpoint, e.message);
-            if (String(e).includes("410") || String(e).includes("404") || String(e).includes("Gone")) {
-              await supabaseAdmin.from("push_subscriptions").delete().eq("endpoint", sub.endpoint).throwOnError();
-            }
-            return { success: false, error: e.message };
-          }
-        })
-      );
-      allResults.push(...results);
-    }
-
-    const sent = allResults.filter(r => r.status === "fulfilled").length;
-    console.log(`Sent ${sent}/${validSubs.length} pushes`);
-
-    return new Response(JSON.stringify({ success: true, sent }), { 
-      headers: { ...corsHeaders, "Content-Type": "application/json" } 
+    console.log(`Successfully sent to ${sent}/${subs.length} devices`);
+    return new Response(JSON.stringify({ success: true, sent }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
-    console.error("Fatal error:", err);
-    return new Response(JSON.stringify({ error: err.message || "Internal error" }), { 
-      status: 500, 
-      headers: { ...corsHeaders, "Content-Type": "application/json" } 
+    console.error("FATAL ERROR:", err);
+    return new Response(JSON.stringify({ error: err.message || "Internal error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
